@@ -5,13 +5,14 @@ import struct
 from .identity import CONTROLLOGIX_5580_PRODUCT_CODES
 from .integer_math import CONTROLLERS
 from .model import ModelError, coerce
-from .numeric_copy import prefix, static_reference
+from .numeric_copy import location, prefix, static_reference
 from .string_operations import string_operand
 from .task_configuration import NAME
 
 TASK = {'rate':(2,'DINT'), 'watchdog':(12,'DINT'), 'priority':(6,'INT'),
         'disableupdateoutputs':(18,'DINT'), 'inhibittask':(19,'DINT')}
 DEVICE_NAME_SIZE = 33
+MODULE_PATH_SIZE = 4
 MODULE_STATUS = {'forcestatus': 9, 'ledstatus': 11}
 MODULE_INHIBITED = 0x6000
 MODULE_INHIBIT_BIT = 1 << 2
@@ -122,12 +123,16 @@ def module_attribute(engine, instance, attribute, *, executing):
         raw = io_map.attributes().get(MODULE_STATUS[attribute]) if io_map.module_status_qualified else None
         if raw is None:
             raise ModelError('GSV Module status requires a complete controller-only I/O map without forces')
-        return struct.unpack('<h', raw)[0]
-    if not instance or attribute not in ('mode', 'entrystatus'):
-        raise ModelError('GSV Module requires a named instance for Mode or EntryStatus, or a blank instance for ForceStatus or LEDStatus')
+        return 'INT', struct.unpack('<h', raw)[0]
+    if not instance or attribute not in ('mode', 'entrystatus', 'path'):
+        raise ModelError('GSV Module requires a named instance for Mode, EntryStatus or Path, or a blank instance for ForceStatus or LEDStatus')
     module = io_map.named_module(instance)
     if module is None:
         raise ModelError('GSV Module requires an unambiguous named local-chassis module in complete source')
+    if attribute == 'path':
+        if module.backplane_slot is None:
+            raise ModelError('GSV Module Path requires an explicit unambiguous local backplane slot')
+        return 'SINT[4]', struct.pack('<HBB', 2, 1, module.backplane_slot)
     override = engine._module_modes.get(module.name)
     if attribute == 'entrystatus':
         if module.inhibited is None:
@@ -135,11 +140,11 @@ def module_attribute(engine, instance, attribute, *, executing):
         inhibited = module.inhibited if override is None else bool(override & MODULE_INHIBIT_BIT)
         if executing and not inhibited:
             raise ModelError('GSV Module EntryStatus is unavailable while the module is uninhibited')
-        return MODULE_INHIBITED if inhibited else None
+        return 'INT', MODULE_INHIBITED if inhibited else None
     value = module.mode()
     if value is None:
         raise ModelError('GSV Module Mode requires explicit boolean Inhibited and MajorFault settings')
-    return value if override is None else override
+    return 'INT', value if override is None else override
 
 
 def source(engine, op, scope='', *, executing=False):
@@ -156,7 +161,7 @@ def source(engine, op, scope='', *, executing=False):
     if cls == 'module':
         if instance and scope in engine.memory.frames:
             raise ModelError('Named GSV Module requires a Program routine; AOI module references are unsupported')
-        return 'INT', module_attribute(engine, instance, attribute, executing=executing)
+        return module_attribute(engine, instance, attribute, executing=executing)
     if cls=='controller':
         if instance:raise ModelError('GSV Controller requires an empty instance operand')
         if attribute=='name':
@@ -257,6 +262,16 @@ def destination(memory, ref, scope, dtype, *, allow_dint=False):
         if kind != 'SINT' or len(parts) != DEVICE_NAME_SIZE:
             raise ModelError('GSV ControllerDevice DeviceName requires 33 writable contiguous SINT elements')
         return key, parts, kind
+    if dtype == 'SINT[4]':
+        key, parts, kind, region = location(memory, ref, scope, writable=True)
+        error = 'GSV Module Path requires four writable contiguous SINT elements in a one-dimensional array'
+        if kind != 'SINT' or region is None:
+            raise ModelError(error)
+        base, cells = region
+        start = parts[-1] if parts != base else 0
+        if len(cells) - start < MODULE_PATH_SIZE or isinstance(cells[0], list):
+            raise ModelError(error)
+        return key, [base + [i] for i in range(start, start + MODULE_PATH_SIZE)], kind
     if dtype=='STRING':
         string_operand(memory,ref,scope,destination=True)
         key,parts,kind=memory.resolve(ref,scope)
@@ -284,7 +299,7 @@ def validate(engine, op, scope):
 def execute(engine, op, scope):
     dtype,value=source(engine,op,scope,executing=True);memory=engine.memory
     key,paths,kind=destination(memory,op.args[3],scope,dtype,allow_dint=op.args[0].casefold()=='module')
-    if dtype == 'SINT[33]':
+    if dtype in ('SINT[33]', 'SINT[4]'):
         for path, byte in zip(paths, value, strict=True):
             memory.store(key, path, byte)
     elif dtype=='STRING':memory.write_string(op.args[3],value,scope)
@@ -314,7 +329,8 @@ def description():
                             'CanUseRPIFromProducer','RedundancyEnabled','KeepTestEditsOnSwitchover','InhibitAutomaticFirmwareUpdate'],
                 controller_flags='Read-only explicit project flags. No producer negotiation, redundancy switchover or firmware service.',
                 program=['Name'],routine=['Name'],
-                module=['ForceStatus','LEDStatus','Mode','EntryStatus (inhibited)'],
+                module=['ForceStatus','LEDStatus','Mode','EntryStatus (inhibited)','Path'],
+                module_path='Explicit local backplane only. Two byte little-endian length followed by port 1 and slot.',
                 named_module_settings='Explicit local-chassis source settings and live Mode overrides. EntryStatus models only Inhibited (0x6000).',
                 module_mode_ssv={'source':'Exact scalar INT with bits 0 and 2 only',
                                  'visibility':'Immediate within an advance; rolled back on fault',

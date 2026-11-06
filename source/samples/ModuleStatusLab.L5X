@@ -20,6 +20,12 @@
       <Tag Name="StateWord" DataType="INT" TagType="Base"><Data Format="Decorated"><DataValue DataType="INT" Value="-1" /></Data></Tag>
       <Tag Name="ModeWord" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="305463295" /></Data></Tag>
       <Tag Name="StMode" DataType="INT" TagType="Base"><Data Format="Decorated"><DataValue DataType="INT" Value="-1" /></Data></Tag>
+      <Tag Name="PathBytes" DataType="SINT" TagType="Base" Dimensions="6">
+        <Data Format="Decorated"><Array DataType="SINT" Dimensions="6">
+          <Element Index="[0]" Value="-99" /><Element Index="[1]" Value="-7" /><Element Index="[2]" Value="-7" />
+          <Element Index="[3]" Value="-7" /><Element Index="[4]" Value="-7" /><Element Index="[5]" Value="99" />
+        </Array></Data>
+      </Tag>
       <Tag Name="ModuleInhibited" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
     </Tags>
     <Programs>
@@ -33,6 +39,7 @@
               <Rung Number="2" Type="N"><Text>XIC(ReadModule)GSV(Module,RackOutput,Mode,ModeWord);</Text></Rung>
               <Rung Number="3" Type="N"><Text>XIC(ReadModule)XIC(ModeWord.2)GSV(Module,RackOutput,EntryStatus,StateWord);</Text></Rung>
               <Rung Number="4" Type="N"><Text>XIC(ReadModule)XIC(ModeWord.2)MEQ(StateWord,16#F000,16#6000)OTE(ModuleInhibited);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(ReadModule)GSV(Module,RackOutput,Path,PathBytes[1]);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="ReadModeST" Type="ST">

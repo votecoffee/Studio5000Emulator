@@ -1,4 +1,5 @@
 """Read-only I/O settings and bounded root connection-class metadata."""
+from collections import Counter
 from dataclasses import dataclass
 from .tag_catalog import complete_tag_source
 from .task_configuration import NAME
@@ -9,11 +10,52 @@ class ModuleSettings:
     name: str
     inhibited: bool | None
     major_fault: bool | None
+    backplane_slot: int | None = None
 
     def mode(self):
         if self.inhibited is None or self.major_fault is None:
             return None
         return (int(self.inhibited) << 2) | int(self.major_fault)
+
+
+def _backplane_port(module, *, upstream):
+    if module.get('ParentModPortId') != '1' or len(module.findall('Ports')) != 1:
+        return None
+    ports = module.findall('./Ports/Port')
+    port_one = [port for port in ports if port.get('Id') == '1']
+    upstream_ports = [port for port in ports if port.get('Upstream') == 'true']
+    if len(port_one) != 1 or upstream_ports != (port_one if upstream else []):
+        return None
+    port = port_one[0]
+    if port.get('Type') != 'ICP' or port.get('Upstream') != ('true' if upstream else 'false'):
+        return None
+    return port
+
+
+def _decimal_field(node, attribute):
+    value = node.get(attribute, '')
+    return int(value) if 1 <= len(value) <= 2 and value.isascii() and value.isdecimal() else None
+
+
+def _backplane_slots(local, entries):
+    root_port = _backplane_port(local, upstream=False)
+    if root_port is None:
+        return {}
+    buses = root_port.findall('Bus')
+    size = _decimal_field(buses[0], 'Size') if len(buses) == 1 else None
+    local_slot = _decimal_field(root_port, 'Address')
+    if size is None or local_slot is None or not 0 <= local_slot < size <= 17:
+        return {}
+    slots = {}
+    for name, module in entries.items():
+        if name == 'local' or module.get('ParentModule', '').casefold() != 'local':
+            continue
+        port = _backplane_port(module, upstream=True)
+        slot = _decimal_field(port, 'Address') if port is not None else None
+        if slot is not None and 0 <= slot < size:
+            slots[name] = slot
+    counts = Counter(slots.values())
+    return {name: slot for name, slot in slots.items() if slot != local_slot and counts[slot] == 1}
 
 
 def _module_settings(controller, modules):
@@ -24,6 +66,7 @@ def _module_settings(controller, modules):
             or local.get('CatalogNumber') != controller.get('ProcessorType')
             or local.get('Vendor') != '1' or local.get('ProductType') != '14'):
         return ()
+    slots = _backplane_slots(local, entries)
     bool_values = {'true': True, 'false': False}
     settings = []
     for name, module in entries.items():
@@ -35,7 +78,7 @@ def _module_settings(controller, modules):
                 or not 0 < int(product) <= 0xffff or int(product) == 14):
             continue
         settings.append(ModuleSettings(name, bool_values.get(module.get('Inhibited')),
-                                       bool_values.get(module.get('MajorFault'))))
+                                       bool_values.get(module.get('MajorFault')), slots.get(name)))
     return tuple(settings)
 
 
@@ -149,4 +192,5 @@ class IOMap:
                 'root_link_port':self.root_link_port,
                 'root_link_port_available':self.root_link_port is not None,
                 'named_module_settings':len(self.module_settings),
+                'named_backplane_paths':sum(entry.backplane_slot is not None for entry in self.module_settings),
                 'module_connections':False, 'force_writes':False, 'physical_io_state_imported':False}

@@ -147,7 +147,8 @@ adds LEDStatus and ForceStatus reads in ladder and ST. DINT destinations keep
 their upper word. [Named Module status](docs/gsv-configuration.md#named-module-status)
 reads the Mode word for named local modules and reports the modeled Inhibited
 state. Ladder and ST can set Mode with SSV and read it back in the same scan.
-The **Module status lab** demonstrates both directions.
+The **Module status lab** demonstrates both directions and reads the configured
+backplane route with [GSV Module Path](docs/gsv-configuration.md#module-backplane-path).
 
 [Controller device GSV](docs/gsv-configuration.md#controller-device-identity)
 reads the loaded 5580 model's catalog name, product code, packed firmware

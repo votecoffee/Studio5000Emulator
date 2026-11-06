@@ -205,6 +205,101 @@ class GsvConfigurationTests(unittest.TestCase):
             module.set('MajorFault', major_fault)
         return module
 
+    @classmethod
+    def add_rack_path(cls, root, *, slot='2', controller_slot='0'):
+        module = cls.add_rack_module(root)
+        local = root.find('./Controller/Modules/Module[@Name="Local"]')
+        for item in (local, module):
+            item.set('ParentModPortId', '1')
+        controller_port = E.SubElement(E.SubElement(local, 'Ports'), 'Port', Id='1',
+                                       Type='ICP', Address=controller_slot, Upstream='false')
+        E.SubElement(controller_port, 'Bus', Size='17')
+        E.SubElement(E.SubElement(module, 'Ports'), 'Port', Id='1', Type='ICP',
+                     Address=slot, Upstream='true')
+        return module
+
+    def test_module_path_writes_counted_port_and_slot_in_ladder_and_st(self):
+        for st, slot, cpu in ((False, '16', '0'), (True, '0', '2')):
+            with self.subTest(st=st):
+                def source(root):
+                    self.add_rack_path(root, slot=slot, controller_slot=cpu)
+                    device_buffer(root, count=6)
+                e = self.checked(['GSV(Module,rAcKiO,Path,DeviceBytes[1]);'], st=st, mutate=source)
+                e.step()
+                self.assertEqual(e.memory.read('DeviceBytes'), [-1, 2, 0, 1, int(slot), -1])
+                self.assertFalse(e.project.io_map.empty)
+                self.assertIsNone(e.project.io_map.connection_class_attributes())
+                self.assertEqual(e.project.io_map.description()['named_backplane_paths'], 1)
+
+    def test_module_path_defers_live_selection_and_rolls_back_a_short_window(self):
+        def source(root):
+            self.add_rack_path(root)
+            device_buffer(root, count=6)
+        call = 'GSV(Module,RackIO,Path,DeviceBytes[Index]);'
+        e = self.checked(['MOV(12,Out);', 'XIC(Flag)' + call], mutate=source)
+        e.memory.write('Index', 99)
+        e.step()
+        self.assertEqual(e.memory.read('DeviceBytes'), [-1, None, None, None, None, -1])
+        e.memory.write('Out', -8)
+        e.memory.write('Flag', True)
+        for index, message in ((99, 'outside bounds'), (3, 'four writable contiguous SINT')):
+            e.memory.write('Index', index)
+            before = copy.deepcopy(e.memory.values)
+            with self.assertRaisesRegex(ModelError, message):
+                e.step()
+            self.assertEqual(e.memory.values, before)
+            self.assertEqual(e.scan_count, 1)
+        e.memory.write('Index', 2)
+        e.step()
+        self.assertEqual(e.memory.read('DeviceBytes'), [-1, None, 2, 0, 1, 2])
+
+        loop = 'FOR Index:=0 TO DeviceBytes[4] DO GSV(Module,RackIO,Path,DeviceBytes[1]); END_FOR;'
+        e = self.engine(loop, st=True, mutate=source)
+        self.assertTrue(any('bounds/step' in error for error in e.blockers), e.blockers)
+
+    def test_module_path_requires_valid_source_geometry_and_array_shape(self):
+        for case in ('missing', 'root-port', 'out-of-chassis', 'root-slot', 'duplicate',
+                     'duplicate-port', 'not-upstream', 'other-parent-port', 'short',
+                     'other-type', 'matrix', 'constant'):
+            with self.subTest(case=case):
+                def source(root):
+                    module = self.add_rack_path(root)
+                    modules = root.find('./Controller/Modules')
+                    port = module.find('./Ports/Port')
+                    if case == 'missing':
+                        module.remove(module.find('Ports'))
+                    elif case == 'root-port':
+                        modules.find('./Module/Ports/Port').set('Type', 'Ethernet')
+                    elif case == 'out-of-chassis':
+                        port.set('Address', '17')
+                    elif case == 'root-slot':
+                        port.set('Address', '0')
+                    elif case == 'duplicate':
+                        duplicate = copy.deepcopy(module)
+                        duplicate.set('Name', 'Other')
+                        modules.append(duplicate)
+                    elif case == 'duplicate-port':
+                        module.find('Ports').append(copy.deepcopy(port))
+                    elif case == 'not-upstream':
+                        port.set('Upstream', 'false')
+                    elif case == 'other-parent-port':
+                        module.set('ParentModPortId', '2')
+                    if case == 'matrix':
+                        tag = E.SubElement(root.find('./Controller/Tags'), 'Tag', Name='DeviceBytes',
+                                           DataType='SINT', TagType='Base', Dimensions='2,3')
+                        array = E.SubElement(E.SubElement(tag, 'Data', Format='Decorated'), 'Array',
+                                             DataType='SINT', Dimensions='2,3')
+                        E.SubElement(array, 'Element', Index='[0,0]', Value='-1')
+                    else:
+                        device_buffer(root, dtype='INT' if case == 'other-type' else 'SINT',
+                                      count=3 if case == 'short' else 6, constant=case == 'constant')
+                e = self.engine(['GSV(Module,RackIO,Path,DeviceBytes);'], mutate=source)
+                self.assertTrue(any('Module Path' in error or 'Read-only destination' in error
+                                    for error in e.blockers), e.blockers)
+                e = self.checked(['GSV(Module,RackIO,Mode,PriorityOut);'], mutate=source)
+                e.step()
+                self.assertEqual(e.memory.read('PriorityOut'), 5)
+
     def test_named_module_mode_reads_source_bits_in_ladder_and_st(self):
         for st in (False, True):
             for inhibited, major_fault, expected in (('false','false',0), ('false','true',1),
@@ -363,12 +458,14 @@ class GsvConfigurationTests(unittest.TestCase):
         self.assertEqual(e.memory.read('StateWord'), -1)
         self.assertEqual(e.memory.read('ModeWord'), 0x1234ffff)
         self.assertEqual(e.memory.read('StMode'), -1)
+        self.assertEqual(e.memory.read('PathBytes'), [-99, -7, -7, -7, -7, 99])
         self.assertFalse(e.memory.read('ModuleInhibited'))
         e.memory.write('ReadModule', True)
         e.step()
         self.assertEqual(e.memory.read('StateWord'), 0x6000)
         self.assertEqual(e.memory.read('ModeWord'), 0x12340005)
         self.assertEqual(e.memory.read('StMode'), 5)
+        self.assertEqual(e.memory.read('PathBytes'), [-99, 2, 0, 1, 2, 99])
         self.assertTrue(e.memory.read('ModuleInhibited'))
         e.memory.write('ApplyMode', True)
         e.memory.write('ModeCommand', 1)

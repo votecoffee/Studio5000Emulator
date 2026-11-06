@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1106.093850` [Module backplane Path reads](gsv-configuration.md#module-backplane-path)
+derive a counted port-and-slot route from explicit local chassis settings.
+Module Status Lab shows the written bytes and unchanged adjacent cells.
+
 Available in `26.1106.092923` [Module Mode writes](gsv-configuration.md#named-module-status)
 let ladder and ST change the inhibit and major-fault mode bits with immediate
 readback and rollback. Connection and device models remain future work.

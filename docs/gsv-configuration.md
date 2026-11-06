@@ -36,6 +36,7 @@ GSV(Controller,,TimeSlice,CommTimeSlice);
 | Module | LEDStatus, ForceStatus | INT or DINT low word | Complete controller-only I/O map |
 | Module | Mode | GSV to INT or DINT low word, SSV from INT | Named local-chassis module with explicit Inhibited and MajorFault settings |
 | Module | EntryStatus | INT or DINT low word | Named local-chassis module with an explicit Inhibited setting and effective inhibit active at the read |
+| Module | Path | Four SINT cells in a one-dimensional array | Named module with a source-proven slot directly under the Local backplane |
 | Controller | TimeSlice | INT | Explicit source setting, 10..90 |
 | Controller | ShareUnusedTimeSlice | INT | Explicit source setting, 0/1 |
 | Controller | CanUseRPIFromProducer | DINT | Explicit Controller setting, 0/1 |
@@ -47,7 +48,7 @@ Class, attribute and object lookup are case insensitive. Returned names retain
 source spelling. Task references use literal configured names or
 [THIS in ordinary scheduled Program routines](current-instance-gsv.md).
 Controller, ControllerDevice and collection-wide Module status reads use an
-empty instance operand. Mode and EntryStatus require a module name. Numeric
+empty instance operand. Mode, EntryStatus and Path require a module name. Numeric
 object references and AOI/harness THIS contexts remain outside the profile.
 
 Structural preflight validates destinations without reading saved dynamic
@@ -211,6 +212,29 @@ controls the modeled Mode word. Fault generation on connection loss
 requires a connection model.
 [Rockwell Module object](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-01/contents-ditamap/instruction-set/input-output-instructions/access-the-module-object.html)
 [Rockwell L5X import/export reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm014_-en-p.pdf)
+
+## Module backplane path
+
+`GSV(Module,RackOutput,Path,PathBytes[1])` writes a modeled CIP route in
+ladder or ST. The first two SINT cells contain the little-endian payload
+length, 2. The next two contain the backplane port number, 1, and the
+module's slot. In **Module status lab**, set ReadModule and step to see
+PathBytes change to `[-99, 2, 0, 1, 2, 99]`. The guard cells retain their
+saved values, and the route is independent of the current Mode word.
+
+The model requires explicit ICP port 1 on Local and a unique upstream ICP
+port 1 on the module under that backplane. The slot must be inside Local's
+declared chassis size and distinct from the CPU and other declared slots.
+Path is withheld for missing or ambiguous topology. The route is derived
+from configuration and native returned bytes have yet to be verified.
+
+The destination must have at least four writable SINT cells from the
+selected start in one dimension. A skipped call leaves the array alone
+and defers any indirect index. A reached short window faults and rolls
+back the emulator scan. The native short-buffer zeroing and minor-fault
+log, routed modules, and live message forwarding remain open.
+[Rockwell Module object](https://www.rockwellautomation.com/en-gb/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/input-output-instructions/access-the-module-object.html)
+[Rockwell backplane routing reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/at/enet-at002_-en-p.pdf)
 
 ## Changing a periodic task rate
 
