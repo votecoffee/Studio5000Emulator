@@ -30,12 +30,14 @@ PROGRAM_FAULT_OPS = FAULT_HANDLER_OPS - {'JSR', 'SBR', 'RET'}
 # These instructions leave no partial writes on an array bounds error.
 ARRAY_FAULT_RECOVERY_OPS = (
     frozenset(('COP', 'CPS', 'CPT', 'FLL', 'CMP', 'TON', 'TOF', 'RTO',
-               'CTU', 'CTD', 'RES', 'DTR', 'SIZE', 'TRN'))
+               'CTU', 'CTD', 'RES', 'DTR', 'SIZE', 'TRN',
+               'CONCAT', 'MID', 'DTOS', 'STOD'))
     | numeric_storage.INSTRUCTIONS | scalar_math.INSTRUCTIONS | bit_transfer.INSTRUCTIONS
     | comparisons.INSTRUCTIONS | bit_logic.INSTRUCTIONS | control_operations.INSTRUCTIONS
     | sequencer_operations.INSTRUCTIONS | file_arithmetic.INSTRUCTIONS | file_search.INSTRUCTIONS
     | file_bit_compare.INSTRUCTIONS | array_sort.INSTRUCTIONS | array_statistics.INSTRUCTIONS
     | numeric_conversions.INSTRUCTIONS | real_math.INSTRUCTIONS
+    | string_operations.INSTRUCTIONS | string_conversions.INSTRUCTIONS
 )
 FAULT_HANDLER_GSV = frozenset((('program','majorfaultrecord'), ('module','entrystatus'),
                                ('module','faultcode'), ('module','faultinfo')))

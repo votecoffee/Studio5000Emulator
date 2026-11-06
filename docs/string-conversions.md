@@ -58,9 +58,11 @@ precision, trailing zeros, exponent spelling and target-specific cases remain
 unverified. The coverage report explicitly marks native_formatting_parity false.
 This format is not offered as a complete controller formatting contract.
 
-Errors roll back the whole modeled advance, including earlier text/numeric/AOI
-writes, time and scheduler state. Native fault records, continuation, partial
-writes and math/status flags remain separate work.
+A cleared Type 4 Code 20 in a ladder string conversion
+[skips its result write](controller-handlers.md#recover-string-operation-and-conversion-array-faults).
+Other conversion errors roll back the whole modeled advance, including earlier
+text/numeric/AOI writes, time and scheduler state. Native continuation,
+partial writes and math/status flags remain unverified.
 
 ## STOD decimal input
 

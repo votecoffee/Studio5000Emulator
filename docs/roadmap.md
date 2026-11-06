@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1106.153633` [string operation and conversion recovery](controller-handlers.md#recover-string-operation-and-conversion-array-faults)
+lets a ladder handler clear Type 4 Code 20 before the string or numeric result
+write. A skipped string result keeps its length and backing bytes.
+
 Available in `26.1106.152047` [standalone math recovery](controller-handlers.md#recover-standalone-math-array-faults)
 lets a ladder handler clear Type 4 Code 20 before a standalone math instruction
 writes its result. Domain errors and overflow use scan rollback.

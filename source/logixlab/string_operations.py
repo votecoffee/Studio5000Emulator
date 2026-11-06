@@ -118,6 +118,7 @@ def description():
                     preflight='Declared string/scalar shapes, index grammar, permissions and existing literal bounds without saved values or dynamic indices',
                     selection='False/prescan skip live operands; enabled calls retain runtime address, active-LEN/DATA, range and capacity checks',
                     writes='Complete logical string writes establish unknown LEN/active DATA while preserving unused bytes and other elements',
+                    array_recovery='A cleared Type 4 Code 20 during a whole-project ladder scan skips the instruction result write',
                     comparisons='Required source strings and both CMP logical operands are consumed; no value or identity folding',
                     excluded='New algorithms, empty-search/zero-delete edge behavior, broader types/encoding/controller rules and native status/fault/lifecycle parity',
                     native_runtime_parity=False),

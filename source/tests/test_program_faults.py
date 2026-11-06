@@ -155,6 +155,26 @@ def add_array_calculation_tags(root):
         ET.SubElement(array,'Element',Index=f'[{index}]',Value=value)
 
 
+def add_string_recovery_tags(root):
+    from test_string_operations import string_data
+
+    tags = root.find('./Controller/Tags')
+    for name, texts in (('LabText',['AbC123AbC','XY']), ('LabTextResults',['KEEP','TAIL'])):
+        tag = ET.SubElement(tags,'Tag',Name=name,DataType='STRING',TagType='Base',Dimensions='2')
+        array = ET.SubElement(ET.SubElement(tag,'Data',Format='Decorated'),'Array',DataType='STRING',Dimensions='2')
+        for index, value in enumerate(texts):
+            element = ET.SubElement(array,'Element',Index=f'[{index}]')
+            data = string_data(element,value).find('ArrayMember')
+            if name == 'LabTextResults':
+                data.find('Element[@Index="[81]"]').set('Value','33')
+                data.remove(data.find('Element[@Index="[20]"]'))
+    add_fault_dint_array(tags,'LabPositions',[1,1])
+    tag = ET.SubElement(tags,'Tag',Name='LabReals',DataType='REAL',TagType='Base',Dimensions='2')
+    array = ET.SubElement(ET.SubElement(tag,'Data',Format='Decorated'),'Array',DataType='REAL',Dimensions='2')
+    for index, value in enumerate(('2.5','6.25')):
+        ET.SubElement(array,'Element',Index=f'[{index}]',Value=value)
+
+
 def ladder_fault_load(*, controller_fallback=False, call_fault=None, instruction=None,
                       record_type=None, record_members=None, queue_values=None, **options):
     root = ET.parse(fixtures.SAMPLE).getroot()
@@ -1784,6 +1804,88 @@ class ProgramFaultTests(unittest.TestCase):
                 with self.assertRaisesRegex(ModelError,message):
                     engine.step()
                 self.assertEqual(engine.memory.values,before)
+                self.assertIsNone(engine.last_cleared_program_fault)
+
+    def test_string_array_faults_skip_result_and_continue_the_rung(self):
+        cases = (
+            ('CONCAT(LabText[0],LabText[1],LabTextResults[LabIndex])','LabTextResults[1]','AbC123AbCXY'),
+            ('MID(LabText[0],3,LabPositions[LabIndex],LabTextResults[1])','LabTextResults[1]','AbC'),
+            ('DTOS(LabValues[LabIndex],LabTextResults[1])','LabTextResults[1]','13'),
+            ('STOD(LabText[0],LabValues[LabIndex])','LabValues[1]',123),
+            ('FIND(LabText[0],LabText[1],LabPositions[LabIndex],LabValues[0])','LabValues[0]',0),
+            ('INSERT(LabText[0],LabText[LabIndex],1,LabTextResults[1])','LabTextResults[1]','XYAbC123AbC'),
+            ('DELETE(LabText[0],LabPositions[LabIndex],1,LabTextResults[1])','LabTextResults[1]','bC123AbC'),
+            ('LOWER(LabText[0],LabTextResults[LabIndex])','LabTextResults[1]','abc123abc'),
+            ('UPPER(LabText[LabIndex],LabTextResults[1])','LabTextResults[1]','XY'),
+            ('STOR(LabText[0],LabReals[LabIndex])','LabReals[1]',123.0),
+            ('RTOS(LabReals[LabIndex],LabTextResults[1])','LabTextResults[1]','6.25'),
+        )
+        for instruction, target, expected in cases:
+            with self.subTest(instruction=instruction):
+                self.setUp()
+
+                def configure(root):
+                    ladder_fault_fixture(root,handler_tail='MOV(1,LabIndex);')
+                    add_string_recovery_tags(root)
+                    set_fault_instruction(root,instruction)
+
+                engine = self.engine(mutate=configure)
+                self.assertEqual(engine.blockers,[])
+                engine.memory.write('LabIndex',2)
+                engine.memory.write('SpeedCommand',50)
+                results = ('LabTextResults','LabValues','LabReals')
+                saved = {name:copy.deepcopy(engine.memory.read(name)) for name in results}
+                self.assertIsNone(saved['LabTextResults'][1]['DATA'][20])
+                engine.step()
+                self.assertIsNone(engine.last_cleared_program_fault)
+                self.assertEqual(engine.memory.read('LabIndex'),2)
+
+                engine.memory.write('StartPB',True)
+                engine.step()
+                fault = engine.last_cleared_program_fault
+                name = instruction.split('(',1)[0]
+                self.assertEqual((fault['type'],fault['code'],fault['instruction']),(4,20,name))
+                self.assertEqual(engine.memory.read('LabIndex'),1)
+                self.assertEqual(engine.memory.read('SpeedCommand'),51)
+                for result in results:
+                    self.assertEqual(engine.memory.read(result),saved[result])
+
+                engine.step()
+                if isinstance(expected,str):
+                    self.assertEqual(engine.memory.string(target),expected)
+                    data = engine.memory.read(target)['DATA']
+                    self.assertEqual(data[len(expected):],saved['LabTextResults'][1]['DATA'][len(expected):])
+                else:
+                    self.assertEqual(engine.memory.read(target),expected)
+                    self.assertEqual(engine.memory.read('LabTextResults'),saved['LabTextResults'])
+                self.assertEqual(engine.memory.read('LabTextResults[0]'),saved['LabTextResults'][0])
+                self.assertEqual(engine.memory.read('SpeedCommand'),52)
+                self.assertFalse(any('recovery_source' in row for row in engine.trace))
+
+    def test_string_operand_and_capacity_errors_keep_scan_rollback(self):
+        for instruction, updates, message in (
+            ('MID(LabText[0],3,LabPositions[0],LabTextResults[0])',{'LabPositions[0]':80},'(?i)MID.*(range|window|LEN)'),
+            ('CONCAT(LabText[0],LabText[1],LabTextResults[0])',{'LabText[0]':'A'*82},'exceeds capacity'),
+            ('STOR(LabText[1],LabReals[0])',{},'(?i)decimal|digit'),
+        ):
+            with self.subTest(instruction=instruction):
+                self.setUp()
+
+                def configure(root):
+                    ladder_fault_fixture(root,handler_tail='MOV(1,LabIndex);')
+                    add_string_recovery_tags(root)
+                    set_fault_instruction(root,instruction)
+
+                engine = self.engine(mutate=configure)
+                self.assertEqual(engine.blockers,[])
+                engine.memory.write('StartPB',True)
+                for ref,value in updates.items():
+                    engine.memory.write(ref,value)
+                before = copy.deepcopy(engine.memory.values)
+                with self.assertRaisesRegex(ModelError,message):
+                    engine.step()
+                self.assertEqual(engine.memory.values,before)
+                self.assertEqual(engine.scan_count,0)
                 self.assertIsNone(engine.last_cleared_program_fault)
 
     def test_aggregate_fill_preserves_records_until_a_valid_start(self):

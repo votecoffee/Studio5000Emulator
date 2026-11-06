@@ -55,8 +55,10 @@ Full logical string writes establish unknown LEN/active DATA and preserve unused
 bytes and other array elements. Numeric results can likewise establish unknown
 scalars. Destination permissions, runtime ranges and result capacity still apply.
 Aliases, explicit user strings/UDT members and existing AOI InOut/local bindings
-use this selection. Fault rollback restores earlier writes, AOI bindings and
-the modeled advance. AOI call-argument binding retains its separate contract.
+use this selection. A cleared Type 4 Code 20 in a reached ladder string call
+[skips its result write](controller-handlers.md#recover-string-operation-and-conversion-array-faults).
+Other errors follow scan rollback, which restores earlier writes, AOI bindings
+and the modeled advance. AOI call-argument binding retains its separate contract.
 The software profile uses single-byte strings. Native fault and status handling remains separate.
 
 ## MID copy windows
