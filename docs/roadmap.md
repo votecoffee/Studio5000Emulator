@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1106.094856` [Module Ethernet Path reads](gsv-configuration.md#module-ethernet-path)
+derive IPv4 routes through a 5580 embedded Ethernet port or a local EN2T/EN2TR.
+Module Status Lab displays the counted route to a configured POINT I/O adapter.
+
 Available in `26.1106.093850` [Module backplane Path reads](gsv-configuration.md#module-backplane-path)
 derive a counted port-and-slot route from explicit local chassis settings.
 Module Status Lab shows the written bytes and unchanged adjacent cells.

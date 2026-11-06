@@ -1,8 +1,11 @@
 """Read-only I/O settings and bounded root connection-class metadata."""
 from collections import Counter
 from dataclasses import dataclass
+from ipaddress import IPv4Address
 from .tag_catalog import complete_tag_source
 from .task_configuration import NAME
+
+ETHERNET_BRIDGES = frozenset(("1756-EN2T", "1756-EN2TR"))
 
 
 @dataclass(frozen=True)
@@ -10,7 +13,7 @@ class ModuleSettings:
     name: str
     inhibited: bool | None
     major_fault: bool | None
-    backplane_slot: int | None = None
+    route: bytes | None = None
 
     def mode(self):
         if self.inhibited is None or self.major_fault is None:
@@ -18,10 +21,14 @@ class ModuleSettings:
         return (int(self.inhibited) << 2) | int(self.major_fault)
 
 
+def _ports(module):
+    return module.findall('./Ports/Port') if len(module.findall('Ports')) == 1 else []
+
+
 def _backplane_port(module, *, upstream):
-    if module.get('ParentModPortId') != '1' or len(module.findall('Ports')) != 1:
+    if module.get('ParentModPortId') != '1':
         return None
-    ports = module.findall('./Ports/Port')
+    ports = _ports(module)
     port_one = [port for port in ports if port.get('Id') == '1']
     upstream_ports = [port for port in ports if port.get('Upstream') == 'true']
     if len(port_one) != 1 or upstream_ports != (port_one if upstream else []):
@@ -58,6 +65,62 @@ def _backplane_slots(local, entries):
     return {name: slot for name, slot in slots.items() if slot != local_slot and counts[slot] == 1}
 
 
+def _ethernet_port(module):
+    ports = [port for port in _ports(module) if _decimal_field(port, 'Id') == 2]
+    if (len(ports) == 1 and ports[0].get('Id') == '2' and ports[0].get('Type') == 'Ethernet'
+            and ports[0].get('Upstream') == 'false'):
+        return ports[0]
+    return None
+
+
+def _ethernet_address(module):
+    ports = _ports(module)
+    upstream = [port for port in ports if port.get('Upstream') == 'true']
+    if len(upstream) != 1 or upstream[0].get('Type') != 'Ethernet':
+        return None
+    port = upstream[0]
+    port_id = _decimal_field(port, 'Id')
+    if not port_id or sum(_decimal_field(other, 'Id') == port_id for other in ports) != 1:
+        return None
+    try:
+        address = IPv4Address(port.get('Address', ''))
+    except ValueError:
+        return None
+    if address.is_unspecified or address.is_multicast or int(address) == 0xffffffff:
+        return None
+    return str(address)
+
+
+def _ethernet_routes(local, entries, slots):
+    # A parent must expose an unambiguous Ethernet port. A local bridge
+    # also needs a proven slot to construct the first hop.
+    parents = {'local': (b'', _ethernet_port(local))}
+    for name, slot in slots.items():
+        bridge = entries[name]
+        if (NAME.fullmatch(bridge.get('Name', '')) and bridge.get('CatalogNumber') in ETHERNET_BRIDGES
+                and bridge.get('Vendor') == '1'
+                and bridge.get('ProductType') == '12' and 'SafetyNetwork' not in bridge.attrib):
+            parents[name] = (bytes((1, slot)), _ethernet_port(bridge))
+    links = {}
+    for name, module in entries.items():
+        parent = module.get('ParentModule', '').casefold()
+        if name == 'local' or module.get('ParentModPortId') != '2' or parent not in parents:
+            continue
+        _, port = parents[parent]
+        address = _ethernet_address(module) if port is not None else None
+        if address is not None and address != port.get('Address'):
+            links[name] = parent, address
+    counts = Counter(links.values())
+    routes = {}
+    for name, link in links.items():
+        if counts[link] == 1:
+            parent, address = link
+            raw = address.encode('ascii')
+            segment = bytes((0x12, len(raw))) + raw
+            routes[name] = parents[parent][0] + segment + bytes(len(raw) % 2)
+    return routes
+
+
 def _module_settings(controller, modules):
     entries = {module.get('Name', '').casefold(): module for module in modules}
     local = entries.get('local')
@@ -67,18 +130,20 @@ def _module_settings(controller, modules):
             or local.get('Vendor') != '1' or local.get('ProductType') != '14'):
         return ()
     slots = _backplane_slots(local, entries)
+    routes = {name: bytes((1, slot)) for name, slot in slots.items()}
+    routes.update(_ethernet_routes(local, entries, slots))
     bool_values = {'true': True, 'false': False}
     settings = []
     for name, module in entries.items():
         product = module.get('ProductType', '')
         if (name == 'local' or not NAME.fullmatch(module.get('Name', ''))
-                or module.get('ParentModule', '').casefold() != 'local'
+                or (module.get('ParentModule', '').casefold() != 'local' and name not in routes)
                 or not module.get('CatalogNumber') or 'SafetyNetwork' in module.attrib
                 or not (product.isascii() and product.isdecimal() and len(product) <= 5)
                 or not 0 < int(product) <= 0xffff or int(product) == 14):
             continue
         settings.append(ModuleSettings(name, bool_values.get(module.get('Inhibited')),
-                                       bool_values.get(module.get('MajorFault')), slots.get(name)))
+                                       bool_values.get(module.get('MajorFault')), routes.get(name)))
     return tuple(settings)
 
 
@@ -192,5 +257,6 @@ class IOMap:
                 'root_link_port':self.root_link_port,
                 'root_link_port_available':self.root_link_port is not None,
                 'named_module_settings':len(self.module_settings),
-                'named_backplane_paths':sum(entry.backplane_slot is not None for entry in self.module_settings),
+                'named_backplane_paths':sum(len(entry.route or b'') == 2 for entry in self.module_settings),
+                'named_ethernet_paths':sum(len(entry.route or b'') > 2 for entry in self.module_settings),
                 'module_connections':False, 'force_writes':False, 'physical_io_state_imported':False}

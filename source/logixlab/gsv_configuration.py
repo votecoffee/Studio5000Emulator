@@ -12,7 +12,7 @@ from .task_configuration import NAME
 TASK = {'rate':(2,'DINT'), 'watchdog':(12,'DINT'), 'priority':(6,'INT'),
         'disableupdateoutputs':(18,'DINT'), 'inhibittask':(19,'DINT')}
 DEVICE_NAME_SIZE = 33
-MODULE_PATH_SIZE = 4
+MODULE_PATH = 'module-path'
 MODULE_STATUS = {'forcestatus': 9, 'ledstatus': 11}
 MODULE_INHIBITED = 0x6000
 MODULE_INHIBIT_BIT = 1 << 2
@@ -128,11 +128,11 @@ def module_attribute(engine, instance, attribute, *, executing):
         raise ModelError('GSV Module requires a named instance for Mode, EntryStatus or Path, or a blank instance for ForceStatus or LEDStatus')
     module = io_map.named_module(instance)
     if module is None:
-        raise ModelError('GSV Module requires an unambiguous named local-chassis module in complete source')
+        raise ModelError('GSV Module requires an unambiguous supported named module in complete source')
     if attribute == 'path':
-        if module.backplane_slot is None:
-            raise ModelError('GSV Module Path requires an explicit unambiguous local backplane slot')
-        return 'SINT[4]', struct.pack('<HBB', 2, 1, module.backplane_slot)
+        if module.route is None:
+            raise ModelError('GSV Module Path requires an explicit unambiguous backplane or IPv4 Ethernet route')
+        return MODULE_PATH, struct.pack('<H', len(module.route)) + module.route
     override = engine._module_modes.get(module.name)
     if attribute == 'entrystatus':
         if module.inhibited is None:
@@ -256,22 +256,23 @@ def execute_module_set(engine, op, scope):
     engine._module_modes[op.args[1].casefold()] = value
 
 
-def destination(memory, ref, scope, dtype, *, allow_dint=False):
+def destination(memory, ref, scope, dtype, value, *, allow_dint=False):
     if dtype == 'SINT[33]':
         key, parts, kind = prefix(memory, ref, scope, DEVICE_NAME_SIZE, writable=True)
         if kind != 'SINT' or len(parts) != DEVICE_NAME_SIZE:
             raise ModelError('GSV ControllerDevice DeviceName requires 33 writable contiguous SINT elements')
         return key, parts, kind
-    if dtype == 'SINT[4]':
+    if dtype == MODULE_PATH:
         key, parts, kind, region = location(memory, ref, scope, writable=True)
-        error = 'GSV Module Path requires four writable contiguous SINT elements in a one-dimensional array'
+        size = len(value)
+        error = f'GSV Module Path requires {size} writable contiguous SINT elements in a one-dimensional array'
         if kind != 'SINT' or region is None:
             raise ModelError(error)
         base, cells = region
         start = parts[-1] if parts != base else 0
-        if len(cells) - start < MODULE_PATH_SIZE or isinstance(cells[0], list):
+        if len(cells) - start < size or isinstance(cells[0], list):
             raise ModelError(error)
-        return key, [base + [i] for i in range(start, start + MODULE_PATH_SIZE)], kind
+        return key, [base + [i] for i in range(start, start + size)], kind
     if dtype=='STRING':
         string_operand(memory,ref,scope,destination=True)
         key,parts,kind=memory.resolve(ref,scope)
@@ -291,15 +292,15 @@ def destination(memory, ref, scope, dtype, *, allow_dint=False):
 def validate(engine, op, scope):
     memory=engine.memory;previous=memory.structural;memory.structural=True
     try:
-        dtype,_=source(engine,op,scope)
-        return destination(memory,op.args[3],scope,dtype,allow_dint=op.args[0].casefold()=='module')
+        dtype,value=source(engine,op,scope)
+        return destination(memory,op.args[3],scope,dtype,value,allow_dint=op.args[0].casefold()=='module')
     finally:memory.structural=previous
 
 
 def execute(engine, op, scope):
     dtype,value=source(engine,op,scope,executing=True);memory=engine.memory
-    key,paths,kind=destination(memory,op.args[3],scope,dtype,allow_dint=op.args[0].casefold()=='module')
-    if dtype in ('SINT[33]', 'SINT[4]'):
+    key,paths,kind=destination(memory,op.args[3],scope,dtype,value,allow_dint=op.args[0].casefold()=='module')
+    if dtype in ('SINT[33]', MODULE_PATH):
         for path, byte in zip(paths, value, strict=True):
             memory.store(key, path, byte)
     elif dtype=='STRING':memory.write_string(op.args[3],value,scope)
@@ -330,8 +331,8 @@ def description():
                 controller_flags='Read-only explicit project flags. No producer negotiation, redundancy switchover or firmware service.',
                 program=['Name'],routine=['Name'],
                 module=['ForceStatus','LEDStatus','Mode','EntryStatus (inhibited)','Path'],
-                module_path='Explicit local backplane only. Two byte little-endian length followed by port 1 and slot.',
-                named_module_settings='Explicit local-chassis source settings and live Mode overrides. EntryStatus models only Inhibited (0x6000).',
+                module_path='Counted CIP route for an explicit local slot or IPv4 device on the embedded Ethernet port or a local EN2T/EN2TR.',
+                named_module_settings='Explicit local and qualified Ethernet source settings with live Mode overrides. EntryStatus models only Inhibited (0x6000).',
                 module_mode_ssv={'source':'Exact scalar INT with bits 0 and 2 only',
                                  'visibility':'Immediate within an advance; rolled back on fault',
                                  'lifecycle':'Retained across Run entry and routine replacement; reset/reload restores source settings',

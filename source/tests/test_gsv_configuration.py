@@ -231,6 +231,99 @@ class GsvConfigurationTests(unittest.TestCase):
                 self.assertIsNone(e.project.io_map.connection_class_attributes())
                 self.assertEqual(e.project.io_map.description()['named_backplane_paths'], 1)
 
+    @classmethod
+    def add_ethernet_path(cls, root, *, bridged=False, address='192.0.2.42'):
+        rack = cls.add_rack_path(root, slot='3')
+        modules = root.find('./Controller/Modules')
+        parent = rack if bridged else modules.find('Module[@Name="Local"]')
+        if bridged:
+            rack.attrib.update(CatalogNumber='1756-EN2TR', ProductType='12', Vendor='1')
+        E.SubElement(parent.find('Ports'), 'Port', Id='2', Type='Ethernet', Upstream='false')
+        child = E.SubElement(modules, 'Module', Name='PointRemote', CatalogNumber='1734-AENTR',
+                             ProductType='12', ParentModule=parent.get('Name'), ParentModPortId='2',
+                             Inhibited='true', MajorFault='false')
+        E.SubElement(E.SubElement(child, 'Ports'), 'Port', Id='1', Type='Ethernet',
+                     Address=address, Upstream='true')
+        return parent, child
+
+    def test_module_ethernet_paths_encode_length_and_padding(self):
+        for st, bridged, address, payload in (
+                (False, False, '192.0.2.42', bytes((18, 10)) + b'192.0.2.42'),
+                (True, True, '192.0.2.7', bytes((1, 3, 18, 9)) + b'192.0.2.7' + bytes(1))):
+            with self.subTest(st=st, bridged=bridged):
+                def source(root):
+                    self.add_ethernet_path(root, bridged=bridged, address=address)
+                    device_buffer(root, count=len(payload) + 4)
+                setter = 'SSV(Module,PointRemote,Mode,PriorityOut);'
+                guarded = 'IF Flag THEN ' + setter + ' END_IF;' if st else 'XIC(Flag)' + setter
+                calls = [guarded, 'GSV(Module,pointremote,Path,DeviceBytes[1]);',
+                         'GSV(Module,PointRemote,Mode,PriorityOut);',
+                         'GSV(Module,PointRemote,EntryStatus,Out);']
+                e = self.checked(calls, st=st, mutate=source)
+                e.step()
+                self.assertEqual(e.memory.read('DeviceBytes'), [-1, len(payload), 0, *payload, -1])
+                self.assertEqual(e.memory.read('PriorityOut'), 4)
+                self.assertEqual(e.memory.read('Out'), -65536 + 0x6000)
+                self.assertFalse(e.project.io_map.empty)
+                self.assertIsNone(e.project.io_map.connection_class_attributes())
+                self.assertEqual(e.project.io_map.description()['named_ethernet_paths'], 1)
+                e.memory.write('Flag', True)
+                e.memory.write('PriorityOut', 5)
+                e.step()
+                self.assertEqual(e.memory.read('PriorityOut'), 5)
+                self.assertEqual(e.memory.read('DeviceBytes'), [-1, len(payload), 0, *payload, -1])
+
+    def test_module_ethernet_path_rejects_unproven_routes(self):
+        for case in ('hostname', 'unspecified', 'multicast', 'duplicate-address', 'own-address',
+                     'no-egress', 'duplicate-egress', 'unqualified-bridge', 'wrong-parent-port',
+                     'ambiguous-upstream', 'ipv6', 'short'):
+            with self.subTest(case=case):
+                def source(root):
+                    parent, child = self.add_ethernet_path(root, bridged=True)
+                    ports = child.find('Ports')
+                    port = ports.find('Port')
+                    if case in ('hostname', 'unspecified', 'multicast', 'ipv6'):
+                        port.set('Address', {'hostname':'adapter.local', 'unspecified':'0.0.0.0',
+                                             'multicast':'239.0.0.5', 'ipv6':'2001:db8::1'}[case])
+                    elif case == 'duplicate-address':
+                        duplicate = copy.deepcopy(child)
+                        duplicate.set('Name', 'Duplicate')
+                        root.find('./Controller/Modules').append(duplicate)
+                    elif case == 'own-address':
+                        parent.find('./Ports/Port[@Id="2"]').set('Address', port.get('Address'))
+                    elif case == 'no-egress':
+                        parent.find('Ports').remove(parent.find('./Ports/Port[@Id="2"]'))
+                    elif case == 'duplicate-egress':
+                        parent.find('Ports').append(copy.deepcopy(parent.find('./Ports/Port[@Id="2"]')))
+                    elif case == 'unqualified-bridge':
+                        parent.set('CatalogNumber', 'Unqualified')
+                    elif case == 'wrong-parent-port':
+                        child.set('ParentModPortId', '1')
+                    elif case == 'ambiguous-upstream':
+                        E.SubElement(ports, 'Port', Id='2', Type='Ethernet', Upstream='true', Address='192.0.2.8')
+                    device_buffer(root, count=10 if case == 'short' else 20)
+                e = self.engine(['GSV(Module,PointRemote,Path,DeviceBytes[1]);'], mutate=source)
+                self.assertTrue(any('GSV Module' in error for error in e.blockers), e.blockers)
+
+    def test_module_ethernet_path_tracks_its_full_dynamic_write_window(self):
+        def source(root):
+            self.add_ethernet_path(root, bridged=True, address='192.0.2.7')
+            device_buffer(root, count=18)
+        call = 'GSV(Module,PointRemote,Path,DeviceBytes[Index]);'
+        e = self.checked(['XIC(Flag)' + call], mutate=source)
+        e.memory.write('Flag', True)
+        e.memory.write('Index', 3)
+        before = copy.deepcopy(e.memory.values)
+        with self.assertRaisesRegex(ModelError, '16 writable contiguous SINT'):
+            e.step()
+        self.assertEqual(e.memory.values, before)
+        e.memory.write('Index', 1)
+        e.step()
+        self.assertEqual(e.memory.read('DeviceBytes'), [-1, 14, 0, 1, 3, 18, 9, *b'192.0.2.7', 0, -1])
+        loop = 'FOR Index:=0 TO DeviceBytes[16] DO GSV(Module,PointRemote,Path,DeviceBytes[1]); END_FOR;'
+        e = self.engine(loop, st=True, mutate=source)
+        self.assertTrue(any('bounds/step' in error for error in e.blockers), e.blockers)
+
     def test_module_path_defers_live_selection_and_rolls_back_a_short_window(self):
         def source(root):
             self.add_rack_path(root)
@@ -242,7 +335,7 @@ class GsvConfigurationTests(unittest.TestCase):
         self.assertEqual(e.memory.read('DeviceBytes'), [-1, None, None, None, None, -1])
         e.memory.write('Out', -8)
         e.memory.write('Flag', True)
-        for index, message in ((99, 'outside bounds'), (3, 'four writable contiguous SINT')):
+        for index, message in ((99, 'outside bounds'), (3, '4 writable contiguous SINT')):
             e.memory.write('Index', index)
             before = copy.deepcopy(e.memory.values)
             with self.assertRaisesRegex(ModelError, message):
@@ -466,6 +559,7 @@ class GsvConfigurationTests(unittest.TestCase):
         self.assertEqual(e.memory.read('ModeWord'), 0x12340005)
         self.assertEqual(e.memory.read('StMode'), 5)
         self.assertEqual(e.memory.read('PathBytes'), [-99, 2, 0, 1, 2, 99])
+        self.assertEqual(e.memory.read('EthernetPath'), [-99, 12, 0, 18, 10, *b'192.0.2.42', 99])
         self.assertTrue(e.memory.read('ModuleInhibited'))
         e.memory.write('ApplyMode', True)
         e.memory.write('ModeCommand', 1)

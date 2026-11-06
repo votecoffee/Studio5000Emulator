@@ -34,9 +34,9 @@ GSV(Controller,,TimeSlice,CommTimeSlice);
 | ControllerDevice | ProductCode, ProductRev, Type, Vendor | INT | v35 5580 model identity |
 | ControllerDevice | Status | INT | Controller mode sampled at scan entry |
 | Module | LEDStatus, ForceStatus | INT or DINT low word | Complete controller-only I/O map |
-| Module | Mode | GSV to INT or DINT low word, SSV from INT | Named local-chassis module with explicit Inhibited and MajorFault settings |
-| Module | EntryStatus | INT or DINT low word | Named local-chassis module with an explicit Inhibited setting and effective inhibit active at the read |
-| Module | Path | Four SINT cells in a one-dimensional array | Named module with a source-proven slot directly under the Local backplane |
+| Module | Mode | GSV to INT or DINT low word, SSV from INT | Named local or qualified Ethernet module with explicit Inhibited and MajorFault settings |
+| Module | EntryStatus | INT or DINT low word | Named local or qualified Ethernet module with an explicit Inhibited setting and effective inhibit active at the read |
+| Module | Path | SINT window in a one-dimensional array | Source-proven local backplane or IPv4 Ethernet route |
 | Controller | TimeSlice | INT | Explicit source setting, 10..90 |
 | Controller | ShareUnusedTimeSlice | INT | Explicit source setting, 0/1 |
 | Controller | CanUseRPIFromProducer | DINT | Explicit Controller setting, 0/1 |
@@ -177,8 +177,8 @@ behavior and force control remain unqualified.
 ## Named Module status
 
 In a complete v35 5580 project, a Program routine can use ladder or ST to
-read settings for an unambiguous named module directly under the Local
-controller. The initial Mode uses the explicit L5X boolean fields
+read settings for an unambiguous named module directly under Local or
+through a qualified local Ethernet bridge. The initial Mode uses the explicit L5X boolean fields
 MajorFault for bit 0 and Inhibited for bit 2. EntryStatus returns 16#6000
 while the effective inhibit bit is set. Guard EntryStatus reads with Mode
 bit 2. Reaching the read for an uninhibited module faults the advance
@@ -206,7 +206,7 @@ because the read is skipped. Set ModeCommand to 4, disable ApplyMode and
 enable ApplyModeST to restore the inhibit through ST.
 [ModuleStatusLab.L5X](../source/samples/ModuleStatusLab.L5X)
 
-AOI module references, remote modules, cyclic data, live connection
+AOI module references, remote backplane slots, cyclic data, live connection
 diagnostics and module-caused controller faults remain open. Bit 0
 controls the modeled Mode word. Fault generation on connection loss
 requires a connection model.
@@ -232,9 +232,34 @@ The destination must have at least four writable SINT cells from the
 selected start in one dimension. A skipped call leaves the array alone
 and defers any indirect index. A reached short window faults and rolls
 back the emulator scan. The native short-buffer zeroing and minor-fault
-log, routed modules, and live message forwarding remain open.
+log and live message forwarding remain open.
 [Rockwell Module object](https://www.rockwellautomation.com/en-gb/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/input-output-instructions/access-the-module-object.html)
 [Rockwell backplane routing reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/at/enet-at002_-en-p.pdf)
+
+## Module Ethernet path
+
+In ladder and ST, GSV Module Path also reads configured IPv4 routes through
+the 5580 controller's embedded Ethernet port or through a local 1756-EN2T or
+1756-EN2TR. The L5X must identify a single downstream Ethernet port 2 and a
+single upstream Ethernet port on the target. A local bridge also needs an
+unambiguous backplane slot. The target IP must be unambiguous under that
+parent and distinct from any explicit parent address. The same qualified
+target can use GSV Mode, inhibited EntryStatus and SSV Mode.
+
+The route starts with a two-byte little-endian payload length. A bridged
+route prepends port 1 and the bridge slot to the Ethernet segment. The
+segment uses 16#12, the address character count, the dotted IPv4 address
+as ASCII and a zero pad byte if that count is odd. The payload length
+includes the padding. The SINT destination needs space for the full
+counted route and keeps bytes outside that window.
+
+In **Module status lab**, ReadModule writes the configured PointAdapter
+route to EthernetPath starting at index 1. It begins with `0C 00 12 0A`
+followed by the ASCII bytes for `192.0.2.42`. The first and last array
+cells stay at -99 and 99. The route is configuration data. Native
+GSV byte parity, hostname resolution, IPv6, additional hops, and live I/O
+remain open.
+[Rockwell ControlLogix EtherNet/IP routing reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/um/1756-um004_-en-p.pdf)
 
 ## Changing a periodic task rate
 

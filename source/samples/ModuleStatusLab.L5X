@@ -5,10 +5,16 @@
     <DataTypes />
     <Modules>
       <Module Name="Local" CatalogNumber="1756-L85E" Vendor="1" ProductType="14" ProductCode="168" Major="35" Minor="11" ParentModule="Local" ParentModPortId="1" Inhibited="false" MajorFault="true">
-        <Ports><Port Id="1" Address="0" Type="ICP" Upstream="false"><Bus Size="17" /></Port></Ports>
+        <Ports>
+          <Port Id="1" Address="0" Type="ICP" Upstream="false"><Bus Size="17" /></Port>
+          <Port Id="2" Type="Ethernet" Upstream="false"><Bus /></Port>
+        </Ports>
       </Module>
       <Module Name="RackOutput" CatalogNumber="1756-OB16D" Vendor="1" ProductType="7" ProductCode="4" Major="3" Minor="1" ParentModule="Local" ParentModPortId="1" Inhibited="true" MajorFault="true">
         <Ports><Port Id="1" Address="2" Type="ICP" Upstream="true" /></Ports>
+      </Module>
+      <Module Name="PointAdapter" CatalogNumber="1734-AENTR" Vendor="1" ProductType="12" ParentModule="Local" ParentModPortId="2" Inhibited="true" MajorFault="false">
+        <Ports><Port Id="1" Address="192.0.2.42" Type="Ethernet" Upstream="true" /></Ports>
       </Module>
     </Modules>
     <AddOnInstructionDefinitions />
@@ -26,6 +32,11 @@
           <Element Index="[3]" Value="-7" /><Element Index="[4]" Value="-7" /><Element Index="[5]" Value="99" />
         </Array></Data>
       </Tag>
+      <Tag Name="EthernetPath" DataType="SINT" TagType="Base" Dimensions="16">
+        <Data Format="Decorated"><Array DataType="SINT" Dimensions="16">
+          <Element Index="[0]" Value="-99" /><Element Index="[15]" Value="99" />
+        </Array></Data>
+      </Tag>
       <Tag Name="ModuleInhibited" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
     </Tags>
     <Programs>
@@ -40,6 +51,7 @@
               <Rung Number="3" Type="N"><Text>XIC(ReadModule)XIC(ModeWord.2)GSV(Module,RackOutput,EntryStatus,StateWord);</Text></Rung>
               <Rung Number="4" Type="N"><Text>XIC(ReadModule)XIC(ModeWord.2)MEQ(StateWord,16#F000,16#6000)OTE(ModuleInhibited);</Text></Rung>
               <Rung Number="5" Type="N"><Text>XIC(ReadModule)GSV(Module,RackOutput,Path,PathBytes[1]);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(ReadModule)GSV(Module,PointAdapter,Path,EthernetPath[1]);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="ReadModeST" Type="ST">
