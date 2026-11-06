@@ -19,22 +19,23 @@ FIELDS = dict.fromkeys(('EW', 'ER', 'DN', 'ST', 'EN', 'TO'), 'BOOL') | {
 }
 ELEMENT_BYTES = {'SINT': 1, 'INT': 2, 'DINT': 4, 'LINT': 8, 'REAL': 4}
 NAME = r'[A-Za-z_][A-Za-z_0-9]{0,39}'
-ADDRESS = re.compile(rf'((?:Program:{NAME}\.)?{NAME})(?:\[([0-9]{{1,6}}|\*)\])?', re.ASCII | re.I)
+INDICES = r'[0-9]{1,6}(?:[ \t]*,[ \t]*[0-9]{1,6}){0,2}'
+ADDRESS = re.compile(rf'((?:Program:{NAME}\.)?{NAME})(?:\[({INDICES}|\*)\])?', re.ASCII | re.I)
 
 
 @dataclass(frozen=True)
 class Endpoint:
     name: str
-    subscript: int | None
+    coordinates: tuple[int, ...]
     offset: int
     variable: bool
 
     def start(self, parameter):
         if self.variable:
-            return parameter
-        if self.subscript is not None:
-            return self.subscript + self.offset
-        return self.offset or None
+            return (parameter,)
+        if self.coordinates:
+            return (*self.coordinates[:-1], self.coordinates[-1] + self.offset)
+        return (self.offset,) if self.offset else ()
 
 
 @dataclass(frozen=True)
@@ -59,9 +60,9 @@ class IdentityRead:
 @dataclass(frozen=True)
 class DataTableTransfer:
     configuration: Configuration
-    local_start: int | None
+    local_start: tuple[int, ...]
     remote: Endpoint | None
-    remote_start: int | None
+    remote_start: tuple[int, ...]
 
 
 @dataclass(frozen=True)
@@ -89,8 +90,10 @@ def _parse_endpoint(text, offset):
     if match is None:
         return None
     name, selector = match.groups()
-    subscript = int(selector) if selector not in (None, '*') else None
-    return Endpoint(name.casefold(), subscript, offset, selector == '*')
+    coordinates = tuple(map(int, selector.split(','))) if selector not in (None, '*') else ()
+    if len(coordinates) > 1 and offset:
+        return None
+    return Endpoint(name.casefold(), coordinates, offset, selector == '*')
 
 
 def _endpoint(attributes, side):
@@ -122,7 +125,8 @@ def _identity_read(project, attributes):
     if attributes.get('LocalElement', '').strip() or attributes.get('RemoteElement', '').strip():
         raise ModelError('CIP Generic Identity reads require an empty source and no request payload')
     destination = _parse_endpoint(attributes.get('DestinationTag', '').strip(), 0)
-    if destination is None or destination.variable or ':' in destination.name:
+    if (destination is None or destination.variable or len(destination.coordinates) > 1
+            or ':' in destination.name):
         raise ModelError('CIP Generic Identity requires a controller DestinationTag with a fixed array start')
     identity = Identity.from_project('logix-v35-l85e', project)
     # Preserve the 16-bit pattern of an optional Get Attributes All placeholder.
@@ -179,6 +183,28 @@ def initial(project, configuration):
     return record
 
 
+def _array_paths(value, start, count):
+    dimensions = []
+    offset = 0
+    for coordinate in start or (0,):
+        if not isinstance(value, list) or not 0 <= coordinate < len(value):
+            raise TransferError(0x05)
+        dimensions.append(len(value))
+        offset = offset * len(value) + coordinate
+        value = value[coordinate]
+    if isinstance(value, list) or offset + count > math.prod(dimensions):
+        raise TransferError(0x05)
+    # Walk only the requested span, with the last dimension varying fastest.
+    paths = []
+    for index in range(offset, offset + count):
+        path = []
+        for dimension in reversed(dimensions):
+            index, coordinate = divmod(index, dimension)
+            path.append(coordinate)
+        paths.append(tuple(reversed(path)))
+    return tuple(paths)
+
+
 def _region(memory, endpoint, start, count, *, remote, write):
     tag = memory.project.tags.get(endpoint.name)
     if tag is None or tag.problem or tag.alias or tag.tag_class != 'Standard':
@@ -194,11 +220,8 @@ def _region(memory, endpoint, start, count, *, remote, write):
         raise TransferError(0x0F)
     value = memory.values[endpoint.name]
     if isinstance(value, list):
-        start = start or 0
-        if not 0 <= start <= len(value) - count or (value and isinstance(value[0], list)):
-            raise TransferError(0x05)
-        return endpoint.name, tuple((index,) for index in range(start, start + count)), dtype
-    if start is None and count == 1:
+        return endpoint.name, _array_paths(value, start, count), dtype
+    if not start and count == 1:
         return endpoint.name, ((),), dtype
     raise TransferError(0x05)
 
@@ -216,7 +239,7 @@ def _control_key(engine, name, scope, instruction):
 
 def _identity_destination(memory, destination):
     key, paths, dtype = _region(memory, destination, destination.start(0), 1, remote=False, write=True)
-    if dtype != 'SINT' or not paths[0]:
+    if dtype != 'SINT' or len(paths[0]) != 1:
         raise TransferError(0xFC)
     return key, paths[0][0]
 
@@ -335,7 +358,7 @@ def execute(engine, op, power):
             else:
                 remote = _capture_remote(engine.memory, key, request, record)
                 request = DataTableTransfer(request, request.local.start(record['LocalIndex']), remote,
-                                            remote.start(record['RemoteIndex']) if remote is not None else None)
+                                            remote.start(record['RemoteIndex']) if remote is not None else ())
             queue[key] = Pending(request, deadline_us=engine.time_ms * 1000 + timeout_us)
     return power
 

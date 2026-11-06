@@ -26,6 +26,11 @@ copies 2.5 and -7.25 from the program-scoped Samples array into RealReadback.
 The write copies the exact LINT value 9007199254740993 into the program-scoped
 WideTarget tag. Look for RealReadControl.DN and WideWriteControl.DN in Tag Watch.
 
+Set SendGridRead to 1 and step three times to read three DINTs across a
+row boundary. GridReadback[0,2], GridReadback[1,0] and GridReadback[1,1]
+receive 30, 40 and 50 from the program-scoped Grid. The adjacent -1
+sentinels stay in place and GridReadControl.DN_LEN reports six words.
+
 For a runtime index change, scan SendTyped false, then set SetReadIndices
 to 1, ReadLocalIndex to 1, and ReadRemoteIndex to 0. Set SendTyped to 1 and
 step three times. Ladder MOV writes the MESSAGE index fields before MSG
@@ -98,11 +103,16 @@ two SINT elements. Those bytes encode product code 168.
   `RemoteElement`, and optional decimal `LocalIndex` and `RemoteIndex`. Use
   CIP communications, with the connected, cache and large packet options off.
 - Data Table endpoints must use matching SINT, INT, DINT, LINT, or finite REAL types.
-  They can name scalar tags or spans of 1 to 64 elements in one-dimensional
-  arrays. A `[*]` selector takes its starting position from the corresponding
+  They can name scalar tags or spans of 1 to 64 elements in arrays of up to
+  three dimensions. A two- or three-dimensional start must specify every
+  coordinate, for example `Grid[0,2]` or `Cube[0,1,0]`, with no additional
+  authored index offset. The last dimension varies fastest, so a span can
+  cross rows and planes within the tag. A `[*]` selector in a one-dimensional
+  array takes its starting position from the corresponding
   writable DINT member, LocalIndex or RemoteIndex. The exported index supplies
   the initial value. A literal subscript keeps its authored start and offset.
-  Runtime writes to the index members affect only `[*]` selectors.
+  Runtime writes to the index members affect only `[*]` selectors. A new
+  fully indexed multidimensional RemoteElement is captured when queued.
 - Local endpoints name direct Standard controller tags. Remote endpoints can
   also name direct tags in ordinary Standard Programs using
   `Program:<program>.<tag>`. Local writes require a writable tag. Remote reads
@@ -152,5 +162,6 @@ saved data. The native Message object inventory is separate.
 - [Rockwell communication paths](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/input-output-instructions/specify-the-communication-details.html)
 - [Rockwell message configuration and program-scoped addressing](https://www.rockwellautomation.com/en-ua/docs/studio-5000-logix-designer/38-00/contents-ditamap/studio-5000-logix-designer/configuring-message-instructions.html)
 - [Rockwell CIP data table types](https://literature.rockwellautomation.com/idc/groups/literature/documents/um/2080-um002_-en-e.pdf)
+- [Rockwell CIP Read Tag and Write Tag services](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm020_-en-p.pdf)
 - [Rockwell array index configuration](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm012_-en-p.pdf)
 - [Rockwell L5X import/export reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm014_-en-p.pdf)

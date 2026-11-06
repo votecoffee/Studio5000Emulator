@@ -2,6 +2,7 @@
 import math
 import tempfile
 import unittest
+from itertools import product
 from pathlib import Path
 from unittest.mock import patch
 from xml.etree import ElementTree as ET
@@ -194,7 +195,7 @@ class MessageTests(unittest.TestCase):
 
     def test_message_timeout_ssv_and_readback_roll_back_with_later_fault(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='11', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='12', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         engine = self.engine(configure)
@@ -374,7 +375,7 @@ class MessageTests(unittest.TestCase):
 
     def test_generic_identity_all_rolls_back_response_and_queue_after_later_fault(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='11', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='12', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         engine = self.engine(configure)
@@ -666,6 +667,69 @@ class MessageTests(unittest.TestCase):
         self.assertEqual(engine.memory.read('RealReadback'), [10, 10, -9, 8])
         self.assert_flags(engine, 'RealReadControl', REQ_LEN=2, DN_LEN=2, DN=True, ER=False)
 
+    def test_read_crosses_a_row_and_captures_full_remote_coordinates(self):
+        engine = self.engine()
+        self.assertEqual(engine.blockers, [])
+        memory = engine.memory
+        memory.write('SendGridRead', True)
+        engine.step()
+        memory.write('GridReadControl.RemoteElement', 'Program:MainProgram.Grid[0, 1]')
+        memory.write('GridReadControl.LocalIndex', 2)
+        memory.write('GridReadControl.RemoteIndex', 2)
+        engine.step()
+        self.assertEqual(memory.read('GridReadback'), [[-1, -1, 0], [0, 0, -1]])
+        engine.step()
+        self.assertEqual(memory.read('GridReadback'), [[-1, -1, 30], [40, 50, -1]])
+        self.assert_flags(engine, 'GridReadControl', DN=True, ER=False, REQ_LEN=6, DN_LEN=6)
+        memory.write('SendGridRead', False)
+        engine.step()
+        memory.write('SendGridRead', True)
+        for _ in range(3):
+            engine.step()
+        self.assertEqual(memory.read('GridReadback'), [[-1, -1, 20], [30, 40, -1]])
+
+    def test_write_crosses_a_plane_and_snapshots_the_overlapping_source(self):
+        def configure(root):
+            tags = root.find('./Controller/Tags')
+            cube = ET.SubElement(tags, 'Tag', Name='Cube', TagType='Base', DataType='DINT',
+                                 Dimensions='2,2,2', ExternalAccess='Read/Write')
+            data = ET.SubElement(ET.SubElement(cube, 'Data', Format='Decorated'), 'Array',
+                                 DataType='DINT', Dimensions='2,2,2')
+            for value, (i, j, k) in enumerate(product(range(2), repeat=3)):
+                ET.SubElement(data, 'Element', Index=f'[{i},{j},{k}]', Value=str(value))
+            root.find('.//Tag[@Name="WriteControl"]//MessageParameters').attrib.update(
+                LocalElement='Cube[0,1,0]', RemoteElement='Cube[0,1,1]', RequestedLength='4')
+
+        engine = self.engine(configure)
+        self.assertEqual(engine.blockers, [])
+        engine.memory.write('SendWrite', True)
+        for _ in range(3):
+            engine.step()
+        self.assertEqual(engine.memory.read('Cube'), [[[0, 1], [2, 2]], [[3, 4], [5, 7]]])
+        self.assert_flags(engine, 'WriteControl', DN=True, ER=False, REQ_LEN=8, DN_LEN=8)
+
+    def test_incomplete_or_overrun_grid_address_preserves_destination(self):
+        for subscript in ('', '[1]', '[*]', '[0,3]', '[1,1]', '[0,0,0]', '[0,*]'):
+            with self.subTest(subscript=subscript):
+                engine = self.engine()
+                memory = engine.memory
+                memory.write('GridReadControl.RemoteElement', 'Program:MainProgram.Grid' + subscript)
+                memory.write('SendGridRead', True)
+                for _ in range(3):
+                    engine.step()
+                self.assertEqual(engine.fault, '')
+                self.assertEqual(memory.read('GridReadback'), [[-1, -1, 0], [0, 0, -1]])
+                self.assert_flags(engine, 'GridReadControl', DN=False, ER=True, ERR=5, DN_LEN=0)
+
+    def test_multidimensional_local_address_requires_full_start_and_zero_offset(self):
+        for attributes in ({'LocalElement': 'GridReadback[0]'}, {'LocalIndex': '1'},
+                           {'LocalElement': 'GridReadback[1,1]'}):
+            with self.subTest(attributes=attributes):
+                def configure(root):
+                    root.find('.//Tag[@Name="GridReadControl"]//MessageParameters').attrib.update(attributes)
+
+                self.assertTrue(any('MSG' in item for item in self.engine(configure).blockers))
+
     def test_missing_wrong_type_and_denied_remote_transfers(self):
         for remote, access, expected in [('Missing', 'Read/Write', 0x05), ('VirtualValue[2]', 'Read/Write', 0x05),
                                          ('CancelRead', 'Read/Write', 0xFC), ('VirtualValue', 'Read Only', 0x0F)]:
@@ -685,7 +749,7 @@ class MessageTests(unittest.TestCase):
     def test_completion_and_queue_roll_back_with_later_fault(self):
         def configure(root):
             content = root.find('.//RLLContent')
-            rung = ET.SubElement(content, 'Rung', Number='11', Type='N')
+            rung = ET.SubElement(content, 'Rung', Number='12', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         for timeout in (30_000_000, 10_000):

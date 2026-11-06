@@ -63,6 +63,16 @@
       <Tag Name="WideWriteControl" DataType="MESSAGE" TagType="Base" ExternalAccess="None">
         <Data Format="Message"><MessageParameters MessageType="CIP Data Table Write" LocalElement="WideSource" RemoteElement="Program:MainProgram.WideTarget" RequestedLength="1" ConnectedFlag="0" ConnectionPath="THIS" CommTypeCode="0" /></Data>
       </Tag>
+      <Tag Name="SendGridRead" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="GridReadback" DataType="DINT" TagType="Base" Dimensions="2,3">
+        <Data Format="Decorated"><Array DataType="DINT" Dimensions="2,3">
+          <Element Index="[0,0]" Value="-1" /><Element Index="[0,1]" Value="-1" /><Element Index="[0,2]" Value="0" />
+          <Element Index="[1,0]" Value="0" /><Element Index="[1,1]" Value="0" /><Element Index="[1,2]" Value="-1" />
+        </Array></Data>
+      </Tag>
+      <Tag Name="GridReadControl" DataType="MESSAGE" TagType="Base" ExternalAccess="None">
+        <Data Format="Message"><MessageParameters MessageType="CIP Data Table Read" LocalElement="GridReadback[0,2]" RemoteElement="Program:MainProgram.Grid[0,2]" RequestedLength="3" ConnectedFlag="0" ConnectionPath="THIS" CommTypeCode="0" /></Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="Main" Disabled="false" Class="Standard">
@@ -73,6 +83,12 @@
             </Array></Data>
           </Tag>
           <Tag Name="WideTarget" DataType="LINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="-1" /></Data></Tag>
+          <Tag Name="Grid" DataType="DINT" TagType="Base" Dimensions="2,3" ExternalAccess="Read Only">
+            <Data Format="Decorated"><Array DataType="DINT" Dimensions="2,3">
+              <Element Index="[0,0]" Value="10" /><Element Index="[0,1]" Value="20" /><Element Index="[0,2]" Value="30" />
+              <Element Index="[1,0]" Value="40" /><Element Index="[1,1]" Value="50" /><Element Index="[1,2]" Value="60" />
+            </Array></Data>
+          </Tag>
         </Tags>
         <Routines>
           <Routine Name="Main" Type="RLL">
@@ -88,6 +104,7 @@
               <Rung Number="8" Type="N"><Text>XIC(SendIdentityRead)MSG(IdentityControl);</Text></Rung>
               <Rung Number="9" Type="N"><Text>XIC(SendIdentityAll)MSG(IdentityAllControl);</Text></Rung>
               <Rung Number="10" Type="N"><Text>XIC(ApplyIdentityAttribute)MOV(IdentityAttribute,IdentityControl.Attribute);</Text></Rung>
+              <Rung Number="11" Type="N"><Text>XIC(SendGridRead)MSG(GridReadControl);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>
