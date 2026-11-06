@@ -120,7 +120,7 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual(modules(reset)['RackOutput']['input'], {'state':'clear'})
         self.assertEqual(observed(), (-1, -1, -1))
 
-    def test_required_module_loss_stops_run_and_latches_until_reset(self):
+    def test_required_module_loss_latches_and_clears_without_reset(self):
         state = self.post('demo', {'sample':'ModuleStatusLab'})
         generation = state['project_generation']
         def connection(module, status, **details):
@@ -170,11 +170,26 @@ class ApplicationLifecycleTests(unittest.TestCase):
         after = self.post('observe', {})
         self.assertEqual(after['controller']['mode'], 'Faulted')
         self.assertFalse(after['controller']['running'])
-        self.assertEqual(after['controller']['module_major_fault'],
-                         {'type':3, 'code':16, 'module':'rackoutput', 'fault_code':0x0204, 'fault_info':-42})
+        record = after['controller']['module_major_fault']
+        fault_id = record['fault_id']
+        self.assertRegex(fault_id, r'^[0-9a-f]{32}$')
+        self.assertEqual(record, {'type':3, 'code':16, 'module':'rackoutput', 'fault_code':0x0204,
+                                  'fault_info':-42, 'fault_id':fault_id, 'clear_ready':False})
         self.assertEqual(rack(after)['entry_status'], 0x1000)
         self.assertEqual(after['tags'], before['tags'])
 
+        def clear(**overrides):
+            return self.post('module-major-fault-clear', {
+                'project_generation':generation, 'fault_id':fault_id, **overrides})
+        def rejects_clear(**overrides):
+            with self.assertRaises(HTTPError) as rejected:
+                clear(**overrides)
+            self.assertEqual(rejected.exception.code, 400)
+            rejected.exception.close()
+
+        rejects_clear()
+        connection('RackOutput', 'clear')
+        rejects_clear()
         connection('RackOutput', 'running')
         self.assertEqual(mode('Program')['mode'], 'Faulted')
         for action, body in (('controller-mode', {'mode':'Run', 'dt':25}), ('step', {'dt':25})):
@@ -185,6 +200,27 @@ class ApplicationLifecycleTests(unittest.TestCase):
         idle = self.post('observe', {})
         for field in ('scan', 'ms', 'tags', 'fault'):
             self.assertEqual(idle[field], after[field])
+        self.assertTrue(idle['controller']['module_major_fault']['clear_ready'])
+        rejects_clear(project_generation=generation - 1)
+        rejects_clear(fault_id='stale')
+        cleared = clear()
+        self.assertEqual(cleared['controller']['mode'], 'Program')
+        self.assertFalse(cleared['controller']['running'])
+        self.assertIsNone(cleared['controller']['module_major_fault'])
+        self.assertEqual(cleared['fault'], '')
+        for field in ('scan', 'ms', 'tags', 'trace', 'changes', 'task_schedule',
+                      'project_generation', 'routines', 'routine_edits', 'module_simulation'):
+            self.assertEqual(cleared[field], idle[field], field)
+        self.assertEqual(cleared['controller']['prescan_count'], idle['controller']['prescan_count'])
+        rejects_clear()
+
+        self.assertTrue(mode('Run')['running'])
+        fault('RackOutput')
+        connection('RackOutput', 'running')
+        repeated = self.post('observe', {})['controller']['module_major_fault']
+        self.assertTrue(repeated['clear_ready'])
+        self.assertNotEqual(repeated['fault_id'], fault_id)
+        rejects_clear()
         reset = self.post('reset', {})
         self.assertEqual(reset['controller']['mode'], 'Program')
         self.assertIsNone(reset['controller']['module_major_fault'])

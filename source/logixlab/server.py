@@ -151,8 +151,8 @@ class Application:
 
     def controller_state(self):
         mode = self.engine.controller_mode(running=self.running) if self.engine else 'Program'
-        module_fault = self.engine.module_major_fault if self.engine else None
-        return {'mode':mode, 'module_major_fault':dict(module_fault) if module_fault else None,
+        module_fault = gsv_configuration.module_major_fault_state(self.engine) if self.engine else None
+        return {'mode':mode, 'module_major_fault':module_fault,
                 'running':self.running, 'keyswitch':'Remote', 'scan_interval_ms':self.scan_interval_ms,
                 'prescan_count':self.engine.prescan_count if self.engine else 0,
                 'first_scan_pending':self.engine.first_scan_pending if self.engine else False}
@@ -172,7 +172,10 @@ class Application:
             return
         if self._closed:raise ModelError('Application is shutting down')
         if self.busy or self.engine is None:raise ModelError('Load a project before running')
-        if self.engine.fault:raise ModelError('Reset the faulted project before running')
+        if self.engine.fault:
+            if self.engine.module_major_fault:
+                raise ModelError('Clear the I/O major fault or reset the project before running')
+            raise ModelError('Reset the faulted project before running')
         if self.scan_inhibited():raise ModelError('Native programming preparation inhibits scans')
         interval = self.scan_interval_ms if dt is None else dt
         if type(interval) is not int:raise ModelError('Scan interval must be an integer in milliseconds')
@@ -575,7 +578,15 @@ class Application:
                     self._io_dirty = True
                     self.publish_device_io()
                 return result
-            if action == "configure":
+            if action == 'module-major-fault-clear':
+                if (not isinstance(data, dict) or set(data) != {'project_generation', 'fault_id'}
+                        or type(data['project_generation']) is not int or data['project_generation'] != self.generation):
+                    raise ModelError('Clear requires the current project generation and fault ID')
+                if self.scan_inhibited():
+                    raise ModelError('Release the native programming preparation before clearing the I/O major fault')
+                gsv_configuration.clear_module_major_fault(e, data['fault_id'])
+                self._io_dirty = True
+            elif action == "configure":
                 engine = Engine(e.project, data.get("mode", "project"), data.get("routine", ""),defer_prescan=True,
                                 coordinated_clock=self.coordinated_clock)
                 self.set_controller_mode('Program')

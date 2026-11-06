@@ -2,6 +2,7 @@
 from dataclasses import dataclass
 import re
 import struct
+from uuid import uuid4
 
 from .identity import CONTROLLOGIX_5580_PRODUCT_CODES
 from .integer_math import CONTROLLERS
@@ -167,9 +168,9 @@ def configure_module_connection(engine, data, *, running=False):
     if trip:
         label = module.display_name or module.name
         engine.module_major_fault = {'type': 3, 'code': 16, 'module': module.name,
-                                     'fault_code': code, 'fault_info': info}
+                                     'fault_code': code, 'fault_info': info, 'fault_id': uuid4().hex}
         engine.fault = (f'Required module {label} lost its simulated connection '
-                        f'(Type 3 Code 16, module fault 0x{code:04X}, info {info}). Reset to resume.')
+                        f'(Type 3 Code 16, module fault 0x{code:04X}, info {info}).')
     return {'module': module.name, 'state': state, 'fault_code': code, 'fault_info': info}
 
 
@@ -199,6 +200,26 @@ def _module_connection_state(engine, module, find_parent):
     if connection is None:
         return None, None
     return (MODULE_FAULTED if connection.fault_code else MODULE_RUNNING), connection
+
+
+def module_major_fault_state(engine):
+    fault = engine.module_major_fault
+    if fault is None:
+        return None
+    find_module = engine.project.io_map.named_module
+    module = find_module(fault['module'])
+    status, _ = _module_connection_state(engine, module, find_module)
+    return {**fault, 'clear_ready': status == MODULE_RUNNING}
+
+
+def clear_module_major_fault(engine, fault_id):
+    fault = module_major_fault_state(engine)
+    if fault is None or fault_id != fault['fault_id']:
+        raise ModelError('Clear requires the current I/O major fault')
+    if not fault['clear_ready']:
+        raise ModelError('Restore the faulted module to effective Running before clearing the I/O major fault')
+    engine.module_major_fault = None
+    engine.fault = ''
 
 
 def simulated_module_connections(engine):

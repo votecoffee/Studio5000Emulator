@@ -305,7 +305,8 @@ scan boundary and preserves the completed scan and tag values. The
 controller reports Faulted and Device I/O retains the applied input.
 `/api/state` exposes the controller fault under
 `controller.module_major_fault` with `type`, `code`, the canonical
-`module` name, and the injected `fault_code` and `fault_info`.
+`module` name, the injected `fault_code` and `fault_info`, the `fault_id`
+for this occurrence, and `clear_ready`.
 
 Loss of an optional module leaves Run active. A fault injected while the
 module is inhibited, waiting or lacks a Running input does not trip the
@@ -319,10 +320,20 @@ then Step once to uninhibit RackOutput and keep it required. Set
 ApplyMode back to false. Under **Device I/O**, apply Running to RackOutput,
 start Run, then apply Faulted to RackOutput with fault code 516 and
 fault info -42. The browser displays **I/O MAJOR FAULT · 3/16**. Applying
-Running again can recover the module's displayed state. Use **Reset** to
-clear the controller latch and reinitialize project values and simulated
-connection inputs before starting Run again.
+Running again restores the module's displayed state. Choose **Clear I/O
+major fault** to clear the controller latch and return to Program. Tags,
+simulated time, scan counters and connection inputs are preserved. Choose
+**Run** separately to perform the usual prescan and resume execution.
+**Reset** remains available to reinitialize the project.
+
+Automation can send a token-protected POST to
+`/api/module-major-fault-clear` with the current `project_generation` and
+`fault_id` from `/api/state`. The faulting module must be effectively
+Running. An unknown or waiting module cannot qualify, and an identifier
+from a previous fault cannot clear a later one. The response is the updated
+emulator state. Clearing this simulated fault is a local control.
 [Rockwell Logix 5000 Controllers Information and Status](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm015_-en-p.pdf)
+[Rockwell Clear Faults help](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-03/contents-ditamap/studio-5000-logix-designer/controller-properties/clear-faults.html)
 
 ## Module backplane path
 

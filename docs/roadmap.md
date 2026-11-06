@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1106.111517` [clear a simulated I/O major fault](gsv-configuration.md#required-module-loss-during-run)
+returns to Program after the required connection recovers. It preserves
+the project state and leaves Run as a separate action.
+
 Available in `26.1106.105957` [required module loss during Run](gsv-configuration.md#required-module-loss-during-run)
 trips a latched I/O major fault on an explicit Running-to-Faulted connection
 transition. Startup faults, downstream loss and fault handlers remain open.

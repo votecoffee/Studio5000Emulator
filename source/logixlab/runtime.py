@@ -283,6 +283,8 @@ class Engine:
     def enter_run(self):
         """Initialize a Program-to-Run transition without a normal scan."""
         if self.blockers:raise ModelError('Execution blocked; inspect the coverage report')
+        if self.module_major_fault:
+            raise ModelError('Clear the I/O major fault or reset the project before running')
         if self.fault:raise ModelError('Reset the faulted project before running')
         self._apply_prescan()
 
@@ -626,7 +628,7 @@ class Engine:
 
     def prepare_step(self, dt=10):
         if self.module_major_fault:
-            raise ModelError('Reset the faulted project before stepping')
+            raise ModelError('Clear the I/O major fault or reset the project before stepping')
         self.validate_interval(dt)
         if self._initial_prescan_pending:self.enter_run()
 

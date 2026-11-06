@@ -89,6 +89,8 @@ function render() {
   $('device-writes').checked=!!device.writes_enabled;
   $('device-api').textContent=location.origin+'/api/device-io/snapshot';
   $('device-summary').textContent=`Snapshot ${device.snapshot_sequence||0} · ${device.pending_writes||0}/${device.queue_capacity||64} queued input batches · apply between scans`;
+  const moduleFault = state?.controller?.module_major_fault;
+  $('clear-module-fault').hidden = !moduleFault;
   if (!loaded) return;
   $('project-name').textContent = state.name;
   $('project-detail').textContent = `Studio 5000 v${state.version} · ${state.processor} · ${state.routines.length} routines · ${state.mode === 'routine' ? 'isolated routine harness' : 'whole project'}`;
@@ -96,7 +98,7 @@ function render() {
   $('routine-count').textContent = state.routines.length;
   const blocked = state.blockers.length > 0;
   const inhibited=!!state.connectivity?.native_programming_lease?.scan_inhibited;
-  const moduleFault = state.controller.module_major_fault;
+  $('clear-module-fault').disabled = modePending || inhibited || !moduleFault?.clear_ready;
   $('status').textContent = moduleFault ? 'I/O MAJOR FAULT · 3/16' : state.fault ? 'FAULT · ROLLED BACK' : blocked ? 'EXECUTION BLOCKED' : inhibited ? 'SCANS INHIBITED' : running ? 'REMOTE RUN' : 'REMOTE PROGRAM';
   $('status').className = 'badge ' + (blocked || inhibited || state.fault ? 'blocked' : 'ready');
   $('step').disabled = blocked||inhibited||running||modePending||!!moduleFault;
@@ -109,6 +111,11 @@ function render() {
   $('scope-note').textContent = state.mode === 'routine' ? 'Harness: selected routine and called routines only.' : `${state.tasks.length} modeled task(s) · deterministic periodic releases · serial execution.`;
   $('alert').hidden = !(blocked || inhibited || state.fault);
   $('alert').textContent = state.fault || (blocked ? `${state.blockers.length} execution blocker(s). Open Coverage for details.\n${state.blockers.slice(0,3).join('\n')}` : inhibited?'Native programming preparation inhibits scans. Release or disconnect the owning client to resume.':'');
+  if (moduleFault) {
+    $('alert').textContent += moduleFault.clear_ready
+      ? ' Clear the fault to return to Program with current tag values.'
+      : ' Restore the module to effective Running in Device I/O, then clear the fault.';
+  }
   const provenance = state.provenance;
   $('provenance').textContent = `${provenance.method || 'L5X'}\nSHA-256: ${(provenance.original_acd_sha256 || report?.source_l5x_sha256 || '').slice(0,20)}…`;
   $('converter').value = state.converter;
@@ -268,6 +275,24 @@ $('step').onclick=scan;
 $('run').onclick=async()=>{if(modePending)return;modePending=true;let failure=null;render();try{
   await accept(await api('controller-mode',{mode:running?'Program':'Run',dt:Number($('dt').value)}));
 }catch(e){failure=e;}finally{modePending=false;render();if(failure)error(failure);}};
+$('clear-module-fault').onclick = async () => {
+  const fault = state?.controller?.module_major_fault;
+  if (!fault || $('clear-module-fault').disabled) return;
+  const generation = state.project_generation;
+  modePending = true;
+  let failure;
+  render();
+  try {
+    const result = await api('module-major-fault-clear', {project_generation:generation, fault_id:fault.fault_id});
+    if (state.project_generation === generation) await accept(result);
+  } catch (e) {
+    failure = e;
+  } finally {
+    modePending = false;
+    render();
+    if (failure && state.project_generation === generation) error(failure);
+  }
+};
 $('reset').onclick=async()=>{try{await accept(await api('reset'),true);}catch(e){error(e);}};
 $('mode').onchange=()=>{$('harness').disabled=$('mode').value!=='routine';};
 $('apply').onclick=async()=>{try{await accept(await api('configure',{mode:$('mode').value,routine:$('harness').value}),true);}catch(e){error(e);}};
