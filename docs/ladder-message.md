@@ -51,13 +51,17 @@ SendRead on and step three times to retry. ReadValue receives 17 and DN sets.
 ## CIP Generic Identity read
 
 On a v35 1756-L85E project, ladder MSG can issue Get Attribute Single
-(service 16#0E) to Identity class 16#01, instance 1, on THIS. It reads
-the emulator's L85E identity profile. Supported attributes are Vendor ID
-(1), Device Type (2), Product Code (3), Revision (4), Serial Number (6)
-and Product Name (7).
+(service 16#0E) or Get Attributes All (service 16#01) to Identity class
+16#01, instance 1, on THIS. It reads the emulator's L85E identity profile.
+The standard reply contains Vendor ID (1), Device Type (2), Product Code
+(3), Revision (4), Status (5), Serial Number (6) and Product Name (7).
+Status uses the simulated controller mode at the advance that completes
+the reply. The modeled Program and Run values are 16#3070 and 16#3060.
 
-Configure MessageType as CIP Generic with ServiceCode, ObjectType,
-TargetObject and AttributeNumber. Use zero RequestedLength and a direct,
+Configure MessageType as CIP Generic with ServiceCode, ObjectType and
+TargetObject. Get Attribute Single also requires AttributeNumber. Get
+Attributes All ignores a valid hexadecimal placeholder in that field.
+Use zero RequestedLength and a direct,
 writable controller SINT array DestinationTag, optionally with a literal
 start such as IdentityReply[1]. The reply writes its bytes in CIP order and
 preserves surrounding elements. DN_LEN reports bytes for this Generic form.
@@ -66,7 +70,10 @@ queue, cancel and simulated timeout rules apply.
 
 In Message Lab, set SendIdentityRead to 1 and step three times. IdentityReply
 changes from [-9, 0, 0, -9] to [-9, 35, 11, -9]. The middle bytes are the
-major and minor revision. Other Generic services and objects remain open.
+major and minor revision. Enable SendIdentityAll to read all seven
+attributes. After three steps IdentityAllReply contains the 26-byte reply,
+including the two Program status bytes at indices 9 and 10 when stepping
+from Program mode. Other Generic services and objects remain open.
 
 ## Supported configuration and timing
 

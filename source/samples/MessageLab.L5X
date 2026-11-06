@@ -20,6 +20,15 @@
       <Tag Name="IdentityControl" DataType="MESSAGE" TagType="Base" ExternalAccess="None">
         <Data Format="Message"><MessageParameters MessageType="CIP Generic" ServiceCode="16#0E" ObjectType="16#01" TargetObject="1" AttributeNumber="16#04" RequestedLength="0" DestinationTag="IdentityReply[1]" ConnectedFlag="0" ConnectionPath="THIS" CommTypeCode="0" /></Data>
       </Tag>
+      <Tag Name="SendIdentityAll" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="IdentityAllReply" DataType="SINT" TagType="Base" Dimensions="28">
+        <Data Format="Decorated"><Array DataType="SINT" Dimensions="28">
+          <Element Index="[0]" Value="-9" /><Element Index="[9]" Value="0" /><Element Index="[10]" Value="0" /><Element Index="[27]" Value="-9" />
+        </Array></Data>
+      </Tag>
+      <Tag Name="IdentityAllControl" DataType="MESSAGE" TagType="Base" ExternalAccess="None">
+        <Data Format="Message"><MessageParameters MessageType="CIP Generic" ServiceCode="16#01" ObjectType="16#01" TargetObject="1" AttributeNumber="16#00" RequestedLength="0" DestinationTag="IdentityAllReply[1]" ConnectedFlag="0" ConnectionPath="THIS" CommTypeCode="0" /></Data>
+      </Tag>
       <Tag Name="SendRead" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="SendWrite" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="SendTyped" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
@@ -75,6 +84,7 @@
               <Rung Number="6" Type="N"><Text>XIC(SendTyped)MSG(WideWriteControl);</Text></Rung>
               <Rung Number="7" Type="N"><Text>XIC(ApplyReadTimeout)SSV(Message,ReadControl,UnconnectedTimeout,ReadTimeoutUs)GSV(Message,ReadControl,UnconnectedTimeout,ReadTimeoutEcho);</Text></Rung>
               <Rung Number="8" Type="N"><Text>XIC(SendIdentityRead)MSG(IdentityControl);</Text></Rung>
+              <Rung Number="9" Type="N"><Text>XIC(SendIdentityAll)MSG(IdentityAllControl);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

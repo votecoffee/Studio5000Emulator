@@ -719,9 +719,9 @@ class Engine:
         self._immediate_output_advance = {}
         self._message_advance = self._messages.copy()
         try:
-            # Service at the committed boundary, before any task release in this advance.
-            ladder_message.service(self.memory,self._message_advance,self.time_ms)
             self._scan_controller_status = controller_status_word(self.controller_mode(running=running))
+            # Service at the committed boundary, before any task release in this advance.
+            ladder_message.service(self.memory,self._message_advance,self.time_ms,self._scan_controller_status)
             task_wall_time=current_value_microseconds() if single_timing else None
             task_start=task_runtime.perf_counter_ns() if single_timing else None
             programs=self._program_advance

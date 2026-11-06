@@ -10,7 +10,7 @@ from .model import ModelError, coerce
 MAX_ELEMENTS = 64
 MAX_PENDING = 32
 DEFAULT_TIMEOUT_US = 30_000_000
-IDENTITY_ATTRIBUTES = frozenset((1, 2, 3, 4, 6, 7))
+IDENTITY_ATTRIBUTES = frozenset(range(1, 8))
 FIELDS = dict.fromkeys(('EW', 'ER', 'DN', 'ST', 'EN', 'TO'), 'BOOL') | {
     'ERR': 'INT', 'EXERR': 'DINT', 'REQ_LEN': 'INT', 'DN_LEN': 'INT',
     'LocalIndex': 'DINT', 'RemoteIndex': 'DINT', 'RemoteElement': 'STRING',
@@ -48,7 +48,8 @@ class Configuration:
 @dataclass(frozen=True)
 class IdentityRead:
     destination: Endpoint
-    payload: bytes
+    identity: Identity
+    attribute: int | None
 
 
 @dataclass(frozen=True)
@@ -107,9 +108,16 @@ def _identity_read(project, attributes):
     service = _hex_number(attributes, 'ServiceCode')
     cls = _hex_number(attributes, 'ObjectType')
     instance = _number(attributes, 'TargetObject', 0, 65535)
-    attribute = _hex_number(attributes, 'AttributeNumber')
-    if (service, cls, instance) != (0x0E, 1, 1) or attribute not in IDENTITY_ATTRIBUTES:
-        raise ModelError('CIP Generic supports Get Attribute Single on modeled static Identity attributes')
+    if (cls, instance) != (1, 1) or service not in (0x01, 0x0E):
+        raise ModelError('CIP Generic supports Get Attributes All and Get Attribute Single on Identity instance 1')
+    attribute = None
+    if service == 0x0E:
+        attribute = _hex_number(attributes, 'AttributeNumber')
+        if attribute not in IDENTITY_ATTRIBUTES:
+            raise ModelError('CIP Generic Identity supports attributes 1..7')
+    elif attributes.get('AttributeNumber'):
+        # A configured Custom service can carry an unused attribute field.
+        _hex_number(attributes, 'AttributeNumber')
     _number(attributes, 'RequestedLength', 0, 0, '0')
     if attributes.get('LocalElement', '').strip() or attributes.get('RemoteElement', '').strip():
         raise ModelError('CIP Generic Identity reads require an empty source and no request payload')
@@ -117,7 +125,7 @@ def _identity_read(project, attributes):
     if destination is None or destination.variable or ':' in destination.name:
         raise ModelError('CIP Generic Identity requires a controller DestinationTag with a fixed array start')
     identity = Identity.from_project('logix-v35-l85e', project)
-    return IdentityRead(destination, identity.attributes()[attribute])
+    return IdentityRead(destination, identity, attribute)
 
 
 def from_tag(project, tag, element, dims):
@@ -326,14 +334,18 @@ def execute(engine, op, power):
     return power
 
 
-def _transfer(memory, request):
+def _transfer(memory, request, status_word):
     if isinstance(request, IdentityRead):
         key, start = _identity_destination(memory, request.destination)
-        if len(request.payload) > len(memory.values[key]) - start:
+        if request.attribute is None:
+            payload = request.identity.all_attributes(status_word=status_word)
+        else:
+            payload = request.identity.attributes(status_word=status_word)[request.attribute]
+        if len(payload) > len(memory.values[key]) - start:
             raise TransferError(0x11)
-        for index, byte in enumerate(request.payload, start):
+        for index, byte in enumerate(payload, start):
             memory.store(key, (index,), byte if byte < 128 else byte - 256)
-        return len(request.payload)
+        return len(payload)
     configuration = request.configuration
     if request.remote is None:
         raise TransferError(0x05)
@@ -357,7 +369,7 @@ def _transfer(memory, request):
     return _words(dtype, configuration.count)
 
 
-def service(memory, queue, now_ms):
+def service(memory, queue, now_ms, status_word):
     now_us = now_ms * 1000
     for key, pending in tuple(queue.items()):
         record = memory.values[key]
@@ -370,7 +382,7 @@ def service(memory, queue, now_ms):
             continue
         else:
             try:
-                transferred = _transfer(memory, pending.request)
+                transferred = _transfer(memory, pending.request, status_word)
             except TransferError as failure:
                 error = failure.code
             else:

@@ -194,7 +194,7 @@ class MessageTests(unittest.TestCase):
 
     def test_message_timeout_ssv_and_readback_roll_back_with_later_fault(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='9', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='10', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         engine = self.engine(configure)
@@ -245,7 +245,7 @@ class MessageTests(unittest.TestCase):
 
     def test_generic_identity_reads_exact_byte_payloads(self):
         for attribute, payload in [(1, b'\x01\x00'), (2, b'\x0e\x00'), (3, b'\xa8\x00'),
-                                   (4, b'\x23\x0b'), (6, b'\x01\x00LL'), (7, b'\x0b1756-L85E/B')]:
+                                   (4, b'\x23\x0b'), (5, b'\x70\x30'), (6, b'\x01\x00LL'), (7, b'\x0b1756-L85E/B')]:
             with self.subTest(attribute=attribute):
                 def configure(root):
                     control = root.find('.//Tag[@Name="IdentityControl"]//MessageParameters')
@@ -279,9 +279,64 @@ class MessageTests(unittest.TestCase):
                 self.assertEqual(engine.memory.read('IdentityReply'), [-9, 0, 0, -9])
                 self.assert_flags(engine, 'IdentityControl', DN=False, ER=True, ERR=error, DN_LEN=0)
 
+    def test_generic_identity_all_returns_complete_reply_with_completion_mode(self):
+        for running, low_status in [(False, 0x70), (True, 0x60)]:
+            with self.subTest(running=running):
+                def configure(root):
+                    control = root.find('.//Tag[@Name="IdentityAllControl"]//MessageParameters')
+                    if running:
+                        del control.attrib['AttributeNumber']
+                    else:
+                        control.set('AttributeNumber', '1')  # Custom service placeholder.
+
+                engine = self.engine(configure)
+                self.assertEqual(engine.blockers, [])
+                engine.memory.write('SendIdentityAll', True)
+                engine.step()
+                engine.step()
+                self.assert_flags(engine, 'IdentityAllControl', ST=True, DN=False)
+                engine.step(running=running)
+
+                reply = engine.memory.read('IdentityAllReply')
+                expected = bytes((1, 0, 14, 0, 168, 0, 35, 11, low_status, 0x30, 1, 0, 0x4c, 0x4c, 11))
+                self.assertEqual(bytes(value & 255 for value in reply[1:-1]), expected + b'1756-L85E/B')
+                self.assertEqual((reply[0], reply[-1]), (-9, -9))
+                self.assert_flags(engine, 'IdentityAllControl', ST=False, DN=True, ER=False, REQ_LEN=0, DN_LEN=26)
+
+    def test_generic_identity_all_short_buffer_errors_without_partial_data(self):
+        def configure(root):
+            control = root.find('.//Tag[@Name="IdentityAllControl"]//MessageParameters')
+            control.set('DestinationTag', 'IdentityReply[1]')
+
+        engine = self.engine(configure)
+        self.assertEqual(engine.blockers, [])
+        engine.memory.write('SendIdentityAll', True)
+        for _ in range(3):
+            engine.step()
+        self.assertEqual(engine.memory.read('IdentityReply'), [-9, 0, 0, -9])
+        self.assert_flags(engine, 'IdentityAllControl', DN=False, ER=True, ERR=0x11, DN_LEN=0)
+
+    def test_generic_identity_all_rolls_back_response_and_queue_after_later_fault(self):
+        def configure(root):
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='10', Type='N')
+            ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
+
+        engine = self.engine(configure)
+        engine.memory.write('SendIdentityAll', True)
+        engine.step()
+        engine.step()
+        original = list(engine.memory.read('IdentityAllReply'))
+        pending = engine._messages['identityallcontrol']
+        engine.memory.write('CancelRead', True)
+        with self.assertRaisesRegex(ModelError, 'Scan rolled back'):
+            engine.step(running=True)
+        self.assertEqual(engine.memory.read('IdentityAllReply'), original)
+        self.assertEqual(engine._messages['identityallcontrol'], pending)
+        self.assert_flags(engine, 'IdentityAllControl', ST=True, DN=False, ER=False, DN_LEN=0)
+
     def test_generic_identity_rejects_unqualified_services_and_destinations(self):
         for name, value in [('ServiceCode', '16#10'), ('ObjectType', '2'), ('TargetObject', '2'),
-                            ('AttributeNumber', '5'), ('RequestedLength', '1'),
+                            ('AttributeNumber', '8'), ('RequestedLength', '1'),
                             ('DestinationTag', 'ReadValue'), ('DestinationTag', 'IdentityReply[*]'),
                             ('ConnectionPath', '2,192.0.2.20')]:
             with self.subTest(name=name, value=value):
@@ -574,7 +629,7 @@ class MessageTests(unittest.TestCase):
     def test_completion_and_queue_roll_back_with_later_fault(self):
         def configure(root):
             content = root.find('.//RLLContent')
-            rung = ET.SubElement(content, 'Rung', Number='9', Type='N')
+            rung = ET.SubElement(content, 'Rung', Number='10', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         for timeout in (30_000_000, 10_000):

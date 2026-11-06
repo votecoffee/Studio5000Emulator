@@ -40,16 +40,18 @@ class Identity:
         if not 1<=minor<=255:raise ModelError('Controller minor revision must be 1..255 for the identity profile')
         return cls(profile,1,0x0E,CONTROLLOGIX_5580_PRODUCT_CODES[project.processor],35,minor,'1756-L85E/B')
 
-    def attributes(self):
+    def attributes(self, *, status_word=0):
         name=self.product_name.encode('ascii')
         return {1:struct.pack('<H',self.vendor),2:struct.pack('<H',self.device_type),
                 3:struct.pack('<H',self.product_code),4:bytes((self.major,self.minor)),
-                5:b'\x00\x00',6:struct.pack('<I',self.serial),7:bytes((len(name),))+name,8:b'\x03',
+                5:struct.pack('<H',status_word),6:struct.pack('<I',self.serial),7:bytes((len(name),))+name,8:b'\x03',
                 # Explicit virtual-device values; never copied from a physical
                 # controller or inferred from an offline project's minor rev.
                 101:bytes(self.hardware_revision),102:struct.pack('<I',self.firmware_build)}
 
-    def all_attributes(self):return b''.join(self.attributes()[n] for n in range(1,8))
+    def all_attributes(self, *, status_word=0):
+        attributes = self.attributes(status_word=status_word)
+        return b''.join(attributes[number] for number in range(1,8))
 
     def description(self):
         return {'profile':self.profile,'vendor':self.vendor,'device_type':self.device_type,'product_code':self.product_code,

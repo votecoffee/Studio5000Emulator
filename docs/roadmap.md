@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1106.182238` [ladder CIP Generic Identity reads](ladder-message.md#cip-generic-identity-read)
+add Get Attributes All and live Status. Message lab returns the full 26-byte
+reply, with controller mode sampled at message completion.
+
 Available in `26.1106.181345` ladder [CIP Generic Identity read](ladder-message.md#cip-generic-identity-read)
 returns static v35 L85E identity bytes through MSG on THIS. Message lab shows
 the firmware revision in a SINT array and preserves adjacent elements.
