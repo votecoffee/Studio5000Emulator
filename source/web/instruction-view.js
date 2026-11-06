@@ -92,10 +92,11 @@
         .map(([label, member]) => ({label, ref: args[0] + '.' + member}));
     }
     if (op === 'ALMA') {
-      for (const member of ['HHLimit', 'HLimit', 'LLimit', 'LLLimit']) {
+      for (const member of ['HHLimit', 'HLimit', 'LLimit', 'LLLimit', 'ROCPeriod', 'ROCPosLimit', 'ROCNegLimit', 'ROC']) {
         fields.push({label: member, ref: args[0] + '.' + member, member: true, visible: true});
       }
       flags = [['HH', 'HHInAlarm'], ['H', 'HInAlarm'], ['L', 'LInAlarm'], ['LL', 'LLInAlarm'],
+        ['R+', 'ROCPosInAlarm'], ['R-', 'ROCNegInAlarm'],
         ['SUP', 'Suppressed'], ['DIS', 'Disabled'], ['FLT', 'Status.0']]
         .map(([label, member]) => ({label, ref: args[0] + '.' + member}));
     }

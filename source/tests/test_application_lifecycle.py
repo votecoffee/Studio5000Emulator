@@ -926,6 +926,37 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertTrue(row['PressureAlarm.HInAlarm'])
         self.assertEqual(row['PressureAlarm.HHAlarmCount'], 1)
 
+    def test_alarm_lab_analog_rate_and_acknowledgment_through_http(self):
+        self.assertEqual(self.post('demo', {'sample': 'AlarmLab'})['blockers'], [])
+
+        def write(tag, value):
+            self.post('write', {'tag': tag, 'value': value})
+
+        def step():
+            state = self.post('step', {'dt': 10})
+            return {row['name']: row['value'] for row in state['tags']}
+
+        write('AnalogRun', True)
+        write('PressureAlarm.ROCPeriod', 0.01)
+        write('PressureAlarm.ROCPosLimit', 100)
+        write('PressureAlarm.ROCNegLimit', 100)
+        write('Pressure', 50)
+        self.assertEqual(step()['PressureAlarm.ROC'], 0.0)
+        write('Pressure', 51)
+        self.assertTrue(step()['PressureAlarm.ROCPosInAlarmUnack'])
+        write('Pressure', 50)
+        row = step()
+        self.assertEqual(row['PressureAlarm.ROC'], -100.0)
+        self.assertFalse(row['PressureAlarm.ROCPosInAlarm'])
+        self.assertTrue(row['PressureAlarm.ROCNegInAlarmUnack'])
+        write('AckAnalog', True)
+        write('Pressure', 49)
+        row = step()
+        self.assertTrue(row['PressureAlarm.ROCNegInAlarm'])
+        self.assertTrue(row['PressureAlarm.ROCPosAcked'])
+        self.assertTrue(row['PressureAlarm.ROCNegAcked'])
+        self.assertFalse(row['PressureAlarm.AnyInAlarmUnack'])
+
     def test_string_lab_executes_rll_st_and_reflects_input_search_changes(self):
         state = self.post('demo', {'sample': 'StringLab'})
         self.assertEqual(state['blockers'], [])

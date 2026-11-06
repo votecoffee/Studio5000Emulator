@@ -49,7 +49,7 @@ the execution engine. The [full emulation checklist](emulation-coverage.md) and
 | Target bit move model, bounded | 1 | [ST/FBD BTDT](target-bit-moves.md), DINT field distribution from explicit Target; MVMT shares its existing mask record |
 | PID software model, bounded | 1 | [Ladder P/PI/PID](ladder-pid.md), unsmoothed derivative/deadband, integer operands, tieback manual, PVT/inhold, [one-way cascade](pid-cascade.md) and [ladder AOI records](aoi-pid.md); smoothing/cascade feedback/module restart and native solver/layout parity remain unfinished |
 | ALARM_DIGITAL model, partial | 1 | [Ladder ALMD](ladder-alarm.md), Alarm-format records, timed alarm state, suppression, shelving and UTC timestamps |
-| ALARM_ANALOG model, partial | 1 | [Ladder ALMA level alarms](ladder-alarm.md#analog-level-alarms), Alarm-format records, directional delay and deadband |
+| ALARM_ANALOG model, partial | 1 | [Ladder ALMA](ladder-alarm.md#analog-level-alarms), Alarm-format records, level delay, deadband and rate of change |
 | No dedicated model | 159 | No dedicated bounded named runtime model |
 
 Thus **63 entries have dedicated bounded models**. Each entry retains its
@@ -105,7 +105,7 @@ Every dedicated model status still requires the qualifications above.
 | # | Supplied name | Family | Current model | Installed v35 index |
 | --- | --- | --- | --- | --- |
 | 1 | `ALARM` | Alarms | No dedicated model | Listed |
-| 2 | `ALARM_ANALOG` | Alarms | [Ladder ALMA levels, partial](ladder-alarm.md#analog-level-alarms) | Listed |
+| 2 | `ALARM_ANALOG` | Alarms | [Ladder ALMA, partial](ladder-alarm.md#analog-level-alarms) | Listed |
 | 3 | `ALARM_DIGITAL` | Alarms | [Ladder ALMD, partial](ladder-alarm.md) | Listed |
 | 4 | `ALARM_SET_CONTROL` | Alarms | No dedicated model | Listed |
 | 5 | `AUX_VALVE_CONTROL` | Metal forming/valves | No dedicated model | Listed |

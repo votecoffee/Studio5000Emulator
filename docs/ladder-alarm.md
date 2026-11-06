@@ -157,12 +157,40 @@ on the same high excursion. HH remains active at 88 and clears at 87.5.
 H stays active. Pulse `AckAnalog` to acknowledge all conditions.
 [Rockwell ALMA reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/alarm-instructions/analog-alarm---alma.html)
 
+## Rate of change
+
+Set `ROCPeriod` to a positive sampling period in seconds. ALMA stores the
+first powered input as a baseline. On the first scan at or after the period,
+it divides the difference between samples by the configured period and
+holds the result in `ROC` until the next sample. `ROCPosLimit` and
+`ROCNegLimit` are positive magnitudes. A zero limit disables its direction
+and a zero period disables both. Rising rates at or above the positive
+limit and falling rates at or below the negated limit activate their
+respective conditions. Level delay and deadband apply to level alarms.
+
+ROC alarms use the same per-condition and global acknowledgment,
+suppression and count reset rules as level alarms. `ROCPosInAlarmCount`
+and `ROCNegAlarmCount` saturate at the DINT maximum. False rungs retain the
+displayed result. Power resumption, enable after disable and changes to the
+sampling period establish a fresh baseline in the software model.
+
+An out-of-range period or negative limit disables the affected detection
+and sets its status bit. The model flags a rate outside finite REAL range
+with `Status.8`, publishes zero and clears the rate conditions until a valid
+sample is available. The level conditions continue to evaluate.
+
+In Alarm Lab, set `AnalogRun` true, `ROCPeriod` to 0.01 and both rate limits
+to 100. Step once at `Pressure` 50 to set the baseline. Change pressure to
+51 and step 10 ms to light R+. Change it back to 50 and step 10 ms to light
+R-. The faceplate shows +100 and -100 units per second respectively.
+[Rockwell ALARM_ANALOG structure](https://www.rockwellautomation.com/en-za/docs/studio-5000-logix-designer/38-00/contents-ditamap/studio-5000-logix-designer/alarms/instruction-based-alarms/analog-and-digital-alarm-properties-dialog-boxes/structure-definition-for-alarm_analog-tags--all-la.html)
+
 ## Scope
 
 Native alarm messages, event delivery and packed records remain open.
-ALMA rate-of-change, shelving and timestamps remain open. Active ROC
-or shelving requests block the modeled ALMA advance. ST, FBD, AOI alarms
-and ASO remain separate. The native alarm discovery services still expose only verified empty
-catalogs. Runtime behavior is based on the installed v35 ALMD help and
+ALMA shelving and timestamps remain open. Shelving requests block the
+modeled ALMA advance. ST, FBD, AOI alarms and ASO remain separate. The
+native alarm discovery services still expose only verified empty catalogs.
+Runtime behavior is based on the installed v35 alarm instruction help and
 the import/export record description. Native execution and transfer parity
 remain unverified. [ALMD reference](https://www.rockwellautomation.com/en-hu/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/alarm-instructions/digital-alarm---almd.html) · [Import/export manual](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm014_-en-p.pdf)

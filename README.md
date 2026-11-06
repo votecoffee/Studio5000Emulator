@@ -346,6 +346,8 @@ to step through both polarities and inspect timestamps and
 [alarm diagnostics](docs/ladder-alarm.md#diagnostics).
 The same example runs [ladder ALMA level alarms](docs/ladder-alarm.md#analog-level-alarms)
 with low-low, low, high and high-high limits, directional delay and deadband.
+The faceplate shows the live [rate of change](docs/ladder-alarm.md#rate-of-change)
+and separate rising and falling conditions.
 
 [String conversions](docs/string-conversions.md) add LOWER/UPPER and STOR/RTOS
 in ladder and Structured Text, including user strings and existing AOI bindings.

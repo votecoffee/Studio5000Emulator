@@ -59,7 +59,7 @@ with its existing integer, REAL and LREAL destination types.
 
 | Family | RLL model, limited forms | Expression only; standalone remains | Remaining names |
 | --- | --- | --- | --- |
-| Alarm Instructions | [`ALMD`](ladder-alarm.md), [`ALMA` levels](ladder-alarm.md#analog-level-alarms) | — | `ASO` |
+| Alarm Instructions | [`ALMD`](ladder-alarm.md), [`ALMA` levels and rate of change](ladder-alarm.md#analog-level-alarms) | — | `ASO` |
 | Advanced Math Instructions | `LN`, `LOG`, `XPY` | — | — |
 | Array (File)/Shift Instructions | `BSL`, `BSR`, `FFL`, `FFU`, `LFL`, `LFU` | — | — |
 | Array File/Misc. Instructions | `AVE`, `COP`, `CPS`, `FAL`, `FLL`, `FSC`, `SIZE`, `SRT`, `STD` | — | — |
