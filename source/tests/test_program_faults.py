@@ -181,6 +181,20 @@ def add_system_value_recovery_tags(root):
     add_fault_dint_array(tags,'LabSetpoints',[600000,650000])
 
 
+def add_stateful_recovery_tags(root, mnemonic):
+    from test_ladder_alarm import SAMPLE as ALARM_SAMPLE
+    from test_ladder_pid import SAMPLE as PID_SAMPLE
+
+    sample,name = {
+        'PID':(PID_SAMPLE,'Loop'), 'ALMD':(ALARM_SAMPLE,'MotorAlarm'),
+        'ALMA':(ALARM_SAMPLE,'PressureAlarm'),
+    }[mnemonic]
+    tags = root.find('./Controller/Tags')
+    tags.append(ET.parse(sample).find(f'./Controller/Tags/Tag[@Name="{name}"]'))
+    if mnemonic == 'PID':
+        add_fault_dint_array(tags,'LabOutputs',[77,88])
+
+
 def ladder_fault_load(*, controller_fallback=False, call_fault=None, instruction=None,
                       record_type=None, record_members=None, queue_values=None, **options):
     root = ET.parse(fixtures.SAMPLE).getroot()
@@ -1976,6 +1990,148 @@ class ProgramFaultTests(unittest.TestCase):
                 self.assertEqual(engine.scheduler_description(),schedule)
                 self.assertEqual(engine.scan_count,0)
                 self.assertIsNone(engine.last_cleared_program_fault)
+
+    def test_pid_prescan_and_false_rung_skip_unused_indexed_operands(self):
+        def configure(root):
+            ladder_fault_fixture(root)
+            add_stateful_recovery_tags(root,'PID')
+            set_fault_instruction(root,'PID(Loop,LabValues[LabIndex],0,LabOutputs[LabIndex],0,0,0)')
+            tags = root.find('./Controller/Tags')
+            tags.find('Tag[@Name="LabIndex"]/Data/DataValue').set('Value','2')
+
+        engine = self.engine(mutate=configure)
+        self.assertEqual(engine.blockers,[])
+        self.assertEqual(engine.prescan_count,1)
+        engine.memory.write('Loop.EN',True)
+        engine.step()
+        self.assertFalse(engine.memory.read('Loop.EN'))
+        self.assertEqual(engine.memory.read('LabOutputs'),[77,88])
+        self.assertEqual(engine.last_timer,{})
+        self.assertEqual(engine.memory.read('LabIndex'),2)
+        self.assertIsNone(engine.last_cleared_program_fault)
+
+    def test_pid_checks_overlap_at_the_live_index(self):
+        def configure(root):
+            ladder_fault_fixture(root)
+            add_stateful_recovery_tags(root,'PID')
+            tag = root.find('./Controller/Tags/Tag[@Name="Loop"]')
+            tag.set('Dimensions','2')
+            data = tag.find('Data')
+            record = data.find('Structure')
+            data.remove(record)
+            array = ET.SubElement(data,'Array',DataType='PID',Dimensions='2')
+            for index in range(2):
+                ET.SubElement(array,'Element',Index=f'[{index}]').append(copy.deepcopy(record))
+            set_fault_instruction(root,'PID(Loop[0],LabValues[0],0,Loop[LabIndex].OUT,0,0,0)')
+
+        engine = self.engine(mutate=configure)
+        self.assertEqual(engine.blockers,[])
+        memory = engine.memory
+        memory.write('LabIndex',1)
+        memory.write('StartPB',True)
+        engine.step()
+        self.assertEqual(memory.read('Loop[1].OUT'),57)
+
+        memory.write('LabIndex',0)
+        saved = copy.deepcopy((memory.values,engine.last_timer))
+        with self.assertRaisesRegex(ModelError,'operands cannot overlap'):
+            engine.step()
+        self.assertEqual((memory.values,engine.last_timer),saved)
+        self.assertEqual(engine.scan_count,1)
+        self.assertIsNone(engine.last_cleared_program_fault)
+
+    def test_pid_array_fault_preserves_control_record_cv_and_integral(self):
+        def configure(root):
+            controller_fault_fallback_fixture(root,controller_tail='CLR(LabIndex);')
+            add_stateful_recovery_tags(root,'PID')
+            set_fault_instruction(root,'PID(Loop,LabValues[0],0,LabOutputs[LabIndex],0,0,0)')
+
+        engine = self.engine(mutate=configure)
+        self.assertEqual(engine.blockers,[])
+        memory = engine.memory
+        memory.write('StartPB',True)
+        memory.write('SpeedCommand',50)
+        engine.step()
+        self.assertEqual(memory.read('LabOutputs'),[57,88])
+        self.assertEqual(memory.read('Loop.DATA[0]'),19)
+        saved = copy.deepcopy((memory.read('Loop'),engine.last_timer))
+        memory.write('LabIndex',2)
+        engine.step()
+        fault = engine.last_cleared_program_fault
+        self.assertEqual((fault['type'],fault['code'],fault['instruction']),(4,20,'PID'))
+        self.assertEqual(fault['handler']['routine'],'FaultHandler/Capture')
+        self.assertEqual((memory.read('Loop'),engine.last_timer),saved)
+        self.assertEqual(memory.read('LabOutputs'),[57,88])
+        self.assertEqual(memory.read('SpeedCommand'),52)
+
+        engine.step()
+        self.assertEqual(memory.read('LabOutputs'),[76,88])
+        self.assertEqual(memory.read('Loop.DATA[0]'),38)
+        self.assertEqual(memory.read('SpeedCommand'),53)
+
+    def test_digital_alarm_false_rung_fault_preserves_pending_acknowledgment(self):
+        def configure(root):
+            ladder_fault_fixture(root,handler_tail='MOV(1,LabIndex);')
+            add_stateful_recovery_tags(root,'ALMD')
+            set_fault_instruction(root,'ALMD(MotorAlarm,LabValues[LabIndex].0,0,0,0)')
+
+        engine = self.engine(mutate=configure)
+        self.assertEqual(engine.blockers,[])
+        memory = engine.memory
+        memory.write('StartPB',True)
+        for _ in range(3):
+            engine.step()
+        self.assertTrue(memory.read('MotorAlarm.InAlarmUnack'))
+        memory.write('MotorAlarm.OperAck',True)
+        memory.write('StartPB',False)
+        memory.write('SpeedCommand',50)
+        memory.write('LabIndex',2)
+        saved = copy.deepcopy((memory.read('MotorAlarm'),engine.last_timer))
+        engine.step()
+        fault = engine.last_cleared_program_fault
+        self.assertEqual((fault['type'],fault['code'],fault['instruction']),(4,20,'ALMD'))
+        self.assertEqual((memory.read('MotorAlarm'),engine.last_timer),saved)
+        self.assertEqual(memory.read('SpeedCommand'),50)
+        self.assertFalse(next(event['out'] for row in engine.trace for event in row['events']
+                              if event.get('recovered_fault')))
+
+        engine.step()
+        self.assertTrue(memory.read('MotorAlarm.Acked'))
+        self.assertFalse(memory.read('MotorAlarm.OperAck'))
+        self.assertTrue(memory.read('MotorAlarm.InAlarm'))
+        self.assertEqual(memory.read('MotorAlarm.AlarmCount'),1)
+
+    def test_analog_alarm_skips_sample_without_interrupting_qualification(self):
+        def configure(root):
+            ladder_fault_fixture(root,handler_tail='CLR(LabIndex);')
+            add_stateful_recovery_tags(root,'ALMA')
+            set_fault_instruction(root,'ALMA(PressureAlarm,LabValues[LabIndex],0,0,0)')
+
+        engine = self.engine(mutate=configure)
+        self.assertEqual(engine.blockers,[])
+        memory = engine.memory
+        memory.write('LabIndex',2)
+        memory.write('SpeedCommand',50)
+        engine.step()
+        self.assertIsNone(engine.last_cleared_program_fault)
+        memory.write('LabIndex',0)
+        memory.write('LabValues[0]',90)
+        memory.write('StartPB',True)
+        engine.step()
+        self.assertFalse(memory.read('PressureAlarm.HInAlarm'))
+        memory.write('LabIndex',2)
+        saved = copy.deepcopy((memory.read('PressureAlarm'),engine.last_timer))
+        engine.step()
+        fault = engine.last_cleared_program_fault
+        self.assertEqual((fault['type'],fault['code'],fault['instruction']),(4,20,'ALMA'))
+        self.assertEqual((memory.read('PressureAlarm'),engine.last_timer),saved)
+        self.assertEqual(memory.read('SpeedCommand'),52)
+
+        engine.step()
+        self.assertTrue(memory.read('PressureAlarm.HInAlarm'))
+        self.assertTrue(memory.read('PressureAlarm.HHInAlarm'))
+        self.assertEqual(memory.read('PressureAlarm.HAlarmCount'),1)
+        self.assertEqual(memory.read('SpeedCommand'),53)
 
     def test_aggregate_fill_preserves_records_until_a_valid_start(self):
         from test_aggregate_fill import AggregateFillTests

@@ -1,6 +1,7 @@
 """Bounded ladder PID solver; native coefficients, filtering and layout unqualified."""
 from .integer_math import CONTROLLERS, bit_value
 from .model import ModelError, coerce, literal
+from .numeric_copy import static_reference
 from .real_math import real
 
 INSTRUCTIONS = frozenset(('PID',))
@@ -35,18 +36,35 @@ def source(memory, ref, scope, *, immediate=False, role='PV'):
 
 def validate(engine, op, scope):
     memory = engine.memory
+    previous = memory.structural
+    # AOI validation already resolves bindings against its representative frame.
+    if scope not in memory.frames:
+        memory.structural = True
+    try:
+        _operands(engine, op, scope)
+    finally:
+        memory.structural = previous
+
+
+def _record(memory, ref, scope):
+    key, parts, dtype = memory.check_writable(ref, scope)
+    obj = memory.at(key, parts)
+    if dtype != 'PID' or not isinstance(obj, dict) or set(obj) != set(FIELDS):
+        raise ModelError('PID requires a writable logical PID record')
+    if not isinstance(obj['DATA'], list) or len(obj['DATA']) != 17:
+        raise ModelError('PID requires a seventeen-element REAL DATA array')
+    return key, parts, obj
+
+
+def _operands(engine, op, scope):
+    memory = engine.memory
     if engine.project.version != '35' or engine.project.processor.upper() not in CONTROLLERS:
         raise ModelError('PID requires the v35 ControlLogix 5580 software profile')
     if 'pid' in engine.project.udts:
         raise ModelError('Redefined PID records remain unqualified')
     if len(op.args) != 7:
         raise ModelError('PID requires seven operands')
-    key, parts, dtype = memory.check_writable(op.args[0], scope)
-    obj = memory.at(key, parts)
-    if dtype != 'PID' or not isinstance(obj, dict) or set(obj) != set(FIELDS):
-        raise ModelError('PID requires a writable logical PID record')
-    if not isinstance(obj['DATA'], list) or len(obj['DATA']) != 17:
-        raise ModelError('PID requires a seventeen-element REAL DATA array')
+    key, parts, obj = _record(memory, op.args[0], scope)
     pv = source(memory, op.args[1], scope)
     tieback = source(memory, op.args[2], scope, immediate=True, role='tieback')
     inhold_bit = None
@@ -60,6 +78,14 @@ def validate(engine, op, scope):
     ckey, cparts, ctype = memory.check_writable(op.args[3], scope)
     if ctype not in NUMERIC_TYPES or isinstance(memory.at(ckey, cparts), (list, dict)):
         raise ModelError('PID control variable must be a writable scalar SINT/INT/DINT/REAL tag')
+    def known(*addresses):
+        # Structural resolution uses index zero for live subscripts. Such
+        # placeholders cannot establish that two array elements overlap.
+        return not memory.structural or all(
+            not any(isinstance(part, int) for part in path) or static_reference(memory, ref, scope)
+            for ref, path in addresses
+        )
+
     master = None
     if op.args[4] != '0':
         mkey, mparts, mtype = memory.resolve(op.args[4], scope)
@@ -67,28 +93,36 @@ def validate(engine, op, scope):
         if (not isinstance(mobj, dict) or set(mobj) != set(FIELDS) or
                 not isinstance(mobj['DATA'], list) or len(mobj['DATA']) != 17):
             raise ModelError('PID master requires one logical PID record or literal 0')
-        if mkey == key and (mparts[:len(parts)] == parts or parts[:len(mparts)] == mparts):
+        if (mkey == key and (mparts[:len(parts)] == parts or parts[:len(mparts)] == mparts)
+                and known((op.args[0], parts), (op.args[4], mparts))):
             raise ModelError('PID cascade cannot reference its own record')
-        if ckey == mkey and cparts[:len(mparts)] == mparts:
+        if (ckey == mkey and cparts[:len(mparts)] == mparts
+                and known((op.args[3], cparts), (op.args[4], mparts))):
             raise ModelError('PID control variable cannot overwrite its master record')
         master = mobj
-    for location in (pv, (ckey, cparts), tieback, inhold_bit, inhold_value):
-        if location is not None and location[0] == key and location[1][:len(parts)] == parts:
+    inputs = (pv, tieback, (ckey, cparts), inhold_bit, inhold_value)
+    refs = (*op.args[1:4], *op.args[5:])
+    for ref, location in zip(refs, inputs, strict=True):
+        if (location is not None and location[0] == key and location[1][:len(parts)] == parts
+                and known((op.args[0], parts), (ref, location[1]))):
             raise ModelError('PID process/control/tieback/inhold operands cannot overlap its record')
     return key, parts, obj, ctype, master
 
 
+def _clear_enable(memory, ref, scope):
+    _record(memory, ref, scope)
+    memory.write(ref + '.EN', False, scope)
+
+
 def prescan(engine, op, scope):
-    # An unknown word cannot safely establish the preserved configuration bits.
-    validate(engine, op, scope)
-    engine.memory.write(op.args[0] + '.EN', False, scope)
+    _clear_enable(engine.memory, op.args[0], scope)
 
 
 def execute(engine, op, power, scope):
-    key, parts, obj, cvtype, master = validate(engine, op, scope)
     if not power:
-        engine.memory.write(op.args[0] + '.EN', False, scope)
+        _clear_enable(engine.memory, op.args[0], scope)
         return False
+    key, parts, obj, cvtype, master = _operands(engine, op, scope)
     ctl = obj['CTL']
     if type(ctl) is not int:
         raise ModelError('PID CTL is unknown or has the wrong value type')
@@ -270,7 +304,8 @@ def description():
         inhold='True BOOL overrides manual/deadband; readback copied into CV after conversion, must fit MINCV..MAXCV; inverse OUT seeds I or BIAS regardless NOBC; release primes auto; external module/acknowledgement/timing not modeled',
         cascade='CL/CT master uses own SP; CL/non-CT automatic slave samples a distinct CL/CT master OUT into MINS..MAXS; manual/inhold skip sampling; one-way, sampled in authored order, no upstream feedback',
         aoi='RLL bodies with exact InOut PID/atomic bindings or represented saved locals; canonical record history; existing copied-parameter/Prescan/EnableInFalse/rollback rules apply',
-        lifecycle='Prescan/false clear EN only; skipped calls retain history; first call or INI=false starts zero I; Run resets hidden state; whole-advance rollback',
+        lifecycle='Prescan/false address only the PID record and clear EN; first call or INI=false starts zero I; Run resets hidden state; whole-advance rollback',
+        array_recovery='A cleared Type 4 Code 20 skips CV, record and solver history updates in a whole-project ladder scan',
         data='DATA[0,2,3,4,14] mirror I,PV,error,SP,CV; other entries retained, not interpreted as native coefficients',
         native_runtime_parity=False, packed_layout=False,
         remaining=['Derivative smoothing/filter coefficients, cascade feedback/chains and analog module restart/acknowledgement',

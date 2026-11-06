@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1106.155324` [PID and alarm recovery](controller-handlers.md#recover-pid-and-alarm-array-faults)
+lets a ladder handler clear Type 4 Code 20 while retaining PID and alarm
+history. PID prescan and false rungs address only the record.
+
 Available in `26.1106.154453` [GSV and SSV recovery](controller-handlers.md#recover-gsv-and-ssv-array-faults)
 lets a ladder handler clear Type 4 Code 20 without changing the GSV destination
 or the SSV setting. A short destination or an invalid setting uses scan rollback.

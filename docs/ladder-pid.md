@@ -81,8 +81,10 @@ set. The first auto call after a manual sample holds I, avoiding an additional
 integral increment at transfer with unchanged inputs. Full native bumpless and
 manual-limit behavior remains unqualified.
 
-Prescan and reached false calls clear EN and retain output/history. False calls
-skip numeric input consumption. Skipped routines retain everything. A first
+Prescan and reached false calls select only the PID record to clear EN.
+They retain the control output and solver history. A cleared array fault
+[skips the entire PID call](controller-handlers.md#recover-pid-and-alarm-array-faults).
+Skipped routines retain everything. A first
 true call, or clearing INI, establishes zero I before the update; saved DATA
 does not seed hidden solver history. Entering Run clears that history. External
 DATA writes do not replace it. DATA indices 0/2/3/4/14 mirror I/PV/error/SP/CV;

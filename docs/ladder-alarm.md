@@ -31,6 +31,9 @@ increments `AlarmCount` up to the signed DINT maximum.
 
 The software applies acknowledgment after activation within a single call
 and gives a coincident count-reset request precedence over the increment.
+A cleared array subscript fault
+[skips the alarm instruction](controller-handlers.md#recover-pid-and-alarm-array-faults)
+and preserves pending commands and timing history.
 Delayed state and edge history roll back with tag writes after a failed
 advance.
 

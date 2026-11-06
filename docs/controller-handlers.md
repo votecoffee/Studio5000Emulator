@@ -328,6 +328,23 @@ scan rollback. Structured Text retains its existing rollback behavior.
 
 [Rockwell GSV and SSV reference](https://www.rockwellautomation.com/en-gb/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/input-output-instructions/get-system-value--gsv--and-set-system-value--ssv-.html)
 
+## Recover PID and alarm array faults
+
+A cleared Type 4 Code 20 in PID, ALMD or ALMA skips the instruction in a
+whole-project ladder scan. PID retains its record, control output and last
+solver sample. ALMD and ALMA retain the alarm record, pending operator
+commands, and timing or edge history. The rest of the rung receives the
+incoming rung power. On a later scan, the instruction uses the current
+operands with its last committed history.
+
+PID prescan and false rungs select only the PID record to clear .EN. ALMD
+still processes command operands on a false rung. ALMA skips live input and
+command operands there. Invalid gains, invalid alarm configuration that
+raises a model error, and other failures keep the existing scan rollback
+behavior.
+
+[Rockwell PID execution table](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-01/contents-ditamap/instruction-set/special-instructions/proportional-integral-derivative--pid-.html#execution)
+
 ## Escalate an uncleared Program fault
 
 For a modeled array fault, the assigned Controller Fault Handler runs
