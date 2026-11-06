@@ -145,9 +145,10 @@ and firmware-update inhibition in ladder and ST.
 [Controller-only Module status](docs/gsv-configuration.md#controller-only-module-status)
 adds LEDStatus and ForceStatus reads in ladder and ST. DINT destinations keep
 their upper word. [Named Module status](docs/gsv-configuration.md#named-module-status)
-reads the Mode word and reports the modeled Inhibited state for named local
-and qualified Ethernet modules. Ladder and ST can set Mode with SSV and read
-it back in the same scan. The **Module status lab** demonstrates local and
+reads the Mode word and reports Inhibited or Waiting for qualified modules.
+Waiting means a modeled parent or ancestor is inhibited. Ladder and ST can
+set Mode with SSV and read it back in the same scan. The **Module status lab**
+demonstrates these states and reads local and
 Ethernet routes, including [a slot in a remote chassis](docs/gsv-configuration.md#remote-controllogix-backplane-path).
 
 [Controller device GSV](docs/gsv-configuration.md#controller-device-identity)

@@ -15,6 +15,7 @@ DEVICE_NAME_SIZE = 33
 MODULE_PATH = 'module-path'
 MODULE_STATUS = {'forcestatus': 9, 'ledstatus': 11}
 MODULE_INHIBITED = 0x6000
+MODULE_WAITING = 0x7000
 MODULE_INHIBIT_BIT = 1 << 2
 MODULE_MODE_MASK = MODULE_INHIBIT_BIT | 1
 CONTROLLER = {'timeslice':('time_slice','time_slice_defaulted','TimeSlice'),
@@ -117,6 +118,25 @@ def controller_device(engine, instance, attribute, *, executing):
     raise ModelError('Unsupported GSV ControllerDevice attribute ' + attribute)
 
 
+def _module_inhibited(engine, module):
+    override = engine._module_modes.get(module.name)
+    return module.inhibited if override is None else bool(override & MODULE_INHIBIT_BIT)
+
+
+def _module_entry_status(engine, module):
+    if _module_inhibited(engine, module):
+        return MODULE_INHIBITED
+    io_map = engine.project.io_map
+    # Only follow dependencies for which the parser proved a route.
+    while module.routed_parent is not None:
+        module = io_map.named_module(module.routed_parent)
+        if module is None:
+            break
+        if _module_inhibited(engine, module):
+            return MODULE_WAITING
+    raise ModelError('GSV Module EntryStatus is unavailable while the module is uninhibited and no modeled parent is inhibited')
+
+
 def module_attribute(engine, instance, attribute, *, executing):
     io_map = engine.project.io_map
     if not instance and attribute in MODULE_STATUS:
@@ -133,18 +153,14 @@ def module_attribute(engine, instance, attribute, *, executing):
         if module.route is None:
             raise ModelError('GSV Module Path requires an explicit unambiguous backplane or IPv4 Ethernet route')
         return MODULE_PATH, struct.pack('<H', len(module.route)) + module.route
-    override = engine._module_modes.get(module.name)
     if attribute == 'entrystatus':
         if module.inhibited is None:
             raise ModelError('GSV Module EntryStatus requires an explicit source Inhibited setting')
-        inhibited = module.inhibited if override is None else bool(override & MODULE_INHIBIT_BIT)
-        if executing and not inhibited:
-            raise ModelError('GSV Module EntryStatus is unavailable while the module is uninhibited')
-        return 'INT', MODULE_INHIBITED if inhibited else None
+        return 'INT', _module_entry_status(engine, module) if executing else None
     value = module.mode()
     if value is None:
         raise ModelError('GSV Module Mode requires explicit boolean Inhibited and MajorFault settings')
-    return 'INT', value if override is None else override
+    return 'INT', engine._module_modes.get(module.name, value)
 
 
 def source(engine, op, scope='', *, executing=False):
@@ -330,9 +346,9 @@ def description():
                             'CanUseRPIFromProducer','RedundancyEnabled','KeepTestEditsOnSwitchover','InhibitAutomaticFirmwareUpdate'],
                 controller_flags='Read-only explicit project flags. No producer negotiation, redundancy switchover or firmware service.',
                 program=['Name'],routine=['Name'],
-                module=['ForceStatus','LEDStatus','Mode','EntryStatus (inhibited)','Path'],
+                module=['ForceStatus','LEDStatus','Mode','EntryStatus (inhibited or waiting)','Path'],
                 module_path='Counted CIP route for a local slot, an explicit IPv4 device, or a slot under a qualified remote EN2T/EN2TR.',
-                named_module_settings='Explicit local and qualified routed source settings with live Mode overrides. EntryStatus models only Inhibited (0x6000).',
+                named_module_settings='Explicit local and qualified routed source settings with live Mode overrides. EntryStatus models Inhibited (0x6000) and Waiting (0x7000) on an inhibited routed dependency.',
                 module_mode_ssv={'source':'Exact scalar INT with bits 0 and 2 only',
                                  'visibility':'Immediate within an advance; rolled back on fault',
                                  'lifecycle':'Retained across Run entry and routine replacement; reset/reload restores source settings',

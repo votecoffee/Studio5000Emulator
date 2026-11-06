@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1106.100909` [Module EntryStatus Waiting](gsv-configuration.md#named-module-status)
+reports an inhibited routed dependency while preserving a module's own
+Inhibited state. Module Status Lab demonstrates a parent Mode change.
+
 Available in `26.1106.095832` [remote ControlLogix backplane Path reads](gsv-configuration.md#remote-controllogix-backplane-path)
 extend qualified Ethernet routes with a remote rack slot in ladder and ST.
 Module Status Lab displays the configured path to a remote input module.

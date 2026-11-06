@@ -35,7 +35,7 @@ GSV(Controller,,TimeSlice,CommTimeSlice);
 | ControllerDevice | Status | INT | Controller mode sampled at scan entry |
 | Module | LEDStatus, ForceStatus | INT or DINT low word | Complete controller-only I/O map |
 | Module | Mode | GSV to INT or DINT low word, SSV from INT | Named local or qualified Ethernet module with explicit Inhibited and MajorFault settings |
-| Module | EntryStatus | INT or DINT low word | Named local or qualified Ethernet module with an explicit Inhibited setting and effective inhibit active at the read |
+| Module | EntryStatus | INT or DINT low word | Explicit Inhibited setting on the target, with its own inhibit or an inhibit on a qualified routed dependency |
 | Module | Path | SINT window in a one-dimensional array | Source-proven local backplane, IPv4 Ethernet, or remote ControlLogix backplane route |
 | Controller | TimeSlice | INT | Explicit source setting, 10..90 |
 | Controller | ShareUnusedTimeSlice | INT | Explicit source setting, 0/1 |
@@ -178,11 +178,12 @@ behavior and force control remain unqualified.
 
 In a complete v35 5580 project, a Program routine can use ladder or ST to
 read settings for an unambiguous named module under Local or on a
-qualified Ethernet or remote chassis route. The initial Mode uses the explicit L5X boolean fields
-MajorFault for bit 0 and Inhibited for bit 2. EntryStatus returns 16#6000
-while the effective inhibit bit is set. Guard EntryStatus reads with Mode
-bit 2. Reaching the read for an uninhibited module faults the advance
-because its connection state is unavailable.
+qualified Ethernet or remote chassis route. The initial Mode uses the
+explicit L5X boolean fields MajorFault for bit 0 and Inhibited for bit 2.
+EntryStatus returns 16#6000 when the named module is inhibited. An
+uninhibited module returns 16#7000 when a validated parent or ancestor
+on its route is inhibited. A read with neither condition faults the
+advance because connection state is unavailable.
 
 Both reads support INT and the low word of a known DINT, with the upper
 word preserved. Destination indices are resolved only when a call executes.
@@ -204,6 +205,13 @@ Set ModeCommand to 1 and enable ApplyMode. On the next step, the readback
 changes to 1 and ModuleInhibited clears. StateWord retains its last value
 because the read is skipped. Set ModeCommand to 4, disable ApplyMode and
 enable ApplyModeST to restore the inhibit through ST.
+
+The same ReadModule scan reads RemoteInput as 16#7000 because RemoteRack
+starts inhibited. Set RackModeCommand to 0 and enable ApplyRackMode to
+clear the parent inhibit. The sample gates the EntryStatus call with the
+parent's Mode bit 2. RemoteWaiting clears and RemoteStatus retains its
+last value while the call is skipped. Set RackModeCommand to 4 to see
+Waiting again. The remote route bytes are available in either mode.
 [ModuleStatusLab.L5X](../source/samples/ModuleStatusLab.L5X)
 
 AOI module references, cyclic data, live connection
@@ -211,6 +219,7 @@ diagnostics and module-caused controller faults remain open. Bit 0
 controls the modeled Mode word. Fault generation on connection loss
 requires a connection model.
 [Rockwell Module object](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-01/contents-ditamap/instruction-set/input-output-instructions/access-the-module-object.html)
+[Rockwell module states](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-01/contents-ditamap/status.html)
 [Rockwell L5X import/export reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm014_-en-p.pdf)
 
 ## Module backplane path

@@ -14,6 +14,7 @@ class ModuleSettings:
     inhibited: bool | None
     major_fault: bool | None
     route: bytes | None = None
+    routed_parent: str | None = None
 
     def mode(self):
         if self.inhibited is None or self.major_fault is None:
@@ -146,14 +147,17 @@ def _module_settings(controller, modules):
     settings = []
     for name, module in entries.items():
         product = module.get('ProductType', '')
+        parent = module.get('ParentModule', '').casefold()
         if (name == 'local' or not NAME.fullmatch(module.get('Name', ''))
-                or (module.get('ParentModule', '').casefold() != 'local' and name not in routes)
+                or (parent != 'local' and name not in routes)
                 or not module.get('CatalogNumber') or 'SafetyNetwork' in module.attrib
                 or not (product.isascii() and product.isdecimal() and len(product) <= 5)
                 or not 0 < int(product) <= 0xffff or int(product) == 14):
             continue
+        routed_parent = parent if name in routes and parent in routes else None
         settings.append(ModuleSettings(name, bool_values.get(module.get('Inhibited')),
-                                       bool_values.get(module.get('MajorFault')), routes.get(name)))
+                                       bool_values.get(module.get('MajorFault')), routes.get(name),
+                                       routed_parent))
     return tuple(settings)
 
 

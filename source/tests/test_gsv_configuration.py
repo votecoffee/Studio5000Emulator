@@ -261,6 +261,61 @@ class GsvConfigurationTests(unittest.TestCase):
                      Address=target_slot, Upstream='true')
         return adapter, module
 
+    def test_entry_status_waits_for_an_inhibited_parent_or_ancestor(self):
+        for st, bridged in ((False, False), (True, True)):
+            with self.subTest(bridged=bridged):
+                def source(root):
+                    adapter, child = self.add_remote_backplane(root, bridged=bridged)
+                    child.set('Inhibited', 'false')
+                    if bridged:
+                        root.find('./Controller/Modules/Module[@Name="RackIO"]').set('Inhibited', 'true')
+                        adapter.set('Inhibited', 'false')
+                    else:
+                        adapter.set('Inhibited', 'true')
+                e = self.checked(['GSV(Module,RemoteInput,EntryStatus,Out);'], st=st, mutate=source)
+                e.memory.write('Out', 0x1234ffff)
+                e.step()
+                self.assertEqual(e.memory.read('Out'), 0x12347000)
+
+    def test_entry_status_follows_live_ancestor_mode_and_rolls_back_on_unknown_state(self):
+        def source(root):
+            adapter, child = self.add_remote_backplane(root, bridged=True)
+            root.find('./Controller/Modules/Module[@Name="RackIO"]').set('Inhibited', 'false')
+            adapter.set('Inhibited', 'false')
+            child.set('Inhibited', 'false')
+        for st in (False, True):
+            with self.subTest(st=st):
+                setter = 'SSV(Module,RackIO,Mode,PriorityOut);'
+                guarded = 'IF Flag THEN ' + setter + ' END_IF;' if st else 'XIC(Flag)' + setter
+                e = self.checked([guarded, 'GSV(Module,RemoteInput,EntryStatus,Out);'], st=st, mutate=source)
+                e.memory.write('Flag', True)
+                e.memory.write('PriorityOut', 4)
+                e.step()
+                self.assertEqual(e.memory.read('Out'), -65536 + 0x7000)
+                e.memory.write('PriorityOut', 0)
+                before = copy.deepcopy(e.memory.values)
+                with self.assertRaisesRegex(ModelError, 'no modeled parent is inhibited'):
+                    e.step()
+                self.assertEqual(e.memory.values, before)
+                self.assertEqual(e.scan_count, 1)
+                e.memory.write('Flag', False)
+                e.step()
+                self.assertEqual(e.memory.read('Out'), -65536 + 0x7000)
+
+    def test_entry_status_keeps_own_inhibit_precedence_and_requires_explicit_source(self):
+        def source(root):
+            adapter, child = self.add_remote_backplane(root)
+            adapter.set('Inhibited', 'true')
+            return child
+        e = self.checked(['GSV(Module,RemoteInput,EntryStatus,PriorityOut);'], mutate=source)
+        e.step()
+        self.assertEqual(e.memory.read('PriorityOut'), 0x6000)
+
+        def missing_target(root):
+            del source(root).attrib['Inhibited']
+        e = self.engine(['GSV(Module,RemoteInput,EntryStatus,PriorityOut);'], mutate=missing_target)
+        self.assertTrue(any('requires an explicit source Inhibited setting' in error for error in e.blockers))
+
     def test_remote_backplane_path_appends_port_and_slot_to_the_counted_route(self):
         for st, prefix, adapter_slot, target_slot in (
                 (False, b'', '0', '4'), (True, bytes((1, 3)), '4', '0')):
@@ -627,6 +682,8 @@ class GsvConfigurationTests(unittest.TestCase):
         self.assertEqual(e.memory.read('PathBytes'), [-99, 2, 0, 1, 2, 99])
         self.assertEqual(e.memory.read('EthernetPath'), [-99, 12, 0, 18, 10, *b'192.0.2.42', 99])
         self.assertEqual(e.memory.read('RemotePath'), [-99, 14, 0, 18, 9, *b'192.0.2.7', 0, 1, 4, 99])
+        self.assertEqual(e.memory.read('RemoteStatus'), 0x7000)
+        self.assertTrue(e.memory.read('RemoteWaiting'))
         self.assertTrue(e.memory.read('ModuleInhibited'))
         e.memory.write('ApplyMode', True)
         e.memory.write('ModeCommand', 1)
