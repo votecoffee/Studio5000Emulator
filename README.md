@@ -160,7 +160,8 @@ writes on the unconnected THIS path. **Message lab** shows message status in
 the ladder viewer, runtime target and index changes, exact LINT writes,
 and simulated timeouts with ladder-controlled retries. Ladder GSV and SSV
 can read and set the message timeout. The lab also reads virtual controller
-identity and mode bytes through CIP Generic.
+identity and mode bytes through CIP Generic, with runtime selection of the
+Identity attribute.
 [Simulated loss of a required Running module](docs/gsv-configuration.md#required-module-loss-during-run)
 trips a latched I/O major fault during whole-project Run, including when a
 [simulated upstream fault interrupts a required connection](docs/gsv-configuration.md#required-module-loss-through-an-upstream-fault).

@@ -68,12 +68,27 @@ preserves surrounding elements. DN_LEN reports bytes for this Generic form.
 A short destination reports 16#0011 without changing the array. The usual
 queue, cancel and simulated timeout rules apply.
 
+The Generic control exposes Class (INT), Instance (DINT) and Attribute
+(INT) as writable members. A queued request keeps the values captured at
+trigger time. Later writes affect the next request. Class and Instance must
+resolve to Identity instance 1. An unsupported class or instance completes
+with 16#0005. An unsupported single attribute completes with 16#0014.
+Neither error changes the reply buffer. Get Attributes All ignores Attribute.
+Prescan preserves the live members and Reset reloads the authored values.
+
 In Message Lab, set SendIdentityRead to 1 and step three times. IdentityReply
 changes from [-9, 0, 0, -9] to [-9, 35, 11, -9]. The middle bytes are the
 major and minor revision. Enable SendIdentityAll to read all seven
 attributes. After three steps IdentityAllReply contains the 26-byte reply,
 including the two Program status bytes at indices 9 and 10 when stepping
-from Program mode. Other Generic services and objects remain open.
+from Program mode.
+
+To change the selected attribute while a request is queued, start with a
+fresh Message Lab, set SendIdentityRead to 1 and step once. Set
+ApplyIdentityAttribute to 1 and step twice more. The first request still
+returns Revision. Scan SendIdentityRead false and then re-trigger it.
+The next request reads Product Code and writes -88 and 0 to the middle
+two SINT elements. Those bytes encode product code 168.
 
 ## Supported configuration and timing
 

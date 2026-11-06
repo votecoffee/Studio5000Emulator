@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1106.182945` [ladder CIP Generic Identity reads](ladder-message.md#cip-generic-identity-read)
+expose writable Class, Instance and Attribute. The queued request captures
+those fields, and Message lab shows a later read selecting Product Code.
+
 Available in `26.1106.182238` [ladder CIP Generic Identity reads](ladder-message.md#cip-generic-identity-read)
 add Get Attributes All and live Status. Message lab returns the full 26-byte
 reply, with controller mode sampled at message completion.

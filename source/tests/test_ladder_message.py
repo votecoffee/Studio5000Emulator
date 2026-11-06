@@ -194,7 +194,7 @@ class MessageTests(unittest.TestCase):
 
     def test_message_timeout_ssv_and_readback_roll_back_with_later_fault(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='10', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='11', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         engine = self.engine(configure)
@@ -264,6 +264,60 @@ class MessageTests(unittest.TestCase):
                 self.assertEqual(reply[0], -9)
                 self.assert_flags(engine, 'IdentityControl', DN=True, DN_LEN=len(payload))
 
+    def test_generic_identity_attribute_written_by_ladder_applies_to_next_request(self):
+        engine = self.engine()
+        memory = engine.memory
+        self.assertEqual(engine.blockers, [])
+        self.assertEqual(memory.resolve('IdentityControl.Attribute')[2], 'INT')
+        self.assertEqual(memory.resolve('IdentityControl.Class')[2], 'INT')
+        self.assertEqual(memory.resolve('IdentityControl.Instance')[2], 'DINT')
+        self.assert_flags(engine, 'IdentityControl', Class=1, Instance=1, Attribute=4)
+        memory.write('SendIdentityRead', True)
+        engine.step()
+        memory.write('ApplyIdentityAttribute', True)
+        engine.step()
+        self.assert_flags(engine, 'IdentityControl', ST=True, Attribute=3)
+        engine.step()
+        self.assertEqual(memory.read('IdentityReply'), [-9, 35, 11, -9])
+        memory.write('SendIdentityRead', False)
+        engine.step()
+        memory.write('SendIdentityRead', True)
+        for _ in range(3):
+            engine.step()
+        self.assertEqual(memory.read('IdentityReply'), [-9, -88, 0, -9])
+        self.assert_flags(engine, 'IdentityControl', DN=True, ER=False, DN_LEN=2)
+
+    def test_generic_identity_captures_address_errors_and_preserves_reply(self):
+        for control, gate, reply, member, value, error in (
+            ('IdentityControl', 'SendIdentityRead', 'IdentityReply', 'Class', 2, 0x05),
+            ('IdentityControl', 'SendIdentityRead', 'IdentityReply', 'Instance', 2, 0x05),
+            ('IdentityControl', 'SendIdentityRead', 'IdentityReply', 'Attribute', -1, 0x14),
+            ('IdentityAllControl', 'SendIdentityAll', 'IdentityAllReply', 'Instance', 2, 0x05),
+        ):
+            with self.subTest(control=control, member=member):
+                engine = self.engine()
+                memory = engine.memory
+                before = list(memory.read(reply))
+                ref = f'{control}.{member}'
+                configured = memory.read(ref)
+                memory.write(ref, value)
+                memory.write(gate, True)
+                engine.step()
+                memory.write(ref, configured)
+                engine.step()
+                engine.step()
+                self.assertEqual(memory.read(reply), before)
+                self.assertEqual(engine.fault, '')
+                self.assert_flags(engine, control, DN=False, ER=True, ERR=error, DN_LEN=0)
+
+    def test_generic_identity_prescan_keeps_live_address_fields_and_reset_restores_them(self):
+        engine = self.engine()
+        for name, value in [('Class', 2), ('Instance', 3), ('Attribute', 5)]:
+            engine.memory.write('IdentityControl.' + name, value)
+        engine.enter_run()
+        self.assert_flags(engine, 'IdentityControl', Class=2, Instance=3, Attribute=5)
+        self.assert_flags(Engine(engine.project), 'IdentityControl', Class=1, Instance=1, Attribute=4)
+
     def test_generic_identity_short_destination_and_timeout_preserve_all_bytes(self):
         def long_reply(root):
             root.find('.//Tag[@Name="IdentityControl"]//MessageParameters').set('AttributeNumber', '7')
@@ -287,10 +341,12 @@ class MessageTests(unittest.TestCase):
                     if running:
                         del control.attrib['AttributeNumber']
                     else:
-                        control.set('AttributeNumber', '1')  # Custom service placeholder.
+                        control.set('AttributeNumber', '16#FFFF')  # Custom service placeholder.
 
                 engine = self.engine(configure)
                 self.assertEqual(engine.blockers, [])
+                self.assert_flags(engine, 'IdentityAllControl', Attribute=0 if running else -1)
+                engine.memory.write('IdentityAllControl.Attribute', 32767)
                 engine.memory.write('SendIdentityAll', True)
                 engine.step()
                 engine.step()
@@ -318,7 +374,7 @@ class MessageTests(unittest.TestCase):
 
     def test_generic_identity_all_rolls_back_response_and_queue_after_later_fault(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='10', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='11', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         engine = self.engine(configure)
@@ -629,7 +685,7 @@ class MessageTests(unittest.TestCase):
     def test_completion_and_queue_roll_back_with_later_fault(self):
         def configure(root):
             content = root.find('.//RLLContent')
-            rung = ET.SubElement(content, 'Rung', Number='10', Type='N')
+            rung = ET.SubElement(content, 'Rung', Number='11', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         for timeout in (30_000_000, 10_000):

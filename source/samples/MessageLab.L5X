@@ -11,6 +11,8 @@
     <AddOnInstructionDefinitions />
     <Tags>
       <Tag Name="UseAlternateRead" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="ApplyIdentityAttribute" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="IdentityAttribute" DataType="INT" TagType="Base"><Data Format="Decorated"><DataValue DataType="INT" Value="3" /></Data></Tag>
       <Tag Name="SendIdentityRead" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="IdentityReply" DataType="SINT" TagType="Base" Dimensions="4">
         <Data Format="Decorated"><Array DataType="SINT" Dimensions="4">
@@ -85,6 +87,7 @@
               <Rung Number="7" Type="N"><Text>XIC(ApplyReadTimeout)SSV(Message,ReadControl,UnconnectedTimeout,ReadTimeoutUs)GSV(Message,ReadControl,UnconnectedTimeout,ReadTimeoutEcho);</Text></Rung>
               <Rung Number="8" Type="N"><Text>XIC(SendIdentityRead)MSG(IdentityControl);</Text></Rung>
               <Rung Number="9" Type="N"><Text>XIC(SendIdentityAll)MSG(IdentityAllControl);</Text></Rung>
+              <Rung Number="10" Type="N"><Text>XIC(ApplyIdentityAttribute)MOV(IdentityAttribute,IdentityControl.Attribute);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

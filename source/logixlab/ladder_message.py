@@ -15,6 +15,7 @@ FIELDS = dict.fromkeys(('EW', 'ER', 'DN', 'ST', 'EN', 'TO'), 'BOOL') | {
     'ERR': 'INT', 'EXERR': 'DINT', 'REQ_LEN': 'INT', 'DN_LEN': 'INT',
     'LocalIndex': 'DINT', 'RemoteIndex': 'DINT', 'RemoteElement': 'STRING',
     'UnconnectedTimeout': 'DINT',
+    'Class': 'INT', 'Instance': 'DINT', 'Attribute': 'INT',
 }
 ELEMENT_BYTES = {'SINT': 1, 'INT': 2, 'DINT': 4, 'LINT': 8, 'REAL': 4}
 NAME = r'[A-Za-z_][A-Za-z_0-9]{0,39}'
@@ -49,7 +50,10 @@ class Configuration:
 class IdentityRead:
     destination: Endpoint
     identity: Identity
-    attribute: int | None
+    read_all: bool
+    attribute: int
+    class_id: int = 1
+    instance: int = 1
 
 
 @dataclass(frozen=True)
@@ -110,14 +114,10 @@ def _identity_read(project, attributes):
     instance = _number(attributes, 'TargetObject', 0, 65535)
     if (cls, instance) != (1, 1) or service not in (0x01, 0x0E):
         raise ModelError('CIP Generic supports Get Attributes All and Get Attribute Single on Identity instance 1')
-    attribute = None
-    if service == 0x0E:
-        attribute = _hex_number(attributes, 'AttributeNumber')
-        if attribute not in IDENTITY_ATTRIBUTES:
-            raise ModelError('CIP Generic Identity supports attributes 1..7')
-    elif attributes.get('AttributeNumber'):
-        # A configured Custom service can carry an unused attribute field.
-        _hex_number(attributes, 'AttributeNumber')
+    read_all = service == 0x01
+    attribute = _hex_number(attributes, 'AttributeNumber') if not read_all or attributes.get('AttributeNumber') else 0
+    if not read_all and attribute not in IDENTITY_ATTRIBUTES:
+        raise ModelError('CIP Generic Identity supports attributes 1..7')
     _number(attributes, 'RequestedLength', 0, 0, '0')
     if attributes.get('LocalElement', '').strip() or attributes.get('RemoteElement', '').strip():
         raise ModelError('CIP Generic Identity reads require an empty source and no request payload')
@@ -125,7 +125,9 @@ def _identity_read(project, attributes):
     if destination is None or destination.variable or ':' in destination.name:
         raise ModelError('CIP Generic Identity requires a controller DestinationTag with a fixed array start')
     identity = Identity.from_project('logix-v35-l85e', project)
-    return IdentityRead(destination, identity, attribute)
+    # Preserve the 16-bit pattern of an optional Get Attributes All placeholder.
+    signed_attribute = attribute if attribute < 0x8000 else attribute - 0x10000
+    return IdentityRead(destination, identity, read_all, signed_attribute)
 
 
 def from_tag(project, tag, element, dims):
@@ -162,6 +164,7 @@ def initial(project, configuration):
         'UnconnectedTimeout': DEFAULT_TIMEOUT_US,
     }
     if isinstance(configuration, IdentityRead):
+        record.update(Class=configuration.class_id, Instance=configuration.instance, Attribute=configuration.attribute)
         return record
     local = project.tags.get(configuration.local.name)
     requested = _words(local.dtype.upper(), configuration.count) if local and not local.problem else 0
@@ -283,7 +286,7 @@ def prescan(engine, op, scope):
     key = validate(engine, op, scope)
     record = engine.memory.values[key]
     defaults = initial(engine.project, engine.project.message_configs[key])
-    for name in ('LocalIndex', 'RemoteIndex', 'RemoteElement', 'UnconnectedTimeout'):
+    for name in ('LocalIndex', 'RemoteIndex', 'RemoteElement', 'UnconnectedTimeout', 'Class', 'Instance', 'Attribute'):
         if name in record:
             defaults[name] = record[name]
     engine.memory.values[key] = defaults
@@ -326,7 +329,10 @@ def execute(engine, op, power):
         else:
             record['EW'] = True
             request = engine.project.message_configs[key]
-            if not isinstance(request, IdentityRead):
+            if isinstance(request, IdentityRead):
+                request = replace(request, class_id=record['Class'], instance=record['Instance'],
+                                  attribute=record['Attribute'])
+            else:
                 remote = _capture_remote(engine.memory, key, request, record)
                 request = DataTableTransfer(request, request.local.start(record['LocalIndex']), remote,
                                             remote.start(record['RemoteIndex']) if remote is not None else None)
@@ -336,10 +342,14 @@ def execute(engine, op, power):
 
 def _transfer(memory, request, status_word):
     if isinstance(request, IdentityRead):
+        if (request.class_id, request.instance) != (1, 1):
+            raise TransferError(0x05)
         key, start = _identity_destination(memory, request.destination)
-        if request.attribute is None:
+        if request.read_all:
             payload = request.identity.all_attributes(status_word=status_word)
         else:
+            if request.attribute not in IDENTITY_ATTRIBUTES:
+                raise TransferError(0x14)
             payload = request.identity.attributes(status_word=status_word)[request.attribute]
         if len(payload) > len(memory.values[key]) - start:
             raise TransferError(0x11)
