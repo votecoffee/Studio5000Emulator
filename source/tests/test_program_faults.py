@@ -8,18 +8,25 @@ import test_runtime as fixtures
 from logixlab.model import ModelError
 
 
-def ladder_fault_fixture(root, *, clear=True, handler_tail=None, main_tail=None, destination=False):
+def ladder_fault_fixture(root, *, clear=True, handler_tail=None, main_tail=None, destination=False, copy_op=None):
     controller = root.find('Controller')
     program = controller.find('./Programs/Program')
     program.set('FaultRoutineName','RecoverMove')
     tags = controller.find('Tags')
-    for name, size in (('LabValues',2), ('FaultWords',11)):
+    arrays = [('LabValues',[12,13]), ('FaultWords',[0]*11)]
+    if copy_op:
+        arrays.append(('LabCopy',[81,82]))
+    for name, values in arrays:
+        size = len(values)
         tag = ET.SubElement(tags,'Tag',Name=name,DataType='DINT',Dimensions=str(size),TagType='Base')
         data = ET.SubElement(tag,'Data',Format='Decorated')
         array = ET.SubElement(data,'Array',DataType='DINT',Dimensions=str(size))
-        for index in range(size):
-            ET.SubElement(array,'Element',Index=f'[{index}]',Value=str(12+index) if name=='LabValues' else '0')
-    for name, dtype, value in (('LabIndex','DINT','0'), ('CapturedFault','DINT','0'), ('FaultWitness','BOOL','1')):
+        for index,value in enumerate(values):
+            ET.SubElement(array,'Element',Index=f'[{index}]',Value=str(value))
+    scalars = [('LabIndex','DINT','0'), ('CapturedFault','DINT','0'), ('FaultWitness','BOOL','1')]
+    if copy_op:
+        scalars.append(('CopyLength','DINT','2'))
+    for name, dtype, value in scalars:
         tag = ET.SubElement(tags,'Tag',Name=name,DataType=dtype,TagType='Base')
         ET.SubElement(ET.SubElement(tag,'Data',Format='Decorated'),'DataValue',DataType=dtype,Value=value)
 
@@ -30,9 +37,13 @@ def ladder_fault_fixture(root, *, clear=True, handler_tail=None, main_tail=None,
             ET.SubElement(rung,'Text').text = line
 
     routines = program.find('Routines')
-    move = 'MOV(93,LabValues[LabIndex])' if destination else 'MOV(LabValues[LabIndex],SpeedCommand)'
+    if copy_op:
+        operands = 'LabValues[0],LabCopy[LabIndex]' if destination else 'LabValues[LabIndex],LabCopy[0]'
+        instruction = f'{copy_op}({operands},CopyLength)'
+    else:
+        instruction = 'MOV(93,LabValues[LabIndex])' if destination else 'MOV(LabValues[LabIndex],SpeedCommand)'
     rungs(routines.find('./Routine/RLLContent'),
-          ['XIC(StartPB)'+move+'ADD(SpeedCommand,1,SpeedCommand);','MOV(91,SpeedSetpoint);']
+          ['XIC(StartPB)'+instruction+'ADD(SpeedCommand,1,SpeedCommand);','MOV(91,SpeedSetpoint);']
           + ([main_tail] if main_tail else []))
     recovery = ET.SubElement(routines,'Routine',Name='RecoverMove',Type='RLL')
     handler = ['OTE(FaultWitness);', 'GSV(Program,THIS,MajorFaultRecord,FaultWords[0]);',
@@ -44,8 +55,10 @@ def ladder_fault_fixture(root, *, clear=True, handler_tail=None, main_tail=None,
 
 
 def controller_fault_fallback_fixture(root, *, clear_at_program=False, clear_at_controller=True,
-                                      program_tail=None, controller_tail=None, main_tail=None):
-    ladder_fault_fixture(root, clear=clear_at_program, handler_tail=program_tail, main_tail=main_tail)
+                                      program_tail=None, controller_tail=None, main_tail=None,
+                                      copy_op=None, destination=False):
+    ladder_fault_fixture(root, clear=clear_at_program, handler_tail=program_tail, main_tail=main_tail,
+                         copy_op=copy_op, destination=destination)
     controller = root.find('Controller')
     program = controller.find('./Programs/Program')
     if clear_at_program is None:
@@ -319,3 +332,70 @@ class ProgramFaultTests(unittest.TestCase):
         self.assertEqual(engine.memory.read('SeenCode','FaultHandler'),1310724)
         self.assertEqual(engine.memory.read('SpeedSetpoint'),52)
         self.assertEqual(engine.calls.stack,[])
+
+    def test_block_copies_clear_bad_starts_without_copying_or_retrying(self):
+        for copy_op in ('COP','CPS'):
+            for destination, index in ((False,2),(True,-1)):
+                with self.subTest(copy_op=copy_op,destination=destination):
+                    self.setUp()
+                    engine = self.engine(mutate=lambda root:ladder_fault_fixture(
+                        root, copy_op=copy_op, destination=destination, handler_tail='CLR(LabIndex);'))
+                    self.assertEqual(engine.blockers, [])
+                    engine.memory.write('LabIndex',index)
+                    engine.memory.write('SpeedCommand',50)
+                    engine.step()
+                    self.assertEqual(engine.memory.read('LabCopy'),[81,82])
+                    self.assertIsNone(engine.last_cleared_program_fault)
+                    engine.memory.write('StartPB',True)
+                    engine.step()
+                    fault = engine.last_cleared_program_fault
+                    self.assertEqual((fault['type'],fault['code'],fault['instruction']),(4,20,copy_op))
+                    self.assertEqual(fault['handler']['routine'],'MainProgram/RecoverMove')
+                    self.assertEqual(engine.memory.read('CapturedFault'),1310724)
+                    self.assertEqual(engine.memory.read('LabIndex'),0)
+                    self.assertEqual(engine.memory.read('LabCopy'),[81,82])
+                    self.assertEqual(engine.memory.read('SpeedCommand'),51)
+                    event = next(event for row in engine.trace for event in row['events'] if 'recovered_fault' in event)
+                    self.assertEqual((event['instruction'],event['out']),(copy_op,True))
+                    engine.step()
+                    self.assertIs(engine.last_cleared_program_fault,fault)
+                    self.assertEqual(engine.memory.read('LabCopy'),[12,13])
+                    self.assertEqual(engine.memory.read('SpeedCommand'),52)
+
+    def test_aggregate_copy_start_fault_reaches_controller_handler(self):
+        from test_aggregate_copy import AggregateCopyTests
+
+        def configure(root):
+            controller_fault_fallback_fixture(root)
+            AggregateCopyTests.fields(root)
+            text = root.find('./Controller/Programs/Program/Routines/Routine/RLLContent/Rung/Text')
+            text.text = 'CPS(Records[0],CopyRecords[LabIndex],2)ADD(SpeedCommand,1,SpeedCommand);'
+
+        engine = self.engine(mutate=configure)
+        self.assertEqual(engine.blockers, [])
+        engine.memory.write('LabIndex',3)
+        engine.memory.write('Records[0].Count',27)
+        engine.memory.write('CopyRecords[2].Count',73)
+        before = copy.deepcopy(engine.memory.read('CopyRecords'))
+        engine.step()
+        fault = engine.last_cleared_program_fault
+        self.assertEqual((fault['instruction'],fault['handler']['routine']),('CPS','FaultHandler/Capture'))
+        self.assertEqual(engine.memory.read('SeenCode','FaultHandler'),1310724)
+        self.assertEqual(engine.memory.read('CopyRecords'),before)
+        self.assertEqual(engine.memory.read('SpeedCommand'),1)
+        engine.memory.write('LabIndex',2)
+        engine.step()
+        self.assertEqual(engine.memory.read('CopyRecords')[:2],before[:2])
+        self.assertEqual(engine.memory.read('CopyRecords[2].Count'),27)
+        self.assertIs(engine.last_cleared_program_fault,fault)
+
+    def test_invalid_copy_length_still_rolls_back_without_fault_recovery(self):
+        engine = self.engine(mutate=lambda root:controller_fault_fallback_fixture(root,copy_op='COP'))
+        self.assertEqual(engine.blockers, [])
+        engine.memory.write('CopyLength',-1)
+        engine.memory.write('StartPB',True)
+        before = copy.deepcopy(engine.memory.values)
+        with self.assertRaisesRegex(ModelError,'Scan rolled back: Block length'):
+            engine.step()
+        self.assertEqual(engine.memory.values,before)
+        self.assertIsNone(engine.last_cleared_program_fault)

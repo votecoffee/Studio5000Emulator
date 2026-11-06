@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1106.130358` [ladder COP and CPS fault recovery](controller-handlers.md#recover-cop-and-cps-array-faults)
+skips out-of-bounds array copies after a Program or Controller Fault Handler
+clears Type 4 Code 20. The destination keeps its prior values and the next
+instruction runs.
+
 Available in `26.1106.125652` [controller fallback for MOV faults](controller-handlers.md#escalate-an-uncleared-program-fault)
 lets a ladder Controller Fault Handler recover Type 4 Code 20 and resume
 the scan when a Program routine finishes without clearing or its assignment

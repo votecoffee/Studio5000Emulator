@@ -27,6 +27,8 @@ FAULT_HANDLER_OPS = frozenset(('XIC','XIO','OTE','OTL','OTU','AFI','NOP','EQU','
                                'GEQ','LIM','MEQ','MOV','CLR','ADD','SUB','MUL','DIV','GSV','SSV',
                                'JSR','SBR','RET'))
 PROGRAM_FAULT_OPS = FAULT_HANDLER_OPS - {'JSR', 'SBR', 'RET'}
+# These instructions resolve array operands before writing any values.
+ARRAY_FAULT_RECOVERY_OPS = frozenset(('MOV', 'COP', 'CPS'))
 FAULT_HANDLER_GSV = frozenset((('program','majorfaultrecord'), ('module','entrystatus'),
                                ('module','faultcode'), ('module','faultinfo')))
 
@@ -779,18 +781,18 @@ class Engine:
             self._scan_controller_status=None
         return self._record_tag_changes(before)
 
-    def _recover_ladder_move(self, op, scope, error):
+    def _recover_ladder_array_fault(self, op, scope, error):
         program_handler = self.project.program_fault_routines.get(scope)
         controller_handler = self.project.fault_handler_routine
-        if (op.name != 'MOV' or self.mode != 'project'
-                or self._program_advance is None or self._program_fault is not None):
+        if (op.name not in ARRAY_FAULT_RECOVERY_OPS or op.name in self.project.aois
+                or self.mode != 'project' or self._program_advance is None or self._program_fault is not None):
             return False
         if not program_handler and (not controller_handler or not self.project.program_hierarchy.has_no_fault_routine(
                 scope, source_sha256=self.project.sha256)):
             return False
         routine = self._executing_routine.key
         fault = {'type':4, 'code':20, 'program':scope, 'routine':routine,
-                 'instruction':'MOV', 'detail':str(error), 'timestamp_us':current_value_microseconds()}
+                 'instruction':op.name, 'detail':str(error), 'timestamp_us':current_value_microseconds()}
         self._program_fault = fault
         handler = program_handler
         profile = 'Program fault routine'
@@ -916,7 +918,7 @@ class Engine:
                     result=self._op(node,incoming,scope,depth)
                     power=False if force_false else result
                 except ArrayBoundsError as error:
-                    if not self._recover_ladder_move(node, scope, error):
+                    if not self._recover_ladder_array_fault(node, scope, error):
                         raise
                     power = incoming
                     events.append({'instruction':node.name, 'args':node.args, 'in':incoming,

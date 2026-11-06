@@ -112,7 +112,7 @@ function render() {
   const clearedFault = state.controller.last_cleared_module_fault;
   const clearedProgramFault = state.controller.last_cleared_program_fault;
   if (clearedProgramFault && (!clearedFault || clearedProgramFault.timestamp_us >= clearedFault.timestamp_us)) {
-    $('scope-note').textContent = `Last handler clear · Program fault ${clearedProgramFault.type}/${clearedProgramFault.code} · ${clearedProgramFault.handler.routine}`;
+    $('scope-note').textContent = `Last handler clear · Program fault ${clearedProgramFault.type}/${clearedProgramFault.code} · ${clearedProgramFault.handler.routine} · skipped ${clearedProgramFault.instruction}`;
   } else if (running && clearedFault) {
     $('scope-note').textContent = `Last handler clear · I/O fault ${clearedFault.type}/${clearedFault.code} · ${clearedFault.handler.routine}`;
   }

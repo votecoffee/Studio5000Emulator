@@ -30,9 +30,24 @@ harness. Other instruction faults, Program fault subroutines and native
 fault history remain open.
 [Rockwell Major, Minor, and I/O Faults manual](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm014_-en-p.pdf)
 
+## Recover COP and CPS array faults
+
+During whole-project ladder execution, an out-of-bounds array operand in
+COP or CPS triggers the same Type 4 Code 20 handler path. A successful
+clear skips the copy and continues at the next instruction with the
+incoming rung power. The destination keeps its prior values even when the
+handler corrects the index. A subsequent scan uses the corrected index.
+
+This applies to supported numeric byte copies and matching aggregate
+copies. Valid starts still use the existing clipping rules. An invalid
+length or another copy error outside the modeled array fault follows the
+usual scan rollback. The browser names the skipped instruction.
+
+[Rockwell fault recovery reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-02/contents-ditamap/studio-5000-logix-designer/controller-properties/major-fault-state.html)
+
 ## Escalate an uncleared Program fault
 
-For the modeled MOV fault, the assigned Controller Fault Handler runs
+For a modeled array fault, the assigned Controller Fault Handler runs
 when the Program fault routine finishes without clearing the record or
 when the source confirms that the Program has no assigned fault routine.
 The controller handler and its ladder subroutines can use `THIS` or
@@ -43,7 +58,7 @@ and routine are recorded in the browser's recovery data.
 The controller handler uses its own subroutine stack and runs with
 `S:FS` false. Both stages share the faulting scan's instruction budget.
 If the controller handler clears the record, execution resumes after the
-failed MOV and the scan commits both handlers' diagnostic writes.
+failed instruction and the scan commits both handlers' diagnostic writes.
 A handler execution error or an uncleared fault rolls back the scan.
 The browser names the routine that cleared the fault.
 
