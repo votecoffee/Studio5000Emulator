@@ -233,6 +233,97 @@ class LadderAlarmTests(unittest.TestCase):
         self.assertTrue(alarm['Acked'])
         self.assertFalse(alarm['OperSuppress'])
 
+    def test_shelf_expires_at_the_configured_simulated_minute(self):
+        engine = self.engine()
+        memory = engine.memory
+        memory.write('MotorAlarm.MinDurationPRE', 0)
+        memory.write('MotorAlarm.OperShelve', True)
+        memory.write('Trip', True)
+        engine.step()
+        alarm = self.alarm(engine)
+        self.assertTrue(alarm['Shelved'])
+        self.assertTrue(alarm['InAlarm'])
+        self.assertTrue(alarm['Acked'])
+        self.assertFalse(alarm['OperShelve'])
+        engine.step(59_999)
+        self.assertTrue(alarm['Shelved'])
+        engine.step(1)
+        self.assertFalse(alarm['Shelved'])
+        self.assertTrue(alarm['InAlarmUnack'])
+        self.assertEqual(alarm['AlarmCount'], 1)
+
+    def test_unshelve_wins_and_consumes_held_edge_until_a_release(self):
+        engine = self.engine()
+        memory = engine.memory
+        memory.write('MotorAlarm.ShelveDuration', 0)
+        memory.write('MotorAlarm.ProgUnshelve', True)
+        memory.write('MotorAlarm.OperShelve', True)
+        engine.step()
+        self.assertFalse(self.alarm(engine)['Shelved'])
+        memory.write('MotorAlarm.ProgUnshelve', False)
+        memory.write('MotorAlarm.OperShelve', True)
+        engine.step()
+        self.assertFalse(self.alarm(engine)['Shelved'])
+        engine.step()
+        memory.write('MotorAlarm.ShelveDuration', 1)
+        memory.write('MotorAlarm.OperShelve', True)
+        engine.step()
+        self.assertTrue(self.alarm(engine)['Shelved'])
+        memory.write('MotorAlarm.OperUnshelve', True)
+        engine.step()
+        self.assertFalse(self.alarm(engine)['Shelved'])
+        self.assertFalse(self.alarm(engine)['OperUnshelve'])
+
+    def test_reshelve_restarts_duration_only_on_a_new_edge(self):
+        engine = self.engine()
+        memory = engine.memory
+        memory.write('MotorAlarm.OperShelve', True)
+        engine.step()
+        engine.step(30_000)
+        memory.write('MotorAlarm.OperShelve', True)
+        engine.step()
+        self.assertTrue(self.alarm(engine)['Shelved'])
+        memory.write('MotorAlarm.OperShelve', True)
+        engine.step(30_000)
+        self.assertTrue(self.alarm(engine)['Shelved'])
+        engine.step(30_000)
+        self.assertFalse(self.alarm(engine)['Shelved'])
+
+    def test_expired_shelf_keeps_ack_until_active_suppression_clears(self):
+        engine = self.engine()
+        memory = engine.memory
+        memory.write('MotorAlarm.MinDurationPRE', 0)
+        memory.write('MotorAlarm.OperShelve', True)
+        memory.write('MotorAlarm.ProgSuppress', True)
+        memory.write('Trip', True)
+        engine.step()
+        engine.step(60_000)
+        alarm = self.alarm(engine)
+        self.assertFalse(alarm['Shelved'])
+        self.assertTrue(alarm['Suppressed'])
+        self.assertTrue(alarm['Acked'])
+        memory.write('MotorAlarm.ProgUnsuppress', True)
+        engine.step()
+        self.assertTrue(alarm['InAlarmUnack'])
+        self.assertEqual(alarm['AlarmCount'], 1)
+
+    def test_shelf_expiration_rolls_back_with_the_failed_advance(self):
+        engine = self.engine()
+        memory = engine.memory
+        memory.write('MotorAlarm.MinDurationPRE', 0)
+        memory.write('MotorAlarm.OperShelve', True)
+        memory.write('Trip', True)
+        engine.step()
+        memory.write('SignalAlarm.UseProgTime', True)
+        baseline = copy.deepcopy((memory.values, engine.last_timer, engine.time_ms))
+        with self.assertRaisesRegex(ModelError, 'program timestamps'):
+            engine.step(60_000)
+        self.assertEqual((memory.values, engine.last_timer, engine.time_ms), baseline)
+        memory.write('SignalAlarm.UseProgTime', False)
+        engine.step(60_000)
+        self.assertFalse(self.alarm(engine)['Shelved'])
+        self.assertTrue(self.alarm(engine)['InAlarmUnack'])
+
     def test_prescan_clears_active_and_operator_requests_but_retains_count(self):
         engine = self.engine()
         memory = engine.memory
@@ -240,8 +331,10 @@ class LadderAlarmTests(unittest.TestCase):
         memory.write('MotorAlarm.MinDurationPRE', 0)
         engine.step()
         memory.write('MotorAlarm.OperSuppress', True)
+        memory.write('MotorAlarm.OperShelve', True)
         engine.step()
         self.assertTrue(self.alarm(engine)['Suppressed'])
+        self.assertTrue(self.alarm(engine)['Shelved'])
         memory.write('MotorAlarm.OperAck', True)
         memory.write('MotorAlarm.OperUnsuppress', True)
         engine.enter_run()
@@ -252,6 +345,7 @@ class LadderAlarmTests(unittest.TestCase):
         self.assertFalse(alarm['OperAck'])
         self.assertFalse(alarm['OperUnsuppress'])
         self.assertTrue(alarm['Suppressed'])
+        self.assertFalse(alarm['Shelved'])
         self.assertEqual(alarm['AlarmCount'], 1)
         self.assertEqual(engine.last_timer, {})
 

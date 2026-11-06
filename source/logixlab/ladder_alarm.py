@@ -5,13 +5,13 @@ from .model import ModelError, coerce, literal
 
 TYPE = 'ALARM_DIGITAL'
 MAX_DINT = (1 << 31) - 1
-PROGRAM = ('ProgAck', 'ProgReset', 'ProgDisable', 'ProgEnable', 'ProgSuppress', 'ProgUnsuppress')
+PROGRAM = ('ProgAck', 'ProgReset', 'ProgDisable', 'ProgEnable',
+           'ProgSuppress', 'ProgUnsuppress', 'ProgUnshelve')
 OPERATOR = ('OperAck', 'OperReset', 'OperDisable', 'OperEnable', 'AlarmCountReset',
             'OperSuppress', 'OperUnsuppress', 'OperShelve', 'OperUnshelve')
-UNSUPPORTED_COMMANDS = ('ProgUnshelve', 'OperShelve', 'OperUnshelve', 'UseProgTime')
 INPUTS = dict(
-    EnableIn=True, In=False, InFault=False, Condition=True, AckRequired=True, Latched=False,
-    **dict.fromkeys(PROGRAM + OPERATOR + UNSUPPORTED_COMMANDS, False),
+    EnableIn=True, In=False, InFault=False, Condition=True, AckRequired=True, Latched=False, UseProgTime=False,
+    **dict.fromkeys(PROGRAM + OPERATOR, False),
     Severity=500, MinDurationPRE=0, ShelveDuration=0, MaxShelveDuration=0, ProgTime=0,
 )
 OUTPUTS = dict(EnableOut=False, InAlarm=False, Acked=True, InAlarmUnack=False,
@@ -111,11 +111,22 @@ def prescan(engine, op, scope):
     engine.last_timer.pop(('ALMD', key), None)
 
 
+def _shelf_deadline(obj, now, deadline, rising):
+    if obj['ProgUnshelve'] or obj['OperUnshelve']:
+        return None
+    if rising:
+        minutes = obj['ShelveDuration']
+        if not 1 <= minutes <= obj['MaxShelveDuration']:
+            raise ModelError('ALMD shelve duration must be 1..MaxShelveDuration minutes')
+        return now + minutes * 60_000
+    return deadline if deadline is not None and now < deadline else None
+
+
 def execute(engine, op, power, scope):
     memory = engine.memory
     key, obj = _record(memory, op.args[0], scope)
-    if any(obj[name] for name in UNSUPPORTED_COMMANDS):
-        raise ModelError('ALMD shelve, unshelve and program timestamps remain unqualified')
+    if obj['UseProgTime']:
+        raise ModelError('ALMD program timestamps remain unqualified')
     if not 1 <= obj['Severity'] <= 1000:
         raise ModelError('ALMD severity must be 1..1000 in the software profile')
     ack, reset, disable, enable = (_command(memory, ref, scope) for ref in op.args[1:5])
@@ -126,7 +137,12 @@ def execute(engine, op, power, scope):
         raise ModelError('ALMD MinDurationPRE must be a nonnegative DINT')
 
     identity = ('ALMD', key)
-    since, old_ack, old_reset = engine.last_timer.get(identity, (None, False, False))
+    since, old_ack, old_reset, shelf_until, old_shelve = engine.last_timer.get(
+        identity, (None, False, False, None, False))
+    shelve_request = obj['OperShelve']
+    was_shelved = shelf_until is not None
+    shelf_until = _shelf_deadline(obj, engine.time_ms, shelf_until, shelve_request and not old_shelve)
+    shelved = shelf_until is not None
     ack_requested = (ack and not old_ack) or obj['OperAck']
     reset_requested = (reset and not old_reset) or obj['OperReset']
     disabled = (obj['Disabled'] or disable or obj['OperDisable']) and not (enable or obj['OperEnable'])
@@ -149,16 +165,16 @@ def execute(engine, op, power, scope):
         active = since is not None and engine.time_ms - since >= preset
 
     activated = active and not old_active
-    rearm_ack = active and not suppressed and (activated or was_suppressed)
+    rearm_ack = active and not (suppressed or shelved) and (activated or was_suppressed or was_shelved)
     acked = (obj['Acked'] and not rearm_ack) or not obj['AckRequired'] or ack_requested or latched_reset
     count = 0 if obj['AlarmCountReset'] else min(MAX_DINT, obj['AlarmCount'] + int(activated))
     obj.update(dict.fromkeys(OPERATOR, False))
     obj.update(EnableIn=power, EnableOut=power, In=power,
                ProgAck=ack, ProgReset=reset, ProgDisable=disable, ProgEnable=enable,
                MinDurationPRE=preset, MinDurationACC=0, Disabled=disabled, Suppressed=suppressed,
-               InAlarm=active, Acked=acked, InAlarmUnack=active and not acked,
+               Shelved=shelved, InAlarm=active, Acked=acked, InAlarmUnack=active and not acked,
                AlarmCount=count, Status=2 if obj['InFault'] else 0)
-    engine.last_timer[identity] = (since, ack, reset)
+    engine.last_timer[identity] = (since, ack, reset, shelf_until, shelve_request)
     return power
 
 
@@ -166,8 +182,9 @@ def description(project):
     return dict(available=available(project), instruction='ALMD', language='RLL', data_type=TYPE,
                 source='Scalar Alarm-format ALARM_DIGITAL tags, including program scope and aliases',
                 timing='First abnormal sample starts the minimum duration; later releases use modeled milliseconds',
-                state='Polarity, enable/disable, suppression, latch/reset, acknowledgment, count and InFaulted',
-                suppression='Suppress retains detection, delay and count. Unsuppress wins and rearms acknowledgment for an active alarm.',
+                state='Polarity, enable/disable, suppression, shelving, latch/reset, acknowledgment, count and InFaulted',
+                suppression='Suppress retains detection, delay and count. Unsuppress wins and rearms acknowledgment for an active, unshelved alarm.',
+                shelving='A sampled rising edge shelves or reshelves for configured minutes. Unshelve wins. Expiration uses modeled time.',
                 false_rung_executes=True, native_runtime_parity=False,
-                remaining=['Shelving and timestamps', 'Native packed layouts and alarm event services',
+                remaining=['Alarm timestamps', 'Native packed layouts and alarm event services',
                            'ALMA, ASO, ST, FBD and AOI alarm execution'])

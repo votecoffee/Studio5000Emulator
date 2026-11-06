@@ -42,9 +42,29 @@ while program commands retain their values. Suppression preserves detection,
 minimum duration, latching and activation count. A previously unacknowledged
 alarm can still be acknowledged. While suppressed, a new activation preserves
 acknowledgment state. Clearing suppression on an active alarm that requires
-acknowledgment makes it unacknowledged again without incrementing the count.
+acknowledgment makes it unacknowledged again if it is also unshelved.
+Clearing suppression leaves the count unchanged.
 Prescan retains suppression and clears pending operator requests.
 [Rockwell alarm state model](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/proces-rm001_-en-p.pdf#page=60)
+
+## Shelving
+
+Pulse `OperShelve` to shelve an alarm for `ShelveDuration` minutes on the
+emulator clock. A new rising edge reshelves from the current time. ALMD
+consumes the request and requires a sampled false before another rising
+edge. `ProgUnshelve` and `OperUnshelve` take precedence over shelving and
+consume a simultaneous shelf edge. A winning shelf request requires a
+duration from 1 through `MaxShelveDuration` minutes. The software rolls
+back the advance for an invalid duration.
+
+The shelf expires on the first ALMD execution at or after its deadline.
+A fresh shelf request can extend it on that execution. Shelf time, edge
+history and alarm state roll back together on a scan fault. Prescan clears
+the shelf and its pending requests. Detection and counting continue while
+shelved, and a pending alarm can still be acknowledged. An active alarm
+requires acknowledgment again when both shelving and suppression have
+cleared and `AckRequired` is true.
+[Rockwell ALMD reference](https://www.rockwellautomation.com/en-hu/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/alarm-instructions/digital-alarm---almd.html)
 
 ## Alarm Lab
 
@@ -61,11 +81,16 @@ The alarm has counted one activation and is still acknowledged. Set
 `MotorAlarm.ProgUnsuppress` true and step. SUP clears, acknowledgment is
 required, and the count stays at one. Clear both program commands when done.
 
+For shelving, reload Alarm Lab and step once to complete prescan. Set
+`MotorAlarm.OperShelve` and `Trip` true. After three more 10 ms steps, the
+ladder block shows SHV and ALM. Enter
+60000 ms for the next step to expire the one-minute shelf and rearm
+acknowledgment. The count remains one.
+
 ## Scope
 
-Shelving, timestamp generation, alarm messages/events and native
-packed records remain open. An attempted shelve, unshelve or program-time
-command stops the modeled advance. ST, FBD, AOI alarms, ALMA and ASO remain
+Timestamp generation, alarm messages/events and native packed records
+remain open. A program-time command stops the modeled advance. ST, FBD, AOI alarms, ALMA and ASO remain
 separate. The native alarm discovery services still expose only verified empty
 catalogs. Runtime behavior is based on the installed v35 ALMD help and
 the import/export record description. Native execution and transfer parity

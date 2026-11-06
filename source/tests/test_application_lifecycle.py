@@ -870,6 +870,25 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertTrue(report['false_rung_executes'])
         self.assertFalse(report['native_runtime_parity'])
 
+    def test_alarm_lab_consumes_shelf_request_after_deferred_prescan(self):
+        self.assertEqual(self.post('demo', {'sample': 'AlarmLab'})['blockers'], [])
+
+        def request_shelf():
+            self.post('write', {'tag': 'MotorAlarm.OperShelve', 'value': True})
+
+        def step():
+            state = self.post('step', {'dt': 10})
+            return {row['name']: row['value'] for row in state['tags']}
+
+        request_shelf()
+        first = step()
+        self.assertFalse(first['MotorAlarm.Shelved'])
+        self.assertFalse(first['MotorAlarm.OperShelve'])
+        request_shelf()
+        second = step()
+        self.assertTrue(second['MotorAlarm.Shelved'])
+        self.assertFalse(second['MotorAlarm.OperShelve'])
+
     def test_string_lab_executes_rll_st_and_reflects_input_search_changes(self):
         state = self.post('demo', {'sample': 'StringLab'})
         self.assertEqual(state['blockers'], [])

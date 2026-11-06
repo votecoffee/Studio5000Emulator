@@ -339,8 +339,9 @@ watchdogs in microseconds, typed priorities, names and controller settings.
 
 [Ladder digital alarms](docs/ladder-alarm.md) import scalar `ALARM_DIGITAL`
 records and run ALMD minimum duration, latching, acknowledgment, reset,
-enable/disable and [suppression](docs/ladder-alarm.md#suppression).
-Choose **Alarm lab** to step through both alarm polarities and suppression.
+enable/disable, [suppression](docs/ladder-alarm.md#suppression) and
+[timed shelving](docs/ladder-alarm.md#shelving). Choose **Alarm lab** to
+step through both alarm polarities and shelf expiration.
 
 [String conversions](docs/string-conversions.md) add LOWER/UPPER and STOR/RTOS
 in ladder and Structured Text, including user strings and existing AOI bindings.

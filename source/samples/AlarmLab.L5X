@@ -25,7 +25,7 @@
       </Tag>
       <Tag Name="MotorAlarm" TagType="Base" DataType="ALARM_DIGITAL" ExternalAccess="Read/Write">
         <Data Format="Alarm">
-          <AlarmDigitalParameters Condition="true" AckRequired="true" Latched="true" MinDurationPRE="20" Severity="500" />
+          <AlarmDigitalParameters Condition="true" AckRequired="true" Latched="true" MinDurationPRE="20" Severity="500" ShelveDuration="1" MaxShelveDuration="5" />
           <AlarmConfig />
         </Data>
       </Tag>
