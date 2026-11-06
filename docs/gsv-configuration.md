@@ -35,7 +35,9 @@ GSV(Controller,,TimeSlice,CommTimeSlice);
 | ControllerDevice | Status | INT | Controller mode sampled at scan entry |
 | Module | LEDStatus, ForceStatus | INT or DINT low word | Complete controller-only I/O map |
 | Module | Mode | GSV to INT or DINT low word, SSV from INT | Named local or qualified Ethernet module with explicit Inhibited and MajorFault settings |
-| Module | EntryStatus | INT or DINT low word | Explicit Inhibited setting on the target, with its own inhibit or an inhibit on a qualified routed dependency |
+| Module | EntryStatus | INT or DINT low word | Explicit Inhibited setting on the target and a modeled inhibit, waiting condition or simulated connection |
+| Module | FaultCode | INT or DINT low word | Effective simulated connection |
+| Module | FaultInfo | DINT | Effective simulated connection |
 | Module | Path | SINT window in a one-dimensional array | Source-proven local backplane, IPv4 Ethernet, or remote ControlLogix backplane route |
 | Controller | TimeSlice | INT | Explicit source setting, 10..90 |
 | Controller | ShareUnusedTimeSlice | INT | Explicit source setting, 0/1 |
@@ -182,8 +184,9 @@ qualified Ethernet or remote chassis route. The initial Mode uses the
 explicit L5X boolean fields MajorFault for bit 0 and Inhibited for bit 2.
 EntryStatus returns 16#6000 when the named module is inhibited. An
 uninhibited module returns 16#7000 when a validated parent or ancestor
-on its route is inhibited. A read with neither condition faults the
-advance because connection state is unavailable.
+on its route is inhibited or explicitly simulated as faulted. With
+neither condition, the read uses the simulated connection state for the
+target. If the target lacks an explicit state, the read faults the advance.
 
 Both reads support INT and the low word of a known DINT, with the upper
 word preserved. Destination indices are resolved only when a call executes.
@@ -214,13 +217,50 @@ last value while the call is skipped. Set RackModeCommand to 4 to see
 Waiting again. The remote route bytes are available in either mode.
 [ModuleStatusLab.L5X](../source/samples/ModuleStatusLab.L5X)
 
-AOI module references, cyclic data, live connection
-diagnostics and module-caused controller faults remain open. Bit 0
+AOI module references, cyclic data, live connection diagnostics and
+module-caused controller faults remain open. Bit 0
 controls the modeled Mode word. Fault generation on connection loss
 requires a connection model.
 [Rockwell Module object](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-01/contents-ditamap/instruction-set/input-output-instructions/access-the-module-object.html)
 [Rockwell module states](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-01/contents-ditamap/status.html)
 [Rockwell L5X import/export reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm014_-en-p.pdf)
+
+## Simulated module connection
+
+Use the local session's token-protected POST `/api/module-connection`
+to set an explicit connection input for a named module with a qualified
+route and a declared Inhibited setting. Send the current
+`project_generation` from `/api/state`. The command is serialized
+between scans and rejects stale project generations. It applies to the
+active simulation. Routine edits retain the input. Reset, a new project,
+an execution-scope change or a native download installation clears it.
+
+A `running` input gives EntryStatus 16#4000 and zero for both diagnostic
+fields. A `faulted` input gives EntryStatus 16#1000 and requires a
+nonzero 16-bit `fault_code` and a signed DINT `fault_info`. FaultCode
+preserves the code's bit pattern in an INT or the low word of a DINT.
+A `clear` input removes the explicit state. Own inhibit and a waiting
+condition take precedence over simulated connection inputs. FaultCode
+and FaultInfo require an effective running or faulted input. Reaching
+them without one faults the advance. Input persists independently of a
+failed scan, and the scan's tag and Mode writes roll back.
+
+Open **Module status lab**. In the app's browser console, stage a fault
+for the sample POINT I/O adapter with the existing session helper.
+
+```javascript
+await api('module-connection', {
+  project_generation: state.project_generation,
+  module: 'PointAdapter', state: 'faulted', fault_code: 0x0204, fault_info: -42
+})
+```
+
+Enable ReadConnection and step. PointStatus reads 16#1000, PointFaultCode
+reads 16#0204, and PointFaultInfo reads -42. Submit `state: 'running'`
+with the same module and current generation, omitting the diagnostic
+fields, then step to see Running and zero diagnostics. The local
+simulation input covers these steady states. Automatic reconnection,
+real module communication and controller major faults remain open.
 
 ## Module backplane path
 

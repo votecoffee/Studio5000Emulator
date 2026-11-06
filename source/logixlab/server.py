@@ -34,7 +34,7 @@ from .native_metadata_definitions import NativeMetadataDefinitions
 from .native_metadata_values import NativeMetadataValues
 from .device_io import DeviceIO
 from .wall_clock import CoordinatedClock
-from . import comparisons, string_operations, time_values
+from . import comparisons, gsv_configuration, string_operations, time_values
 from .model import ModelError, Project, Branch
 from .runtime import Engine
 from . import __version__
@@ -245,7 +245,7 @@ class Application:
         metadata = {'app_version': __version__, 'desktop': dict(self.desktop),
                     'routine_edits':routine_edit_description(self),
                     'native_tag_writes':{'enabled':self.allow_native_tag_writes,'scope':'installed_scalar_program_mode'},
-                    'instance_id': self.instance_id, 'execution_environment': self.execution_environment,
+                    'instance_id': self.instance_id, 'project_generation': self.generation, 'execution_environment': self.execution_environment,
                     'device_io':self.device_io.description(), 'controller':self.controller_state()}
         if self.engine is None: return {**metadata, "loaded": False, "converter": self.converter,'connectivity':self.connectivity()}
         e = self.engine
@@ -561,6 +561,13 @@ class Application:
                 return self.state()
             if self.engine is None: raise ModelError("Load a project first")
             e = self.engine
+            if action == 'module-connection':
+                generation = data.get('project_generation') if isinstance(data, dict) else None
+                if type(generation) is not int or generation != self.generation:
+                    raise ModelError('Module connection requires the current project generation')
+                if self.scan_inhibited():
+                    raise ModelError('Release the native programming preparation before changing module connection input')
+                return gsv_configuration.configure_module_connection(e, data)
             if action == "configure":
                 engine = Engine(e.project, data.get("mode", "project"), data.get("routine", ""),defer_prescan=True,
                                 coordinated_clock=self.coordinated_clock)

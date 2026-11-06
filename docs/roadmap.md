@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1106.101924` [simulated module connection inputs](gsv-configuration.md#simulated-module-connection)
+let ladder and ST read Running, Faulted, FaultCode and FaultInfo from an
+explicit test input. Module Status Lab demonstrates fault and recovery.
+
 Available in `26.1106.100909` [Module EntryStatus Waiting](gsv-configuration.md#named-module-status)
 reports an inhibited routed dependency while preserving a module's own
 Inhibited state. Module Status Lab demonstrates a parent Mode change.

@@ -1,4 +1,5 @@
 """Typed GSV reads of explicit settings and their bounded runtime overrides."""
+from dataclasses import dataclass
 import re
 import struct
 
@@ -14,8 +15,11 @@ TASK = {'rate':(2,'DINT'), 'watchdog':(12,'DINT'), 'priority':(6,'INT'),
 DEVICE_NAME_SIZE = 33
 MODULE_PATH = 'module-path'
 MODULE_STATUS = {'forcestatus': 9, 'ledstatus': 11}
+MODULE_FAULTED = 0x1000
+MODULE_RUNNING = 0x4000
 MODULE_INHIBITED = 0x6000
 MODULE_WAITING = 0x7000
+MODULE_CONNECTION_ATTRIBUTES = {'entrystatus': 'INT', 'faultcode': 'INT', 'faultinfo': 'DINT'}
 MODULE_INHIBIT_BIT = 1 << 2
 MODULE_MODE_MASK = MODULE_INHIBIT_BIT | 1
 CONTROLLER = {'timeslice':('time_slice','time_slice_defaulted','TimeSlice'),
@@ -118,23 +122,90 @@ def controller_device(engine, instance, attribute, *, executing):
     raise ModelError('Unsupported GSV ControllerDevice attribute ' + attribute)
 
 
+@dataclass(frozen=True)
+class ModuleConnection:
+    fault_code: int = 0
+    fault_info: int = 0
+
+
+def _configuration_source(engine):
+    project = engine.project
+    configuration = project.task_configuration
+    if project.version != '35' or project.processor.upper() not in CONTROLLERS:
+        raise ModelError('GSV configuration requires the v35 ControlLogix 5580 software profile')
+    if not configuration.source_complete or configuration.source_sha256 != project.sha256:
+        raise ModelError('GSV configuration source is incomplete or unavailable')
+    return project
+
+
+def configure_module_connection(engine, data):
+    project = _configuration_source(engine)
+    name, state = data.get('module'), data.get('state')
+    if not isinstance(name, str) or state not in ('running', 'faulted', 'clear'):
+        raise ModelError('Module connection requires a module name and running, faulted or clear state')
+    module = project.io_map.named_module(name)
+    if module is None or module.route is None or module.inhibited is None:
+        raise ModelError('Module connection requires a qualified route and an explicit Inhibited setting')
+    required = {'project_generation', 'module', 'state'}
+    if state == 'faulted':
+        required.update(('fault_code', 'fault_info'))
+    if set(data) != required:
+        raise ModelError('Module connection fields do not match the requested state')
+    if state == 'clear':
+        engine._module_connections.pop(module.name, None)
+        return {'module': module.name, 'state': state}
+    code, info = data.get('fault_code', 0), data.get('fault_info', 0)
+    if state == 'faulted' and (type(code) is not int or not 0 < code <= 0xffff
+                               or type(info) is not int or not -(1 << 31) <= info < (1 << 31)):
+        raise ModelError('Faulted module requires a nonzero 16-bit fault code and signed DINT fault info')
+    engine._module_connections[module.name] = ModuleConnection(code, info)
+    return {'module': module.name, 'state': state, 'fault_code': code, 'fault_info': info}
+
+
 def _module_inhibited(engine, module):
     override = engine._module_modes.get(module.name)
     return module.inhibited if override is None else bool(override & MODULE_INHIBIT_BIT)
 
 
-def _module_entry_status(engine, module):
+def _module_connection_state(engine, module):
     if _module_inhibited(engine, module):
-        return MODULE_INHIBITED
+        return MODULE_INHIBITED, None
     io_map = engine.project.io_map
+    parent_name = module.routed_parent
     # Only follow dependencies for which the parser proved a route.
-    while module.routed_parent is not None:
-        module = io_map.named_module(module.routed_parent)
-        if module is None:
+    while parent_name is not None:
+        parent = io_map.named_module(parent_name)
+        if parent is None:
             break
-        if _module_inhibited(engine, module):
-            return MODULE_WAITING
-    raise ModelError('GSV Module EntryStatus is unavailable while the module is uninhibited and no modeled parent is inhibited')
+        connection = engine._module_connections.get(parent.name)
+        if _module_inhibited(engine, parent) or (connection and connection.fault_code):
+            return MODULE_WAITING, None
+        parent_name = parent.routed_parent
+    connection = engine._module_connections.get(module.name)
+    if connection is None:
+        return None, None
+    return (MODULE_FAULTED if connection.fault_code else MODULE_RUNNING), connection
+
+
+def _module_connection_attribute(engine, module, attribute, *, executing):
+    dtype = MODULE_CONNECTION_ATTRIBUTES[attribute]
+    if module.inhibited is None:
+        raise ModelError('GSV Module connection status requires an explicit source Inhibited setting')
+    if attribute != 'entrystatus' and module.route is None:
+        raise ModelError('GSV Module fault diagnostics require a qualified route')
+    if not executing:
+        return dtype, None
+    status, connection = _module_connection_state(engine, module)
+    if attribute == 'entrystatus':
+        if status is None:
+            raise ModelError('GSV Module EntryStatus is unavailable while the module is uninhibited, no modeled parent is inhibited, and no connection state is set')
+        return dtype, status
+    if connection is None:
+        raise ModelError('GSV Module fault diagnostics require an effective simulated connection state')
+    if attribute == 'faultinfo':
+        return dtype, connection.fault_info
+    code = connection.fault_code
+    return dtype, code if code < 0x8000 else code - 0x10000
 
 
 def module_attribute(engine, instance, attribute, *, executing):
@@ -144,8 +215,8 @@ def module_attribute(engine, instance, attribute, *, executing):
         if raw is None:
             raise ModelError('GSV Module status requires a complete controller-only I/O map without forces')
         return 'INT', struct.unpack('<h', raw)[0]
-    if not instance or attribute not in ('mode', 'entrystatus', 'path'):
-        raise ModelError('GSV Module requires a named instance for Mode, EntryStatus or Path, or a blank instance for ForceStatus or LEDStatus')
+    if not instance or (attribute not in ('mode', 'path') and attribute not in MODULE_CONNECTION_ATTRIBUTES):
+        raise ModelError('GSV Module requires a name for Mode, EntryStatus, Path or fault diagnostics, or a blank instance for ForceStatus or LEDStatus')
     module = io_map.named_module(instance)
     if module is None:
         raise ModelError('GSV Module requires an unambiguous supported named module in complete source')
@@ -153,10 +224,8 @@ def module_attribute(engine, instance, attribute, *, executing):
         if module.route is None:
             raise ModelError('GSV Module Path requires an explicit unambiguous backplane or IPv4 Ethernet route')
         return MODULE_PATH, struct.pack('<H', len(module.route)) + module.route
-    if attribute == 'entrystatus':
-        if module.inhibited is None:
-            raise ModelError('GSV Module EntryStatus requires an explicit source Inhibited setting')
-        return 'INT', _module_entry_status(engine, module) if executing else None
+    if attribute in MODULE_CONNECTION_ATTRIBUTES:
+        return _module_connection_attribute(engine, module, attribute, executing=executing)
     value = module.mode()
     if value is None:
         raise ModelError('GSV Module Mode requires explicit boolean Inhibited and MajorFault settings')
@@ -166,11 +235,8 @@ def module_attribute(engine, instance, attribute, *, executing):
 def source(engine, op, scope='', *, executing=False):
     if len(op.args)!=4 or any(not isinstance(a,str) for a in op.args):
         raise ModelError('GSV requires four neutral-text operands')
-    project=engine.project;configuration=project.task_configuration
-    if project.version!='35' or project.processor.upper() not in CONTROLLERS:
-        raise ModelError('GSV configuration requires the v35 ControlLogix 5580 software profile')
-    if not configuration.source_complete or configuration.source_sha256!=project.sha256:
-        raise ModelError('GSV configuration source is incomplete or unavailable')
+    project = _configuration_source(engine)
+    configuration = project.task_configuration
     cls,instance,attribute,_=op.args;cls=cls.casefold();attribute=attribute.casefold()
     if cls == 'controllerdevice':
         return controller_device(engine, instance, attribute, executing=executing)
@@ -309,13 +375,13 @@ def validate(engine, op, scope):
     memory=engine.memory;previous=memory.structural;memory.structural=True
     try:
         dtype,value=source(engine,op,scope)
-        return destination(memory,op.args[3],scope,dtype,value,allow_dint=op.args[0].casefold()=='module')
+        return destination(memory,op.args[3],scope,dtype,value,allow_dint=dtype=='INT' and op.args[0].casefold()=='module')
     finally:memory.structural=previous
 
 
 def execute(engine, op, scope):
     dtype,value=source(engine,op,scope,executing=True);memory=engine.memory
-    key,paths,kind=destination(memory,op.args[3],scope,dtype,value,allow_dint=op.args[0].casefold()=='module')
+    key,paths,kind=destination(memory,op.args[3],scope,dtype,value,allow_dint=dtype=='INT' and op.args[0].casefold()=='module')
     if dtype in ('SINT[33]', MODULE_PATH):
         for path, byte in zip(paths, value, strict=True):
             memory.store(key, path, byte)
@@ -346,13 +412,14 @@ def description():
                             'CanUseRPIFromProducer','RedundancyEnabled','KeepTestEditsOnSwitchover','InhibitAutomaticFirmwareUpdate'],
                 controller_flags='Read-only explicit project flags. No producer negotiation, redundancy switchover or firmware service.',
                 program=['Name'],routine=['Name'],
-                module=['ForceStatus','LEDStatus','Mode','EntryStatus (inhibited or waiting)','Path'],
+                module=['ForceStatus','LEDStatus','Mode','EntryStatus','FaultCode','FaultInfo','Path'],
                 module_path='Counted CIP route for a local slot, an explicit IPv4 device, or a slot under a qualified remote EN2T/EN2TR.',
-                named_module_settings='Explicit local and qualified routed source settings with live Mode overrides. EntryStatus models Inhibited (0x6000) and Waiting (0x7000) on an inhibited routed dependency.',
+                named_module_settings='Explicit local and qualified routed source settings with live Mode overrides. EntryStatus models Inhibited, Waiting, and explicit simulated Running or Faulted states.',
                 module_mode_ssv={'source':'Exact scalar INT with bits 0 and 2 only',
                                  'visibility':'Immediate within an advance; rolled back on fault',
                                  'lifecycle':'Retained across Run entry and routine replacement; reset/reload restores source settings',
                                  'connection_model':False},
+                module_connection_input='Explicit project-bound API state, applied between scans. Fault diagnostics reflect only an effective simulated connection.',
                 module_status='Controller-only I/O map. INT or DINT low word; preserve a known DINT upper word.',
                 controller_device=['DeviceName','ProductCode','ProductRev','Type','Vendor','Status'],
                 controller_device_source='v35 5580 project processor and firmware revision, plus modeled controller mode at scan entry.',

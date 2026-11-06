@@ -148,8 +148,10 @@ their upper word. [Named Module status](docs/gsv-configuration.md#named-module-s
 reads the Mode word and reports Inhibited or Waiting for qualified modules.
 Waiting means a modeled parent or ancestor is inhibited. Ladder and ST can
 set Mode with SSV and read it back in the same scan. The **Module status lab**
-demonstrates these states and reads local and
-Ethernet routes, including [a slot in a remote chassis](docs/gsv-configuration.md#remote-controllogix-backplane-path).
+demonstrates these states and reads local and Ethernet routes, including
+[a slot in a remote chassis](docs/gsv-configuration.md#remote-controllogix-backplane-path).
+Use the [simulated connection input](docs/gsv-configuration.md#simulated-module-connection)
+to exercise Running, Faulted, FaultCode and FaultInfo in ladder and ST.
 
 [Controller device GSV](docs/gsv-configuration.md#controller-device-identity)
 reads the loaded 5580 model's catalog name, product code, packed firmware

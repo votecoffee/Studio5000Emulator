@@ -13,7 +13,7 @@
       <Module Name="RackOutput" CatalogNumber="1756-OB16D" Vendor="1" ProductType="7" ProductCode="4" Major="3" Minor="1" ParentModule="Local" ParentModPortId="1" Inhibited="true" MajorFault="true">
         <Ports><Port Id="1" Address="2" Type="ICP" Upstream="true" /></Ports>
       </Module>
-      <Module Name="PointAdapter" CatalogNumber="1734-AENTR" Vendor="1" ProductType="12" ParentModule="Local" ParentModPortId="2" Inhibited="true" MajorFault="false">
+      <Module Name="PointAdapter" CatalogNumber="1734-AENTR" Vendor="1" ProductType="12" ParentModule="Local" ParentModPortId="2" Inhibited="false" MajorFault="false">
         <Ports><Port Id="1" Address="192.0.2.42" Type="Ethernet" Upstream="true" /></Ports>
       </Module>
       <Module Name="RemoteRack" CatalogNumber="1756-EN2TR" Vendor="1" ProductType="12" ParentModule="Local" ParentModPortId="2" Inhibited="true" MajorFault="false">
@@ -56,6 +56,10 @@
       <Tag Name="RackMode" DataType="INT" TagType="Base"><Data Format="Decorated"><DataValue DataType="INT" Value="-1" /></Data></Tag>
       <Tag Name="RemoteStatus" DataType="INT" TagType="Base"><Data Format="Decorated"><DataValue DataType="INT" Value="-1" /></Data></Tag>
       <Tag Name="RemoteWaiting" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="ReadConnection" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="PointStatus" DataType="INT" TagType="Base"><Data Format="Decorated"><DataValue DataType="INT" Value="-1" /></Data></Tag>
+      <Tag Name="PointFaultCode" DataType="INT" TagType="Base"><Data Format="Decorated"><DataValue DataType="INT" Value="-1" /></Data></Tag>
+      <Tag Name="PointFaultInfo" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
       <Tag Name="ModuleInhibited" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
     </Tags>
     <Programs>
@@ -76,6 +80,9 @@
               <Rung Number="9" Type="N"><Text>XIC(ReadModule)GSV(Module,RemoteRack,Mode,RackMode);</Text></Rung>
               <Rung Number="10" Type="N"><Text>XIC(ReadModule)XIC(RackMode.2)GSV(Module,RemoteInput,EntryStatus,RemoteStatus);</Text></Rung>
               <Rung Number="11" Type="N"><Text>XIC(ReadModule)XIC(RackMode.2)MEQ(RemoteStatus,16#F000,16#7000)OTE(RemoteWaiting);</Text></Rung>
+              <Rung Number="12" Type="N"><Text>XIC(ReadConnection)GSV(Module,PointAdapter,EntryStatus,PointStatus);</Text></Rung>
+              <Rung Number="13" Type="N"><Text>XIC(ReadConnection)GSV(Module,PointAdapter,FaultCode,PointFaultCode);</Text></Rung>
+              <Rung Number="14" Type="N"><Text>XIC(ReadConnection)GSV(Module,PointAdapter,FaultInfo,PointFaultInfo);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="ReadModeST" Type="ST">

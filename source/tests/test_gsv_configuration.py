@@ -316,6 +316,46 @@ class GsvConfigurationTests(unittest.TestCase):
         e = self.engine(['GSV(Module,RemoteInput,EntryStatus,PriorityOut);'], mutate=missing_target)
         self.assertTrue(any('requires an explicit source Inhibited setting' in error for error in e.blockers))
 
+    def test_simulated_module_fault_values_have_logix_destination_widths(self):
+        from logixlab.gsv_configuration import configure_module_connection
+
+        def source(root):
+            adapter, target = self.add_remote_backplane(root)
+            adapter.set('Inhibited', 'false')
+            target.set('Inhibited', 'false')
+
+        calls = ['GSV(Module,RemoteInput,EntryStatus,PriorityOut);',
+                 'GSV(Module,RemoteInput,FaultCode,Out);',
+                 'GSV(Module,RemoteInput,FaultInfo,Limit);']
+        e = self.checked(calls, st=True, mutate=source)
+        configure_module_connection(e, {'module':'remoteinput', 'project_generation':1,
+                                         'state':'faulted', 'fault_code':0xf001, 'fault_info':-42})
+        e.memory.write('Out', 0x1234ffff)
+        e.step()
+        self.assertEqual((e.memory.read('PriorityOut'), e.memory.read('Out'), e.memory.read('Limit')),
+                         (0x1000, 0x1234f001, -42))
+        e = self.engine(['GSV(Module,RemoteInput,FaultInfo,PriorityOut);'], mutate=source)
+        self.assertTrue(any('exact scalar DINT' in error for error in e.blockers))
+
+    def test_simulated_faulted_parent_masks_child_connection_until_recovery(self):
+        from logixlab.gsv_configuration import configure_module_connection
+
+        def source(root):
+            adapter, child = self.add_remote_backplane(root, bridged=True)
+            child.set('Inhibited', 'false')
+            adapter.set('Inhibited', 'false')
+            root.find('./Controller/Modules/Module[@Name="RackIO"]').set('Inhibited', 'false')
+
+        e = self.checked(['GSV(Module,RemoteInput,EntryStatus,PriorityOut);'], mutate=source)
+        configure_module_connection(e, {'module':'RemoteInput', 'project_generation':1, 'state':'running'})
+        configure_module_connection(e, {'module':'RackIO', 'project_generation':1,
+                                         'state':'faulted', 'fault_code':0x204, 'fault_info':0})
+        e.step()
+        self.assertEqual(e.memory.read('PriorityOut'), 0x7000)
+        configure_module_connection(e, {'module':'RackIO', 'project_generation':1, 'state':'running'})
+        e.step()
+        self.assertEqual(e.memory.read('PriorityOut'), 0x4000)
+
     def test_remote_backplane_path_appends_port_and_slot_to_the_counted_route(self):
         for st, prefix, adapter_slot, target_slot in (
                 (False, b'', '0', '4'), (True, bytes((1, 3)), '4', '0')):

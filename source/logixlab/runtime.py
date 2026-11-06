@@ -75,6 +75,7 @@ class Engine:
         self._measured_task = None
         self._task_scheduler = None
         self._module_modes = {}
+        self._module_connections = {}
         self._program_scanned = set()
         self._disabled_programs = set()
         self._program_activation = {}

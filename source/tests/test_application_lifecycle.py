@@ -64,6 +64,47 @@ class ApplicationLifecycleTests(unittest.TestCase):
         with urlopen(request, timeout=3) as response:
             return json.load(response)
 
+    def test_module_connection_input_is_bound_to_the_project_and_recovers_through_http(self):
+        state = self.post('demo', {'sample':'ModuleStatusLab'})
+        self.assertEqual(state['blockers'], [])
+        request = {'module':'PointAdapter', 'project_generation':state['project_generation']}
+        def observed():
+            current = self.post('step', {'dt':25})
+            tags = {row['name']:row['value'] for row in current['tags']}
+            return tuple(tags[name] for name in ('PointStatus', 'PointFaultCode', 'PointFaultInfo'))
+
+        self.assertEqual(observed(), (-1, -1, -1))
+        unauthenticated = Request(self.url + '/api/module-connection',
+                                  json.dumps({**request, 'state':'running'}).encode(),
+                                  {'Content-Type':'application/json'})
+        with self.assertRaises(HTTPError) as unauthorized:
+            urlopen(unauthenticated, timeout=3).close()
+        self.assertEqual(unauthorized.exception.code, 403)
+        self.post('module-connection', {**request, 'state':'faulted', 'fault_code':0xf003, 'fault_info':-42})
+        self.post('write', {'tag':'ReadConnection', 'value':True})
+        self.assertEqual(observed(), (0x1000, 0xf003 - 0x10000, -42))
+        for invalid in ({'state':'faulted', 'fault_code':True, 'fault_info':1},
+                        {'state':'faulted', 'fault_code':0, 'fault_info':1},
+                        {'state':'faulted', 'fault_code':2, 'fault_info':1 << 31},
+                        {'state':'running', 'fault_code':5}, {'state':'running', 'module':'Local'},
+                        {'state':'running', 'project_generation':-1}):
+            with self.subTest(invalid=invalid), self.assertRaises(HTTPError) as rejected:
+                self.post('module-connection', {**request, **invalid})
+            self.assertEqual(rejected.exception.code, 400)
+        self.assertEqual(observed(), (0x1000, 0xf003 - 0x10000, -42))
+        self.post('module-connection', {**request, 'state':'running'})
+        self.assertEqual(observed(), (0x4000, 0, 0))
+        self.post('module-connection', {**request, 'state':'clear'})
+        with self.assertRaises(HTTPError) as unavailable:
+            observed()
+        self.assertEqual(unavailable.exception.code, 400)
+        reset = self.post('reset', {})
+        with self.assertRaises(HTTPError) as stale:
+            self.post('module-connection', {**request, 'state':'running'})
+        self.assertEqual(stale.exception.code, 400)
+        self.assertNotEqual(reset['project_generation'], request['project_generation'])
+        self.assertEqual(observed(), (-1, -1, -1))
+
     def test_data_lab_clipped_record_operations_preserve_neighbors_and_rollback_through_http(self):
         state=self.post('demo',{'sample':'DataLab'});self.assertEqual(state['blockers'],[])
         self.assertEqual(len(state['routines']),3)
