@@ -6,6 +6,11 @@ const instruction = require('../../web/instruction-view.js');
 const op = (name, ...args) => ({name, args});
 const rung = nodes => ({number: '0', comment: 'Seal in', text: 'source retained', nodes});
 const seal = () => graph.compile(rung([op('XIO', 'Stop'), {branch: [[op('XIC', 'Start')], [op('XIC', 'Latch')]]}, op('OTE', 'Latch')]), 'Main/Main');
+test('MSG faceplate links EN, DN and ER to the configured MESSAGE control', () => {
+  const face = instruction.describe({opcode: 'MSG', operands: ['ReadControl']});
+  assert.deepEqual(face.rows.map(row => [row.label, row.ref]), [['Message Control', 'ReadControl']]);
+  assert.deepEqual(face.flags.map(flag => flag.ref), ['ReadControl.EN', 'ReadControl.DN', 'ReadControl.ER']);
+});
 test('ALMA faceplate binds rate settings, live rate and condition shelf flags', () => {
   const face = instruction.describe({opcode: 'ALMA', operands: ['Alarm', 'Input', 'Ack', 'Disable', 'Enable']});
   assert.deepEqual(face.rows.slice(-4).map(row => [row.label, row.ref, row.member]), [

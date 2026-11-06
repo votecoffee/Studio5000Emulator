@@ -183,6 +183,11 @@
       "remaining": "Rate-of-change, shelving, timestamps, other languages and native alarm services/layouts.",
       "source": "source/logixlab/ladder_analog_alarm.py"
     },
+    "ladder_message_model": {
+      "label": "MESSAGE model (partial)",
+      "remaining": "Network routes, additional services and types, connection handling, editable configuration, wire layout and native status/timing parity.",
+      "source": "source/logixlab/ladder_message.py"
+    },
     "ladder_alarm_model": {
       "label": "ALARM_DIGITAL model (partial)",
       "remaining": "Other languages and native alarm services/layouts.",
@@ -313,10 +318,11 @@
   },
   "summary": {
     "entries": 222,
-    "dedicated_bounded_models": 63,
-    "no_dedicated_model": 159,
+    "dedicated_bounded_models": 64,
+    "no_dedicated_model": 158,
     "status_counts": {
-      "no_dedicated_model": 159,
+      "no_dedicated_model": 158,
+      "ladder_message_model": 1,
       "ladder_analog_alarm_model": 1,
       "ladder_alarm_model": 1,
       "numeric_model": 5,
@@ -1494,7 +1500,7 @@
       "identifier_candidate": "MESSAGE",
       "starred": false,
       "family": "message",
-      "model_status": "no_dedicated_model",
+      "model_status": "ladder_message_model",
       "v35_listing": "exact",
       "v35_catalog_name": "MESSAGE",
       "notes": []

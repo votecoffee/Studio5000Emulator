@@ -52,6 +52,7 @@
   add('ALMA', 'Analog Alarm', 'ALMA|In|ProgAckAll|ProgDisable|ProgEnable');
   add('PID', 'PID', 'PID|Process Variable|Tieback|Control Variable|PID Master Loop|Inhold Bit|Inhold Value');
   add('IOT', 'Immediate Output', 'Update Tag');
+  add('MSG', 'Message', 'Message Control');
 
   const contacts = new Set(['XIC', 'XIO']), coils = new Set(['OTE', 'OTL', 'OTU']);
   const inline = new Set([...contacts, ...coils, 'ONS', 'AFI', 'NOP', 'MCR', 'TND', 'BRK', 'UID', 'UIE', 'JMP', 'LBL']);
@@ -85,6 +86,7 @@
       fields[1] = {label: 'Preset', ref: args[0] + '.PRE', member: true, visible: true};fields[2] = {label: 'Accum', ref: args[0] + '.ACC', member: true, visible: true};
       flags = (['CTU', 'CTD'].includes(op) ? [op === 'CTU' ? 'CU' : 'CD', 'DN'] : ['EN', 'DN']).map(label => ({label, ref: args[0] + '.' + label}));
     }
+    if (op === 'MSG') flags = ['EN', 'DN', 'ER'].map(label => ({label, ref: args[0] + '.' + label}));
     if (op === 'ALMD') {
       for (const [i, member] of [[5, 'MinDurationPRE'], [6, 'MinDurationACC']]) {
         if (!fields[i] || fields[i].ref === '?') fields[i] = {label: member, ref: args[0] + '.' + member, member: true, visible: true};

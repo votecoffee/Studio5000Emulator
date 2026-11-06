@@ -102,7 +102,8 @@ firmware features are separate profiles, not implicit L85E capabilities.
 | TIMER/COUNTER | [TON/TOF/RTO](ladder-timers.md) with known consumed PRE/ACC and EN/DN history, retained unread flags, canonical clock rollback; [CTU/CTD/RES](ladder-counters.md), known consumed counter values/history, signed wrap, unknown full resets, scoped records, runtime/AOI rollback and [literal import initialization](ladder-timers.md#literal-presets-on-import) | Other timer/counter families, all status transitions, clock/resolution/fault/overflow parity |
 | CONTROL | [Logical members, shifts, FIFO/LIFO and RES](control-operations.md); [alias/indirect shift/queue starts](queue-references.md); [one-dimensional AOI queues/shifts](aoi-queues.md); [matching strings/UDTs](record-queues.md) and [basic record payloads](basic-record-queues.md); [DINT sequencers](sequencer-operations.md) with [alias/indirect and AOI tables](sequencer-references.md); [literal import initialization](control-operations.md#literal-len-and-pos-on-import); scalar member access | Native packed layouts/transfers, remaining consumers/forms and full scan/status/fault parity |
 | LREAL execution | [Finite storage/MOV/CLR](lreal-storage.md) plus [tagged ladder arithmetic/comparisons](lreal-math.md) and [advanced math](lreal-advanced.md), [TRN](lreal-truncate.md), [numeric byte copies](lreal-copy.md), [mixed-tag arithmetic](mixed-lreal-math.md), [mixed comparisons/LIM](mixed-lreal-comparisons.md), [integer constants](lreal-constants.md), [mixed powers](mixed-lreal-power.md), [numeric unary sources](lreal-unary-sources.md), [result-selected math](lreal-destination-math.md), scalar/array/UDT values, atomic tag access and rollback | Other mixed arithmetic/immediates, ST, other CPT/CMP forms, aggregate wire layouts, broader AOI forms and native rounding/status/lifecycle parity |
-| MESSAGE and other predefined types | Some exported decorated fields may be retained as data-only structures | Dedicated schemas and the asynchronous/stateful behavior of their instructions |
+| MESSAGE | [Ladder MSG](ladder-message.md) supports a bounded logical MESSAGE record and unconnected THIS DINT reads and writes | Complete configuration, languages, wire layout and native status/timing parity |
+| Other predefined types | Some exported decorated fields may be retained as data-only structures | Dedicated schemas and their stateful instructions |
 | UDTs | Explicit nested structures, arrays, members, selected packed bits and bounded wire layouts | Complete native layout/type rules, aggregate assignments/copies and uncommon/hidden/overlaid forms |
 | STRING and user strings | Built-in STRING and explicit DINT LEN/one-dimensional SINT DATA types; CONCAT/MID, [FIND/INSERT/DELETE](string-operations.md), [ASCII case and REAL conversions](string-conversions.md) | Remaining edge/type/conversion/status/encoding behavior and built-in STRING wire profile |
 | AOIs | Bounded RLL/ST definitions, nested instances, scalar Input/Output, exact-type InOut, Prescan and EnableInFalse | Remaining parameter forms, Postscan/SFC, FBD definitions, full instance lifecycle and protected definitions |
@@ -113,7 +114,7 @@ firmware features are separate profiles, not implicit L85E capabilities.
 | FANUC robots | HTTP/optional MQTT can connect an external tag simulator | FANUC device assemblies, handshakes, robot state/faults and optional robot-simulator integration |
 | EDS/AOP | No EDS parser or device-model generator | EDS import/validation, assemblies/parameters/connections and separately authored behavioral models |
 | Produced/consumed tags | No executing producer/consumer model | Connections, sampling, updates, timeouts, status and peer scheduling |
-| Messaging | Local explicit CIP tag access is implemented separately | Executable MSG requests, queues, paths, replies, cancellation, timeouts and error state |
+| Messaging | [Virtual MSG reads and writes](ladder-message.md) with bounded queuing, cancellation and error state | Network paths, packet handling, device replies, connections, retries and timeouts |
 | Safety/redundancy | No Safety or redundancy execution | Separate logical profiles and validation; no functional-safety certification claim |
 | Studio 5000 | Bounded SDK Online/transfers/routine replacement accepted for tested fixtures | General GUI behavior, direct uploaded-project saving, replacement and complete edit lifecycle; deferred |
 
@@ -175,7 +176,7 @@ backlog, not a source of invented schemas or automatically enabled behavior.
 - [ ] **D04 — Predefined structures:** complete the named
   [predefined-type inventory](predefined-data-types.md), including dedicated
   complete CONTROL beyond its [logical shift/FIFO/LIFO profile](control-operations.md),
-  and implement MESSAGE, remaining [PID](ladder-pid.md)/PID_ENHANCED behavior, alarm/filter/drive/phase/sequence records, motion
+  and extend [MESSAGE](ladder-message.md), remaining [PID](ladder-pid.md)/PID_ENHANCED behavior, alarm/filter/drive/phase/sequence records, motion
   control/axis/group/coordinate/cam records and module-defined I/O types.
   Decorated-data retention alone does not supply control behavior.
 - [ ] **D05 — Timers/counters:** alternate instruction structures and reset
@@ -291,9 +292,9 @@ numerical/status/fault/lifecycle parity remain open.
   mappings; validate any AOP/module-generated types separately. An EDS describes
   interfaces and configuration, not the device's complete operating algorithm.
   EDS import must not claim automatic full device emulation.
-- [ ] **I08 — MSG:** executable CIP generic/read/write services and supported
-  legacy mappings, asynchronous EN/DN/ER state, queues, connection reuse,
-  routing, retries/timeouts/cancel and bounded external communications.
+- [ ] **I08 — MSG:** extend [unconnected THIS transfers](ladder-message.md)
+  to networked CIP generic/read/write services and supported legacy mappings,
+  connection reuse, routing, replies, retries, timeouts and bounded external communications.
 - [ ] **I09 — Produced/consumed tags:** type/connection compatibility, rates,
   local peer simulation, connection status, timeout and restart behavior.
 - [ ] **I10 — External adapters:** retain current HTTP/MQTT snapshots and queued

@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1106.171415` [ladder MSG](ladder-message.md) models
+unconnected THIS DINT reads and writes with queued, started, done and error
+states. Message lab exercises completion and cancellation without network I/O.
+
 Available in `26.1106.165122` [ladder IOT](device-io.md#immediate-output-captures)
 captures a running local module's output image at the instruction and publishes
 it through Device I/O after scan commit. The Module status lab shows the

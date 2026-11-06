@@ -12,7 +12,7 @@ browser title, page header, Windows tray and executable properties match.
 **Development focus: full ladder support, then Structured Text, then FBD, then SFC.**
 Complete and qualify ladder and ST before adding new FBD/SFC features. Full
 emulation remains ahead of further Studio 5000 connectivity work.
-The current model is partial: 107 built-in RLL instruction entries, a bounded ST
+The current model is partial: 108 built-in RLL instruction entries, a bounded ST
 subset, supported AOIs/UDTs, explicit custom strings and a limited FBD signal
 graph. General FBD, SFC, motion, cyclic module I/O and EDS-driven device models
 remain unfinished.
@@ -155,6 +155,9 @@ demonstrates these states and reads local and Ethernet routes, including
 Use the [simulated connection input](docs/gsv-configuration.md#simulated-module-connection)
 to exercise Running, Faulted, FaultCode and FaultInfo in ladder and ST.
 The Device I/O tab sets the simulated input and displays the effective state.
+[Ladder MSG](docs/ladder-message.md) runs simulated DINT data-table reads and
+writes on the unconnected THIS path. **Message lab** shows the queued, started,
+completed and canceled states in the ladder viewer and tag watch.
 [Simulated loss of a required Running module](docs/gsv-configuration.md#required-module-loss-during-run)
 trips a latched I/O major fault during whole-project Run, including when a
 [simulated upstream fault interrupts a required connection](docs/gsv-configuration.md#required-module-loss-through-an-upstream-fault).

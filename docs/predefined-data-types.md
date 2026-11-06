@@ -50,9 +50,10 @@ the execution engine. The [full emulation checklist](emulation-coverage.md) and
 | PID software model, bounded | 1 | [Ladder P/PI/PID](ladder-pid.md), unsmoothed derivative/deadband, integer operands, tieback manual, PVT/inhold, [one-way cascade](pid-cascade.md) and [ladder AOI records](aoi-pid.md); smoothing/cascade feedback/module restart and native solver/layout parity remain unfinished |
 | ALARM_DIGITAL model, partial | 1 | [Ladder ALMD](ladder-alarm.md), Alarm-format records, timed alarm state, suppression, shelving and UTC timestamps |
 | ALARM_ANALOG model, partial | 1 | [Ladder ALMA](ladder-alarm.md#analog-level-alarms), Alarm-format records, level delay, deadband, rate of change, timed shelving and UTC event timestamps |
-| No dedicated model | 159 | No dedicated bounded named runtime model |
+| MESSAGE model, partial | 1 | [Ladder MSG](ladder-message.md) unconnected THIS DINT transfers, asynchronous logical status and cancellation |
+| No dedicated model | 158 | No dedicated bounded named runtime model |
 
-Thus **63 entries have dedicated bounded models**. Each entry retains its
+Thus **64 entries have dedicated bounded models**. Each entry retains its
 specific scope and remaining work. UDTs, custom string types,
 AOIs and module-generated types have separate inventories and are not added to
 the supplied 222-entry count.
@@ -198,7 +199,7 @@ Every dedicated model status still requires the qualifications above.
 | 92 | `MAIN_VALVE_CONTROL` | Metal forming/valves | No dedicated model | Listed |
 | 93 | `MANUAL_VALVE_CONTROL` | Metal forming/valves | No dedicated model | Listed |
 | 94 | `MAXIMUM_CAPTURE` | Process/filter/drive | Capture model (partial) | Listed |
-| 95 | `MESSAGE` | Message/serial | No dedicated model | Listed |
+| 95 | `MESSAGE` | Message/serial | [MESSAGE model (partial)](ladder-message.md) | Listed |
 | 96 | `MINIMUM_CAPTURE` | Process/filter/drive | Capture model (partial) | Listed |
 | 97 | `MMC` | Process/filter/drive | No dedicated model | Listed |
 | 98 | `MODULE` | Module/connection | No dedicated model | Listed |
@@ -364,7 +365,7 @@ Field storage alone does not complete an asynchronous or stateful type.
 Safety structures need a separate logical simulation profile; their names do
 not imply a certified controller or CIP Safety implementation. Axis/reference
 types need identity/lifetime and deterministic motion state, not fabricated
-addresses. MESSAGE, ALARM_SET_CONTROL and SFC/FBD records need their
+addresses. ALARM_SET_CONTROL and the remaining SFC/FBD records need their
 consumer instruction/chart state machines as well as fields. PlantPAx/RAC
 records may include private fields that cannot be reconstructed from a partial
 export. Unknown members and layouts must stay explicit.

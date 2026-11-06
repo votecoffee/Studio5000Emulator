@@ -6,7 +6,7 @@ from collections import Counter
 from time import perf_counter_ns
 from .identity import controller_status_word
 from .program_timing import ProgramTiming
-from . import gsv_configuration, immediate_output, program_control
+from . import gsv_configuration, immediate_output, ladder_message, program_control
 from .gsv_timing import TimingAdvance
 from . import task_runtime
 from .task_scheduler import TaskScheduler
@@ -103,6 +103,8 @@ class Engine:
         self._module_connections = {}
         self.immediate_outputs = {}
         self._immediate_output_advance = None
+        self._messages = {}
+        self._message_advance = None
         self._program_scanned = set()
         self._disabled_programs = set()
         self._program_activation = {}
@@ -296,6 +298,7 @@ class Engine:
             raise ModelError(message) from error
         if preview:restore()
         else:
+            self._messages.clear()
             self.prescan_count+=1
             self._initial_prescan_pending=False
             self._program_scanned=set()
@@ -485,6 +488,7 @@ class Engine:
         if n in file_bit_compare.INSTRUCTIONS:file_bit_compare.validate(self.memory,op,scope);return
         if n=='SSV':system_values.validate_set(self,op,scope);return
         if n=='IOT':immediate_output.validate(self,op,scope);return
+        if n=='MSG':ladder_message.validate(self,op,scope,kind);return
         if n=='EVENT':event_tasks.target(self,op,scope);return
         if n in ('UID','UIE'):event_tasks.interrupt_target(self,op,scope);return
         if n=='GSV':system_values.validate(self,op,scope);return
@@ -653,6 +657,7 @@ class Engine:
                 elif n in ladder_pid.INSTRUCTIONS:ladder_pid.prescan(self,op,scope)
                 elif n=='ALMD':ladder_alarm.prescan(self,op,scope)
                 elif n=='ALMA':ladder_analog_alarm.prescan(self,op,scope)
+                elif n=='MSG':ladder_message.prescan(self,op,scope)
                 elif n in control_operations.INSTRUCTIONS:control_operations.prescan(self.memory,op,scope)
                 elif n in sequencer_operations.INSTRUCTIONS:sequencer_operations.prescan(self.memory,op,scope)
                 elif n in array_statistics.INSTRUCTIONS:array_statistics.prescan(self.memory,op,scope)
@@ -712,7 +717,9 @@ class Engine:
         self._program_advance=program_control.Advance(set(self._disabled_programs),set(self._program_scanned),
                                                        set(self._activation_prescan_pending))
         self._immediate_output_advance = {}
+        self._message_advance = self._messages.copy()
         try:
+            ladder_message.service(self.memory,self._message_advance)
             self._scan_controller_status = controller_status_word(self.controller_mode(running=running))
             task_wall_time=current_value_microseconds() if single_timing else None
             task_start=task_runtime.perf_counter_ns() if single_timing else None
@@ -774,6 +781,7 @@ class Engine:
             self._task_measurements=measured
             self._task_scan_timings=task_timings
             if self._event_dispatch is not None:self._task_event_status=self._event_dispatch.status
+            self._messages = self._message_advance
             if self._immediate_output_advance:
                 self.immediate_outputs = self.immediate_outputs | self._immediate_output_advance
         except (ModelError, ArithmeticError, ValueError, TypeError, KeyError, IndexError, OverflowError) as e:
@@ -796,6 +804,7 @@ class Engine:
             self._program_advance=None
             self._scan_controller_status=None
             self._immediate_output_advance=None
+            self._message_advance=None
         return self._record_tag_changes(before)
 
     def _recover_ladder_array_fault(self, op, scope, error):
@@ -970,6 +979,7 @@ class Engine:
         if n=='DTR':return data_transition.execute(self.memory,op,p,scope)
         if n in file_bit_compare.INSTRUCTIONS:return file_bit_compare.execute(self,op,p,scope)
         if n=='SSV':return system_values.execute_set(self,op,p,scope)
+        if n=='MSG':return ladder_message.execute(self,op,p)
         if n=='IOT':
             if p:immediate_output.execute(self,op,scope)
             return p
