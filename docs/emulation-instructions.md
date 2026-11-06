@@ -1,7 +1,7 @@
 # Instruction execution inventory
 
 Audited 2026-11-04; BCD FAL/FSC expressions added for app `26.1104.123302`. Language priority is ladder, then ST, then FBD, then SFC;
-new FBD/SFC features wait for ladder/ST coverage and qualification. The engine has **105 built-in
+new FBD/SFC features wait for ladder/ST coverage and qualification. The engine has **106 built-in
 RLL dispatch entries**. Every entry has operand/type/scan limitations; none is a
 claim of complete native controller equivalence. Project-defined AOIs are
 separate. See the [full capability and remaining-work checklist](emulation-coverage.md).
@@ -59,7 +59,7 @@ with its existing integer, REAL and LREAL destination types.
 
 | Family | RLL model, limited forms | Expression only; standalone remains | Remaining names |
 | --- | --- | --- | --- |
-| Alarm Instructions | [`ALMD`](ladder-alarm.md) | — | `ALMA`, `ASO` |
+| Alarm Instructions | [`ALMD`](ladder-alarm.md), [`ALMA` levels](ladder-alarm.md#analog-level-alarms) | — | `ASO` |
 | Advanced Math Instructions | `LN`, `LOG`, `XPY` | — | — |
 | Array (File)/Shift Instructions | `BSL`, `BSR`, `FFL`, `FFU`, `LFL`, `LFU` | — | — |
 | Array File/Misc. Instructions | `AVE`, `COP`, `CPS`, `FAL`, `FLL`, `FSC`, `SIZE`, `SRT`, `STD` | — | — |

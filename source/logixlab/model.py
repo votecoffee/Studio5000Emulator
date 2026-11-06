@@ -57,7 +57,7 @@ ARITIES = {"XIC": 1, "XIO": 1, "OTE": 1, "OTL": 1, "OTU": 1,
            "JMP": 1, "LBL": 1, "TND": 0, "FOR": 5, "BRK": 0,
            "CONCAT": 3, "MID": 4, "DTOS": 2, "STOD": 2, "TRN": 2,
            'CMP':1,'MEQ':3,'GSV':4,'FIND':4,'INSERT':4,'DELETE':4,'BSL':4,'BSR':4,'FFL':5,'FFU':5,'LFL':5,'LFU':5,'SQO':6,'SQI':6,'SQL':5,'FRD':2,'TOD':2,'SWPB':3,
-           'SQR':2,'LN':2,'LOG':2,'XPY':3,'DEG':2,'RAD':2,'SIN':2,'COS':2,'TAN':2,'ASN':2,'ACS':2,'ATN':2,'AVE':6,'STD':6,'SRT':5,'FSC':5,'FAL':6,'LOWER':2,'UPPER':2,'STOR':2,'RTOS':2,'EVENT':1,'UID':0,'UIE':0,'SSV':4,'MCR':0,'DTR':3,'FBC':9,'DDT':9,'PID':7,'ALMD':7}
+           'SQR':2,'LN':2,'LOG':2,'XPY':3,'DEG':2,'RAD':2,'SIN':2,'COS':2,'TAN':2,'ASN':2,'ACS':2,'ATN':2,'AVE':6,'STD':6,'SRT':5,'FSC':5,'FAL':6,'LOWER':2,'UPPER':2,'STOR':2,'RTOS':2,'EVENT':1,'UID':0,'UIE':0,'SSV':4,'MCR':0,'DTR':3,'FBC':9,'DDT':9,'PID':7,'ALMD':5,'ALMA':5}
 
 
 ST_ONLY_ARITIES = {"TONR":1,"TOFR":1,"RTOR":1,"CTUD":1,"OSRI":1,"OSFI":1,"SCL":1,"HLL":1,"SNEG":1,"SSUM":1,"RLIM":1,"MAVE":3,"MSTD":2,"MAXC":1,"MINC":1,"LPF":1,"DFF":1,"JKFF":1,"RESD":1,"SETD":1,"UPDN":1,"INTG":1,"ESEL":1,"DERV":1,"FGEN":5,"DEDT":2,"PI":1,"BTDT":1,"MVMT":1}
@@ -74,6 +74,8 @@ def operand_problem(op):
         if len(op.args) not in (2,3):return 'MAVE requires record, storage and optional weight array'
     elif op.name=='FGEN':
         if len(op.args) not in (3,5):return 'FGEN requires record/X1/Y1 and an optional complete X2/Y2 pair'
+    elif op.name=='ALMD':
+        if len(op.args) not in (5,7):return 'ALMD requires five operands or a legacy preset and accumulator pair'
     elif op.name in ('SBR','RET'):
         if len(op.args)>40:return op.name+' permits at most 40 operands'
     elif len(op.args)!=ARITIES.get(op.name,ST_ONLY_ARITIES.get(op.name)):return f'{op.name} operand count {len(op.args)} unsupported'
@@ -416,7 +418,7 @@ class Project:
             if 'logic' not in aoi.routines:aoi.problems.append('Logic is missing or protected')
             for mode,enabled in aoi.modes.items():
                 if enabled and mode.lower() not in aoi.routines:aoi.problems.append(mode+' routine is missing or protected')
-        builtin={'BOOL',*INT_BITS,*time_values.TYPES,'REAL','LREAL','PID','ALARM_DIGITAL','TIMER','COUNTER','CONTROL','STRING','FBD_TIMER','FBD_COUNTER','FBD_ONESHOT','SCALE','HL_LIMIT','SELECTABLE_NEGATE','SELECTED_SUMMER','RATE_LIMITER','MOVING_AVERAGE','MOVING_STD_DEV','MAXIMUM_CAPTURE','MINIMUM_CAPTURE','FILTER_LOW_PASS','FLIP_FLOP_D','FLIP_FLOP_JK','DOMINANT_RESET','DOMINANT_SET','UP_DOWN_ACCUM','INTEGRATOR','SELECT_ENHANCED','DERIVATIVE','FUNCTION_GENERATOR','DEADTIME','PROP_INT','SELECT','MULTIPLEXER','FBD_BOOLEAN_AND','FBD_BOOLEAN_OR','FBD_BOOLEAN_NOT','FBD_BOOLEAN_XOR','FBD_MATH','FBD_MATH_ADVANCED','FBD_COMPARE','FBD_LIMIT','FBD_LOGICAL','FBD_CONVERT','FBD_MASK_EQUAL','FBD_MASKED_MOVE','FBD_TRUNCATE','FBD_BIT_FIELD_DISTRIBUTE'}
+        builtin={'BOOL',*INT_BITS,*time_values.TYPES,'REAL','LREAL','PID','ALARM_DIGITAL','ALARM_ANALOG','TIMER','COUNTER','CONTROL','STRING','FBD_TIMER','FBD_COUNTER','FBD_ONESHOT','SCALE','HL_LIMIT','SELECTABLE_NEGATE','SELECTED_SUMMER','RATE_LIMITER','MOVING_AVERAGE','MOVING_STD_DEV','MAXIMUM_CAPTURE','MINIMUM_CAPTURE','FILTER_LOW_PASS','FLIP_FLOP_D','FLIP_FLOP_JK','DOMINANT_RESET','DOMINANT_SET','UP_DOWN_ACCUM','INTEGRATOR','SELECT_ENHANCED','DERIVATIVE','FUNCTION_GENERATOR','DEADTIME','PROP_INT','SELECT','MULTIPLEXER','FBD_BOOLEAN_AND','FBD_BOOLEAN_OR','FBD_BOOLEAN_NOT','FBD_BOOLEAN_XOR','FBD_MATH','FBD_MATH_ADVANCED','FBD_COMPARE','FBD_LIMIT','FBD_LOGICAL','FBD_CONVERT','FBD_MASK_EQUAL','FBD_MASKED_MOVE','FBD_TRUNCATE','FBD_BIT_FIELD_DISTRIBUTE'}
         # Decorated structures explicitly describe stored fields, even where an
         # instruction's executable definition is unavailable. Never infer code.
         for data_node in c.findall('.//Data[@Format="Decorated"]'):
@@ -558,11 +560,12 @@ class Project:
         if upper == "PID":
             from .ladder_pid import default
             return default()
-        if upper == 'ALARM_DIGITAL':
-            from .ladder_alarm import available, default
-            if not available(self):
-                raise ModelError('ALARM_DIGITAL storage requires the v35 ControlLogix 5580 profile')
-            return default()
+        if upper in ('ALARM_DIGITAL', 'ALARM_ANALOG'):
+            from . import ladder_alarm, ladder_analog_alarm
+            alarm_model = ladder_alarm if upper == 'ALARM_DIGITAL' else ladder_analog_alarm
+            if not alarm_model.available(self):
+                raise ModelError(f'{upper} storage requires the v35 ControlLogix 5580 profile')
+            return alarm_model.default()
         if upper == "PROP_INT":
             from .st_pi import default
             return default()
@@ -684,15 +687,16 @@ class Project:
             else:
                 dims = dimensions(e.get('Dimensions',''))
                 tag.value = self.default(tag.dtype)
-                alarm = tag.dtype.upper() == 'ALARM_DIGITAL'
+                alarm = tag.dtype.upper() in ('ALARM_DIGITAL', 'ALARM_ANALOG')
                 if not alarm:
                     tag.value = array_default(tag.value,dims)
                 d = e.find("./Data[@Format='Decorated']")
                 if alarm:
-                    from .ladder_alarm import from_tag
+                    from . import ladder_alarm, ladder_analog_alarm
                     if dims or tag.tag_class != 'Standard' or d is not None:
-                        raise ModelError('ALARM_DIGITAL requires scalar Standard Alarm data')
-                    tag.value = from_tag(e)
+                        raise ModelError(f'{tag.dtype.upper()} requires scalar Standard Alarm data')
+                    alarm_model = ladder_alarm if tag.dtype.upper() == 'ALARM_DIGITAL' else ladder_analog_alarm
+                    tag.value = alarm_model.from_tag(e)
                 elif d is not None and len(d):
                     data_type = d[0].get('DataType', '').upper()
                     if (tag.dtype.upper() in time_values.TYPES or data_type in time_values.TYPES) and data_type != tag.dtype.upper():
@@ -834,8 +838,10 @@ class Memory:
                     dtype, value = "BOOL", None if value is None else bool((value >> bit) & 1)
                 else:
                     if not isinstance(value, dict): raise ModelError(f"Not a structure: {ref}")
-                    if dtype.upper() in ('FBD_TIMER','SCALE','HL_LIMIT','RATE_LIMITER','MOVING_AVERAGE','MOVING_STD_DEV','FILTER_LOW_PASS','INTEGRATOR','SELECT_ENHANCED','DERIVATIVE','FUNCTION_GENERATOR','DEADTIME','PROP_INT','MULTIPLEXER','ALARM_DIGITAL'):
-                        if dtype.upper()=='ALARM_DIGITAL':
+                    if dtype.upper() in ('FBD_TIMER','SCALE','HL_LIMIT','RATE_LIMITER','MOVING_AVERAGE','MOVING_STD_DEV','FILTER_LOW_PASS','INTEGRATOR','SELECT_ENHANCED','DERIVATIVE','FUNCTION_GENERATOR','DEADTIME','PROP_INT','MULTIPLEXER','ALARM_DIGITAL','ALARM_ANALOG'):
+                        if dtype.upper()=='ALARM_ANALOG':
+                            from .ladder_analog_alarm import STATUS_BITS
+                        elif dtype.upper()=='ALARM_DIGITAL':
                             from .ladder_alarm import STATUS_BITS
                         elif dtype.upper()=='MULTIPLEXER':
                             from .fbd_select import STATUS_BITS
@@ -925,6 +931,9 @@ class Memory:
                         dtype=FIELDS[actual]
                     elif dtype.upper()=='ALARM_DIGITAL':
                         from .ladder_alarm import FIELDS
+                        dtype=FIELDS[actual]
+                    elif dtype.upper()=='ALARM_ANALOG':
+                        from .ladder_analog_alarm import FIELDS
                         dtype=FIELDS[actual]
                     elif dtype.upper()=='PROP_INT':
                         from .st_pi import FIELDS

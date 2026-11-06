@@ -133,7 +133,7 @@ class FBDConversionTests(unittest.TestCase):
         e=self.checked();self.assertNotIn('FBD_TRUNCATE',e.project.data_only_types)
         for pin,kind in SCHEMAS['FBD_TRUNCATE'].items():self.assertEqual(e.memory.resolve('TruncateState.'+pin)[2],kind)
         self.assertTrue(default('FBD_TRUNCATE')['EnableIn']);self.assertIs(type(default('FBD_TRUNCATE')['Dest']),int)
-        self.assertEqual((len(ARITIES),len(ST_ONLY_ARITIES)),(105,29))
+        self.assertEqual((len(ARITIES),len(ST_ONLY_ARITIES)),(106,29))
 
     def test_prescan_and_run_retain_enables_dest_and_no_hidden_state(self):
         def saved(root):

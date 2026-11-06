@@ -35,6 +35,17 @@
           <AlarmConfig />
         </Data>
       </Tag>
+      <Tag Name="AnalogRun" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="Pressure" TagType="Base" DataType="REAL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="50.0" /></Data></Tag>
+      <Tag Name="AckAnalog" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="DisableAnalog" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="EnableAnalog" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="PressureAlarm" TagType="Base" DataType="ALARM_ANALOG" ExternalAccess="Read/Write">
+        <Data Format="Alarm">
+          <AlarmAnalogParameters HHLimit="90.0" HLimit="80.0" LLimit="20.0" LLLimit="10.0" Deadband="2.0" MinDurationPRE="20" />
+          <AlarmConfig />
+        </Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard">
@@ -42,8 +53,9 @@
         <Routines>
           <Routine Name="MainRoutine" Type="RLL">
             <RLLContent>
-              <Rung Number="0" Type="N"><Text>XIC(Trip)ALMD(MotorAlarm,Acknowledge,ResetAlarm,DisableAlarm,EnableAlarm,?,?);</Text></Rung>
-              <Rung Number="1" Type="N"><Text>XIC(Healthy)ALMD(SignalAlarm,0,0,0,0,0,0);</Text></Rung>
+              <Rung Number="0" Type="N"><Text>XIC(Trip)ALMD(MotorAlarm,Acknowledge,ResetAlarm,DisableAlarm,EnableAlarm);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(Healthy)ALMD(SignalAlarm,0,0,0,0);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(AnalogRun)ALMA(PressureAlarm,Pressure,AckAnalog,DisableAnalog,EnableAnalog);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

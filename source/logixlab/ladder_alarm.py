@@ -36,44 +36,53 @@ def default():
 
 
 def from_tag(element):
-    parameters = element.findall("./Data[@Format='Alarm']/AlarmDigitalParameters")
+    return alarm_parameters(element, TYPE, 'AlarmDigitalParameters', INPUTS, FIELDS) | OUTPUTS
+
+
+def alarm_parameters(element, dtype, parameter, inputs, fields):
+    parameters = element.findall(f"./Data[@Format='Alarm']/{parameter}")
     if len(parameters) != 1 or len(parameters[0]):
-        raise ModelError('ALARM_DIGITAL requires one AlarmDigitalParameters element in Alarm data')
-    values = default()
+        raise ModelError(f'{dtype} requires one {parameter} element in Alarm data')
+    values = dict(inputs)
     for name, raw in parameters[0].attrib.items():
-        if name not in INPUTS:
-            raise ModelError(f'ALARM_DIGITAL parameter {name} is unsupported')
+        if name not in inputs:
+            raise ModelError(f'{dtype} parameter {name} is unsupported')
         value = literal(raw)
-        dtype = FIELDS[name]
-        if dtype == 'BOOL' and (type(value) not in (bool, int) or value not in (0, 1)):
-            raise ModelError(f'ALARM_DIGITAL.{name} requires a BOOL value')
-        if dtype != 'BOOL' and type(value) is not int:
-            raise ModelError(f'ALARM_DIGITAL.{name} requires an integer value')
-        values[name] = coerce(value, dtype)
+        field_type = fields[name]
+        if field_type == 'BOOL' and (type(value) not in (bool, int) or value not in (0, 1)):
+            raise ModelError(f'{dtype}.{name} requires a BOOL value')
+        if field_type == 'REAL' and type(value) not in (int, float):
+            raise ModelError(f'{dtype}.{name} requires a finite REAL value')
+        if field_type in ('DINT', 'LINT') and type(value) is not int:
+            raise ModelError(f'{dtype}.{name} requires an integer value')
+        try:
+            values[name] = coerce(value, field_type)
+        except OverflowError as error:
+            raise ModelError(f'{dtype}.{name} exceeds the finite {field_type} range') from error
     return values
 
 
-def _record(memory, ref, scope):
+def _record(memory, ref, scope, *, dtype=TYPE, instruction='ALMD'):
     if scope in memory.frames:
-        raise ModelError('ALMD inside an AOI remains unqualified')
-    key, parts, dtype = memory.check_writable(ref, scope)
-    if dtype != TYPE or parts:
-        raise ModelError('ALMD requires a writable scalar ALARM_DIGITAL tag')
+        raise ModelError(f'{instruction} inside an AOI remains unqualified')
+    key, parts, actual = memory.check_writable(ref, scope)
+    if actual != dtype or parts:
+        raise ModelError(f'{instruction} requires a writable scalar {dtype} tag')
     return key, memory.at(key, parts)
 
 
-def _command(memory, ref, scope):
+def _command(memory, ref, scope, *, instruction='ALMD'):
     try:
         value = literal(ref)
     except ValueError:
         if memory.resolve(ref, scope)[2] != 'BOOL':
-            raise ModelError('ALMD commands require scalar BOOL tags or 0/1 immediates')
+            raise ModelError(f'{instruction} commands require scalar BOOL tags or 0/1 immediates')
         value = memory.read(ref, scope)
         if type(value) is not bool:
-            raise ModelError('ALMD command requires a known scalar BOOL value')
+            raise ModelError(f'{instruction} command requires a known scalar BOOL value')
         return value
     if type(value) not in (bool, int) or value not in (0, 1):
-        raise ModelError('ALMD commands require scalar BOOL tags or 0/1 immediates')
+        raise ModelError(f'{instruction} commands require scalar BOOL tags or 0/1 immediates')
     return bool(value)
 
 
@@ -92,8 +101,8 @@ def _duration(ref, maximum):
 def validate(engine, op, scope):
     if not available(engine.project):
         raise ModelError('ALMD requires the v35 ControlLogix 5580 software profile')
-    if len(op.args) != 7:
-        raise ModelError('ALMD requires seven ladder operands')
+    if len(op.args) not in (5, 7):
+        raise ModelError('ALMD requires five operands or a legacy preset and accumulator pair')
     memory = engine.memory
     previous = memory.structural
     memory.structural = True
@@ -101,8 +110,9 @@ def validate(engine, op, scope):
         _record(memory, op.args[0], scope)
         for ref in op.args[1:5]:
             _command(memory, ref, scope)
-        _duration(op.args[5], MAX_DINT)
-        _duration(op.args[6], 0)
+        if len(op.args) == 7:
+            _duration(op.args[5], MAX_DINT)
+            _duration(op.args[6], 0)
     finally:
         memory.structural = previous
 
@@ -140,7 +150,7 @@ def execute(engine, op, power, scope):
     severity_invalid = not 1 <= obj['Severity'] <= 1000
     status = (0b101 if severity_invalid else 0) | (0b010 if obj['InFault'] else 0)
     ack, reset, disable, enable = (_command(memory, ref, scope) for ref in op.args[1:5])
-    preset = _duration(op.args[5], MAX_DINT)
+    preset = _duration(op.args[5], MAX_DINT) if len(op.args) == 7 else None
     if preset is None:
         preset = obj['MinDurationPRE']
     if not 0 <= preset <= MAX_DINT:
@@ -228,4 +238,4 @@ def description(project):
                 timestamps='UTC microseconds as LINT. Reached events use WallClockTime or ProgTime; InAlarmTime retains initial detection.',
                 false_rung_executes=True, native_runtime_parity=False,
                 remaining=['Native packed layouts and alarm event services',
-                           'ALMA, ASO, ST, FBD and AOI alarm execution'])
+                           'ASO, ST, FBD and AOI alarm execution'])

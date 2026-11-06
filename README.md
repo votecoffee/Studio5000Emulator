@@ -12,7 +12,7 @@ browser title, page header, Windows tray and executable properties match.
 **Development focus: full ladder support, then Structured Text, then FBD, then SFC.**
 Complete and qualify ladder and ST before adding new FBD/SFC features. Full
 emulation remains ahead of further Studio 5000 connectivity work.
-The current model is partial: 105 built-in RLL instruction entries, a bounded ST
+The current model is partial: 106 built-in RLL instruction entries, a bounded ST
 subset, supported AOIs/UDTs, explicit custom strings and a limited FBD signal
 graph. General FBD, SFC, motion, cyclic module I/O and EDS-driven device models
 remain unfinished.
@@ -344,6 +344,8 @@ enable/disable, [suppression](docs/ladder-alarm.md#suppression),
 [UTC event timestamps](docs/ladder-alarm.md#timestamps). Choose **Alarm lab**
 to step through both polarities and inspect timestamps and
 [alarm diagnostics](docs/ladder-alarm.md#diagnostics).
+The same example runs [ladder ALMA level alarms](docs/ladder-alarm.md#analog-level-alarms)
+with low-low, low, high and high-high limits, directional delay and deadband.
 
 [String conversions](docs/string-conversions.md) add LOWER/UPPER and STOR/RTOS
 in ladder and Structured Text, including user strings and existing AOI bindings.

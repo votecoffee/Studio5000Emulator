@@ -1,13 +1,15 @@
-# Ladder digital alarms
+# Ladder alarms
 
 The v35 ControlLogix 5580 software profile supports
-`ALMD(Alarm,ProgAck,ProgReset,ProgDisable,ProgEnable,MinDurationPRE,MinDurationACC)`.
+`ALMD(Alarm,ProgAck,ProgReset,ProgDisable,ProgEnable)` in neutral-text exports.
 The writable scalar `ALARM_DIGITAL` tag may be controller-scoped, program-scoped
 or an alias. The importer reads `Data Format="Alarm"` with one
 `AlarmDigitalParameters` element and applies documented defaults for omitted
-parameters. The last two ladder operands accept a nonnegative DINT preset
-and a zero accumulator. With `?,?`, the preset comes from the tag and the
-public accumulator still reports zero, as in v35.
+parameters. The preset comes from `Alarm.MinDurationPRE`. The earlier
+seven-operand emulator form remains supported. Its final pair accepts a
+nonnegative DINT preset and a zero accumulator, or `?,?` to use the tag.
+The public accumulator reports zero, as in v35.
+[Rockwell import/export manual](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm014_-en-p.pdf#page=212)
 
 ALMD evaluates every time the rung reaches it. The rung state supplies `In`
 and continues to the next ladder node. An active-low alarm can therefore
@@ -128,10 +130,39 @@ For severity diagnostics, set `MotorAlarm.Severity` to 0 and step. The
 ladder block shows FLT and SEV. Set `MotorAlarm.InFault` true to see BAD.
 Restore severity to 500 and step to clear FLT and SEV.
 
+## Analog level alarms
+
+The v35 ControlLogix 5580 profile supports
+`ALMA(Alarm,In,ProgAckAll,ProgDisable,ProgEnable)` with scalar Alarm-format
+`ALARM_ANALOG` tags. Ladder copies a finite REAL, SINT, INT or DINT input
+to the record's REAL `In`. A false rung clears the enable pins, retains
+alarm results and skips live input reads and commands.
+
+LL, L, H and HH pick up at inclusive limits. A high level clears below its
+limit minus deadband, and a low level clears above its limit plus deadband.
+Enabled levels share one minimum-duration clock per direction, using the
+first sampled excursion. A level can bypass the delay with its
+`MinDurationEnable` bit. Enabled limits must be ordered. The software
+clears the active levels on invalid order and uses zero deadband when the
+configured band is invalid, exposing the corresponding status bits.
+
+Level and global acknowledgments, enable/disable, suppression and
+saturating level counts are modeled. Prescan clears outputs and operator
+requests and retains configuration and counts. A failed advance restores
+level state, counts and the qualification clocks.
+
+In Alarm Lab, set `AnalogRun` true and `Pressure` to 80, then take three
+10 ms steps. H activates. Set `Pressure` to 90 and step to activate HH
+on the same high excursion. HH remains active at 88 and clears at 87.5.
+H stays active. Pulse `AckAnalog` to acknowledge all conditions.
+[Rockwell ALMA reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/alarm-instructions/analog-alarm---alma.html)
+
 ## Scope
 
 Native alarm messages, event delivery and packed records remain open.
-ST, FBD, AOI alarms, ALMA and ASO remain separate. The native alarm discovery services still expose only verified empty
+ALMA rate-of-change, shelving and timestamps remain open. Active ROC
+or shelving requests block the modeled ALMA advance. ST, FBD, AOI alarms
+and ASO remain separate. The native alarm discovery services still expose only verified empty
 catalogs. Runtime behavior is based on the installed v35 ALMD help and
 the import/export record description. Native execution and transfer parity
 remain unverified. [ALMD reference](https://www.rockwellautomation.com/en-hu/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/alarm-instructions/digital-alarm---almd.html) · [Import/export manual](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm014_-en-p.pdf)

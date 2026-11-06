@@ -49,6 +49,7 @@
   for (const op of ['FBC', 'DDT']) add(op, op === 'FBC' ? 'File Bit Compare' : 'Diagnostic Detect', 'Source|Reference|Result|Cmp Control|Cmp Length|Cmp Position|Result Control|Result Length|Result Position');
   add('DTR', 'Data Transition', 'Source|Mask|Reference');
   add('ALMD', 'Digital Alarm', 'ALMD|ProgAck|ProgReset|ProgDisable|ProgEnable|MinDurationPRE|MinDurationACC');
+  add('ALMA', 'Analog Alarm', 'ALMA|In|ProgAckAll|ProgDisable|ProgEnable');
   add('PID', 'PID', 'PID|Process Variable|Tieback|Control Variable|PID Master Loop|Inhold Bit|Inhold Value');
 
   const contacts = new Set(['XIC', 'XIO']), coils = new Set(['OTE', 'OTL', 'OTU']);
@@ -84,10 +85,18 @@
     }
     if (op === 'ALMD') {
       for (const [i, member] of [[5, 'MinDurationPRE'], [6, 'MinDurationACC']]) {
-        if (fields[i]?.ref === '?') fields[i] = {label: member, ref: args[0] + '.' + member, member: true, visible: true};
+        if (!fields[i] || fields[i].ref === '?') fields[i] = {label: member, ref: args[0] + '.' + member, member: true, visible: true};
       }
       flags = [['ALM', 'InAlarm'], ['ACK', 'Acked'], ['SUP', 'Suppressed'], ['SHV', 'Shelved'],
         ['DIS', 'Disabled'], ['FLT', 'Status.0'], ['BAD', 'Status.1'], ['SEV', 'Status.2']]
+        .map(([label, member]) => ({label, ref: args[0] + '.' + member}));
+    }
+    if (op === 'ALMA') {
+      for (const member of ['HHLimit', 'HLimit', 'LLimit', 'LLLimit']) {
+        fields.push({label: member, ref: args[0] + '.' + member, member: true, visible: true});
+      }
+      flags = [['HH', 'HHInAlarm'], ['H', 'HInAlarm'], ['L', 'LInAlarm'], ['LL', 'LLInAlarm'],
+        ['SUP', 'Suppressed'], ['DIS', 'Disabled'], ['FLT', 'Status.0']]
         .map(([label, member]) => ({label, ref: args[0] + '.' + member}));
     }
     if (Object.hasOwn(control, op)) {

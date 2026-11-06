@@ -490,7 +490,7 @@ class LadderAlarmTests(unittest.TestCase):
             ET.SubElement(tags, 'Tag', Name='MotorAlias', TagType='Alias',
                           AliasFor='Program:MainProgram.MotorAlarm', DataType='ALARM_DIGITAL')
             text = controller.find('.//RLLContent/Rung/Text')
-            text.text = text.text.replace('MotorAlarm', 'MotorAlias').replace('?,?', '0,0')
+            text.text = text.text.replace('MotorAlarm', 'MotorAlias').replace('EnableAlarm);', 'EnableAlarm,0,0);')
         engine = self.engine(configure)
         engine.memory.write('Trip', True)
         engine.step()
@@ -512,8 +512,8 @@ class LadderAlarmTests(unittest.TestCase):
 
         for before, after, expected in (
             ('Acknowledge', '2', 'scalar BOOL'),
-            ('?,?', '1,1', 'zero accumulator'),
-            ('?,?', 'Trip,0', 'DINT preset'),
+            ('EnableAlarm);', 'EnableAlarm,1,1);', 'zero accumulator'),
+            ('EnableAlarm);', 'EnableAlarm,Trip,0);', 'DINT preset'),
         ):
             def configure(controller):
                 text = controller.find('.//RLLContent/Rung/Text')

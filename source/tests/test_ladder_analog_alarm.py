@@ -1,0 +1,215 @@
+"""Alarm-format ALMA imports and level-only ladder execution."""
+import copy
+import tempfile
+import unittest
+from pathlib import Path
+from xml.etree import ElementTree as ET
+
+from logixlab.model import ModelError, Project
+from logixlab.runtime import Engine
+
+
+SAMPLE = Path(__file__).resolve().parents[1] / 'samples/AlarmLab.L5X'
+ALARM = 'PressureAlarm'
+
+
+class LadderAnalogAlarmTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+
+    def engine(self, configure=None, *, check=True):
+        path = SAMPLE
+        if configure is not None:
+            tree = ET.parse(SAMPLE)
+            configure(tree.getroot().find('Controller'))
+            path = Path(self.tmp.name) / 'analog.L5X'
+            tree.write(path, encoding='utf-8', xml_declaration=True)
+        engine = Engine(Project(path))
+        if check:
+            self.assertEqual(engine.blockers, [])
+            engine.memory.write('AnalogRun', True)
+        return engine
+
+    def test_high_levels_share_delay_and_release_only_beyond_deadband(self):
+        e = self.engine()
+        m = e.memory
+        alarm = m.read(ALARM)
+        m.write('Pressure', 80)
+        e.step()
+        m.write('Pressure', 90)
+        e.step()
+        self.assertFalse(alarm['HInAlarm'])
+        self.assertFalse(alarm['HHInAlarm'])
+        e.step()
+        self.assertTrue(alarm['HInAlarm'])
+        self.assertTrue(alarm['HHInAlarm'])
+        self.assertTrue(alarm['AnyInAlarmUnack'])
+        self.assertEqual((alarm['HAlarmCount'], alarm['HHAlarmCount']), (1, 1))
+        m.write('Pressure', 88)
+        e.step()
+        self.assertTrue(alarm['HHInAlarm'])
+        m.write('Pressure', 87.5)
+        e.step()
+        self.assertFalse(alarm['HHInAlarm'])
+        self.assertFalse(alarm['HHAcked'])
+        self.assertTrue(alarm['HInAlarm'])
+        m.write('Pressure', 90)
+        e.step()
+        self.assertTrue(alarm['HHInAlarm'])
+        self.assertEqual(alarm['HHAlarmCount'], 2)
+        m.write('Pressure', 78)
+        e.step()
+        self.assertTrue(alarm['HInAlarm'])
+        m.write('Pressure', 77.5)
+        e.step()
+        self.assertFalse(alarm['HInAlarm'])
+        self.assertFalse(alarm['AnyInAlarmUnack'])
+
+    def test_low_direction_has_separate_delay_and_inclusive_bounds(self):
+        e = self.engine()
+        m = e.memory
+        alarm = m.read(ALARM)
+        m.write('Pressure', 95)
+        for _ in range(3):
+            e.step()
+        m.write('Pressure', 20)
+        e.step()
+        self.assertFalse(alarm['HInAlarm'])
+        self.assertFalse(alarm['LInAlarm'])
+        m.write('Pressure', 10)
+        e.step()
+        self.assertFalse(alarm['LLInAlarm'])
+        e.step()
+        self.assertTrue(alarm['LInAlarm'])
+        self.assertTrue(alarm['LLInAlarm'])
+        m.write('Pressure', 12)
+        e.step()
+        self.assertTrue(alarm['LLInAlarm'])
+        m.write('Pressure', 12.5)
+        e.step()
+        self.assertFalse(alarm['LLInAlarm'])
+        self.assertTrue(alarm['LInAlarm'])
+
+    def test_false_rung_holds_results_and_skips_live_operands_and_commands(self):
+        e = self.engine()
+        m = e.memory
+        m.write('PressureAlarm.MinDurationPRE', 0)
+        m.write('Pressure', 95)
+        e.step()
+        alarm = m.read(ALARM)
+        m.write('AnalogRun', False)
+        m.values['pressure'] = None
+        m.write('PressureAlarm.ROCPeriod', 1)
+        m.write('PressureAlarm.OperAckAll', True)
+        e.step()
+        self.assertFalse(alarm['EnableOut'])
+        self.assertTrue(alarm['HHInAlarmUnack'])
+        self.assertTrue(alarm['OperAckAll'])
+        self.assertEqual(alarm['In'], 95.0)
+        m.write('AnalogRun', True)
+        with self.assertRaisesRegex(ModelError, 'rate-of-change'):
+            e.step()
+        m.write('PressureAlarm.ROCPeriod', 0)
+        with self.assertRaisesRegex(ModelError, 'Unknown initial'):
+            e.step()
+        m.write('Pressure', 95)
+        e.step()
+        self.assertTrue(m.read('PressureAlarm.HHAcked'))
+        self.assertFalse(m.read('PressureAlarm.OperAckAll'))
+
+    def test_invalid_order_and_deadband_are_instruction_diagnostics(self):
+        e = self.engine()
+        m = e.memory
+        alarm = m.read(ALARM)
+        m.write('PressureAlarm.MinDurationPRE', 0)
+        m.write('Pressure', 90)
+        e.step()
+        m.write('PressureAlarm.HLimit', 95)
+        e.step()
+        self.assertEqual(alarm['Status'], 9)
+        self.assertTrue(m.read('PressureAlarm.AlarmLimitsInv'))
+        self.assertFalse(alarm['HHInAlarm'])
+        m.write('PressureAlarm.HLimit', 80)
+        m.write('PressureAlarm.Deadband', -2)
+        m.write('PressureAlarm.HSeverity', 0)
+        m.write('PressureAlarm.InFault', True)
+        e.step()
+        self.assertEqual(alarm['Status'], 23)
+        self.assertTrue(alarm['HHInAlarm'])
+        self.assertEqual(alarm['Deadband'], -2.0)
+        m.write('Pressure', 89.5)
+        e.step()
+        self.assertFalse(alarm['HHInAlarm'])
+        self.assertTrue(alarm['HInAlarm'])
+
+    def test_level_and_global_acknowledgment_suppression_and_disable(self):
+        e = self.engine()
+        m = e.memory
+        alarm = m.read(ALARM)
+        m.write('PressureAlarm.HMinDurationEnable', False)
+        m.write('Pressure', 90)
+        e.step()
+        self.assertTrue(alarm['HInAlarm'])
+        self.assertFalse(alarm['HHInAlarm'])
+        e.step()
+        e.step()
+        m.write('PressureAlarm.HHOperAck', True)
+        e.step()
+        self.assertTrue(alarm['HHAcked'])
+        self.assertTrue(alarm['HInAlarmUnack'])
+        self.assertFalse(alarm['HHOperAck'])
+        m.write('PressureAlarm.ProgSuppress', True)
+        m.write('AckAnalog', True)
+        e.step()
+        self.assertTrue(alarm['Suppressed'])
+        self.assertFalse(alarm['AnyInAlarmUnack'])
+        m.write('PressureAlarm.ProgUnsuppress', True)
+        m.write('DisableAnalog', True)
+        m.write('EnableAnalog', True)
+        e.step()
+        self.assertFalse(alarm['Disabled'])
+        self.assertTrue(alarm['AnyInAlarmUnack'])
+        m.write('EnableAnalog', False)
+        e.step()
+        self.assertTrue(alarm['Disabled'])
+        self.assertFalse(alarm['HInAlarm'])
+        self.assertFalse(alarm['HAcked'])
+
+    def test_late_fault_restores_level_counts_and_qualification_clock(self):
+        def configure(controller):
+            tags = controller.find('Tags')
+            for name in ('Divisor', 'Quotient'):
+                tag = ET.SubElement(tags, 'Tag', Name=name, TagType='Base', DataType='DINT')
+                ET.SubElement(ET.SubElement(tag, 'Data', Format='Decorated'),
+                              'DataValue', DataType='DINT', Value='1')
+            content = controller.find('.//RLLContent')
+            ET.SubElement(ET.SubElement(content, 'Rung', Number='3', Type='N'),
+                          'Text').text = 'DIV(1,Divisor,Quotient);'
+        e = self.engine(configure)
+        m = e.memory
+        m.write('Pressure', 95)
+        m.write('Divisor', 0)
+        prior = copy.deepcopy((m.values, e.last_timer, e.time_ms, e.scan_count))
+        with self.assertRaisesRegex(ModelError, '(?i)divide|division'):
+            e.step()
+        self.assertEqual((m.values, e.last_timer, e.time_ms, e.scan_count), prior)
+        m.write('Divisor', 1)
+        e.step()
+        e.step()
+        self.assertFalse(m.read('PressureAlarm.HInAlarm'))
+        e.step()
+        self.assertEqual(m.read('PressureAlarm.HAlarmCount'), 1)
+
+    def test_import_checks_real_fields_and_processor_profile(self):
+        for value in ('true', '1e100'):
+            def configure(controller):
+                controller.find('.//AlarmAnalogParameters').set('HHLimit', value)
+            with self.subTest(value=value):
+                self.assertIn('ALARM_ANALOG.HHLimit', ' '.join(self.engine(configure, check=False).blockers))
+        old = self.engine(lambda c: c.set('ProcessorType', '1756-L75'), check=False)
+        self.assertIn('ALARM_ANALOG storage requires', ' '.join(old.blockers))
+
+
+if __name__ == '__main__':
+    unittest.main()

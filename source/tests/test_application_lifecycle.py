@@ -901,6 +901,31 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertTrue(second['MotorAlarm.Shelved'])
         self.assertFalse(second['MotorAlarm.OperShelve'])
 
+    def test_alarm_lab_analog_delay_and_deadband_through_http(self):
+        self.assertEqual(self.post('demo', {'sample': 'AlarmLab'})['blockers'], [])
+
+        def write(tag, value):
+            self.post('write', {'tag': tag, 'value': value})
+
+        def step():
+            state = self.post('step', {'dt': 10})
+            return {row['name']: row['value'] for row in state['tags']}
+
+        write('AnalogRun', True)
+        write('Pressure', 80)
+        self.assertFalse(step()['PressureAlarm.HInAlarm'])
+        self.assertFalse(step()['PressureAlarm.HInAlarm'])
+        self.assertTrue(step()['PressureAlarm.HInAlarm'])
+        write('Pressure', 90)
+        self.assertTrue(step()['PressureAlarm.HHInAlarm'])
+        write('Pressure', 88)
+        self.assertTrue(step()['PressureAlarm.HHInAlarm'])
+        write('Pressure', 87.5)
+        row = step()
+        self.assertFalse(row['PressureAlarm.HHInAlarm'])
+        self.assertTrue(row['PressureAlarm.HInAlarm'])
+        self.assertEqual(row['PressureAlarm.HHAlarmCount'], 1)
+
     def test_string_lab_executes_rll_st_and_reflects_input_search_changes(self):
         state = self.post('demo', {'sample': 'StringLab'})
         self.assertEqual(state['blockers'], [])
