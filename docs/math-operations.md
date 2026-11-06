@@ -48,10 +48,11 @@ and existing AOI local/InOut bindings. The preflight context is restored after
 both success and validation failure; runtime checks retain their normal context.
 
 A full result write can establish the selected unknown numeric element/member.
-Unwritten siblings remain unknown. A reached unknown/index/domain/range failure
-or later instruction fault restores the entire advance, including earlier math
-writes, time/task state and existing AOI bindings. These changes affect operand
-validation; calculations, rounding and existing finite math bounds are unchanged.
+Unwritten siblings remain unknown. During a whole-project ladder scan, a handler
+can [clear a reached array subscript fault](controller-handlers.md#recover-standalone-math-array-faults)
+and skip the result write. Unknown consumed values, domain and range failures,
+uncleared faults and later instruction errors restore the advance, including
+earlier writes, time/task state and existing AOI bindings.
 
 ## Calculations
 

@@ -136,6 +136,7 @@ def description():
                 destinations=sorted(DESTINATION_TYPES),
                 validation='Declared scalar types, shapes, index grammar, permissions and literal bounds; no live indices or saved tag values',
                 selection='False/prescan skip operands; true checks actual indices and all required source values; full writes establish unknown results',
+                array_recovery='A cleared Type 4 Code 20 during a whole-project ladder scan skips the math result write',
                 integer_conversion='Round the float32 result to nearest integer, ties to even; reject rounded out-of-range values with whole-advance rollback',
                 arithmetic='Sources and results rounded to float32; host math functions, no native bit-parity claim',
                 integer_root_power=dict(instructions=sorted(INTEGER_ROOT_POWER),

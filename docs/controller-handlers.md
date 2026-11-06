@@ -283,6 +283,21 @@ rollback. This recovery applies to ladder calls.
 
 [Rockwell array subscript reference](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/37-00/contents-ditamap/index-through-arrays.html)
 
+## Recover standalone math array faults
+
+A reached out-of-bounds subscript in SQR, XPY, LN, LOG, DEG, RAD, SIN,
+COS, TAN, ASN, ACS or ATN can raise Type 4 Code 20 during a whole-project
+ladder scan. Recovery covers indexed sources, either XPY operand and
+indexed destinations across the float32, binary64 and exact integer
+profiles. When a handler clears the fault, the instruction skips its
+result write and the next instruction receives the incoming rung power.
+
+A later valid scan evaluates the current operands. False rungs skip live
+operands. Unknown consumed values, invalid math domains, nonfinite
+results and overflow use scan rollback.
+
+[Rockwell array subscript reference](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/37-00/contents-ditamap/index-through-arrays.html)
+
 ## Escalate an uncleared Program fault
 
 For a modeled array fault, the assigned Controller Fault Handler runs

@@ -519,7 +519,7 @@ class ProgramFaultTests(unittest.TestCase):
                 self.assertEqual(engine.memory.read('SpeedCommand'),52 if return_destination else 13)
 
     def test_jsr_argument_recovery_does_not_intercept_callee_errors(self):
-        for mnemonic in ('SQR','FRD','EQU','MOV'):
+        for mnemonic in ('GSV','SQR','FRD','EQU','MOV'):
             with self.subTest(mnemonic=mnemonic):
                 self.setUp()
 
@@ -533,6 +533,7 @@ class ProgramFaultTests(unittest.TestCase):
                     content.insert(2,set_index)
                     faulting = ET.Element('Rung',Number='3',Type='N')
                     line = {
+                        'GSV':'GSV(Task,THIS,LastScanTime,LabValues[LabIndex]);',
                         'SQR':'SQR(LabValues[LabIndex],CallInput);',
                         'FRD':'FRD(LabValues[LabIndex],CallInput);',
                         'EQU':'EQU(LabValues[LabIndex],1)NOP();',
@@ -545,7 +546,7 @@ class ProgramFaultTests(unittest.TestCase):
                 self.assertEqual(engine.blockers, [])
                 engine.memory.write('StartPB',True)
                 before = copy.deepcopy(engine.memory.values)
-                if mnemonic=='SQR':
+                if mnemonic=='GSV':
                     with self.assertRaisesRegex(ModelError,'Scan rolled back: Array index outside bounds'):
                         engine.step()
                     self.assertEqual(engine.memory.values,before)
@@ -1709,6 +1710,75 @@ class ProgramFaultTests(unittest.TestCase):
                 engine = self.engine(mutate=configure)
                 self.assertEqual(engine.blockers,[])
                 engine.memory.write('LabIndex',1)
+                engine.memory.write('StartPB',True)
+                before = copy.deepcopy(engine.memory.values)
+                with self.assertRaisesRegex(ModelError,message):
+                    engine.step()
+                self.assertEqual(engine.memory.values,before)
+                self.assertIsNone(engine.last_cleared_program_fault)
+
+    def test_standalone_math_array_faults_preserve_result_and_continue_rung(self):
+        cases = (
+            ('SQR(LabValues[LabIndex],LabValues[0])',[4,13],[11.0,22.0]),
+            ('SQR(2147483648L,LabValues[LabIndex])',[12,46341],[11.0,22.0]),
+            ('XPY(LabValues[LabIndex],2,LabValues[0])',[169,13],[11.0,22.0]),
+            ('XPY(2L,LabValues[LabIndex],LabValues[0])',[8192,13],[11.0,22.0]),
+            ('LN(LabStats[LabIndex],LabValues[0])',[3,13],[11.0,22.0]),
+            ('LOG(100,LabValues[LabIndex])',[12,2],[11.0,22.0]),
+            ('DEG(1,LabValues[LabIndex])',[12,57],[11.0,22.0]),
+            ('RAD(180,LabValues[LabIndex])',[12,3],[11.0,22.0]),
+            ('SIN(1.5707963267948966L,LabStats[LabIndex])',[12,13],[11.0,1.0]),
+            ('COS(0,LabStats[LabIndex])',[12,13],[11.0,1.0]),
+            ('TAN(0,LabValues[LabIndex])',[12,0],[11.0,22.0]),
+            ('ASN(1,LabValues[LabIndex])',[12,2],[11.0,22.0]),
+            ('ACS(1,LabValues[LabIndex])',[12,0],[11.0,22.0]),
+            ('ATN(0,LabValues[LabIndex])',[12,0],[11.0,22.0]),
+        )
+        for instruction,values,stats in cases:
+            with self.subTest(instruction=instruction):
+                self.setUp()
+
+                def configure(root):
+                    controller_fault_fallback_fixture(root,controller_tail='MOV(1,LabIndex);')
+                    add_array_calculation_tags(root)
+                    set_fault_instruction(root,instruction)
+
+                engine = self.engine(mutate=configure)
+                self.assertEqual(engine.blockers,[])
+                engine.memory.write('LabIndex',2)
+                engine.memory.write('SpeedCommand',50)
+                engine.step()
+                self.assertIsNone(engine.last_cleared_program_fault)
+                engine.memory.write('StartPB',True)
+                engine.step()
+                fault = engine.last_cleared_program_fault
+                name = instruction.split('(',1)[0]
+                self.assertEqual((fault['type'],fault['code'],fault['instruction']),(4,20,name))
+                self.assertEqual(fault['handler']['routine'],'FaultHandler/Capture')
+                self.assertEqual(engine.memory.read('LabValues'),[12,13])
+                self.assertEqual(engine.memory.read('LabStats'),[11.0,22.0])
+                self.assertEqual(engine.memory.read('SpeedCommand'),51)
+                engine.step()
+                self.assertEqual(engine.memory.read('LabValues'),values)
+                self.assertEqual(engine.memory.read('LabStats'),stats)
+                self.assertEqual(engine.memory.read('SpeedCommand'),52)
+                self.assertFalse(any('recovery_source' in row for row in engine.trace))
+
+    def test_standalone_math_domain_and_overflow_keep_scan_rollback(self):
+        for instruction,message in (
+            ('LN(-1,LabValues[0])','LN outside the finite'),
+            ('ACS(2,LabValues[0])','ACS outside the finite'),
+            ('XPY(2L,64,LabValues[0])','DINT overflow in XPY'),
+        ):
+            with self.subTest(instruction=instruction):
+                self.setUp()
+
+                def configure(root):
+                    ladder_fault_fixture(root)
+                    set_fault_instruction(root,instruction)
+
+                engine = self.engine(mutate=configure)
+                self.assertEqual(engine.blockers,[])
                 engine.memory.write('StartPB',True)
                 before = copy.deepcopy(engine.memory.values)
                 with self.assertRaisesRegex(ModelError,message):

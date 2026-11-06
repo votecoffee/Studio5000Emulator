@@ -36,9 +36,12 @@ by 3 is 1. Integer-only profiles retain their exact arithmetic rules.
 
 Floating literals also convert before evaluation. A tiny literal can underflow
 to zero, including a divisor. NEG(0,realResult) retains negative zero. Existing
-finite-result checks apply: unknown required sources, invalid indices, zero
-divisors, invalid power/log/inverse-trig domains and nonfinite results stop the
-advance and restore its values, task progress/timing and warm AOI state/bindings.
+finite-result checks apply. Unknown required sources, zero divisors, invalid
+power/log/inverse-trig domains and nonfinite results roll back the advance,
+including task progress, timing and AOI state. A whole-project ladder handler
+can clear reached array subscript faults in
+[arithmetic](controller-handlers.md#recover-a-ladder-arithmetic-array-fault) and
+[standalone math](controller-handlers.md#recover-standalone-math-array-faults).
 True calls consume every source even for zero products or unit/zero powers.
 
 Structural preflight validates scalar types, shapes, references, permissions,

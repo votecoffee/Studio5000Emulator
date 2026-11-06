@@ -46,9 +46,13 @@ bounds and destination permissions without consuming saved dynamic indices or
 values. False rungs and prescan skip live operands and retain results. Complete
 writes establish unknown selected outputs while preserving sibling values.
 Aliases, UDT members, overlapping source/result tags and existing AOI bindings
-share the memory rules. Unknown consumed values, invalid indices, overflow and
-later failures restore prior values, task progress, timing and AOI local/external
-arrays and bindings within the advance. Run-entry initialization remains a
+share the memory rules. A whole-project ladder handler can clear reached
+array subscript faults in
+[arithmetic](controller-handlers.md#recover-a-ladder-arithmetic-array-fault) and
+[standalone math](controller-handlers.md#recover-standalone-math-array-faults).
+Unknown consumed values, uncleared faults, overflow and later failures
+restore prior values, task progress, timing and AOI local/external arrays
+and bindings within the advance. Run-entry initialization remains a
 separate preceding prescan boundary. Matching LREAL InOut/local arrays with a
 copied DINT AOI input have independent warm-state rollback cases; copied LREAL
 parameters and broader AOI forms remain separate.
