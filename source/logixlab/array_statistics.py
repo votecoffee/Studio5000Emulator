@@ -125,6 +125,7 @@ def description():
                 result_storage='Scalar aliases/members/AOI results disjoint from the source array and its CONTROL record',
                 selection='Structural source/result/control preflight; false or EN/DN/ER-inhibited calls skip live result indices and values',
                 result_writes='A fresh calculation resolves the actual result before reading samples; full writes establish unknown destinations',
+                array_recovery='A cleared Type 4 Code 20 during a whole-project ladder scan skips both the result write and CONTROL update',
                 control_selection='Actual CONTROL addresses remain required in prescan/runtime, with existing flag and LEN/POS reads',
                 dimensions='Fully subscripted one/two/three-dimensional arrays; selected dimension varies without flattening',
                 starting_references='Aliases and bounded indirect indices; no CONTROL.POS-dependent starts; false or latched EN/DN/ER calls skip live source indices and values',

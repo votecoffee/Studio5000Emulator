@@ -24,8 +24,10 @@ namespace, while AliasFor-authored indices retain the declaration namespace.
 
 False instructions and true instructions inhibited by EN, DN or ER skip live
 source indices and values. Thus changing a start index while completed does
-not recalculate the result; rearm before selecting another window. Unknown or
-invalid source values/indices fault when consumed. Limits and lengths are
+not recalculate the result; rearm before selecting another window. A
+[reached array subscript fault](controller-handlers.md#recover-sort-and-statistics-array-faults)
+can be cleared by a handler in a whole-project ladder scan. Unknown source
+values fault when consumed. Limits and lengths are
 checked before live source reads; the maximum remains 4096 samples, and the
 complete region must fit the selected dimension/member. No adjacent member
 or row is included to satisfy an oversized request.

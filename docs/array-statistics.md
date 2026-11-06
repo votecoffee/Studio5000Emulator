@@ -72,9 +72,12 @@ STD prescan clears EN/DN/ER and retains POS. Its false rung clears EN/DN/ER/POS.
 Both instructions retain LEN and array data. RES can reset logical control state
 while retaining LEN and data.
 
-Unknown required values, invalid bounds/lengths, partial positions, accumulation
-overflow and later execution faults stop and roll back the whole modeled advance,
-including data, control flags, time and scheduler state. Native ER/POS fault
+In a whole-project ladder scan, a handler can
+[clear a reached array subscript fault](controller-handlers.md#recover-sort-and-statistics-array-faults)
+and skip both the result write and CONTROL update. Unknown required values,
+short windows, invalid lengths, partial positions, accumulation overflow and
+later execution faults roll back the modeled advance, including data, control
+flags, time and scheduler state. Native ER/POS fault
 side effects, partial results, math flags and fault classifications remain
 unfinished. Wider types, partial-state execution and broader AOI forms remain
 open. Neither instruction is available as an ST call or FBD instruction.

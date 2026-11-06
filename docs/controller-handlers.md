@@ -248,6 +248,26 @@ existing scan rollback. Prescan uses its separate startup behavior.
 [Rockwell DDT reference](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/special-instructions/diagnostic-detect--ddt-.html)
 [Rockwell DTR reference](https://www.rockwellautomation.com/en-gb/docs/studio-5000-logix-designer/38-01/contents-ditamap/instruction-set/special-instructions/data-transition--dtr-.html)
 
+## Recover sort and statistics array faults
+
+A reached out-of-bounds subscript in SRT, AVE or STD can raise Type 4
+Code 20 during a whole-project ladder scan. This includes an indexed
+CONTROL record, the start of the selected array dimension and the
+result address for AVE or STD. Address selection happens before data
+or CONTROL writes, so a handler sees the values from before the call.
+
+When a handler clears the record, the next instruction receives the
+incoming rung power. A later valid call can still sort the selected
+window or calculate its result on the retained edge. False or
+inhibited calls continue to skip live array and result operands
+according to the instruction. The CONTROL address is still required.
+
+A valid start with a window that extends beyond its selected dimension,
+an unknown consumed value or an invalid LEN/POS uses scan rollback.
+The recovery path applies to ladder execution.
+
+[Rockwell array and file instructions reference](https://www.rockwellautomation.com/en-dk/docs/studio-5000-logix-designer/37-02/contents-ditamap/instruction-set/array-file-misc-instructions.html)
+
 ## Escalate an uncleared Program fault
 
 For a modeled array fault, the assigned Controller Fault Handler runs

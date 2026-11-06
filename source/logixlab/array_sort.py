@@ -68,6 +68,7 @@ def description():
                 aoi='RLL/ST bodies with exact one/two/three-dimensional numeric InOut arrays or represented saved locals; existing copied-input/Prescan/EnableInFalse/binding rollback rules',
                 write_effects='Whole selected array member; enclosing parent arrays widened conservatively for FOR bounds/step; CONTROL EN/DN tracked separately',
                 position='Qualified POS zero retained; positive LEN, at most 4096 values in selected dimension/member',
+                array_recovery='A cleared Type 4 Code 20 during a whole-project ladder scan skips the sort before any writes',
                 prescan='No state initialization', native_math_status=False, native_fault_classification=False,
                 remaining=['Native internal POS cursor and partial-state behavior', 'Native faults/side effects',
                            'Broader AOI lifecycle, conservative FOR effects and additional types'])

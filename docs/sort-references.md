@@ -27,8 +27,11 @@ neighboring rows/members. The bounded profile rejects CONTROL.POS-dependent
 starting subscripts; this is a simulator qualification guard.
 
 The whole input window is captured before writes. Exact declared integer values
-and finite REAL values retain the existing ordering profile. Unknown data,
-bad indices, oversized windows and later faults roll back the modeled advance.
+and finite REAL values retain the existing ordering profile. In a whole-project
+ladder scan, a fault handler can
+[clear a reached array subscript fault](controller-handlers.md#recover-sort-and-statistics-array-faults).
+Unrecovered faults, unknown data, oversized windows and later errors roll back
+the modeled advance.
 Both arrays and CONTROL must be writable, including alias targets and AOI actuals.
 
 ## ST FOR write protection

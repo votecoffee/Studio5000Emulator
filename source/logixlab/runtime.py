@@ -33,7 +33,7 @@ ARRAY_FAULT_RECOVERY_OPS = (
     | numeric_storage.INSTRUCTIONS | scalar_math.INSTRUCTIONS | bit_transfer.INSTRUCTIONS
     | comparisons.INSTRUCTIONS | bit_logic.INSTRUCTIONS | control_operations.INSTRUCTIONS
     | sequencer_operations.INSTRUCTIONS | file_arithmetic.INSTRUCTIONS | file_search.INSTRUCTIONS
-    | file_bit_compare.INSTRUCTIONS
+    | file_bit_compare.INSTRUCTIONS | array_sort.INSTRUCTIONS | array_statistics.INSTRUCTIONS
 )
 FAULT_HANDLER_GSV = frozenset((('program','majorfaultrecord'), ('module','entrystatus'),
                                ('module','faultcode'), ('module','faultinfo')))

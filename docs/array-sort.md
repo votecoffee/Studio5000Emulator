@@ -36,9 +36,12 @@ write when protecting tag-based bounds/step, including guard elements outside
 the current LEN. The written CONTROL EN/DN fields are tracked separately;
 unchanged LEN/POS may still supply loop bounds.
 
-Unknown values, bounds/length/position errors, nonfinite REAL data and later
-faults retain whole-advance data/control/time/scheduler rollback. Native major
-faults, partial writes and internal status/cursor behavior remain unfinished.
+In a whole-project ladder scan, a handler can
+[clear a reached array subscript fault](controller-handlers.md#recover-sort-and-statistics-array-faults)
+and skip the sort before it changes data or CONTROL. Unknown values, short
+windows, invalid LEN/POS, nonfinite REAL data and later faults retain
+whole-advance rollback. Native partial writes and internal status/cursor
+behavior remain unqualified.
 [Alias/indirect and AOI array starts](sort-references.md) now execute. Wider/unsigned
 types and FBD forms remain unqualified. Numeric UDT array members and CONTROL
 aliases are supported; parent-array FOR effects are conservative.
