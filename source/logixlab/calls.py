@@ -29,6 +29,7 @@ class Operand:
     parts:list
     dtype:str
     dims:tuple
+    deferred_overlap:bool=False
 
 
 def shape(value):
@@ -39,7 +40,8 @@ def shape(value):
 
 
 def overlaps(a,b):
-    return a.key is not None and a.key==b.key and (a.parts[:len(b.parts)]==b.parts or b.parts[:len(a.parts)]==a.parts)
+    return (not a.deferred_overlap and not b.deferred_overlap and a.key is not None and a.key==b.key
+            and (a.parts[:len(b.parts)]==b.parts or b.parts[:len(a.parts)]==a.parts))
 
 
 class Calls:
@@ -50,7 +52,7 @@ class Calls:
         return (self.engine.project.version=='35' and self.engine.project.processor.upper() in CONTROLLERS
                 and scope not in self.memory.frames)
 
-    def operand(self,ref,scope,writable=False,*,indirect=False):
+    def operand(self,ref,scope,writable=False,*,indirect=False,defer_overlap=False):
         try:
             value=literal(ref)
             if writable:raise ModelError('Parameter destination must be a writable tag')
@@ -65,7 +67,8 @@ class Calls:
         if key is None or any(isinstance(p,tuple) for p in parts):raise ModelError('Routine parameter system/bit selections are unsupported')
         value=self.memory.at(key,parts)
         if dynamic and shape(value):raise ModelError('Indirect routine arguments must select one complete element')
-        return Operand(self.memory.address(key,parts),'',key,parts,dtype,shape(value))
+        return Operand(self.memory.address(key,parts),'',key,parts,dtype,shape(value),
+                       defer_overlap and self.memory.structural and dynamic)
 
     def check_pairs(self,sources,destinations):
         if len(sources)!=len(destinations):raise ModelError('Routine parameter counts must match exactly')
@@ -96,21 +99,28 @@ class Calls:
         if entry and (header and header.args or any(op.args for op in returns)):
             raise ModelError('Parameterized routine requires a JSR caller; select its caller for the harness')
 
-    def validate_operands(self,op,scope):
-        previous=self.memory.structural
-        if op.name=='JSR' and self.indirect_profile(scope):self.memory.structural=True
-        try:self._validate_operands(op,scope)
-        finally:self.memory.structural=previous
-
-    def _validate_operands(self,op,scope):
+    def validate_operands(self,op,scope,*,kind):
         problem=operand_problem(op)
         if problem:raise ModelError(problem)
-        if op.name=='JSR':
+        indirect=self.indirect_profile(scope)
+        if op.name!='JSR':
+            self._callee_operands(op,scope,indirect=indirect and kind=='RLL',structural=True)
+            return
+        previous=self.memory.structural
+        if indirect:self.memory.structural=True
+        try:
             count=int(op.args[1])
-            for ref in op.args[2:2+count]:self.operand(ref,scope,indirect=self.indirect_profile(scope))
-            for ref in op.args[2+count:]:self.operand(ref,scope,writable=True,indirect=self.indirect_profile(scope))
-        else:
-            for ref in op.args:self.operand(ref,scope,writable=op.name=='SBR')
+            for ref in op.args[2:2+count]:self.operand(ref,scope,indirect=indirect)
+            for ref in op.args[2+count:]:self.operand(ref,scope,writable=True,indirect=indirect)
+        finally:self.memory.structural=previous
+
+    def _callee_operands(self,op,scope,*,indirect,structural=False):
+        previous=self.memory.structural
+        if structural and indirect:self.memory.structural=True
+        try:
+            return [self.operand(ref,scope,writable=op.name=='SBR',indirect=indirect,defer_overlap=indirect)
+                    for ref in op.args]
+        finally:self.memory.structural=previous
 
     def call_spec(self,op,scope,*,execute=False):
         previous=self.memory.structural
@@ -134,13 +144,15 @@ class Calls:
         if routine.name.lower()==self.engine.project.programs[scope]['main'].lower():raise ModelError('JSR cannot call a main routine')
         header,returns=self.signature(routine);count=int(op.args[1])
         sources=[self._caller_operand(op,x,scope) for x in op.args[2:2+count]]
-        inputs=[self.operand(x,scope,writable=True) for x in header.args] if header else []
+        indirect=self.indirect_profile(scope) and routine.kind=='RLL'
+        inputs=self._callee_operands(header,scope,indirect=indirect,structural=True) if header else []
         self.check_pairs(sources,inputs)
         destinations=[self._caller_operand(op,x,scope,writable=True) for x in op.args[2+count:]]
         if destinations and not returns:raise ModelError('JSR return destinations require RET operands')
-        for ret in returns:self.check_pairs([self.operand(x,scope) for x in ret.args],destinations)
+        for ret in returns:
+            self.check_pairs(self._callee_operands(ret,scope,indirect=indirect,structural=True),destinations)
         self.edges[key]={'inputs':count,'returns':len(destinations)}
-        return key,sources,inputs,destinations
+        return key,sources,destinations
 
     def loop_spec(self,op,scope):
         previous=self.memory.structural;self.memory.structural=True
@@ -156,7 +168,7 @@ class Calls:
         if op.name=='BRK':return
         if not re.fullmatch(r'[A-Za-z_][\w]*',op.args[0]):raise ModelError('Invalid FOR routine name')
         # FOR passes no SBR/RET parameters. The same target/call graph rules apply.
-        key,_,_,_=self.call_spec(Op('JSR',[op.args[0],'0']),scope)
+        key,_,_=self.call_spec(Op('JSR',[op.args[0],'0']),scope)
         index=self.operand(op.args[1],scope,writable=True,indirect=True)
         if index.dtype!='DINT' or index.dims:raise ModelError('FOR index requires a writable scalar DINT')
         sources=[self.operand(ref,scope,indirect=True) for ref in op.args[2:]]
@@ -173,7 +185,7 @@ class Calls:
         def value(ref):return self.values([self._caller_operand(op,ref,scope)])[0]
         saved_index=self.memory.at(index.key,index.parts)
         self.memory.write(index.ref,value(op.args[2]),index.scope)
-        frame={'key':key,'inputs':[],'values':[],'destinations':[],'received':False,'returned':False,'loop':True}
+        frame={'key':key,'sources':[],'values':[],'destinations':[],'received':False,'returned':False,'loop':True}
         started=False
         self.stack.append(frame)
         try:
@@ -225,8 +237,8 @@ class Calls:
 
     def call(self,op,scope,depth):
         if len(self.stack)>=MAX_NESTING:raise ModelError(f'JSR nesting limit of {MAX_NESTING} exceeded')
-        key,sources,inputs,destinations=self.call_spec(op,scope,execute=True)
-        frame={'key':key,'inputs':inputs,'values':self.values(sources),'destinations':destinations,'received':False,'returned':False}
+        key,sources,destinations=self.call_spec(op,scope,execute=True)
+        frame={'key':key,'sources':sources,'values':self.values(sources),'destinations':destinations,'received':False,'returned':False}
         self.stack.append(frame)
         try:
             self.engine._routine(key,depth+1)
@@ -239,22 +251,27 @@ class Calls:
             return
         frame=self.stack[-1]
         if frame['received']:raise ModelError('SBR executed more than once in one call')
-        destinations=[self.operand(x,scope,writable=True) for x in op.args]
+        indirect=self.indirect_profile(scope) and self.engine._executing_routine.kind=='RLL'
+        destinations=self._callee_operands(op,scope,indirect=indirect)
+        self.check_pairs(frame['sources'],destinations)
         self.store(destinations,frame['values']);frame['received']=True
 
     def returned(self,op,scope):
         if not self.stack:
             if op.args:raise ModelError('RET has no JSR caller')
             return
-        frame=self.stack[-1];sources=[self.operand(x,scope) for x in op.args]
+        frame=self.stack[-1]
+        indirect=self.indirect_profile(scope) and self.engine._executing_routine.kind=='RLL'
+        sources=self._callee_operands(op,scope,indirect=indirect)
         self.check_pairs(sources,frame['destinations'])
         self.store(frame['destinations'],self.values(sources));frame['returned']=True
 
     def report(self):
         return {'calls':self.edges,'nesting_limit':MAX_NESTING,'parameters_per_direction':40,
-                'contract':'Exact counts/types/dimensions; copied values; static formals/returns and bounded indirect caller elements; cross-parameter overlap rejected; prescan does not transfer parameters',
+                'contract':'Exact counts/types/dimensions; copied values; bounded indirect JSR and ladder SBR/RET elements; cross-parameter overlap rejected; prescan does not transfer parameters',
                 'indirect':dict(available=self.indirect_profile(''),profile='v35-5580-caller-elements',
                                 selection='Structural JSR preflight; false/prescan skip live caller indices and values',
                                 capture='Input and return-destination addresses captured at call entry before input copies; current values copied before SBR writes',
-                                boundaries='One selected element for explicit indirect arguments; SBR/RET references retain static rules; FOR uses its separate selection profile; conservative preflight overlap checks',
+                                callee='Ladder SBR destinations and RET sources select live elements only on the reached transfer, with all addresses and values captured before the first write',
+                                boundaries='One selected element per explicit indirect operand; ST SBR/RET retain static rules; FOR uses its separate profile; structural overlap defers for explicit indirect callee operands',
                                 native_runtime_parity=False)}

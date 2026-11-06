@@ -421,7 +421,7 @@ class Engine:
                                 raise ModelError(f'{profile} GSV supports MajorFaultRecord and named Module diagnostics')
                             if op.name == 'SSV' and not gsv_configuration.matches_major_fault_record(op):
                                 raise ModelError(f'{profile} SSV supports MajorFaultRecord clearing only')
-                        if not(r.kind=='ST' and op.name=='MID'):self._validate(op, r.program)
+                        if not(r.kind=='ST' and op.name=='MID'):self._validate(op, r.program, kind=r.kind)
                         if op.name=='JMP' and op.args and op.args[0].lower() not in labels:
                             raise ModelError(f'Missing label {op.args[0]}')
                         if op.name in ('JSR','FOR') and op.args:
@@ -448,13 +448,13 @@ class Engine:
 
         self._mcr_plans[routine.key.lower()]=mcr.plan(self.project,routine,labels)
 
-    def _validate(self, op, scope):
+    def _validate(self, op, scope, *, kind="RLL"):
         n, a = op.name, op.args
         if n in self.project.aois:
             self.addons.validate(op,scope);return
         if n in ('FOR','BRK'):self.calls.loop_spec(op,scope);return
         if n in ('JSR','SBR','RET'):
-            self.calls.validate_operands(op,scope);return
+            self.calls.validate_operands(op,scope,kind=kind);return
         if n in st_timers.INSTRUCTIONS:st_timers.validate(self,op,scope);return
         if n in st_counter.INSTRUCTIONS:st_counter.validate(self,op,scope);return
         if n in st_oneshot.INSTRUCTIONS:st_oneshot.validate(self,op,scope);return

@@ -142,17 +142,108 @@ class CallReferenceTests(unittest.TestCase):
         e = self.checked([], st); e.step(); e.memory.write('InputIndex', 1); e.memory.write('OutputIndex', 1); e.memory.write('Inputs[1]', 11); e.memory.write('IndirectEnabled', True); e.step()
         self.assertEqual(e.memory.read('Outputs')[1], 22)
 
-    def test_static_formals_returns_bits_types_literal_bounds_and_profiles_remain_guarded(self):
+    def test_callee_samples_formals_and_returns_at_the_reached_instruction(self):
+        def setup(root):
+            self.routine('Selected',['SBR(InputIndex,Inputs[InputIndex]);',
+                                     'MOV(2,OutputIndex);',
+                                     'RET(Inputs[InputIndex-1]);'])
+        e = self.checked(['XIC(IndirectEnabled)JSR(Selected,2,2,InputValue,Outputs[OutputIndex]);'],setup)
+        e.step()
+        self.assertEqual(e.memory.read('InputIndex'),99)
+        self.assertEqual(e.memory.read('Inputs'),[None,None,None])
+        for ref,value in [('InputIndex',1),('OutputIndex',0),('IndirectEnabled',True)]:
+            e.memory.write(ref,value)
+        e.step()
+        self.assertEqual(e.memory.read('Inputs'),[None,7,None])
+        self.assertEqual(e.memory.read('OutputIndex'),2)
+        self.assertEqual(e.memory.read('Outputs'),[7,None,None])
+        self.assertEqual(e.calls.stack,[])
+
+    def test_callee_skips_live_index_of_an_unreached_return(self):
+        def setup(root):
+            self.routine('Choose',['XIC(EarlyReturn)RET(Inputs[InputIndex]);',
+                                   'MOV(1,InputIndex);','RET(Inputs[InputIndex]);'])
+        e = self.checked(['JSR(Choose,0,Outputs[0]);'],setup)
+        e.memory.write('Inputs[1]',19)
+        e.step()
+        self.assertEqual(e.memory.read('Outputs'),[19,None,None])
+        e.memory.write('InputIndex',99)
+        e.memory.write('EarlyReturn',True)
+        before = self.snapshot(e)
+        with self.assertRaisesRegex(ModelError,'Array index outside bounds'):
+            e.step()
+        self.assertEqual(self.snapshot(e),before)
+
+    def test_callee_defers_indirect_overlap_and_rejects_actual_collision_before_copy(self):
+        def setup(root):
+            self.routine('Selected',['SBR(Inputs[InputIndex],Inputs[OutputIndex]);',
+                                     'RET(Inputs[InputIndex],Inputs[OutputIndex]);'])
+        e = self.checked(['JSR(Selected,2,17,23,Outputs[0],Outputs[1]);'],setup)
+        for index,message in [(99,'outside bounds'),(0,'Overlapping')]:
+            e.memory.write('InputIndex',0)
+            e.memory.write('OutputIndex',index)
+            before = self.snapshot(e)
+            with self.assertRaisesRegex(ModelError,message):
+                e.step()
+            self.assertEqual(self.snapshot(e),before)
+        e.memory.write('OutputIndex',1)
+        e.step()
+        self.assertEqual(e.memory.read('Inputs'),[17,23,None])
+        self.assertEqual(e.memory.read('Outputs'),[17,23,None])
+        self.assertEqual(e.calls.stack,[])
+
+    def test_callee_reads_all_return_values_before_copying_any(self):
+        def setup(root):
+            self.routine('Selected',['MOV(77,WorkValue);','RET(Inputs[0],Inputs[InputIndex]);'])
+        e = self.checked(['JSR(Selected,0,Outputs[0],Outputs[1]);'],setup)
+        e.memory.write('Inputs[0]',10)
+        e.memory.write('InputIndex',1)
+        before = self.snapshot(e)
+        with self.assertRaisesRegex(ModelError,'Unknown'):
+            e.step()
+        self.assertEqual(self.snapshot(e),before)
+        e.memory.write('Inputs[1]',20)
+        e.step()
+        self.assertEqual(e.memory.read('Outputs'),[10,20,None])
+
+    def test_return_checks_cross_parameter_overlap_at_the_selected_source(self):
+        def setup(root):
+            self.routine('Selected',['MOV(77,WorkValue);','RET(WorkValue,Inputs[InputIndex]);'])
+        e = self.checked(['JSR(Selected,0,Inputs[0],Outputs[1]);'],setup)
+        e.memory.write('Inputs[0]',10)
+        e.memory.write('InputIndex',0)
+        before = self.snapshot(e)
+        with self.assertRaisesRegex(ModelError,'Cross-parameter'):
+            e.step()
+        self.assertEqual(self.snapshot(e),before)
+        e.memory.write('Inputs[1]',20)
+        e.memory.write('InputIndex',1)
+        e.step()
+        self.assertEqual(e.memory.read('Inputs'),[77,20,None])
+        self.assertEqual(e.memory.read('Outputs'),[None,20,None])
+
+    def test_types_literal_bounds_and_older_profiles_remain_guarded(self):
         for text in ('JSR(DoubleValue,1,Inputs[99],Result);', 'JSR(DoubleValue,1,PackedWord.0,Result);', 'JSR(DoubleValue,1,RealInputs[InputIndex],Outputs[OutputIndex]);'):
             self.assertTrue(self.engine(['AFI()' + text]).blockers, text)
-        def formal(root):self.routine('Bad', ['SBR(Inputs[InputIndex]);', 'RET(NestedOutput);'])
+        def formal(root):self.routine('Bad', ['SBR(Inputs[99]);', 'RET(NestedOutput);'])
         self.assertTrue(self.engine(['AFI()JSR(Bad,1,InputValue,Result);'], formal).blockers)
-        def returned(root):self.routine('Bad', ['RET(Inputs[InputIndex]);'])
+        def returned(root):self.routine('Bad', ['RET(RealInputs[InputIndex]);'])
         self.assertTrue(self.engine(['AFI()JSR(Bad,0,Result);'], returned).blockers)
         def constant(root):root.find('./Controller/Tags/Tag[@Name="Outputs"]').set('Constant', 'true')
         self.assertTrue(self.engine(['AFI()JSR(DoubleValue,1,Inputs[InputIndex],Outputs[OutputIndex]);'], constant).blockers)
         def older(root):root.find('Controller').set('ProcessorType', '1756-L75')
         self.assertTrue(self.engine(['AFI()JSR(DoubleValue,1,Inputs[InputIndex],Outputs[OutputIndex]);'], older).blockers)
+        def older_callee(root):
+            older(root)
+            self.routine('Bad',['SBR(Inputs[InputIndex]);'])
+        self.assertTrue(self.engine(['AFI()JSR(Bad,1,InputValue);'],older_callee).blockers)
+        def st_callee(root):
+            self.routine('Bad',[])
+            target = root.find('./Controller/Programs/Program/Routines/Routine[@Name="Bad"]')
+            target.remove(target.find('RLLContent'))
+            target.set('Type','ST')
+            E.SubElement(E.SubElement(target,'STContent'),'Line',Number='0').text='RET(Inputs[InputIndex]);'
+        self.assertTrue(self.engine(['AFI()JSR(Bad,0,Result);'],st_callee).blockers)
         def overlap(root):self.routine('Two', ['RET(WorkValue,NestedOutput);'])
         self.assertTrue(self.engine(['AFI()JSR(Two,0,Outputs[InputIndex],Outputs[OutputIndex]);'], overlap).blockers)
 

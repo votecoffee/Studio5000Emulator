@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1106.161334` [indexed ladder SBR and RET](indirect-routine-calls.md#indexed-ladder-sbr-and-ret)
+let a callee select input destinations and return sources at transfer time.
+JSR keeps its captured caller addresses. A failed callee transfer rolls back
+the scan.
+
 Available in `26.1106.160418` [FOR array recovery](controller-handlers.md#recover-for-array-faults)
 lets a ladder handler exit the current invocation on a cleared Type 4 Code 20.
 Entry faults preserve the original index. Later faults retain completed loop work.

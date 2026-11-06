@@ -9,7 +9,7 @@ and [checks](../source/tests/test_call_references.py).
 XIC(Enabled)JSR(DoubleValue,1,Inputs[InputIndex],Outputs[OutputIndex]);
 ```
 
-The corresponding SBR input and RET source remain static references. Exact
+Ladder SBR destinations and RET sources also support indexed elements. Exact
 parameter counts, declared types and array dimensions still match. Each
 direction permits 40 parameters; JSR/FOR share the existing 25-level nesting
 limit and execution budget. Main routines, recursion and AOI call restrictions
@@ -44,14 +44,34 @@ unknown fields instead of inventing zeros. Full return writes can establish
 unknown destinations. Stored copies own independent nested data. Aliases and
 program-local references retain canonical storage and scope.
 
+## Indexed ladder SBR and RET
+
+A ladder callee can receive a value into one selected array element and
+return a value from a different live selection.
+
+```text
+SBR(Work[InputSlot]);
+RET(Work[ResultSlot]);
+```
+
+SBR resolves all of its destinations before the first input copy. An input
+that overwrites a selector therefore affects later logic, with every
+destination in that SBR already fixed. RET resolves and reads its own
+operands before the first return write. Only the reached RET uses live
+indices. Caller return destinations still come from JSR entry.
+
+Preflight checks the declared shapes and permissions of all transfers.
+Overlap checks involving an explicitly indexed callee operand use
+the actual locations at transfer time. Bounds, unknown consumed
+values and overlap errors in SBR or RET roll back the scan. ST SBR and RET
+keep their static operand rules.
+
 ## Guards and rollback
 
 Bit/system selections, constant destinations and mismatched signatures remain
-blocked. SBR/RET operands retain static-index rules. FOR has a [separate selection
-profile](ladder-loops.md#runtime-selected-operands). Overlap
-is checked during preflight and again at actual call entry. Structural placeholder
-addresses make preflight conservative: some potentially disjoint indirect forms
-remain blocked. Multiple indirect results in separate arrays are supported.
+blocked. FOR has a [separate selection profile](ladder-loops.md#runtime-selected-operands).
+JSR still uses conservative preflight overlap checks for caller operands.
+Multiple indirect results in separate arrays are supported.
 
 During whole-project ladder execution, an out-of-bounds array index at
 call entry can [skip the JSR after a fault clear](controller-handlers.md#recover-a-jsr-argument-fault).
