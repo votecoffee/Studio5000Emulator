@@ -384,6 +384,17 @@ def matches_major_fault_record(op):
 
 
 def _handler_fault(engine, instance, scope, *, executing):
+    program_handler = engine.project.program_fault_routines.get(scope)
+    if program_handler is not None:
+        if instance.casefold() not in ('this', scope.casefold()):
+            raise ModelError('MajorFaultRecord requires THIS or the current faulted Program')
+        if not executing:
+            return None
+        current = engine._executing_routine
+        if current is None or current.key.lower() != program_handler or engine._program_fault is None:
+            raise ModelError('MajorFaultRecord requires an active Program fault in the assigned routine')
+        return engine._program_fault
+
     routine = engine.project.routines.get(engine.project.fault_handler_routine)
     if (routine is None or scope != routine.program
             or instance.casefold() not in ('this', scope.casefold())):
@@ -675,7 +686,7 @@ def description():
                 module_status='INT or DINT low word; preserve a known DINT upper word.',
                 module_led_status='Empty controller-only map or aggregate of a complete simulated module inventory.',
                 module_force_status='Controller-only I/O map.',
-                major_fault_record='Active ladder controller fault handler; DINT[11] or first member of a supported fault-record UDT.',
+                major_fault_record='Active ladder fault routine; DINT[11] or first member of a supported fault-record UDT.',
                 controller_device=['DeviceName','ProductCode','ProductRev','Type','Vendor','Status'],
                 controller_device_source='v35 5580 project processor and firmware revision, plus modeled controller mode at scan entry.',
                 controller_device_status='Remote keyswitch; Program 0x3070, Run 0x3060, software fault 0x3450 at retry entry.',

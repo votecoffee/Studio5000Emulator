@@ -155,6 +155,7 @@ class Application:
         module_fault = gsv_configuration.module_major_fault_state(self.engine) if self.engine else None
         cleared_fault = copy.deepcopy(self.engine.last_cleared_module_fault) if self.engine else None
         return {'mode':mode, 'module_major_fault':module_fault, 'last_cleared_module_fault':cleared_fault,
+                'last_cleared_program_fault':copy.deepcopy(self.engine.last_cleared_program_fault) if self.engine else None,
                 'running':self.running, 'keyswitch':'Remote', 'scan_interval_ms':self.scan_interval_ms,
                 'prescan_count':self.engine.prescan_count if self.engine else 0,
                 'first_scan_pending':self.engine.first_scan_pending if self.engine else False}
@@ -284,7 +285,8 @@ class Application:
                                 for address,instance in e.addons.instances.items()},
                 "routines": [{"key": r.key, "kind": r.kind, "problems": r.problems,
                               "active": r.key.lower() in e.active or r.program[4:] in e.addons.active,
-                              'harness':not r.program.startswith('AOI:') and r.key.lower() not in e.project.fault_handler_routines,
+                              'harness':(not r.program.startswith('AOI:') and r.key.lower() not in e.project.fault_handler_routines
+                                         and r.key.lower() != e.project.program_fault_routines.get(r.program)),
                               'lines':r.lines,'diagram':r.diagram,
                               "rungs": [{"number": x["number"], "text": x["text"], "comment": x["comment"],
                                          "nodes": serialize_nodes(x["nodes"])} for x in r.rungs]}

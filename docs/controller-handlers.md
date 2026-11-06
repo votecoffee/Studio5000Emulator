@@ -1,5 +1,35 @@
 # Controller fault handlers
 
+## Recover a ladder MOV array fault
+
+An ordinary v35 ControlLogix 5580 Program can assign a separate ladder
+routine with Program `FaultRoutineName`. In whole-project execution,
+an out-of-bounds integer subscript in a ladder MOV triggers the assigned
+routine with Type 4 Code 20. The fault routine runs in that Program's
+scope, so `GSV(Program,THIS,MajorFaultRecord,...)` reads the active
+record. The flat and structured operands described below apply.
+
+With an 11-word DINT buffer, these rungs capture and selectively clear
+this fault. The packed Type and Code are in word 2.
+
+```text
+GSV(Program,THIS,MajorFaultRecord,FaultWords[0]);
+EQU(FaultWords[2],1310724)CLR(FaultWords[2])SSV(Program,THIS,MajorFaultRecord,FaultWords[0]);
+```
+
+A successful clear skips the faulting MOV and continues at the next
+instruction with the incoming rung power. The handler's writes and the
+clear commit with the scan. A missing clear or a later execution error
+rolls back the scan and preserves the preceding successful clear.
+The browser displays the last successful recovery and the trace marks
+the skipped MOV.
+
+The bounded profile runs the assigned ladder routine during whole-project
+scans and keeps it out of prescan, normal routine calls and the isolated
+harness. Other instruction faults, Program fault subroutines, escalation
+to the Controller Fault Handler and native fault history remain open.
+[Rockwell Major, Minor, and I/O Faults manual](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm014_-en-p.pdf)
+
 ## Simulated I/O fault capture
 
 A complete v35 ControlLogix 5580 export can assign one enabled, unscheduled

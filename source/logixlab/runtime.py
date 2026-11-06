@@ -14,7 +14,7 @@ from .wall_clock import CoordinatedClock, current_value_microseconds
 from .runtime_references import RuntimeReferences
 from .change_detection import ChangeDetection
 from . import event_status, system_values, integer_math, scalar_math, numeric_storage, bit_logic, bit_transfer, numeric_fill, size_truncate, comparisons, string_operations, control_operations, sequencer_operations, numeric_conversions, real_math, array_statistics, array_sort, file_search, file_arithmetic, string_conversions, event_tasks, file_incremental, wide_st, st_cases, task_inhibit, mcr, data_transition, file_bit_compare, st_timers, st_counter, st_oneshot, st_scale, st_signal, st_rate, st_moving, st_capture, st_filter, st_digital, st_accumulate, st_select, st_derivative, st_curves, st_pi, st_bit_moves, numeric_copy, aggregate_copy, ladder_pid, ladder_alarm, ladder_analog_alarm, lreal_expressions
-from .model import ARITIES, Branch, Memory, ModelError, Op, operations, unknown_shape
+from .model import ARITIES, ArrayBoundsError, Branch, Memory, ModelError, Op, operations, unknown_shape
 from .extended import Extensions
 from .function_blocks import FunctionBlocks,description as fbd_description
 from .addons import AddOns
@@ -26,6 +26,7 @@ from . import __version__
 FAULT_HANDLER_OPS = frozenset(('XIC','XIO','OTE','OTL','OTU','AFI','NOP','EQU','NEQ','LES','LEQ','GRT',
                                'GEQ','LIM','MEQ','MOV','CLR','ADD','SUB','MUL','DIV','GSV','SSV',
                                'JSR','SBR','RET'))
+PROGRAM_FAULT_OPS = FAULT_HANDLER_OPS - {'JSR', 'SBR', 'RET'}
 FAULT_HANDLER_GSV = frozenset((('program','majorfaultrecord'), ('module','entrystatus'),
                                ('module','faultcode'), ('module','faultinfo')))
 
@@ -66,6 +67,8 @@ class Engine:
         self.module_major_fault = None
         self.last_cleared_module_fault = None
         self._handler_clear_requested = False
+        self._program_fault = None
+        self.last_cleared_program_fault = None
         self.prescan_count = 0
         self._initial_prescan_pending = defer_prescan
         self.entries = []
@@ -219,14 +222,16 @@ class Engine:
 
     def program_fault_attributes(self,program,*,source_sha256):
         if (source_sha256!=self.project.sha256 or self.mode!='project' or self.blockers or self.fault or
-                self._native_fault_history_uncertain or not isinstance(program,str) or
+                self._native_fault_history_uncertain or self.last_cleared_program_fault is not None or not isinstance(program,str) or
                 program.casefold() not in self._program_timings):return {}
         return {20:bytes(44),21:bytes(44)}
 
     def program_fault_description(self):
-        available=(self.mode=='project' and not self.blockers and not self.fault and not self._native_fault_history_uncertain)
+        available=(self.mode=='project' and not self.blockers and not self.fault and not self._native_fault_history_uncertain
+                   and self.last_cleared_program_fault is None)
         return {'attributes':[20,21],'known_clean_programs':len(self._program_timings) if available else 0,
                 'unclassified_fault_seen_since_reset':self._native_fault_history_uncertain,
+                'simulated_recovery_seen_since_reset':self.last_cleared_program_fault is not None,
                 'record_bytes':44,'native_fault_classification':False,'physical_fault_history_imported':False,
                 'unknown_records_withheld_until_reset':True}
 
@@ -306,6 +311,9 @@ class Engine:
             if self.selected in self.project.fault_handler_routines:
                 self.blockers.append("Controller fault handler requires a simulated I/O major fault")
                 return
+            if self.selected == self.project.program_fault_routines.get(self.project.routines[self.selected].program):
+                self.blockers.append("Program fault routine requires a scheduled ladder fault")
+                return
             self.entries = [self.selected]
         elif self.mode == "project":
             self.blockers.extend(self.project.issues)
@@ -371,7 +379,8 @@ class Engine:
             if self.project.programs[r.program]['use_as_folder']:
                 self.blockers.append(f"{r.key}: folder program execution is unsupported")
             for p in r.problems: self.blockers.append(f"{r.key}: {p}")
-            try:self.calls.validate_routine(r,entry=key in self.entries or key == self.project.fault_handler_routine)
+            program_fault = key == self.project.program_fault_routines.get(r.program)
+            try:self.calls.validate_routine(r,entry=key in self.entries or program_fault or key == self.project.fault_handler_routine)
             except ModelError as e:self.blockers.append(str(e))
             if r.kind=='FBD' and r.diagram:
                 try:self.function_blocks.validate(r,r.program)
@@ -387,14 +396,19 @@ class Engine:
                     previous=(self.memory.structural,self.memory.validating)
                     if r.kind=='ST':self.memory.structural=True;self.memory.validating=True
                     try:
-                        if in_handler:
-                            if op.name not in FAULT_HANDLER_OPS or op.name in self.project.aois:
-                                raise ModelError('Instruction is outside the controller fault handler profile')
+                        if (op.name in ('GSV','SSV') and gsv_configuration.matches_major_fault_record(op)
+                                and not (in_handler or program_fault)):
+                            raise ModelError('MajorFaultRecord requires an assigned fault routine')
+                        if program_fault or in_handler:
+                            allowed = PROGRAM_FAULT_OPS if program_fault else FAULT_HANDLER_OPS
+                            profile = 'Program fault routine' if program_fault else 'Controller fault handler'
+                            if op.name not in allowed or op.name in self.project.aois:
+                                raise ModelError(f'Instruction is outside the {profile.lower()} profile')
                             if op.name == 'GSV' and (len(op.args)!=4 or
                                     (op.args[0].casefold(), op.args[2].casefold()) not in FAULT_HANDLER_GSV):
-                                raise ModelError('Controller fault handler GSV supports MajorFaultRecord and named Module diagnostics')
+                                raise ModelError(f'{profile} GSV supports MajorFaultRecord and named Module diagnostics')
                             if op.name == 'SSV' and not gsv_configuration.matches_major_fault_record(op):
-                                raise ModelError('Controller fault handler SSV supports MajorFaultRecord clearing only')
+                                raise ModelError(f'{profile} SSV supports MajorFaultRecord clearing only')
                         if not(r.kind=='ST' and op.name=='MID'):self._validate(op, r.program)
                         if op.name=='JMP' and op.args and op.args[0].lower() not in labels:
                             raise ModelError(f'Missing label {op.args[0]}')
@@ -608,7 +622,8 @@ class Engine:
     def _prescan_routines(self, keys):
         for key in keys:
             routine = self.project.routines[key]
-            self._prescan_routine(routine,routine.program,0)
+            if key != self.project.program_fault_routines.get(routine.program):
+                self._prescan_routine(routine,routine.program,0)
 
     def _prescan_routine(self,routine,scope,depth):
         if routine.kind=='FBD':self.function_blocks.prescan(routine,scope);return
@@ -665,6 +680,7 @@ class Engine:
         module_modes = self._module_modes.copy()
         bindings = copy.deepcopy((self.memory.frames,self.memory._resolved,self.addons.instances)) if self.project.aois else None
         previous = (self.time_ms, copy.deepcopy(self.last_timer), self.memory.first_scan, self.trace, set(self._file_incremental), dict(self._st_counter_edges), dict(self._st_oneshot_edges))
+        previous_program_clear = self.last_cleared_program_fault
         end_ms=self.time_ms+dt
         batch=self._task_scheduler.prepare(end_ms) if self._task_scheduler is not None else None
         runs=[(due,self._task_scheduler.tasks[i].name,self._task_scheduler.tasks[i].entries) for due,i in batch.releases] if batch else [(end_ms,None,self.entries)]
@@ -753,6 +769,7 @@ class Engine:
                 self._task_scheduler.watchdog_overrides=watchdog_overrides
             self.time_ms, self.last_timer, self.memory.first_scan, self.trace, self._file_incremental, self._st_counter_edges, self._st_oneshot_edges = previous
             self._executing_task=None
+            self.last_cleared_program_fault = previous_program_clear
             self.fault = str(e) or type(e).__name__
             raise ModelError(f"Scan rolled back: {e}") from e
         finally:
@@ -761,6 +778,30 @@ class Engine:
             self._program_advance=None
             self._scan_controller_status=None
         return self._record_tag_changes(before)
+
+    def _recover_ladder_move(self, op, scope, error):
+        key = self.project.program_fault_routines.get(scope)
+        if (op.name != 'MOV' or self.mode != 'project' or not key
+                or self._program_advance is None or self._program_fault is not None):
+            return False
+        # The handler has no JSR/SBR/RET and shares the scan transaction and budget.
+        routine = self._executing_routine.key
+        fault = {'type':4, 'code':20, 'program':scope, 'routine':routine,
+                 'instruction':'MOV', 'detail':str(error), 'timestamp_us':current_value_microseconds(),
+                 'handler':{'routine':self.project.routines[key].key, 'status':'cleared'}}
+        message = f"Program fault 4/20 in {routine}: {error}"
+        self._program_fault = fault
+        try:
+            self._routine(key, 0)
+            if not self._handler_clear_requested:
+                raise ModelError('Program fault routine completed without clearing the fault')
+        except ModelError as failure:
+            raise ModelError(f"{message}. {failure}") from failure
+        finally:
+            self._program_fault = None
+            self._handler_clear_requested = False
+        self.last_cleared_program_fault = fault
+        return True
 
     def run_module_fault_handler(self):
         key = self.project.fault_handler_routine
@@ -857,6 +898,13 @@ class Engine:
                 try:
                     result=self._op(node,incoming,scope,depth)
                     power=False if force_false else result
+                except ArrayBoundsError as error:
+                    if not self._recover_ladder_move(node, scope, error):
+                        raise
+                    power = incoming
+                    events.append({'instruction':node.name, 'args':node.args, 'in':incoming,
+                                   'out':power, 'recovered_fault':{'type':4,'code':20}})
+                    continue
                 except (JumpRoutine,ReturnRoutine,BreakLoop):
                     events.append({'instruction':node.name,'args':node.args,'in':incoming,'out':incoming,'transfer':True})
                     raise

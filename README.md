@@ -163,6 +163,8 @@ can capture and clear the active simulated I/O fault using DINT words or a
 [structured fault record](docs/controller-handlers.md#read-and-clear-a-structured-fault-record).
 Its main routine can [call ladder diagnostic subroutines](docs/controller-handlers.md#call-ladder-diagnostic-subroutines)
 and commit their tag writes and fault clearing together.
+A separate [ladder Program fault routine](docs/controller-handlers.md#recover-a-ladder-mov-array-fault)
+can clear an out-of-bounds MOV fault and continue at the next instruction.
 [Aggregate LEDStatus](docs/gsv-configuration.md#simulated-module-ledstatus)
 summarizes a complete simulated module inventory.
 

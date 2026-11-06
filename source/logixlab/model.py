@@ -34,6 +34,10 @@ class ModelError(Exception):
     pass
 
 
+class ArrayBoundsError(ModelError):
+    """A valid integer subscript selected outside an existing array."""
+
+
 @dataclass
 class Op:
     name: str
@@ -455,6 +459,7 @@ class Project:
                                "class": t.get("Class", "Standard"),
                                "programs": [p.get("Name") for p in t.findall("./ScheduledPrograms/ScheduledProgram")]})
             if self.tasks[-1]["type"]=="Event":self.tasks[-1]["event"]=event_specification(t)
+        self.program_fault_routines = self._program_fault_routines(c)
         self.fault_handler_routine = None
         self.fault_handler_routines = frozenset()
         try:
@@ -464,6 +469,25 @@ class Project:
         self.initial = {k: copy.deepcopy(t.value) for k, t in self.tags.items()}
         from .pseudo_operands import initialize_ladder_operands
         initialize_ladder_operands(self)
+
+    def _program_fault_routines(self, controller):
+        from .integer_math import CONTROLLERS
+        if self.version != '35' or self.processor.upper() not in CONTROLLERS:
+            return {}
+        assignments = {}
+        for node in controller.findall('./Programs/Program'):
+            name, target = node.get('Name'), node.get('FaultRoutineName')
+            if not target or not self.program_configuration.type_attributes(name, source_sha256=self.sha256):
+                continue
+            names = self.executable_configuration.routine_names(name, source_sha256=self.sha256)
+            if not names or target.casefold() not in {routine.casefold() for routine in names}:
+                continue
+            program = self.programs[name]
+            main = self.routines.get(f"{name}/{program['main']}".lower())
+            key = f'{name}/{target}'.lower()
+            if main is not None and main.key.lower() != key and self.routines[key].kind == 'RLL':
+                assignments[name] = key
+        return assignments
 
     def _controller_fault_routines(self, controller):
         fields = [key for key in controller.attrib
@@ -843,7 +867,8 @@ class Memory:
                 for expr in split_indices(tail[1:end]):
                     idx = self.index(expr,scope)
                     if isinstance(idx, bool) or not isinstance(idx, int): raise ModelError("Array subscript must be an integer")
-                    if not isinstance(value, list) or not 0 <= idx < len(value): raise ModelError(f"Array index outside bounds: {ref}")
+                    if not isinstance(value, list): raise ModelError(f"Array index outside bounds: {ref}")
+                    if not 0 <= idx < len(value): raise ArrayBoundsError(f"Array index outside bounds: {ref}")
                     parts.append(idx);value=value[idx]
                 tail = tail[end + 1:]
             elif tail[0] == ".":

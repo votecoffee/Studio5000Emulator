@@ -115,6 +115,8 @@ class Calls:
         if problem:raise ModelError(problem)
         key=(scope+'/'+op.args[0]).lower();routine=self.engine.project.routines.get(key)
         if routine is None:raise ModelError('Routine '+key+' is missing')
+        if key == self.engine.project.program_fault_routines.get(scope):
+            raise ModelError('Normal calls to a Program fault routine are outside the emulator profile')
         if routine.name.lower()==self.engine.project.programs[scope]['main'].lower():raise ModelError('JSR cannot call a main routine')
         header,returns=self.signature(routine);count=int(op.args[1])
         sources=[self.operand(x,scope,indirect=self.indirect_profile(scope)) for x in op.args[2:2+count]]

@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1106.124732` [ladder Program fault recovery](controller-handlers.md#recover-a-ladder-mov-array-fault)
+handles out-of-bounds MOV as Type 4 Code 20. A configured routine can clear
+the fault and resume at the next instruction. Unsuccessful recovery rolls
+back the scan.
+
 Available in `26.1106.123612` [ladder handler subroutines](controller-handlers.md#call-ladder-diagnostic-subroutines)
 support same-program JSR/SBR/RET calls and keep diagnostic writes and fault
 clearing in the same transaction across the call chain.

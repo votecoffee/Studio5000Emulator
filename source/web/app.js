@@ -110,7 +110,10 @@ function render() {
   if(running||fixedPeriod)$('dt').value=fixedPeriod||state.controller.scan_interval_ms;
   $('scope-note').textContent = state.mode === 'routine' ? 'Harness: selected routine and called routines only.' : `${state.tasks.length} modeled task(s) · deterministic periodic releases · serial execution.`;
   const clearedFault = state.controller.last_cleared_module_fault;
-  if (running && clearedFault) {
+  const clearedProgramFault = state.controller.last_cleared_program_fault;
+  if (clearedProgramFault && (!clearedFault || clearedProgramFault.timestamp_us >= clearedFault.timestamp_us)) {
+    $('scope-note').textContent = `Last handler clear · Program fault ${clearedProgramFault.type}/${clearedProgramFault.code} · ${clearedProgramFault.handler.routine}`;
+  } else if (running && clearedFault) {
     $('scope-note').textContent = `Last handler clear · I/O fault ${clearedFault.type}/${clearedFault.code} · ${clearedFault.handler.routine}`;
   }
   $('alert').hidden = !(blocked || inhibited || state.fault);
