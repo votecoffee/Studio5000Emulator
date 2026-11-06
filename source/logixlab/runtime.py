@@ -18,7 +18,7 @@ from .model import ARITIES, ArrayBoundsError, Branch, Memory, ModelError, Op, op
 from .extended import Extensions
 from .function_blocks import FunctionBlocks,description as fbd_description
 from .addons import AddOns
-from .calls import Calls, BreakLoop, MAX_NESTING
+from .calls import CallArgumentBoundsError, Calls, BreakLoop, MAX_NESTING
 from .structured import Structured
 from . import __version__
 
@@ -784,8 +784,13 @@ class Engine:
     def _recover_ladder_array_fault(self, op, scope, error):
         program_handler = self.project.program_fault_routines.get(scope)
         controller_handler = self.project.fault_handler_routine
-        if (op.name not in ARRAY_FAULT_RECOVERY_OPS or op.name in self.project.aois
-                or self.mode != 'project' or self._program_advance is None or self._program_fault is not None):
+        if (op.name in self.project.aois or self.mode != 'project'
+                or self._program_advance is None or self._program_fault is not None):
+            return False
+        if isinstance(error, CallArgumentBoundsError):
+            if op.name != 'JSR' or error.call is not op:
+                return False
+        elif op.name not in ARRAY_FAULT_RECOVERY_OPS:
             return False
         if not program_handler and (not controller_handler or not self.project.program_hierarchy.has_no_fault_routine(
                 scope, source_sha256=self.project.sha256)):

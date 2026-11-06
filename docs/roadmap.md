@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1106.131127` [ladder JSR argument fault recovery](controller-handlers.md#recover-a-jsr-argument-fault)
+skips a call after a handler clears Type 4 Code 20 raised during input or
+return-destination selection. Callee faults keep their own instruction and
+routine attribution.
+
 Available in `26.1106.130358` [ladder COP and CPS fault recovery](controller-handlers.md#recover-cop-and-cps-array-faults)
 skips out-of-bounds array copies after a Program or Controller Fault Handler
 clears Type 4 Code 20. The destination keeps its prior values and the next

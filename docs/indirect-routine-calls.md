@@ -53,10 +53,12 @@ is checked during preflight and again at actual call entry. Structural placehold
 addresses make preflight conservative: some potentially disjoint indirect forms
 remain blocked. Multiple indirect results in separate arrays are supported.
 
-A consumed unknown index/value, invalid live address, actual overlapping return
-destinations, nested fault, missing required return or later instruction fault
-restores earlier transfers, data, time, scheduling and call-stack state within
-the modeled advance. Completed prescan is a separate boundary. Other controller
+During whole-project ladder execution, an out-of-bounds array index at
+call entry can [skip the JSR after a fault clear](controller-handlers.md#recover-a-jsr-argument-fault).
+Uncleared faults, consumed unknown values, actual overlapping return
+destinations, missing required returns and later execution failures
+restore earlier transfers, data, time, scheduling and call-stack state
+within the modeled advance. Completed prescan is a separate boundary. Other controller
 profiles retain their static-argument behavior.
 
 ## Call lab

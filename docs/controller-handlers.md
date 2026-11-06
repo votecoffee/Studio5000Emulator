@@ -45,6 +45,22 @@ usual scan rollback. The browser names the skipped instruction.
 
 [Rockwell fault recovery reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-02/contents-ditamap/studio-5000-logix-designer/controller-properties/major-fault-state.html)
 
+## Recover a JSR argument fault
+
+During whole-project ladder execution, an out-of-bounds array index
+in a JSR input or return destination triggers Type 4 Code 20 during
+argument selection. If a fault handler clears the record, the caller
+continues at the next instruction with its incoming rung power. The
+callee is skipped and the call performs no input or return transfers.
+A later call uses the current indices.
+
+An array fault after entering the subroutine belongs to the instruction
+that raised it. For example, a recoverable MOV in the subroutine skips
+that MOV and continues inside the subroutine. This profile covers ladder
+JSR argument selection. ST calls retain their existing rollback behavior.
+
+[Rockwell JSR fault recovery example](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-02/contents-ditamap/studio-5000-logix-designer/controller-properties/major-fault-state.html)
+
 ## Escalate an uncleared Program fault
 
 For a modeled array fault, the assigned Controller Fault Handler runs

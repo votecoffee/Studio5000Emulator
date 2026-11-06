@@ -2,7 +2,7 @@
 import copy
 import re
 from dataclasses import dataclass
-from .model import ModelError, Op, coerce, literal, operand_problem, operations
+from .model import ArrayBoundsError, ModelError, Op, coerce, literal, operand_problem, operations
 from .integer_math import CONTROLLERS
 
 
@@ -11,6 +11,14 @@ MAX_NESTING = 25
 
 class BreakLoop(Exception):
     """Unwind calls to the nearest active ladder FOR in the current task."""
+
+
+class CallArgumentBoundsError(ArrayBoundsError):
+    """A caller argument failed before this particular JSR could enter its callee."""
+
+    def __init__(self, call, message):
+        super().__init__(message)
+        self.call = call
 
 
 @dataclass
@@ -110,6 +118,12 @@ class Calls:
         try:return self._call_spec(op,scope)
         finally:self.memory.structural=previous
 
+    def _caller_operand(self, op, ref, scope, *, writable=False):
+        try:
+            return self.operand(ref, scope, writable=writable, indirect=self.indirect_profile(scope))
+        except ArrayBoundsError as error:
+            raise CallArgumentBoundsError(op, str(error)) from error
+
     def _call_spec(self,op,scope):
         problem=operand_problem(op)
         if problem:raise ModelError(problem)
@@ -119,10 +133,10 @@ class Calls:
             raise ModelError('Normal calls to a Program fault routine are outside the emulator profile')
         if routine.name.lower()==self.engine.project.programs[scope]['main'].lower():raise ModelError('JSR cannot call a main routine')
         header,returns=self.signature(routine);count=int(op.args[1])
-        sources=[self.operand(x,scope,indirect=self.indirect_profile(scope)) for x in op.args[2:2+count]]
+        sources=[self._caller_operand(op,x,scope) for x in op.args[2:2+count]]
         inputs=[self.operand(x,scope,writable=True) for x in header.args] if header else []
         self.check_pairs(sources,inputs)
-        destinations=[self.operand(x,scope,writable=True,indirect=self.indirect_profile(scope)) for x in op.args[2+count:]]
+        destinations=[self._caller_operand(op,x,scope,writable=True) for x in op.args[2+count:]]
         if destinations and not returns:raise ModelError('JSR return destinations require RET operands')
         for ret in returns:self.check_pairs([self.operand(x,scope) for x in ret.args],destinations)
         self.edges[key]={'inputs':count,'returns':len(destinations)}

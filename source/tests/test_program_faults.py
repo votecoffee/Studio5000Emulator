@@ -92,12 +92,31 @@ def controller_fault_fallback_fixture(root, *, clear_at_program=False, clear_at_
     add('Report',lines+['RET(ReturnCode);'])
 
 
-def ladder_fault_load(*, controller_fallback=False, **options):
+def add_jsr_fault_call(root, *, return_destination=False):
+    controller = root.find('Controller')
+    tags = controller.find('Tags')
+    for name,value in (('CallInput','70'),('CallRuns','0')):
+        tag = ET.SubElement(tags,'Tag',Name=name,DataType='DINT',TagType='Base')
+        ET.SubElement(ET.SubElement(tag,'Data',Format='Decorated'),'DataValue',DataType='DINT',Value=value)
+    routines = controller.find('./Programs/Program/Routines')
+    args = '9,LabValues[LabIndex]' if return_destination else 'LabValues[LabIndex],SpeedCommand'
+    routines.find('./Routine/RLLContent/Rung/Text').text = (
+        f'XIC(StartPB)JSR(CallWork,1,{args})ADD(SpeedCommand,1,SpeedCommand);')
+    routine = ET.SubElement(routines,'Routine',Name='CallWork',Type='RLL')
+    content = ET.SubElement(routine,'RLLContent')
+    for index,line in enumerate(('SBR(CallInput);','ADD(CallRuns,1,CallRuns);','RET(CallInput);')):
+        rung = ET.SubElement(content,'Rung',Number=str(index),Type='N')
+        ET.SubElement(rung,'Text').text = line
+
+
+def ladder_fault_load(*, controller_fallback=False, call_fault=None, **options):
     root = ET.parse(fixtures.SAMPLE).getroot()
     root.set('TargetName','LadderFaultLab')
     root.find('Controller').set('Name','LadderFaultLab')
     build = controller_fault_fallback_fixture if controller_fallback else ladder_fault_fixture
     build(root, **options)
+    if call_fault is not None:
+        add_jsr_fault_call(root, return_destination=call_fault=='return')
     return {'name':'LadderProgramFault.L5X', 'content':base64.b64encode(ET.tostring(root)).decode()}
 
 
@@ -399,3 +418,101 @@ class ProgramFaultTests(unittest.TestCase):
             engine.step()
         self.assertEqual(engine.memory.values,before)
         self.assertIsNone(engine.last_cleared_program_fault)
+
+    def test_jsr_argument_fault_skips_call_and_preserves_transfers(self):
+        for return_destination,index in ((False,2),(True,-1)):
+            with self.subTest(return_destination=return_destination):
+                self.setUp()
+
+                def configure(root):
+                    if return_destination:
+                        controller_fault_fallback_fixture(root)
+                    else:
+                        ladder_fault_fixture(root,handler_tail='CLR(LabIndex);')
+                    add_jsr_fault_call(root,return_destination=return_destination)
+
+                engine = self.engine(mutate=configure)
+                self.assertEqual(engine.blockers, [])
+                engine.memory.write('LabIndex',index)
+                engine.memory.write('SpeedCommand',50)
+                engine.step()
+                self.assertIsNone(engine.last_cleared_program_fault)
+                engine.memory.write('StartPB',True)
+                engine.step()
+                fault = engine.last_cleared_program_fault
+                self.assertEqual((fault['type'],fault['code'],fault['instruction']),(4,20,'JSR'))
+                expected_handler = 'FaultHandler/Capture' if return_destination else 'MainProgram/RecoverMove'
+                self.assertEqual(fault['handler']['routine'],expected_handler)
+                self.assertEqual(engine.memory.read('CallInput'),70)
+                self.assertEqual(engine.memory.read('CallRuns'),0)
+                self.assertEqual(engine.memory.read('LabValues'),[12,13])
+                self.assertEqual(engine.memory.read('SpeedCommand'),51)
+                self.assertFalse(any(row['routine']=='MainProgram/CallWork' for row in engine.trace))
+                event = next(event for row in engine.trace for event in row['events'] if 'recovered_fault' in event)
+                self.assertEqual((event['instruction'],event['out']),('JSR',True))
+                self.assertEqual(engine.calls.stack,[])
+                if return_destination:
+                    engine.memory.write('LabIndex',0)
+                else:
+                    self.assertEqual(engine.memory.read('LabIndex'),0)
+                engine.step()
+                self.assertIs(engine.last_cleared_program_fault,fault)
+                self.assertEqual(engine.memory.read('CallRuns'),1)
+                self.assertEqual(engine.memory.read('CallInput'),9 if return_destination else 12)
+                self.assertEqual(engine.memory.read('LabValues'),[9,13] if return_destination else [12,13])
+                self.assertEqual(engine.memory.read('SpeedCommand'),52 if return_destination else 13)
+
+    def test_jsr_argument_recovery_does_not_intercept_callee_errors(self):
+        for mnemonic in ('ADD','MOV'):
+            with self.subTest(mnemonic=mnemonic):
+                self.setUp()
+
+                def configure(root):
+                    ladder_fault_fixture(root)
+                    add_jsr_fault_call(root)
+                    content = root.find('./Controller/Programs/Program/Routines/Routine[@Name="CallWork"]/RLLContent')
+                    content[2].set('Number','4')
+                    set_index = ET.Element('Rung',Number='2',Type='N')
+                    ET.SubElement(set_index,'Text').text = 'MOV(2,LabIndex);'
+                    content.insert(2,set_index)
+                    faulting = ET.Element('Rung',Number='3',Type='N')
+                    line = 'ADD(LabValues[LabIndex],1,CallInput);' if mnemonic=='ADD' else 'MOV(LabValues[LabIndex],CallInput);'
+                    ET.SubElement(faulting,'Text').text = line
+                    content.insert(3,faulting)
+
+                engine = self.engine(mutate=configure)
+                self.assertEqual(engine.blockers, [])
+                engine.memory.write('StartPB',True)
+                before = copy.deepcopy(engine.memory.values)
+                if mnemonic=='ADD':
+                    with self.assertRaisesRegex(ModelError,'Scan rolled back: Array index outside bounds'):
+                        engine.step()
+                    self.assertEqual(engine.memory.values,before)
+                    self.assertIsNone(engine.last_cleared_program_fault)
+                else:
+                    engine.step()
+                    record = engine.last_cleared_program_fault
+                    self.assertEqual((record['instruction'],record['routine']),('MOV','MainProgram/CallWork'))
+                    self.assertEqual(engine.memory.read('CallRuns'),1)
+                    self.assertEqual(engine.memory.read('SpeedCommand'),13)
+                self.assertEqual(engine.calls.stack,[])
+
+    def test_structured_text_argument_fault_is_not_recovered_as_a_ladder_call(self):
+        def configure(root):
+            ladder_fault_fixture(root)
+            add_jsr_fault_call(root)
+            routines = root.find('./Controller/Programs/Program/Routines')
+            routines.find('./Routine/RLLContent/Rung/Text').text = 'JSR(Bridge,0);'
+            bridge = ET.SubElement(routines,'Routine',Name='Bridge',Type='ST')
+            content = ET.SubElement(bridge,'STContent')
+            ET.SubElement(content,'Line',Number='0').text = 'JSR(CallWork,1,LabValues[LabIndex],SpeedCommand);'
+
+        engine = self.engine(mutate=configure)
+        self.assertEqual(engine.blockers, [])
+        engine.memory.write('LabIndex',2)
+        before = copy.deepcopy(engine.memory.values)
+        with self.assertRaisesRegex(ModelError,'Bridge, ST line 1: Array index outside bounds'):
+            engine.step()
+        self.assertEqual(engine.memory.values,before)
+        self.assertIsNone(engine.last_cleared_program_fault)
+        self.assertEqual(engine.calls.stack,[])
