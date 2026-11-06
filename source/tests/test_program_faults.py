@@ -134,6 +134,15 @@ def add_fault_record_array(root, dtype, name='LabRecords', **initial):
             ET.SubElement(obj,'DataValueMember',Name=member,DataType=data_type,Value=str(int(value)))
 
 
+def add_bit_diagnostic_tags(root, *, single=False):
+    from logixlab.control_operations import default
+
+    add_fault_record_array(root,'CONTROL',**(default()|dict(LEN=4,ER=True,IN=single)))
+    tags = root.find('./Controller/Tags')
+    add_fault_dint_array(tags,'LabQueue',[0,0,99])
+    add_fault_dint_array(tags,'LabResults',[-1,-1,88])
+
+
 def ladder_fault_load(*, controller_fallback=False, call_fault=None, instruction=None,
                       record_type=None, record_members=None, queue_values=None, **options):
     root = ET.parse(fixtures.SAMPLE).getroot()
@@ -1400,6 +1409,141 @@ class ProgramFaultTests(unittest.TestCase):
         self.assertEqual(engine.memory.read('LabRecords[0].POS'),0)
         self.assertFalse(engine.memory.read('LabRecords[0].DN'))
         self.assertEqual(engine._file_incremental,{('labrecords',(1,))})
+
+    def test_bit_diagnostic_result_fault_restores_both_cursors_before_handler(self):
+        for name,single in (('FBC',False),('DDT',True)):
+            with self.subTest(instruction=name):
+                self.setUp()
+
+                def configure(root):
+                    handler = ('MOV(LabRecords[0].POS,FaultWords[3])'
+                               'MOV(LabRecords[1].POS,FaultWords[4])MOV(1,LabIndex);')
+                    controller_fault_fallback_fixture(root,controller_tail=handler)
+                    add_bit_diagnostic_tags(root,single=single)
+                    set_fault_instruction(root,f'{name}(LabValues[0],LabQueue[0],LabResults[LabIndex],'
+                                              'LabRecords[0],?,?,LabRecords[1],?,?)')
+
+                engine = self.engine(mutate=configure)
+                self.assertEqual(engine.blockers,[])
+                engine.memory.write('LabRecords[1].LEN',2)
+                engine.memory.write('LabRecords[1].POS',2)
+                engine.memory.write('LabRecords[1].DN',True)
+                engine.memory.write('LabIndex',3)
+                engine.memory.write('SpeedCommand',50)
+                engine.step()
+                self.assertIsNone(engine.last_cleared_program_fault)
+                before = copy.deepcopy(engine.memory.read('LabRecords'))
+                engine.memory.write('StartPB',True)
+                engine.step()
+                fault = engine.last_cleared_program_fault
+                self.assertEqual((fault['instruction'],fault['handler']['routine']),(name,'FaultHandler/Capture'))
+                self.assertEqual(engine.memory.read('FaultWords')[3:5],[0,2])
+                self.assertEqual(engine.memory.read('LabRecords'),before)
+                self.assertEqual(engine.memory.read('LabQueue'),[0,0,99])
+                self.assertEqual(engine.memory.read('LabResults'),[-1,-1,88])
+                self.assertEqual(engine.memory.read('SpeedCommand'),51)
+                engine.step()
+                self.assertEqual(engine.memory.read('LabRecords[0].POS'),3 if single else 4)
+                self.assertEqual(engine.memory.read('LabResults'),[-1,2,88 if single else 3])
+                self.assertEqual(engine.memory.read('LabQueue'),[4 if single else 0,0,99])
+                if single:
+                    engine.memory.write('StartPB',False)
+                    engine.step()
+                    before = copy.deepcopy(engine.memory.read('LabRecords'))
+                    engine.memory.write('LabIndex',3)
+                    engine.memory.write('StartPB',True)
+                    engine.step()
+                    self.assertEqual(engine.memory.read('FaultWords')[3:5],[3,1])
+                    self.assertEqual(engine.memory.read('LabRecords'),before)
+                    self.assertEqual(engine.memory.read('LabResults'),[-1,2,88])
+                    self.assertEqual(engine.memory.read('LabQueue'),[4,0,99])
+                    engine.step()
+                    self.assertEqual(engine.memory.read('LabResults'),[-1,2,3])
+                    self.assertEqual(engine.memory.read('LabQueue'),[12,0,99])
+                    self.assertTrue(engine.memory.read('LabRecords[0].DN'))
+
+    def test_bit_diagnostic_input_fault_does_not_consume_enable(self):
+        for name,source,reference in (
+            ('FBC','LabValues[LabIndex]','LabQueue[0]'),
+            ('DDT','LabValues[0]','LabQueue[LabIndex]'),
+        ):
+            with self.subTest(instruction=name):
+                self.setUp()
+
+                def configure(root):
+                    ladder_fault_fixture(root,handler_tail='CLR(LabIndex);')
+                    add_bit_diagnostic_tags(root)
+                    set_fault_instruction(root,f'{name}({source},{reference},LabResults[0],'
+                                              'LabRecords[0],?,?,LabRecords[1],?,?)')
+
+                engine = self.engine(mutate=configure)
+                self.assertEqual(engine.blockers,[])
+                engine.memory.write('LabRecords[1].LEN',2)
+                engine.memory.write('LabIndex',3)
+                engine.step()
+                self.assertIsNone(engine.last_cleared_program_fault)
+                before = copy.deepcopy(engine.memory.read('LabRecords'))
+                engine.memory.write('StartPB',True)
+                engine.step()
+                self.assertEqual(engine.last_cleared_program_fault['instruction'],name)
+                self.assertEqual(engine.memory.read('LabRecords'),before)
+                self.assertEqual(engine.memory.read('LabResults'),[-1,-1,88])
+                engine.step()
+                self.assertTrue(engine.memory.read('LabRecords[0].DN'))
+                self.assertEqual(engine.memory.read('LabResults'),[2,3,88])
+                self.assertEqual(engine.memory.read('LabQueue'),[12 if name=='DDT' else 0,0,99])
+
+    def test_bit_diagnostic_skips_unused_result_and_keeps_short_window_rollback(self):
+        def configure(root):
+            ladder_fault_fixture(root)
+            add_bit_diagnostic_tags(root)
+            set_fault_instruction(root,'DDT(LabValues[0],LabQueue[0],LabResults[LabIndex],'
+                                       'LabRecords[0],?,?,LabRecords[1],?,?)')
+
+        engine = self.engine(mutate=configure)
+        self.assertEqual(engine.blockers,[])
+        engine.memory.write('LabRecords[1].LEN',2)
+        engine.memory.write('LabIndex',3)
+        engine.memory.write('LabQueue[0]',12)
+        engine.memory.write('StartPB',True)
+        engine.step()
+        self.assertTrue(engine.memory.read('LabRecords[0].DN'))
+        self.assertIsNone(engine.last_cleared_program_fault)
+        engine.memory.write('StartPB',False)
+        engine.step()
+        engine.memory.write('StartPB',True)
+        engine.memory.write('LabQueue[0]',0)
+        engine.memory.write('LabIndex',2)
+        before = copy.deepcopy(engine.memory.values)
+        with self.assertRaisesRegex(ModelError,'exceeds the modeled array/member boundary'):
+            engine.step()
+        self.assertEqual(engine.memory.values,before)
+        self.assertIsNone(engine.last_cleared_program_fault)
+
+    def test_dtr_array_fault_preserves_reference_on_both_rung_states(self):
+        for power in (False,True):
+            with self.subTest(power=power):
+                self.setUp()
+
+                def configure(root):
+                    ladder_fault_fixture(root,handler_tail='MOV(1,LabIndex);')
+                    set_fault_instruction(root,'DTR(7,255,LabValues[LabIndex])')
+
+                engine = self.engine(mutate=configure)
+                self.assertEqual(engine.blockers,[])
+                engine.step()
+                engine.memory.write('LabIndex',2)
+                engine.memory.write('StartPB',power)
+                engine.memory.write('SpeedCommand',50)
+                engine.step()
+                self.assertEqual(engine.last_cleared_program_fault['instruction'],'DTR')
+                self.assertEqual(engine.memory.read('LabValues'),[7,13])
+                self.assertEqual(engine.memory.read('SpeedCommand'),51 if power else 50)
+                event = next(event for row in engine.trace for event in row['events'] if 'recovered_fault' in event)
+                self.assertEqual((event['in'],event['out']),(power,power))
+                engine.step()
+                self.assertEqual(engine.memory.read('LabValues'),[7,7])
+                self.assertFalse(any('recovery_source' in row for row in engine.trace))
 
     def test_aggregate_fill_preserves_records_until_a_valid_start(self):
         from test_aggregate_fill import AggregateFillTests

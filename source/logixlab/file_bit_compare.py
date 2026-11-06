@@ -2,7 +2,7 @@
 from . import control_operations as controls
 from .bit_transfer import unsigned
 from .integer_math import CONTROLLERS, bit_value
-from .model import ModelError
+from .model import ArrayBoundsError, ModelError
 
 INSTRUCTIONS = frozenset(('FBC', 'DDT'))
 MAX_BITS = 4096
@@ -74,6 +74,17 @@ def execute(engine, op, power, scope):
         prescan(memory, op, scope);return False
     a = op.args;compare = controls.control(memory, a[3], scope)
     if controls.flag(compare, 'EN'):return True
+    saved_controls = [(compare, compare.copy())]
+    try:
+        return _compare_bits(engine, op, scope, compare, saved_controls)
+    except ArrayBoundsError:
+        for record, previous in saved_controls:
+            record.update(previous)
+        raise
+
+
+def _compare_bits(engine, op, scope, compare, saved_controls):
+    memory, a = engine.memory, op.args
     compare['EN'] = True
     if controls.flag(compare, 'DN'):return True
     compare.update(ER=False, FD=False)
@@ -89,6 +100,7 @@ def execute(engine, op, power, scope):
     if position >= length:
         compare.update(POS=length, DN=True);return True
     result = controls.control(memory, a[6], scope)
+    saved_controls.append((result, result.copy()))
     destinations=None
     while position < length:
         engine.budget -= 1
@@ -131,7 +143,8 @@ def description():
                 result='Append at POS; DN marks capacity, next mismatch wraps to entry zero',
                 false_prescan='Clear compare EN/FD; when compare DN was set, reset both positions and done bits',
                 max_bits=MAX_BITS, max_result_entries=controls.MAX_ELEMENTS,
-                invalid_state='Compare LEN<=0 or POS<0 sets ER; bounds/unknown/result-state failures roll back advance',
+                array_recovery='A cleared Type 4 Code 20 skips the whole-project call and restores both CONTROL records',
+                invalid_state='Compare LEN<=0 or POS<0 sets ER; window/unknown/result-state failures roll back advance',
                 starting_references='Aliases and bounded indirect starts; structural preflight; false/held/done/invalid compare calls skip live indices; no CONTROL.POS-dependent starts',
                 sampling='Source/reference windows once per fresh comparison; result window lazily once on first mismatch, before reference/result writes',
                 storage='Disjoint logical array members and distinct CONTROL records may share a base tag; writable roles cannot share an array member, even disjoint windows',

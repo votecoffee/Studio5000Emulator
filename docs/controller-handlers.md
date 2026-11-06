@@ -228,6 +228,26 @@ other errors retain their existing scan rollback behavior.
 [Rockwell FAL reference](https://www.rockwellautomation.com/en-mde/docs/studio-5000-logix-designer/37-02/contents-ditamap/instruction-set/array-file-misc-instructions/file-arithmetic_logic-fal.html)
 [Rockwell FSC reference](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/array-file-misc-instructions/file-search-and-compare-fsc.html)
 
+## Recover bit diagnostic and data transition array faults
+
+A reached out-of-bounds subscript in FBC, DDT or DTR can raise Type 4
+Code 20 during a whole-project ladder scan. FBC and DDT restore the compare
+and result CONTROL records before the fault handler runs. They resolve the
+result array on the first mismatch, before writing any mismatch offsets
+or changing reference bits. If a handler clears a fault on a later enable
+edge, offsets and reference bits committed on earlier edges remain available.
+
+DTR skips its reference write if an indexed source, mask or reference
+faults. Recovery applies when a true scan compares the reference and when
+a false scan refreshes it. In each instruction, a cleared fault passes
+the incoming rung power to the next instruction. Other faults, including
+a configured window that runs beyond a valid starting element, use the
+existing scan rollback. Prescan uses its separate startup behavior.
+
+[Rockwell FBC reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/special-instructions/file-bit-comparison--fbc-.html)
+[Rockwell DDT reference](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/special-instructions/diagnostic-detect--ddt-.html)
+[Rockwell DTR reference](https://www.rockwellautomation.com/en-gb/docs/studio-5000-logix-designer/38-01/contents-ditamap/instruction-set/special-instructions/data-transition--dtr-.html)
+
 ## Escalate an uncleared Program fault
 
 For a modeled array fault, the assigned Controller Fault Handler runs

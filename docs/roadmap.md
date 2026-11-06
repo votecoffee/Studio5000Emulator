@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1106.145658` [bit diagnostic and data transition recovery](controller-handlers.md#recover-bit-diagnostic-and-data-transition-array-faults)
+restores both FBC and DDT cursors and skips DTR reference writes when a reached
+array subscript raises Type 4 Code 20.
+
 Available in `26.1106.144906` [file arithmetic and search recovery](controller-handlers.md#recover-file-arithmetic-and-search-array-faults)
 restores CONTROL and FAL destination values from before a call that faults on
 an array subscript. INC retains its pending element, and numeric calls retain

@@ -45,8 +45,11 @@ those new starts. Authors must account for that when changing windows mid-search
 
 This address-sampling rule is an explicit simulator choice. Exact native
 evaluation timing, partial effects, status and fault behavior remain unqualified.
-Unknown consumed indices/data, invalid windows, inconsistent list state, limits,
-budget exhaustion and later faults roll back the entire modeled advance.
+A handler can
+[clear a reached array subscript fault](controller-handlers.md#recover-bit-diagnostic-and-data-transition-array-faults)
+during a whole-project scan. Unknown consumed indices or data, short windows,
+inconsistent list state, limits, budget exhaustion and later faults roll back
+the entire modeled advance.
 
 ## AOI state
 

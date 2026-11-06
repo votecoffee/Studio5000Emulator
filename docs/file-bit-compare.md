@@ -63,12 +63,14 @@ unknown result slots. Compare LEN<=0 or POS<0 sets compare ER without data
 writes; a fresh valid comparison clears ER. A position at/after the configured
 end completes at LEN when the configured regions are valid.
 
-Bounds failures, resource limits and unsupported result cursor states stop and
-roll back the whole advance. In particular, a full result cursor must have its
-DN flag set; other inconsistent result states are rejected. This is the existing
-simulator transaction policy. Native major-fault codes, partial effects and full
-invalid-state parity have not been established. Later faults also roll back
-recorded offsets, reference changes, control positions and earlier instructions.
+A handler can
+[clear a reached array subscript fault](controller-handlers.md#recover-bit-diagnostic-and-data-transition-array-faults)
+after the emulator restores both CONTROL records. The instruction has performed
+no writes to the result or reference arrays when address selection faults.
+Short windows from a valid start, resource limits and unsupported cursor states
+use scan rollback. A full result cursor requires DN set. Later faults also roll
+back recorded offsets, reference changes, control positions and earlier
+instructions. Native fault classification and partial effects remain unqualified.
 
 Coverage reports expose `file_bit_compare`; normal rung traces retain the two
 instructions' power conditions. The profile does not imply native timing,

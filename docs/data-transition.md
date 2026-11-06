@@ -43,9 +43,12 @@ Other controller profiles and ST/FBD calls remain unqualified.
 
 Required unknown Source or Mask values fault even on a false rung or with a
 zero mask. A true comparison also requires a known prior Reference. False
-execution and prescan can establish an unknown reference. A later fault rolls
-back reference changes, downstream outputs and other writes with the existing
-whole-advance transaction. Prescan also rolls back as a unit if it fails.
+execution and prescan can establish an unknown reference. In a whole-project
+scan, a handler can
+[clear a reached array subscript fault](controller-handlers.md#recover-bit-diagnostic-and-data-transition-array-faults)
+and skip the reference write. A later fault rolls back reference changes,
+downstream outputs and other writes with the existing whole-advance
+transaction. Prescan also rolls back as a unit if it fails.
 
 Coverage reports include `data_transition`; traces show DTR's incoming and
 outgoing rung conditions. Full native operand, status, fault and timing parity

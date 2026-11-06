@@ -31,5 +31,6 @@ def description():
                 false_scan='Replace reference with masked source; rung-out remains false',
                 prescan='Replace reference with masked source, including lexically prescanned routines',
                 unknowns='Required unknown source/mask/reference reads fault; false/prescan can establish reference',
+                array_recovery='A cleared Type 4 Code 20 during a whole-project scan skips the reference write',
                 native_runtime_parity=False,
                 remaining=['Other controller profiles', 'Complete native operand, status and fault parity'])
