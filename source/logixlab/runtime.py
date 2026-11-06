@@ -6,7 +6,7 @@ from collections import Counter
 from time import perf_counter_ns
 from .identity import controller_status_word
 from .program_timing import ProgramTiming
-from . import program_control
+from . import gsv_configuration, program_control
 from .gsv_timing import TimingAdvance
 from . import task_runtime
 from .task_scheduler import TaskScheduler
@@ -24,7 +24,7 @@ from . import __version__
 
 
 FAULT_HANDLER_OPS = frozenset(('XIC','XIO','OTE','OTL','OTU','AFI','NOP','EQU','NEQ','LES','LEQ','GRT',
-                               'GEQ','LIM','MEQ','MOV','CLR','ADD','SUB','MUL','DIV','GSV'))
+                               'GEQ','LIM','MEQ','MOV','CLR','ADD','SUB','MUL','DIV','GSV','SSV'))
 FAULT_HANDLER_GSV = frozenset((('program','majorfaultrecord'), ('module','entrystatus'),
                                ('module','faultcode'), ('module','faultinfo')))
 
@@ -63,6 +63,8 @@ class Engine:
         self._native_fault_history_uncertain = False
         self.fault = ""
         self.module_major_fault = None
+        self.last_cleared_module_fault = None
+        self._handler_clear_requested = False
         self.prescan_count = 0
         self._initial_prescan_pending = defer_prescan
         self.entries = []
@@ -386,6 +388,8 @@ class Engine:
                             if op.name == 'GSV' and (len(op.args)!=4 or
                                     (op.args[0].casefold(), op.args[2].casefold()) not in FAULT_HANDLER_GSV):
                                 raise ModelError('Controller fault handler GSV supports MajorFaultRecord and named Module diagnostics')
+                            if op.name == 'SSV' and not gsv_configuration.matches_major_fault_record(op):
+                                raise ModelError('Controller fault handler SSV supports MajorFaultRecord clearing only')
                         if not(r.kind=='ST' and op.name=='MID'):self._validate(op, r.program)
                         if op.name=='JMP' and op.args and op.args[0].lower() not in labels:
                             raise ModelError(f'Missing label {op.args[0]}')
@@ -774,7 +778,14 @@ class Engine:
             self.memory.values = before
             self.trace = previous_trace
             result.update(status='rolled_back', error=str(error) or type(error).__name__)
+        else:
+            if self._handler_clear_requested:
+                result['status'] = 'cleared'
+                self.last_cleared_module_fault = fault
+                self.module_major_fault = None
+                self.fault = ''
         finally:
+            self._handler_clear_requested = False
             self.budget, self.memory.first_scan = previous_budget, previous_first
 
     def _record_tag_changes(self, before):

@@ -109,6 +109,10 @@ function render() {
   $('dt').disabled = running||modePending||!!fixedPeriod;
   if(running||fixedPeriod)$('dt').value=fixedPeriod||state.controller.scan_interval_ms;
   $('scope-note').textContent = state.mode === 'routine' ? 'Harness: selected routine and called routines only.' : `${state.tasks.length} modeled task(s) · deterministic periodic releases · serial execution.`;
+  const clearedFault = state.controller.last_cleared_module_fault;
+  if (running && clearedFault) {
+    $('scope-note').textContent = `Last handler clear · I/O fault ${clearedFault.type}/${clearedFault.code} · ${clearedFault.handler.routine}`;
+  }
   $('alert').hidden = !(blocked || inhibited || state.fault);
   $('alert').textContent = state.fault || (blocked ? `${state.blockers.length} execution blocker(s). Open Coverage for details.\n${state.blockers.slice(0,3).join('\n')}` : inhibited?'Native programming preparation inhibits scans. Release or disconnect the owning client to resume.':'');
   if (moduleFault) {

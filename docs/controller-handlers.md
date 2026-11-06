@@ -6,8 +6,9 @@ A complete v35 ControlLogix 5580 export can assign one enabled, unscheduled
 Standard Program through Controller `MajorFaultProgram`. Its single ladder
 main routine executes once when a simulated Type 3 Code 16 or Code 23 fault
 latches. The routine runs outside normal task scheduling and prescan. Its
-tag writes and trace are visible at the current scan and simulated time.
-If the routine fails, its writes and partial trace roll back. The original
+tag writes and trace are recorded at the current scan and simulated time.
+The next prescan or scan replaces the trace. If the routine fails, its
+writes and partial trace roll back. The original
 I/O major fault remains latched, and its `handler` record reports the
 routine, status and any error.
 
@@ -25,12 +26,36 @@ of the emulator UTC timestamp in microseconds. Word 2 holds Type in its
 low half and Code in its high half. The eight fault-specific Info words
 are unknown. The browser and HTTP fault record retain the injected module
 code and information independently. The read is available inside the
-executing handler. Direct structure destinations, SSV fault clearing,
-Program-specific fault routines, additional fault types and native
-handler references remain open. Restore the simulated connection and
-clear the fault through the existing recovery control to resume.
+executing handler. Direct structure destinations, Program-specific fault
+routines, additional fault types and native handler references remain open.
+The existing recovery control can clear a fault after the simulated
+connection is restored.
 [Rockwell Major, Minor, and I/O Faults manual](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm014_-en-p.pdf)
 [Rockwell Program object reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/input-output-instructions/access-the-program-object.html)
+
+## Clear an active fault in ladder logic
+
+In the same controller handler, use SSV with THIS or the current handler
+Program and an 11-word DINT source. The packed Type and Code word must be
+known zero. For example, after reading the active fault, this rung clears
+only Type 3 Code 16.
+
+```text
+EQU(FaultWords[2],1048579)CLR(FaultWords[2])SSV(Program,THIS,MajorFaultRecord,FaultWords[0]);
+```
+
+The clear commits only after the handler completes. A later failure rolls
+back the pending clear and handler writes. A reached SSV with an unknown
+or nonzero Type/Code word fails the handler. A GSV in the handler after a
+valid SSV sees zero Type and Code. The remaining record words stay read-only.
+
+A cleared 3/16 continues Run at the next scan without another prescan. A
+cleared 3/23 lets the current Run request proceed through prescan. The
+simulated connection still reports the applied fault, so another
+Program-to-Run request can raise a new 3/23. The browser and
+`controller.last_cleared_module_fault` report the latest programmatic clear
+for the current simulation, with the original type, code and diagnostics.
+[Rockwell programmatic fault clearing example](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm014_-en-p.pdf)
 
 ## Null native Controller handler references
 

@@ -371,20 +371,57 @@ def module_attribute(engine, instance, attribute, *, executing):
     return 'INT', value
 
 
-def _major_fault_record(engine, instance, scope, *, executing):
+def matches_major_fault_record(op):
+    return (len(op.args) == 4 and all(isinstance(arg, str) for arg in op.args)
+            and op.args[0].casefold() == 'program' and op.args[2].casefold() == 'majorfaultrecord')
+
+
+def _handler_fault(engine, instance, scope, *, executing):
     routine = engine.project.routines.get(engine.project.fault_handler_routine)
     if (routine is None or scope != routine.program
             or instance.casefold() not in ('this', scope.casefold())):
-        raise ModelError('GSV MajorFaultRecord requires THIS or the current Controller Fault Handler Program')
+        raise ModelError('MajorFaultRecord requires THIS or the current Controller Fault Handler Program')
     if not executing:
-        return MAJOR_FAULT_RECORD, None
+        return None
     fault = engine.module_major_fault
     if engine._executing_routine is not routine or fault is None:
-        raise ModelError('GSV MajorFaultRecord requires an active simulated I/O major fault in the handler')
+        raise ModelError('MajorFaultRecord requires an active simulated I/O major fault in the handler')
+    return fault
+
+
+def _major_fault_record(engine, instance, scope, *, executing):
+    fault = _handler_fault(engine, instance, scope, executing=executing)
+    if fault is None:
+        return MAJOR_FAULT_RECORD, None
     timestamp = fault['timestamp_us']
     time_words = (None, None) if timestamp is None else struct.unpack('<2i', struct.pack('<q', timestamp))
-    type_code = (fault['code'] << 16) | fault['type']
+    type_code = 0 if engine._handler_clear_requested else (fault['code'] << 16) | fault['type']
     return MAJOR_FAULT_RECORD, (*time_words, type_code) + (None,) * 8
+
+
+def _major_fault_region(memory, ref, scope, *, writable=False):
+    key, paths, kind = prefix(memory, ref, scope, MAJOR_FAULT_WORDS, writable=writable)
+    if kind != 'DINT' or len(paths) != MAJOR_FAULT_WORDS:
+        direction = 'writable' if writable else 'readable'
+        raise ModelError(f'MajorFaultRecord requires 11 {direction} contiguous DINT elements')
+    return key, paths, kind
+
+
+def write_major_fault_record(engine, op, scope, *, executing):
+    _configuration_source(engine)
+    _handler_fault(engine, op.args[1], scope, executing=executing)
+    memory = engine.memory
+    previous = memory.structural
+    memory.structural = not executing
+    try:
+        key, paths, _ = _major_fault_region(memory, op.args[3], scope)
+        if executing:
+            type_code = memory.at(key, paths[2])
+            if type(type_code) is not int or type_code != 0:
+                raise ModelError('SSV MajorFaultRecord requires known zero Type and Code')
+            engine._handler_clear_requested = True
+    finally:
+        memory.structural = previous
 
 
 def source(engine, op, scope='', *, executing=False):
@@ -502,10 +539,7 @@ def destination(memory, ref, scope, dtype, value, *, allow_dint=False):
             raise ModelError('GSV ControllerDevice DeviceName requires 33 writable contiguous SINT elements')
         return key, parts, kind
     if dtype == MAJOR_FAULT_RECORD:
-        key, paths, kind = prefix(memory, ref, scope, MAJOR_FAULT_WORDS, writable=True)
-        if kind != 'DINT' or len(paths) != MAJOR_FAULT_WORDS:
-            raise ModelError('GSV MajorFaultRecord requires 11 writable contiguous DINT elements')
-        return key, paths, kind
+        return _major_fault_region(memory, ref, scope, writable=True)
     if dtype == MODULE_PATH:
         key, parts, kind, region = location(memory, ref, scope, writable=True)
         size = len(value)

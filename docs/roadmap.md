@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1106.120850` [ladder fault clearing](controller-handlers.md#clear-an-active-fault-in-ladder-logic)
+lets a handler clear a simulated I/O major fault with a zero Type/Code
+record. The clear commits only when the handler finishes successfully.
+
 Available in `26.1106.115701` [ladder controller fault capture](controller-handlers.md#simulated-io-fault-capture)
 runs a bounded handler once for simulated I/O major faults, including an
 in-handler MajorFaultRecord read and rollback on handler failure.

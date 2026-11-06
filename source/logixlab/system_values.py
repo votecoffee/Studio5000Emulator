@@ -78,6 +78,8 @@ def write_effects(engine,op,scope):
 
 
 def validate_set(engine, op, scope):
+    if gsv_configuration.matches_major_fault_record(op):
+        return gsv_configuration.write_major_fault_record(engine, op, scope, executing=False)
     if program_control.matches(op):return program_control.validate(engine,op,scope)
     if gsv_timing.matches(op):return gsv_timing.validate_reset(engine,op,scope)
     if event_status.matches(op):return event_status.validate(engine,op,scope)
@@ -87,6 +89,9 @@ def validate_set(engine, op, scope):
 
 def execute_set(engine, op, power, scope):
     if not power:return power
+    if gsv_configuration.matches_major_fault_record(op):
+        gsv_configuration.write_major_fault_record(engine, op, scope, executing=True)
+        return power
     if program_control.matches(op):
         program_control.execute(engine,op,scope)
         return power

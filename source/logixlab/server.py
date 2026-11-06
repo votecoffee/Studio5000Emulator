@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import copy
 import json
 import os
 import secrets
@@ -152,7 +153,8 @@ class Application:
     def controller_state(self):
         mode = self.engine.controller_mode(running=self.running) if self.engine else 'Program'
         module_fault = gsv_configuration.module_major_fault_state(self.engine) if self.engine else None
-        return {'mode':mode, 'module_major_fault':module_fault,
+        cleared_fault = copy.deepcopy(self.engine.last_cleared_module_fault) if self.engine else None
+        return {'mode':mode, 'module_major_fault':module_fault, 'last_cleared_module_fault':cleared_fault,
                 'running':self.running, 'keyswitch':'Remote', 'scan_interval_ms':self.scan_interval_ms,
                 'prescan_count':self.engine.prescan_count if self.engine else 0,
                 'first_scan_pending':self.engine.first_scan_pending if self.engine else False}
@@ -186,7 +188,8 @@ class Application:
             if not self.engine.blockers and gsv_configuration.fault_on_run_entry(self.engine):
                 self._io_dirty = True
                 self.publish_device_io()
-                raise ModelError(self.engine.fault)
+                if self.engine.module_major_fault:
+                    raise ModelError(self.engine.fault)
             self.engine.enter_run()
             self._io_dirty=True
         self.scan_interval_ms = interval
@@ -576,9 +579,11 @@ class Application:
                     raise ModelError('Module connection requires the current project generation')
                 if self.scan_inhibited():
                     raise ModelError('Release the native programming preparation before changing module connection input')
+                previous_clear = e.last_cleared_module_fault
                 result = gsv_configuration.configure_module_connection(e, data, running=self.running)
-                if self.running and e.module_major_fault:
-                    self.set_controller_mode('Program')
+                if self.running and (e.module_major_fault or e.last_cleared_module_fault is not previous_clear):
+                    if e.module_major_fault:
+                        self.set_controller_mode('Program')
                     self._io_dirty = True
                     self.publish_device_io()
                 return result

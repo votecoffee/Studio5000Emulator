@@ -302,8 +302,8 @@ In whole-project Remote Run, changing a module's effective connection
 from Running to Faulted trips a latched Type 3 Code 16 I/O major fault
 when bit 0 of its effective Mode word is set. The command applies at a
 scan boundary and preserves the completed scan count. A configured handler
-can write diagnostics before the controller reports Faulted. Device I/O
-retains the applied input.
+can write diagnostics and [clear the controller fault in ladder logic](controller-handlers.md#clear-an-active-fault-in-ladder-logic).
+Device I/O retains the applied input.
 `/api/state` exposes the controller fault under
 `controller.module_major_fault` with `type`, `code`, the canonical
 `module` name, the injected `fault_code` and `fault_info`, the `fault_id`
@@ -362,9 +362,10 @@ leaves the controller fault latched.
 A whole-project Program-to-Run request trips Type 3 Code 23 if a module
 is required by its effective Mode word and has an effective simulated
 Faulted connection or is Waiting on an explicitly faulted routed ancestor.
-The request fails before prescan and preserves simulated time and scan
-counters. A configured controller fault handler can write diagnostics.
-Direct faults take precedence over upstream faults. Within
+The fault occurs before prescan and preserves simulated time and scan
+counters. A configured controller fault handler can write diagnostics
+and clear the fault to let the Run request proceed. Direct faults take
+precedence over upstream faults. Within
 each group, the controller reports the first qualifying module in source order.
 
 An inhibited route and an unmodeled connection without a known upstream

@@ -17,7 +17,7 @@ from logixlab import __version__
 from tools.vmware_appliance import background_options
 
 
-def diagnostic_handler_l5x(*, extra_rung=None, scheduled=False):
+def diagnostic_handler_l5x(*, clear_record=False, extra_rung=None, scheduled=False):
     sample = Path(__file__).resolve().parents[1] / 'samples' / 'ModuleStatusLab.L5X'
     root = ET.parse(sample).getroot()
     controller = root.find('Controller')
@@ -38,7 +38,11 @@ def diagnostic_handler_l5x(*, extra_rung=None, scheduled=False):
     routine = ET.SubElement(ET.SubElement(program, 'Routines'), 'Routine', Name='Capture', Type='RLL')
     logic = ET.SubElement(routine, 'RLLContent')
     rungs = ['GSV(Program,THIS,MajorFaultRecord,FaultWords[0]);',
-             'ADD(HandlerCalls,1,HandlerCalls);', 'DIV(40,HandlerDivisor,HandlerQuotient);']
+             'ADD(HandlerCalls,1,HandlerCalls);']
+    if clear_record:
+        rungs.extend(['CLR(FaultWords[2]);', 'SSV(Program,THIS,MajorFaultRecord,FaultWords[0]);',
+                      'MOV(-1,FaultWords[2]);', 'GSV(Program,THIS,MajorFaultRecord,FaultWords[0]);'])
+    rungs.append('DIV(40,HandlerDivisor,HandlerQuotient);')
     if extra_rung:
         rungs.append(extra_rung)
     for index, text in enumerate(rungs):
@@ -559,10 +563,114 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual(tags(recovered)['HandlerCalls'], 2)
         self.assertEqual(tags(recovered)['FaultWords[2]'], (23 << 16) | 3)
 
+    def test_controller_fault_handler_clear_continues_run_and_rolls_back_pending_clear(self):
+        state = self.post('load', diagnostic_handler_l5x(clear_record=True))
+        self.assertEqual(state['blockers'], [])
+        generation = state['project_generation']
+        def write(tag, value):
+            return self.post('write', {'tag':tag, 'value':value})
+        def connection(status):
+            body = {'project_generation':generation, 'module':'RackOutput', 'state':status}
+            if status=='faulted':
+                body.update(fault_code=0x0204, fault_info=-42)
+            return self.post('module-connection', body)
+        def mode(value):
+            return self.post('controller-mode', {'mode':value, 'dt':25})
+        def observe():
+            return self.post('observe', {})
+        def tags(snapshot):
+            return {item['name']:item['value'] for item in snapshot['tags']}
+
+        write('ModeCommand', 1)
+        write('ApplyMode', True)
+        self.post('step', {'dt':25})
+        write('ApplyMode', False)
+        connection('running')
+        before = mode('Run')
+        connection('faulted')
+        device = json.loads(self.get('/api/device-io/session'))
+        request = Request(self.url+'/api/device-io/snapshot',
+                          headers={'X-Logix-Device-Token':device['read_token']})
+        with urlopen(request, timeout=3) as response:
+            telemetry = json.load(response)
+        self.assertEqual(telemetry['fault'], '')
+        self.assertEqual(tags(telemetry)['HandlerCalls'], 1)
+        running = observe()
+        controller = running['controller']
+        cleared = controller['last_cleared_module_fault']
+        self.assertEqual(cleared['handler'], {'routine':'FaultHandler/Capture', 'status':'cleared'})
+        self.assertEqual((cleared['type'], cleared['code'], cleared['module']), (3, 16, 'rackoutput'))
+        self.assertTrue(controller['running'])
+        self.assertIsNone(controller['module_major_fault'])
+        self.assertEqual(controller['prescan_count'], before['controller']['prescan_count'])
+        self.assertEqual(tags(running)['FaultWords[2]'], 0)
+        rack = next(row for row in running['module_simulation'] if row['name']=='rackoutput')
+        self.assertEqual(rack['entry_status'], 0x1000)
+        deadline = time.monotonic() + 3
+        while observe()['scan'] <= running['scan']:
+            self.assertLess(time.monotonic(), deadline, 'scanning did not continue after the handler clear')
+            time.sleep(0.02)
+        connection('faulted')
+        repeated = observe()
+        self.assertEqual(tags(repeated)['HandlerCalls'], 1)
+        self.assertEqual(repeated['controller']['last_cleared_module_fault']['fault_id'], cleared['fault_id'])
+
+        stopped = mode('Program')
+        started = mode('Run')
+        controller = started['controller']
+        self.assertTrue(controller['running'])
+        self.assertIsNone(controller['module_major_fault'])
+        startup_clear = controller['last_cleared_module_fault']
+        self.assertEqual(startup_clear['code'], 23)
+        self.assertNotEqual(startup_clear['fault_id'], cleared['fault_id'])
+        self.assertEqual(controller['prescan_count'], stopped['controller']['prescan_count']+1)
+        self.assertEqual(tags(started)['HandlerCalls'], 2)
+
+        mode('Program')
+        write('HandlerDivisor', 0)
+        before = observe()
+        with self.assertRaises(HTTPError) as rejected:
+            mode('Run')
+        self.assertEqual(rejected.exception.code, 400)
+        rejected.exception.close()
+        failed = observe()
+        controller = failed['controller']
+        self.assertEqual(controller['mode'], 'Faulted')
+        self.assertEqual(controller['module_major_fault']['code'], 23)
+        self.assertEqual(controller['module_major_fault']['handler']['status'], 'rolled_back')
+        self.assertEqual(controller['last_cleared_module_fault'], startup_clear)
+        for key in ('tags', 'trace', 'changes', 'scan', 'ms', 'task_schedule'):
+            self.assertEqual(failed[key], before[key], key)
+        self.assertEqual(controller['prescan_count'], before['controller']['prescan_count'])
+        self.assertIsNone(self.post('reset', {})['controller']['last_cleared_module_fault'])
+
+    def test_controller_fault_handler_rejects_a_partially_zero_fault_record(self):
+        rung = 'MOV(3,FaultWords[2])SSV(Program,THIS,MajorFaultRecord,FaultWords[0]);'
+        state = self.post('load', diagnostic_handler_l5x(extra_rung=rung))
+        self.assertEqual(state['blockers'], [])
+        self.post('write', {'tag':'ModeCommand', 'value':1})
+        self.post('write', {'tag':'ApplyMode', 'value':True})
+        before = self.post('step', {'dt':25})
+        self.post('module-connection', {'project_generation':state['project_generation'], 'module':'RackOutput',
+                                        'state':'faulted', 'fault_code':0x0204, 'fault_info':-42})
+        with self.assertRaises(HTTPError) as rejected:
+            self.post('controller-mode', {'mode':'Run', 'dt':25})
+        rejected.exception.close()
+        after = self.post('observe', {})
+        fault = after['controller']['module_major_fault']
+        self.assertEqual((fault['code'], fault['handler']['status']), (23, 'rolled_back'))
+        self.assertIn('known zero Type and Code', fault['handler']['error'])
+        self.assertIsNone(after['controller']['last_cleared_module_fault'])
+        self.assertEqual(after['tags'], before['tags'])
+
     def test_controller_fault_handler_rejects_scheduling_and_unsupported_instructions(self):
         cases = (({'scheduled':True}, 'unscheduled Standard Program'),
-                 ({'extra_rung':'SSV(Program,THIS,MajorFaultRecord,FaultWords[0]);'},
-                  'outside the controller fault handler profile'))
+                 ({'extra_rung':'SSV(Module,RackOutput,Mode,ModeCommand);'},
+                  'SSV supports MajorFaultRecord clearing only'),
+                 ({'extra_rung':'SSV(Program,MainProgram,MajorFaultRecord,FaultWords[0]);'},
+                  'requires THIS or the current Controller Fault Handler Program'),
+                 ({'extra_rung':'SSV(Program,THIS,MajorFaultRecord,FaultWords[1]);'},
+                  'requires 11 readable contiguous DINT elements'))
         for options, expected in cases:
             with self.subTest(options=options):
                 state = self.post('load', diagnostic_handler_l5x(**options))
