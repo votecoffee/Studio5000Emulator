@@ -473,7 +473,7 @@ class ProgramFaultTests(unittest.TestCase):
                 self.assertEqual(engine.memory.read('SpeedCommand'),52 if return_destination else 13)
 
     def test_jsr_argument_recovery_does_not_intercept_callee_errors(self):
-        for mnemonic in ('EQU','MOV'):
+        for mnemonic in ('FRD','EQU','MOV'):
             with self.subTest(mnemonic=mnemonic):
                 self.setUp()
 
@@ -486,8 +486,11 @@ class ProgramFaultTests(unittest.TestCase):
                     ET.SubElement(set_index,'Text').text = 'MOV(2,LabIndex);'
                     content.insert(2,set_index)
                     faulting = ET.Element('Rung',Number='3',Type='N')
-                    line = ('EQU(LabValues[LabIndex],1)NOP();' if mnemonic=='EQU'
-                            else 'MOV(LabValues[LabIndex],CallInput);')
+                    line = {
+                        'FRD':'FRD(LabValues[LabIndex],CallInput);',
+                        'EQU':'EQU(LabValues[LabIndex],1)NOP();',
+                        'MOV':'MOV(LabValues[LabIndex],CallInput);',
+                    }[mnemonic]
                     ET.SubElement(faulting,'Text').text = line
                     content.insert(3,faulting)
 
@@ -495,7 +498,7 @@ class ProgramFaultTests(unittest.TestCase):
                 self.assertEqual(engine.blockers, [])
                 engine.memory.write('StartPB',True)
                 before = copy.deepcopy(engine.memory.values)
-                if mnemonic=='EQU':
+                if mnemonic=='FRD':
                     with self.assertRaisesRegex(ModelError,'Scan rolled back: Array index outside bounds'):
                         engine.step()
                     self.assertEqual(engine.memory.values,before)
@@ -503,7 +506,7 @@ class ProgramFaultTests(unittest.TestCase):
                 else:
                     engine.step()
                     record = engine.last_cleared_program_fault
-                    self.assertEqual((record['instruction'],record['routine']),('MOV','MainProgram/CallWork'))
+                    self.assertEqual((record['instruction'],record['routine']),(mnemonic,'MainProgram/CallWork'))
                     self.assertEqual(engine.memory.read('CallRuns'),1)
                     self.assertEqual(engine.memory.read('SpeedCommand'),13)
                 self.assertEqual(engine.calls.stack,[])
@@ -690,6 +693,94 @@ class ProgramFaultTests(unittest.TestCase):
                 self.assertIs(engine.last_cleared_program_fault,fault)
                 self.assertEqual(engine.memory.read('LabValues'),expected_values)
                 self.assertEqual(engine.memory.read('SpeedCommand'),expected_speed)
+
+    def test_contact_and_comparison_faults_preserve_incoming_power(self):
+        for instruction in (
+            'XIC(LabValues[LabIndex].1)', 'XIO(LabValues[LabIndex].0)',
+            'EQU(LabValues[LabIndex],12)', 'NEQ(LabValues[LabIndex],13)',
+            'LES(LabValues[LabIndex],13)', 'LEQ(LabValues[LabIndex],12)',
+            'GRT(LabValues[LabIndex],13)', 'GEQ(LabValues[LabIndex],14)',
+            'LIM(1,LabValues[LabIndex],12)', 'MEQ(15,LabValues[LabIndex],12)',
+            'CMP(LabValues[LabIndex]+1=13)',
+        ):
+            with self.subTest(instruction=instruction):
+                self.setUp()
+
+                def configure(root):
+                    ladder_fault_fixture(root,handler_tail='MOV(1,LabIndex);')
+                    set_fault_instruction(root,instruction)
+
+                engine = self.engine(mutate=configure)
+                self.assertEqual(engine.blockers,[])
+                engine.memory.write('LabIndex',2)
+                engine.memory.write('SpeedCommand',50)
+                engine.step()
+                self.assertIsNone(engine.last_cleared_program_fault)
+                self.assertEqual(engine.memory.read('LabIndex'),2)
+                engine.memory.write('StartPB',True)
+                engine.step()
+                fault = engine.last_cleared_program_fault
+                self.assertEqual((fault['type'],fault['code'],fault['instruction']),
+                                 (4,20,instruction.split('(',1)[0]))
+                self.assertEqual(engine.memory.read('LabIndex'),1)
+                self.assertEqual(engine.memory.read('SpeedCommand'),51)
+                event = next(event for row in engine.trace for event in row['events'] if 'recovered_fault' in event)
+                self.assertEqual((event['in'],event['out']),(True,True))
+                engine.step()
+                self.assertEqual(engine.memory.read('SpeedCommand'),51)
+                self.assertIs(engine.last_cleared_program_fault,fault)
+                self.assertFalse(any('recovery_source' in row for row in engine.trace))
+
+    def test_bit_write_faults_leave_packed_bits_intact(self):
+        for instruction,expected in (
+            ('OTE(LabValues[LabIndex].1)',15), ('OTL(LabValues[LabIndex].1)',15),
+            ('OTU(LabValues[LabIndex].0)',12), ('ONS(LabValues[LabIndex].1)',15),
+        ):
+            with self.subTest(instruction=instruction):
+                self.setUp()
+
+                def configure(root):
+                    ladder_fault_fixture(root,handler_tail='MOV(1,LabIndex);')
+                    set_fault_instruction(root,instruction)
+
+                engine = self.engine(mutate=configure)
+                self.assertEqual(engine.blockers,[])
+                engine.step()
+                engine.memory.write('LabIndex',-1)
+                engine.memory.write('StartPB',True)
+                engine.memory.write('SpeedCommand',50)
+                engine.step()
+                self.assertEqual(engine.last_cleared_program_fault['instruction'],instruction[:3])
+                self.assertEqual(engine.memory.read('LabValues'),[12,13])
+                self.assertEqual(engine.memory.read('SpeedCommand'),51)
+                engine.step()
+                self.assertEqual(engine.memory.read('LabValues'),[12,expected])
+                self.assertEqual(engine.memory.read('SpeedCommand'),52)
+                if instruction.startswith('ONS'):
+                    engine.step()
+                    self.assertEqual(engine.memory.read('SpeedCommand'),52)
+
+    def test_false_ote_fault_resumes_false_through_controller_handler(self):
+        def configure(root):
+            controller_fault_fallback_fixture(root,controller_tail='MOV(1,LabIndex);')
+            set_fault_instruction(root,'OTE(LabValues[LabIndex].1)')
+
+        engine = self.engine(mutate=configure)
+        self.assertEqual(engine.blockers,[])
+        engine.step()
+        engine.memory.write('LabIndex',2)
+        engine.memory.write('LabValues[1]',15)
+        engine.memory.write('SpeedCommand',50)
+        engine.step()
+        fault = engine.last_cleared_program_fault
+        self.assertEqual((fault['instruction'],fault['handler']['routine']),('OTE','FaultHandler/Capture'))
+        event = next(event for row in engine.trace for event in row['events'] if 'recovered_fault' in event)
+        self.assertEqual((event['in'],event['out']),(False,False))
+        self.assertEqual(engine.memory.read('LabValues'),[12,15])
+        self.assertEqual(engine.memory.read('SpeedCommand'),50)
+        engine.step()
+        self.assertEqual(engine.memory.read('LabValues'),[12,13])
+        self.assertEqual(engine.memory.read('SpeedCommand'),50)
 
     def test_aggregate_fill_preserves_records_until_a_valid_start(self):
         from test_aggregate_fill import AggregateFillTests

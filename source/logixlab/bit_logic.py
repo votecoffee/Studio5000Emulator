@@ -55,6 +55,7 @@ def description(project):
                 one_shots='ONS/OSR false and OSF true skip prior storage reads; other transitions require known history',
                 prescan='Existing OTE clear, ONS/OSR storage set, OSF storage clear and pulse-output clear; latches retained',
                 packed_bits='Partial writes require known backing integers to preserve neighboring bits',
-                failures='Reached unknowns, invalid indices and later faults roll back the advance and existing AOI state',
+                array_recovery='Whole-project XIC/XIO/OTE/OTL/OTU/ONS skip the operation when a ladder handler clears Type 4 Code 20',
+                failures='Reached unknowns, unrecovered array faults and later errors roll back the advance and existing AOI state',
                 native_runtime_parity=False,
                 remaining=['Native packed BOOL layout, fault/postscan/lifecycle parity and broader controller qualification'])

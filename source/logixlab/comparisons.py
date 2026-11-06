@@ -215,7 +215,8 @@ def description(project):
                 meq_immediates='Signed DINT and 32-bit radix patterns in any position with all eight integer types; previously accepted homogeneous LINT calls keep signed DINT promotion',
                 limits='Inclusive; low > high accepts values at or outside the endpoints',
                 operands='Existing numeric types, immediate rules and conversion boundaries; string comparisons use their separate path',
-                failures='Reached unknowns, bad indices and later faults roll back the advance and existing AOI state',
+                array_recovery='A whole-project ladder handler that clears Type 4 Code 20 skips the comparison and retains incoming rung power',
+                failures='Reached unknowns, unrecovered array faults and later errors roll back the advance and existing AOI state',
                 native_runtime_parity=False,
                 remaining=['Complete arithmetic promotion and typed radix immediate qualification',
                            'Native status/fault/lifecycle parity and broader controller profiles'])

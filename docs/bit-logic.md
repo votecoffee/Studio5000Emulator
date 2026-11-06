@@ -22,8 +22,10 @@ pulse. Unknown history is not inferred from a desired output.
 
 Individual integer-bit writes require a known backing integer to preserve
 neighboring bits. They do not establish an entire unknown packed integer.
-Native packed BOOL layout remains unqualified. Reached unknowns, invalid indices
-and later faults roll back the complete advance, including established BOOLs,
+Native packed BOOL layout remains unqualified. In a whole-project scan,
+[XIC, XIO, OTE, OTL, OTU and ONS can recover an out-of-bounds array subscript](controller-handlers.md#recover-contact-coil-ons-and-comparison-array-faults)
+when a fault handler clears Type 4 Code 20. Reached unknowns, unrecovered faults
+and later errors roll back the complete advance, including established BOOLs,
 edge storage, task/time state and existing AOI bindings.
 
 Choose **Bit lab**, step once with `LogicInput` false, then toggle it. Inspect

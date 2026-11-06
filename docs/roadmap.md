@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1106.135526` [contact, coil, ONS and comparison array fault recovery](controller-handlers.md#recover-contact-coil-ons-and-comparison-array-faults)
+preserves the incoming rung power and skips the instruction when a fault
+handler clears Type 4 Code 20 during a whole-project scan.
+
 Available in `26.1106.134331` [FLL, CLR and SWPB array fault recovery](controller-handlers.md#recover-fll-clr-and-swpb-array-faults)
 lets a ladder fault handler clear Type 4 Code 20 and skip the write.
 FLL recovery covers numeric fills and matching aggregate zero fills.

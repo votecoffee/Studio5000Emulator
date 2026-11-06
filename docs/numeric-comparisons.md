@@ -49,8 +49,11 @@ Mixed narrow/wide limits retain exact adjacent 64-bit values.
 Structural validation permits unknown saved values. False/prescan skip operand
 values and dynamic indices, and downstream OTE coils still clear. Reached true
 comparisons consume every operand, including a missing high limit when another
-comparison already appears false. Unknowns, bad indices and later faults restore
-prior writes/coils, task/time state and AOI bindings. Source values are not written.
+comparison already appears false. In whole-project ladder scans,
+[a cleared Type 4 Code 20 skips the comparison](controller-handlers.md#recover-contact-coil-ons-and-comparison-array-faults)
+and preserves incoming rung power. Reached unknowns, unrecovered faults and
+later errors restore prior writes/coils, task/time state and AOI bindings.
+Comparisons only read their source operands.
 
 Homogeneous and existing narrow/REAL rules remain separate. Mixed limits also
 accept bounded constants as described below. Lossy signed/unsigned conversion,

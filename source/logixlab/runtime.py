@@ -30,7 +30,8 @@ PROGRAM_FAULT_OPS = FAULT_HANDLER_OPS - {'JSR', 'SBR', 'RET'}
 # These instructions resolve array operands before writing any values.
 ARRAY_FAULT_RECOVERY_OPS = (
     frozenset(('COP', 'CPS', 'CPT', 'FLL', 'SWPB')) | numeric_storage.INSTRUCTIONS
-    | scalar_math.INSTRUCTIONS | bit_transfer.INSTRUCTIONS
+    | scalar_math.INSTRUCTIONS | bit_transfer.INSTRUCTIONS | comparisons.INSTRUCTIONS
+    | frozenset(('XIC', 'XIO', 'OTE', 'OTL', 'OTU', 'ONS', 'CMP'))
 )
 FAULT_HANDLER_GSV = frozenset((('program','majorfaultrecord'), ('module','entrystatus'),
                                ('module','faultcode'), ('module','faultinfo')))

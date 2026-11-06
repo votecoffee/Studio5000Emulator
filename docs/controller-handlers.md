@@ -110,6 +110,26 @@ rollback.
 [Rockwell CLR reference](https://www.rockwellautomation.com/en-il/docs/studio-5000-logix-designer/38-01/contents-ditamap/instruction-set/move-logical-instructions/clear--clr-.html)
 [Rockwell SWPB reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-00/contents-ditamap/instruction-set/move-logical-instructions/swap-byte--swpb-.html)
 
+## Recover contact, coil, ONS and comparison array faults
+
+During whole-project ladder scans, a reached out-of-bounds array
+subscript in XIC, XIO, OTE, OTL, OTU, ONS, EQU, NEQ, LES, LEQ, GRT, GEQ,
+LIM, MEQ or CMP can raise Type 4 Code 20. If either handler clears it,
+the emulator skips the instruction and passes its incoming rung power
+to the next instruction. A faulting coil or ONS leaves the targeted bit
+unchanged, including when the bit is part of an integer. The next visit
+evaluates the instruction with the current array indices.
+
+XIC, XIO, OTL, OTU and the comparisons skip their array operands when
+incoming power is false. OTE and ONS still select their destination
+when false. For example, if the handler repairs an invalid OTE subscript
+on a false rung, the next visit can clear the selected bit.
+OSR, OSF and prescan array faults remain outside this recovery profile.
+
+[Rockwell array subscript reference](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/37-00/contents-ditamap/index-through-arrays.html)
+[Rockwell OTE reference](https://www.rockwellautomation.com/en-pr/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/bit-instructions1/output-energize--ote-11.html)
+[Rockwell major fault recovery reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-02/contents-ditamap/studio-5000-logix-designer/controller-properties/major-fault-state.html)
+
 ## Escalate an uncleared Program fault
 
 For a modeled array fault, the assigned Controller Fault Handler runs
