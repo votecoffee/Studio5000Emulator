@@ -48,9 +48,10 @@ the execution engine. The [full emulation checklist](emulation-coverage.md) and
 | FBD conversion models, bounded | 2 | [TRN/TOD/FRD](fbd-conversions.md) and existing NOT, logical FBD_TRUNCATE/FBD_CONVERT records; native overflow/saturation/flags remain unfinished |
 | Target bit move model, bounded | 1 | [ST/FBD BTDT](target-bit-moves.md), DINT field distribution from explicit Target; MVMT shares its existing mask record |
 | PID software model, bounded | 1 | [Ladder P/PI/PID](ladder-pid.md), unsmoothed derivative/deadband, integer operands, tieback manual, PVT/inhold, [one-way cascade](pid-cascade.md) and [ladder AOI records](aoi-pid.md); smoothing/cascade feedback/module restart and native solver/layout parity remain unfinished |
-| No dedicated model | 161 | No dedicated bounded named runtime model |
+| ALARM_DIGITAL model, partial | 1 | [Ladder ALMD](ladder-alarm.md), Alarm-format records and basic timed alarm state |
+| No dedicated model | 160 | No dedicated bounded named runtime model |
 
-Thus **61 entries have dedicated bounded models**. Each entry retains its
+Thus **62 entries have dedicated bounded models**. Each entry retains its
 specific scope and remaining work. UDTs, custom string types,
 AOIs and module-generated types have separate inventories and are not added to
 the supplied 222-entry count.
@@ -104,7 +105,7 @@ Every dedicated model status still requires the qualifications above.
 | --- | --- | --- | --- | --- |
 | 1 | `ALARM` | Alarms | No dedicated model | Listed |
 | 2 | `ALARM_ANALOG` | Alarms | No dedicated model | Listed |
-| 3 | `ALARM_DIGITAL` | Alarms | No dedicated model | Listed |
+| 3 | `ALARM_DIGITAL` | Alarms | [Ladder ALMD, partial](ladder-alarm.md) | Listed |
 | 4 | `ALARM_SET_CONTROL` | Alarms | No dedicated model | Listed |
 | 5 | `AUX_VALVE_CONTROL` | Metal forming/valves | No dedicated model | Listed |
 | 6 | `AXIS_CIP_DRIVE` | Motion/axis/reference | No dedicated model | Listed |

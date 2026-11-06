@@ -1,0 +1,58 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="AlarmLab" TargetType="Controller" ContainsContext="false">
+  <Controller Name="AlarmLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
+    <DataTypes />
+    <Modules />
+    <AddOnInstructionDefinitions />
+    <Tags>
+      <Tag Name="Trip" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data>
+      </Tag>
+      <Tag Name="Acknowledge" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data>
+      </Tag>
+      <Tag Name="ResetAlarm" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data>
+      </Tag>
+      <Tag Name="DisableAlarm" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data>
+      </Tag>
+      <Tag Name="EnableAlarm" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data>
+      </Tag>
+      <Tag Name="Healthy" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="BOOL" Value="1" /></Data>
+      </Tag>
+      <Tag Name="MotorAlarm" TagType="Base" DataType="ALARM_DIGITAL" ExternalAccess="Read/Write">
+        <Data Format="Alarm">
+          <AlarmDigitalParameters Condition="true" AckRequired="true" Latched="true" MinDurationPRE="20" Severity="500" />
+          <AlarmConfig />
+        </Data>
+      </Tag>
+      <Tag Name="SignalAlarm" TagType="Base" DataType="ALARM_DIGITAL" ExternalAccess="Read/Write">
+        <Data Format="Alarm">
+          <AlarmDigitalParameters Condition="false" AckRequired="false" Latched="false" MinDurationPRE="0" Severity="500" />
+          <AlarmConfig />
+        </Data>
+      </Tag>
+    </Tags>
+    <Programs>
+      <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard">
+        <Tags />
+        <Routines>
+          <Routine Name="MainRoutine" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(Trip)ALMD(MotorAlarm,Acknowledge,ResetAlarm,DisableAlarm,EnableAlarm,?,?);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(Healthy)ALMD(SignalAlarm,0,0,0,0,0,0);</Text></Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="MainTask" Type="CONTINUOUS" Priority="10" Watchdog="500" Class="Standard" InhibitTask="false">
+        <ScheduledPrograms><ScheduledProgram Name="MainProgram" /></ScheduledPrograms>
+      </Task>
+    </Tasks>
+  </Controller>
+</RSLogix5000Content>

@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1105.190432` [ladder digital alarms](ladder-alarm.md) add scalar
+Alarm-format ALARM_DIGITAL storage and ALMD execution. Alarm Lab demonstrates
+minimum duration, latch and acknowledgment/reset, and an active-low alarm.
+
 Available in `26.1105.185210` [MID copy windows](string-operations.md#mid-copy-windows)
 enforce source DATA bounds and read only the requested bytes in ladder and ST.
 String Lab demonstrates a copy from a partially populated source.

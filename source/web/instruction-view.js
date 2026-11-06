@@ -48,6 +48,7 @@
   add('FAL', 'File Arithmetic and Logic', 'Control|Length|Position|Mode|Dest|Expression');
   for (const op of ['FBC', 'DDT']) add(op, op === 'FBC' ? 'File Bit Compare' : 'Diagnostic Detect', 'Source|Reference|Result|Cmp Control|Cmp Length|Cmp Position|Result Control|Result Length|Result Position');
   add('DTR', 'Data Transition', 'Source|Mask|Reference');
+  add('ALMD', 'Digital Alarm', 'ALMD|ProgAck|ProgReset|ProgDisable|ProgEnable|MinDurationPRE|MinDurationACC');
   add('PID', 'PID', 'PID|Process Variable|Tieback|Control Variable|PID Master Loop|Inhold Bit|Inhold Value');
 
   const contacts = new Set(['XIC', 'XIO']), coils = new Set(['OTE', 'OTL', 'OTU']);
@@ -80,6 +81,13 @@
     if (['TON', 'TOF', 'RTO', 'CTU', 'CTD'].includes(op)) {
       fields[1] = {label: 'Preset', ref: args[0] + '.PRE', member: true, visible: true};fields[2] = {label: 'Accum', ref: args[0] + '.ACC', member: true, visible: true};
       flags = (['CTU', 'CTD'].includes(op) ? [op === 'CTU' ? 'CU' : 'CD', 'DN'] : ['EN', 'DN']).map(label => ({label, ref: args[0] + '.' + label}));
+    }
+    if (op === 'ALMD') {
+      for (const [i, member] of [[5, 'MinDurationPRE'], [6, 'MinDurationACC']]) {
+        if (fields[i]?.ref === '?') fields[i] = {label: member, ref: args[0] + '.' + member, member: true, visible: true};
+      }
+      flags = [['ALM', 'InAlarm'], ['ACK', 'Acked'], ['DIS', 'Disabled'], ['BAD', 'Status.1']]
+        .map(([label, member]) => ({label, ref: args[0] + '.' + member}));
     }
     if (Object.hasOwn(control, op)) {
       const at = control[op], length = op === 'BSL' || op === 'BSR' ? 3 : at + 1;

@@ -12,7 +12,7 @@ browser title, page header, Windows tray and executable properties match.
 **Development focus: full ladder support, then Structured Text, then FBD, then SFC.**
 Complete and qualify ladder and ST before adding new FBD/SFC features. Full
 emulation remains ahead of further Studio 5000 connectivity work.
-The current model is partial: 104 built-in RLL instruction entries, a bounded ST
+The current model is partial: 105 built-in RLL instruction entries, a bounded ST
 subset, supported AOIs/UDTs, explicit custom strings and a limited FBD signal
 graph. General FBD, SFC, motion, cyclic module I/O and EDS-driven device models
 remain unfinished.
@@ -336,6 +336,10 @@ dispatch, deferred lower/equal-priority work, first scans and request diagnostic
 [System-value reads](docs/gsv-configuration.md) add explicit Task/Controller
 configuration through GSV in ladder and ST. **System lab** shows task rates and
 watchdogs in microseconds, typed priorities, names and controller settings.
+
+[Ladder digital alarms](docs/ladder-alarm.md) import scalar `ALARM_DIGITAL`
+records and run ALMD minimum duration, latching, acknowledgment, reset and
+enable/disable. Choose **Alarm lab** to step through both alarm polarities.
 
 [String conversions](docs/string-conversions.md) add LOWER/UPPER and STOR/RTOS
 in ladder and Structured Text, including user strings and existing AOI bindings.

@@ -198,6 +198,7 @@ $('queue-reference-demo').onclick=()=>loadDemo('QueueReferenceLab');
 $('aoi-queue-demo').onclick=()=>loadDemo('AOIQueueLab');
 $('aoi-file-demo').onclick=()=>loadDemo('AOIFileLab');
 $('pid-demo').onclick=()=>loadDemo('PIDLab');
+$('alarm-demo').onclick=()=>loadDemo('AlarmLab');
 $('aoi-pid-demo').onclick=()=>loadDemo('AOIPIDLab');
 $('aoi-sequencer-demo').onclick=()=>loadDemo('AOISequencerLab');
 $('aoi-stats-demo').onclick=()=>loadDemo('AOIStatsLab');

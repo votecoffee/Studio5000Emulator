@@ -839,6 +839,37 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual(report['bit_transfer']['instructions'], ['BTD', 'MVM'])
         self.assertFalse(report['bit_transfer']['native_math_status'])
 
+    def test_alarm_lab_delay_acknowledge_and_false_rung_through_http(self):
+        state = self.post('demo', {'sample': 'AlarmLab'})
+        self.assertEqual(state['blockers'], [])
+
+        def write(tag, value):
+            self.post('write', {'tag': tag, 'value': value})
+
+        def step():
+            state = self.post('step', {'dt': 10})
+            return {row['name']: row['value'] for row in state['tags']}
+
+        write('Trip', True)
+        self.assertFalse(step()['MotorAlarm.InAlarm'])
+        self.assertFalse(step()['MotorAlarm.InAlarm'])
+        active = step()
+        self.assertTrue(active['MotorAlarm.InAlarmUnack'])
+        self.assertEqual(active['MotorAlarm.AlarmCount'], 1)
+        write('Trip', False)
+        write('Acknowledge', True)
+        write('Healthy', False)
+        latched = step()
+        self.assertTrue(latched['MotorAlarm.InAlarm'])
+        self.assertTrue(latched['MotorAlarm.Acked'])
+        self.assertFalse(latched['MotorAlarm.In'])
+        self.assertTrue(latched['SignalAlarm.InAlarm'])
+        write('ResetAlarm', True)
+        self.assertFalse(step()['MotorAlarm.InAlarm'])
+        report = self.post('report', {})['ladder_alarms']
+        self.assertTrue(report['false_rung_executes'])
+        self.assertFalse(report['native_runtime_parity'])
+
     def test_string_lab_executes_rll_st_and_reflects_input_search_changes(self):
         state = self.post('demo', {'sample': 'StringLab'})
         self.assertEqual(state['blockers'], [])

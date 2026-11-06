@@ -184,7 +184,7 @@ class FunctionBlockTests(unittest.TestCase):
             for member,kind in SCHEMAS[dtype].items():self.assertEqual(e.memory.resolve(name+'.'+member)[2],kind)
         e.memory.write('ChannelChoice.SelectorInv',True);self.assertEqual(e.memory.read('ChannelChoice.Status'),2)
         report=e.report()['function_blocks'];self.assertEqual(report['instructions'],['ABS','ACS','ADD','AND','ASN','ATN','BAND','BNOT','BOR','BTDT','BXOR','COS','CTUD','DEG','DERV','DFF','DIV','EQU','ESEL','FRD','GEQ','GRT','HLL','INTG','JKFF','LEQ','LES','LIM','LN','LOG','MAXC','MEQ','MINC','MOD','MUL','MUX','MVMT','NEG','NEQ','NOT','OR','OSFI','OSRI','RAD','RESD','RLIM','RTOR','SCL','SEL','SETD','SIN','SNEG','SQR','SSUM','SUB','TAN','TOD','TOFR','TONR','TRN','UPDN','XOR','XPY']);self.assertFalse(report['native_runtime_parity'])
-        self.assertEqual((len(ARITIES),len(ST_ONLY_ARITIES)),(104,29))
+        self.assertEqual((len(ARITIES),len(ST_ONLY_ARITIES)),(105,29))
 
     def test_profiles_and_st_ladder_forms_remain_blocked(self):
         for version,cpu in (('34','1756-L85E'),('35','1756-L73')):

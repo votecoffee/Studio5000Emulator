@@ -2,7 +2,8 @@
 
 ALARM_DIGITAL and ALARM_ANALOG tags use Data@Format="Alarm" and
 AlarmDigitalParameters / AlarmAnalogParameters (1756-RM014, chapter 6).
-Nonempty catalogs, alarm configuration and alarm execution are not modeled.
+Nonempty native catalogs and alarm services remain unavailable. Logical ladder
+ALMD execution is tracked separately by the runtime.
 """
 from dataclasses import dataclass
 from .tag_catalog import complete_tag_source

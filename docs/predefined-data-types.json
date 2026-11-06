@@ -178,6 +178,11 @@
       "remaining": "Finite binary64 storage/MOV/CLR, matching-tag ladder arithmetic/comparisons/advanced math, REAL/LREAL TRN, numeric COP/CPS byte images, mixed-tag arithmetic with one LREAL input/result, mixed comparisons/LIM with one LREAL input, signed DINT-range constants, mixed XPY powers, numeric unary sources and result-selected arithmetic/powers with LREAL results and atomic tag access; other mixed forms, ST expressions, aggregate copy/layout and native parity remain unfinished.",
       "source": "source/logixlab/numeric_storage.py"
     },
+    "ladder_alarm_model": {
+      "label": "ALARM_DIGITAL model (partial)",
+      "remaining": "Suppression, shelving, timestamps, other languages and native alarm services/layouts.",
+      "source": "source/logixlab/ladder_alarm.py"
+    },
     "no_dedicated_model": {
       "label": "No dedicated model",
       "remaining": "Verified schema/layout plus associated stateful runtime behavior and conformance cases.",
@@ -303,10 +308,11 @@
   },
   "summary": {
     "entries": 222,
-    "dedicated_bounded_models": 61,
-    "no_dedicated_model": 161,
+    "dedicated_bounded_models": 62,
+    "no_dedicated_model": 160,
     "status_counts": {
-      "no_dedicated_model": 161,
+      "no_dedicated_model": 160,
+      "ladder_alarm_model": 1,
       "numeric_model": 5,
       "lreal_storage": 1,
       "time_date_model": 5,
@@ -378,7 +384,7 @@
       "identifier_candidate": "ALARM_DIGITAL",
       "starred": false,
       "family": "alarm",
-      "model_status": "no_dedicated_model",
+      "model_status": "ladder_alarm_model",
       "v35_listing": "exact",
       "v35_catalog_name": "ALARM_DIGITAL",
       "notes": []
