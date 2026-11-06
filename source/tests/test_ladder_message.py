@@ -213,6 +213,100 @@ class MessageTests(unittest.TestCase):
                 self.assertEqual(engine.memory.read('RealReadback'), [0.0, 0.0, 0.0])
                 self.assert_flags(engine, 'RealReadControl', ER=True, ERR=0x05, DN=False, DN_LEN=0)
 
+    def test_ladder_string_move_retargets_only_the_next_read(self):
+        engine = self.engine()
+        self.assertEqual(engine.blockers, [])
+        memory = engine.memory
+        field = 'ReadControl.RemoteElement'
+        self.assertEqual(memory.string(field), 'VirtualValue')
+        memory.write('SendRead', True)
+        engine.step()
+        memory.write('UseAlternateRead', True)
+        engine.step()
+        self.assertEqual(memory.string(field), 'AlternateValue')
+        self.assert_flags(engine, 'ReadControl', ST=True)
+        engine.step()
+        self.assertEqual(memory.read('ReadValue'), 17)
+
+        memory.write('SendRead', False)
+        engine.step()
+        memory.write('SendRead', True)
+        for _ in range(3):
+            engine.step()
+        self.assertEqual(memory.read('ReadValue'), 64)
+        self.assert_flags(engine, 'ReadControl', DN=True, ER=False)
+        watch = next(row for row in memory.leaves() if row['name'] == field)
+        self.assertEqual((watch['kind'], watch['type'], watch['value']), ('string', 'STRING', 'AlternateValue'))
+
+    def test_write_target_is_captured_and_prescan_keeps_live_text(self):
+        engine = self.engine()
+        memory = engine.memory
+        field = 'WriteControl.RemoteElement'
+        memory.write('SendWrite', True)
+        engine.step()
+        memory.write(field, 'AlternateValue')
+        for _ in range(2):
+            engine.step()
+        self.assertEqual((memory.read('VirtualValue'), memory.read('AlternateValue')), (42, 64))
+
+        engine.enter_run()
+        self.assertEqual(memory.string(field), 'AlternateValue')
+        memory.write('WriteValue', 71)
+        for _ in range(3):
+            engine.step()
+        self.assertEqual((memory.read('VirtualValue'), memory.read('AlternateValue')), (42, 71))
+        self.assertEqual(Engine(engine.project).memory.string(field), 'VirtualValue')
+
+    def test_retargeted_literal_does_not_inherit_the_authored_wildcard_index(self):
+        engine = self.engine()
+        memory = engine.memory
+        memory.write('RealReadControl.RemoteElement', 'Program:MainProgram.Samples[0]')
+        memory.write('SendTyped', True)
+        for _ in range(3):
+            engine.step()
+        self.assertEqual(memory.read('RealReadback'), [100.0, 2.5, 0.0])
+        self.assert_flags(engine, 'RealReadControl', RemoteIndex=1, DN=True, ER=False)
+
+    def test_invalid_remote_string_and_wrong_type_complete_with_errors(self):
+        field = 'ReadControl.RemoteElement'
+        for ref, value, error in [(field, '', 0x05), (field, '2,192.0.2.20', 0x05),
+                                  (field, 'VirtualValue\u00a0', 0x05), (field, 'Missing', 0x05),
+                                  (field + '.LEN', 83, 0x05), (field, 'SendRead', 0xFC)]:
+            with self.subTest(ref=ref, value=value):
+                engine = self.engine()
+                engine.memory.write(ref, value)
+                engine.memory.write('SendRead', True)
+                for _ in range(3):
+                    engine.step()
+                self.assertEqual(engine.fault, '')
+                self.assertEqual(engine.memory.read('ReadValue'), 0)
+                self.assert_flags(engine, 'ReadControl', DN=False, ER=True, ERR=error)
+
+    def test_long_authored_address_keeps_existing_transfer_support(self):
+        program_name, tag_name = 'P' * 40, 'T' * 40
+
+        def configure(root):
+            program = root.find('.//Program')
+            program.set('Name', program_name)
+            root.find('.//ScheduledProgram').set('Name', program_name)
+            for parameters in root.findall('.//MessageParameters'):
+                remote = parameters.get('RemoteElement')
+                parameters.set('RemoteElement', remote.replace('Program:MainProgram.', f'Program:{program_name}.'))
+            tag = ET.SubElement(program.find('Tags'), 'Tag', Name=tag_name, TagType='Base', DataType='DINT')
+            ET.SubElement(ET.SubElement(tag, 'Data', Format='Decorated'), 'DataValue', DataType='DINT', Value='109')
+            root.find('.//Tag[@Name="ReadControl"]//MessageParameters').set('RemoteElement', f'Program:{program_name}.{tag_name}')
+            # The bundled MOV requires the optional writable STRING field, so remove that rung for this profile.
+            content = program.find('.//RLLContent')
+            content.remove(content.find('Rung[@Number="0"]'))
+
+        engine = self.engine(configure)
+        self.assertEqual(engine.blockers, [])
+        self.assertNotIn('RemoteElement', engine.memory.read('ReadControl'))
+        engine.memory.write('SendRead', True)
+        for _ in range(3):
+            engine.step()
+        self.assertEqual(engine.memory.read('ReadValue'), 109)
+
     def test_scoped_errors_and_unknown_source_leave_all_destination_elements_intact(self):
         for case, expected in [('none', 0x0F), ('mismatch', 0xFC), ('unknown', 0x03), ('bounds', 0x05)]:
             with self.subTest(case=case):
@@ -278,7 +372,7 @@ class MessageTests(unittest.TestCase):
     def test_completion_and_queue_roll_back_with_later_fault(self):
         def configure(root):
             content = root.find('.//RLLContent')
-            rung = ET.SubElement(content, 'Rung', Number='6', Type='N')
+            rung = ET.SubElement(content, 'Rung', Number='7', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         engine = self.engine(configure)
@@ -309,7 +403,7 @@ class MessageTests(unittest.TestCase):
 
         def use_as_control(root):
             configure(root)
-            root.find('.//Rung[@Number="0"]/Text').text = 'XIC(SendRead)MSG(SavedMessage);'
+            root.find('.//Rung[@Number="1"]/Text').text = 'XIC(SendRead)MSG(SavedMessage);'
 
         self.assertTrue(any('directly named controller MESSAGE' in item
                             for item in self.engine(use_as_control).blockers))

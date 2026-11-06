@@ -10,7 +10,7 @@ MAX_ELEMENTS = 64
 MAX_PENDING = 32
 FIELDS = dict.fromkeys(('EW', 'ER', 'DN', 'ST', 'EN', 'TO'), 'BOOL') | {
     'ERR': 'INT', 'EXERR': 'DINT', 'REQ_LEN': 'INT', 'DN_LEN': 'INT',
-    'LocalIndex': 'DINT', 'RemoteIndex': 'DINT',
+    'LocalIndex': 'DINT', 'RemoteIndex': 'DINT', 'RemoteElement': 'STRING',
 }
 ELEMENT_BYTES = {'SINT': 1, 'INT': 2, 'DINT': 4, 'LINT': 8, 'REAL': 4}
 NAME = r'[A-Za-z_][A-Za-z_0-9]{0,39}'
@@ -37,6 +37,7 @@ class Configuration:
     read: bool
     local: Endpoint
     remote: Endpoint
+    remote_text: str
     count: int
 
 
@@ -44,6 +45,7 @@ class Configuration:
 class Pending:
     configuration: Configuration
     local_start: int | None
+    remote: Endpoint | None
     remote_start: int | None
     enabled: bool = True
     started: bool = False
@@ -61,14 +63,21 @@ def _number(attributes, name, minimum, maximum, default=''):
     return int(raw)
 
 
-def _endpoint(attributes, side):
-    match = ADDRESS.fullmatch(attributes.get(side + 'Element', '').strip())
-    if match is None or (side == 'Local' and ':' in match[1]):
-        raise ModelError(f'MESSAGE {side}Element requires a supported tag or array element')
-    offset = _number(attributes, side + 'Index', 0, 999999, '0')
+def _parse_endpoint(text, offset):
+    match = ADDRESS.fullmatch(text)
+    if match is None:
+        return None
     name, selector = match.groups()
     subscript = int(selector) if selector not in (None, '*') else None
     return Endpoint(name.casefold(), subscript, offset, selector == '*')
+
+
+def _endpoint(attributes, side):
+    offset = _number(attributes, side + 'Index', 0, 999999, '0')
+    endpoint = _parse_endpoint(attributes.get(side + 'Element', '').strip(), offset)
+    if endpoint is None or (side == 'Local' and ':' in endpoint.name):
+        raise ModelError(f'MESSAGE {side}Element requires a supported tag or array element')
+    return endpoint
 
 
 def from_tag(project, tag, element, dims):
@@ -89,7 +98,8 @@ def from_tag(project, tag, element, dims):
                    for name in ('ConnectedFlag', 'CacheConnections', 'LargePacketUsage'))):
         raise ModelError('MESSAGE supports only unconnected CIP transfers on the THIS path')
     return Configuration(kind.endswith('read'), _endpoint(attributes, 'Local'),
-                         _endpoint(attributes, 'Remote'), _number(attributes, 'RequestedLength', 1, MAX_ELEMENTS))
+                         _endpoint(attributes, 'Remote'), attributes['RemoteElement'].strip(),
+                         _number(attributes, 'RequestedLength', 1, MAX_ELEMENTS))
 
 
 def _words(dtype, count):
@@ -99,10 +109,18 @@ def _words(dtype, count):
 def initial(project, configuration):
     local = project.tags.get(configuration.local.name)
     requested = _words(local.dtype.upper(), configuration.count) if local and not local.problem else 0
-    return dict.fromkeys(('EW', 'ER', 'DN', 'ST', 'EN', 'TO'), False) | {
+    record = dict.fromkeys(('EW', 'ER', 'DN', 'ST', 'EN', 'TO'), False) | {
         'ERR': 0, 'EXERR': 0, 'REQ_LEN': requested, 'DN_LEN': 0,
         'LocalIndex': configuration.local.offset, 'RemoteIndex': configuration.remote.offset,
     }
+    # Preserve long authored addresses that predate the writable STRING field.
+    text = configuration.remote_text
+    if len(text) <= project.string_capacity('STRING'):
+        element = project.default('STRING')
+        element['LEN'] = len(text)
+        element['DATA'][:len(text)] = text.encode('ascii')
+        record['RemoteElement'] = element
+    return record
 
 
 def _region(memory, endpoint, start, count, *, remote, write):
@@ -154,9 +172,26 @@ def prescan(engine, op, scope):
     record = engine.memory.values[key]
     defaults = initial(engine.project, engine.project.message_configs[key])
     defaults.update(LocalIndex=record['LocalIndex'], RemoteIndex=record['RemoteIndex'])
+    if 'RemoteElement' in record:
+        defaults['RemoteElement'] = record['RemoteElement']
     engine.memory.values[key] = defaults
     if engine._message_advance is not None:
         engine._message_advance.pop(key, None)
+
+
+def _capture_remote(memory, key, configuration, record):
+    if 'RemoteElement' not in record:
+        return configuration.remote
+    try:
+        text = memory.string(key + '.RemoteElement')
+    except ModelError:
+        return None
+    if not text.isascii():
+        return None
+    text = text.strip()
+    if text.casefold() == configuration.remote_text.casefold():
+        return configuration.remote
+    return _parse_endpoint(text, 0)
 
 
 def execute(engine, op, power):
@@ -176,16 +211,19 @@ def execute(engine, op, power):
         else:
             record['EW'] = True
             configuration = engine.project.message_configs[key]
+            remote = _capture_remote(engine.memory, key, configuration, record)
             queue[key] = Pending(configuration, configuration.local.start(record['LocalIndex']),
-                                 configuration.remote.start(record['RemoteIndex']))
+                                 remote, remote.start(record['RemoteIndex']) if remote is not None else None)
     return power
 
 
 def _transfer(memory, pending):
     configuration = pending.configuration
+    if pending.remote is None:
+        raise TransferError(0x05)
     local_key, local_paths, dtype = _region(memory, configuration.local, pending.local_start,
                                             configuration.count, remote=False, write=configuration.read)
-    remote_key, remote_paths, remote_dtype = _region(memory, configuration.remote, pending.remote_start,
+    remote_key, remote_paths, remote_dtype = _region(memory, pending.remote, pending.remote_start,
                                                      configuration.count, remote=True, write=not configuration.read)
     if dtype != remote_dtype:
         raise TransferError(0xFC)

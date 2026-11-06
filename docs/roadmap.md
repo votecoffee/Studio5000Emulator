@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1106.174243` [ladder MSG](ladder-message.md) accepts runtime
+RemoteElement STRING changes for simulated reads and writes. The queue captures
+the target symbol with its indices. Message lab shows an in-flight read keeping
+the old target and the next read using the new one.
+
 Available in `26.1106.173304` [ladder MSG](ladder-message.md) captures writable
 LocalIndex and RemoteIndex values for [*] endpoints at queue time. Message lab
 uses ladder MOV to retarget a REAL read while preserving an in-flight request.

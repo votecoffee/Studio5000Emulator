@@ -32,6 +32,13 @@ queues the read. RealReadback[1] and RealReadback[2] receive 100.0 and 2.5.
 If you change either index after the first step, the new index takes effect
 on the next request.
 
+To retarget a read, start with a fresh Message Lab and queue a read with
+SendRead. Set UseAlternateRead to 1 while the request is pending. Ladder MOV
+changes ReadControl.RemoteElement to AlternateValue, and the queued request
+still reads VirtualValue. Scan SendRead false before triggering again. The
+next read returns 64 from AlternateValue. To edit the STRING directly in
+Tag Watch, clear UseAlternateRead first.
+
 ## Supported configuration and timing
 
 - Use a scalar Standard controller base tag with `DataType="MESSAGE"` and
@@ -50,6 +57,13 @@ on the next request.
   `Program:<program>.<tag>`. Local writes require a writable tag. Remote reads
   and writes respect External Access. Type mismatches and unknown source
   values set an error before the destination is changed.
+- The writable RemoteElement STRING accepts an ASCII symbol of up to 82
+  bytes. Queuing captures the symbol and its resolved start together.
+  A new literal subscript uses its own start. A new `[*]` selector uses the
+  live RemoteIndex. The unchanged exported symbol keeps its saved
+  addressing rules. Unreadable or invalid text completes with ERR 16#0005.
+  Prescan preserves edited text and Reset reloads the export. Existing
+  exported addresses longer than 82 bytes continue to use the saved endpoint.
 - The controller advance after the trigger starts the transfer. The following
   advance completes it before task logic runs, sampling the source then. A
   held true rung does not repeat a completed message. A false rung clears
@@ -65,8 +79,8 @@ on the next request.
   round up to a whole word. A LINT uses four words.
 
 This profile is an in-process simulation. External routing, network packet
-timing, native MESSAGE layouts, runtime path and tag changes, and Studio 5000 runtime
-qualification remain open. Decorated-only MESSAGE fields remain readable as
+timing, native MESSAGE layouts, runtime path changes, and Studio 5000
+runtime qualification remain open. Decorated-only MESSAGE fields remain readable as
 saved data. The native Message object inventory is separate.
 
 - [Rockwell message instruction](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/input-output-instructions/message--msg-.html)
