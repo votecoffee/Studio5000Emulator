@@ -63,10 +63,10 @@ def alarm_parameters(element, dtype, parameter, inputs, fields):
 
 
 def _record(memory, ref, scope, *, dtype=TYPE, instruction='ALMD'):
-    if scope in memory.frames:
-        raise ModelError(f'{instruction} inside an AOI remains unqualified')
     key, parts, actual = memory.check_writable(ref, scope)
     if actual != dtype or parts:
+        if scope in memory.frames:
+            raise ModelError(f'{instruction} in an AOI requires an InOut parameter bound to a writable scalar {dtype} tag')
         raise ModelError(f'{instruction} requires a writable scalar {dtype} tag')
     return key, memory.at(key, parts)
 
@@ -237,5 +237,5 @@ def description(project):
                 shelving='A sampled rising edge shelves or reshelves for configured minutes. Unshelve wins. Expiration uses modeled time.',
                 timestamps='UTC microseconds as LINT. Reached events use WallClockTime or ProgTime; InAlarmTime retains initial detection.',
                 false_rung_executes=True, native_runtime_parity=False,
-                remaining=['Native packed layouts and alarm event services',
-                           'ASO, ST, FBD and AOI alarm execution'])
+                aoi='Ladder AOIs with an exact scalar ALARM_DIGITAL InOut binding',
+                remaining=['Native packed layouts and alarm event services', 'ASO, ST and FBD'])

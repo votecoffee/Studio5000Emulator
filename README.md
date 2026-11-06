@@ -352,6 +352,8 @@ and separate rising and falling conditions. Operators can
 [shelve individual ALMA conditions](docs/ladder-alarm.md#analog-alarm-shelving)
 for a set duration. The ALMA instruction inspector shows exact
 [UTC event timestamps](docs/ladder-alarm.md#analog-alarm-timestamps).
+**AOI Alarm lab** runs both instructions through
+[InOut alarm record bindings](docs/ladder-alarm.md#ladder-alarms-in-add-on-instructions).
 
 [String conversions](docs/string-conversions.md) add LOWER/UPPER and STOR/RTOS
 in ladder and Structured Text, including user strings and existing AOI bindings.

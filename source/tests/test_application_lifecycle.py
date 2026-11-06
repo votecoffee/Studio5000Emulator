@@ -2408,6 +2408,38 @@ class ApplicationLifecycleTests(unittest.TestCase):
         write('Execute',False);row=step();self.assertEqual(row['IntLoop.SP'],60)
         p=self.post('report',{})['ladder_pid'];self.assertIn('one-way',p['cascade']);self.assertFalse(p['native_runtime_parity'])
 
+    def test_aoi_alarm_lab_exposes_inout_record_state_through_http(self):
+        self.assertEqual(self.post('demo', {'sample': 'AOIAlarmLab'})['blockers'], [])
+        self.assertIn(b'AOI Alarm lab', self.get('/'))
+        self.assertIn(b"loadDemo('AOIAlarmLab')", self.get('/app.js'))
+
+        def write(tag, value):
+            self.post('write', {'tag': tag, 'value': value})
+
+        def step():
+            state = self.post('step', {'dt': 10})
+            return {row['name']: row['value'] for row in state['tags']}
+
+        write('RunAlarms', True)
+        write('Trip', True)
+        write('Pressure', 90)
+        self.assertFalse(step()['MotorAlarm.InAlarm'])
+        self.assertFalse(step()['PressureAlarm.HHInAlarm'])
+        row = step()
+        self.assertTrue(row['MotorAlarm.InAlarmUnack'])
+        self.assertTrue(row['PressureAlarm.HHInAlarmUnack'])
+        self.assertTrue(row['Monitor.EnableOut'])
+        write('AckAll', True)
+        row = step()
+        self.assertTrue(row['MotorAlarm.Acked'])
+        self.assertTrue(row['PressureAlarm.HHAcked'])
+        write('RunAlarms', False)
+        row = step()
+        self.assertFalse(row['Monitor.EnableOut'])
+        self.assertFalse(row['MotorAlarm.EnableOut'])
+        self.assertFalse(row['PressureAlarm.EnableOut'])
+        self.assertTrue(row['PressureAlarm.HHInAlarm'])
+
     def test_aoi_pid_lab_local_inout_modes_and_rollback_through_http(self):
         self.assertEqual(self.post('demo',{'sample':'AOIPIDLab'})['blockers'],[])
         self.assertIn(b'AOI PID lab',self.get('/'));self.assertIn(b"loadDemo('AOIPIDLab')",self.get('/app.js'))

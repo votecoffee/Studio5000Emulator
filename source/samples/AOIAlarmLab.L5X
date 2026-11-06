@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="AOIAlarmLab" TargetType="Controller" ContainsContext="false">
+  <Controller Name="AOIAlarmLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
+    <DataTypes />
+    <Modules />
+    <AddOnInstructionDefinitions>
+      <AddOnInstructionDefinition Name="LabAlarmMonitor" Revision="1.0" Vendor="Studio5000Emulator" ExecutePrescan="false" ExecutePostscan="false" ExecuteEnableInFalse="true">
+        <Parameters>
+          <Parameter Name="EnableIn" TagType="Base" DataType="BOOL" Usage="Input" Required="false" Visible="false" />
+          <Parameter Name="EnableOut" TagType="Base" DataType="BOOL" Usage="Output" Required="false" Visible="false" />
+          <Parameter Name="DigitalState" TagType="Base" DataType="ALARM_DIGITAL" Usage="InOut" Required="true" Visible="true" />
+          <Parameter Name="AnalogState" TagType="Base" DataType="ALARM_ANALOG" Usage="InOut" Required="true" Visible="true" />
+          <Parameter Name="Trip" TagType="Base" DataType="BOOL" Usage="Input" Required="true" Visible="true" />
+          <Parameter Name="Pressure" TagType="Base" DataType="REAL" Usage="Input" Required="true" Visible="true" />
+          <Parameter Name="AckAll" TagType="Base" DataType="BOOL" Usage="Input" Required="true" Visible="true" />
+        </Parameters>
+        <LocalTags />
+        <Routines>
+          <Routine Name="Logic" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(Trip)ALMD(DigitalState,AckAll,0,0,0);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>ALMA(AnalogState,Pressure,AckAll,0,0);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="EnableInFalse" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>AFI()ALMD(DigitalState,AckAll,0,0,0);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>AFI()ALMA(AnalogState,Pressure,AckAll,0,0);</Text></Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </AddOnInstructionDefinition>
+    </AddOnInstructionDefinitions>
+    <Tags>
+      <Tag Name="RunAlarms" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data>
+      </Tag>
+      <Tag Name="Trip" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data>
+      </Tag>
+      <Tag Name="Pressure" DataType="REAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="REAL" Value="50" /></Data>
+      </Tag>
+      <Tag Name="AckAll" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data>
+      </Tag>
+      <Tag Name="Monitor" DataType="LabAlarmMonitor" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated">
+          <Structure DataType="LabAlarmMonitor">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Trip" DataType="BOOL" Value="0" />
+            <DataValueMember Name="Pressure" DataType="REAL" Value="50" />
+            <DataValueMember Name="AckAll" DataType="BOOL" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
+      <Tag Name="MotorAlarm" DataType="ALARM_DIGITAL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Alarm">
+          <AlarmDigitalParameters Condition="true" AckRequired="true" MinDurationPRE="20" />
+        </Data>
+      </Tag>
+      <Tag Name="PressureAlarm" DataType="ALARM_ANALOG" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Alarm">
+          <AlarmAnalogParameters HHLimit="90" HLimit="80" LLimit="20" LLLimit="10" Deadband="2" MinDurationPRE="20" ShelveDuration="1" MaxShelveDuration="5" />
+        </Data>
+      </Tag>
+    </Tags>
+    <Programs>
+      <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
+        <Tags />
+        <Routines>
+          <Routine Name="MainRoutine" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text>XIC(RunAlarms)LabAlarmMonitor(Monitor,MotorAlarm,PressureAlarm,Trip,Pressure,AckAll);</Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="MainTask" Type="CONTINUOUS" Priority="10" Watchdog="500" Class="Standard" InhibitTask="false">
+        <ScheduledPrograms><ScheduledProgram Name="MainProgram" /></ScheduledPrograms>
+      </Task>
+    </Tasks>
+  </Controller>
+</RSLogix5000Content>

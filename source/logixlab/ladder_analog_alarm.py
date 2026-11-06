@@ -293,5 +293,6 @@ def description(project):
                 rate_of_change='Sampled positive and negative conditions using the configured period',
                 shelving='Independent timed shelves for all six conditions',
                 timestamps='UTC WallClockTime detection and state-change microseconds',
+                aoi='Ladder AOIs with an exact scalar ALARM_ANALOG InOut binding',
                 remaining=['ST and FBD', 'Native layout and alarm event services'],
                 native_runtime_parity=False)

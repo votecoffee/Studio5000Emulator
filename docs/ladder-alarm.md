@@ -148,10 +148,10 @@ already met its delay keeps its qualification while the same excursion
 continues. A level can bypass the delay with its `MinDurationEnable` bit.
 
 The faceplate shows `MinDurationPRE` in milliseconds. The installed v35
-instruction page specifies zero for `MinDurationACC`, while the v35
-structure page describes an elapsed accumulator. The emulator follows
-the instruction page for the exposed member. The structure page describes
-interruption of unfinished timing on a false enable.
+structure page describes an elapsed accumulator and interruption of
+unfinished timing on a false enable. Rockwell's release notes confirm that
+`MinDurationACC` has stayed at zero since v29. The emulator keeps that value.
+[Rockwell release notes](https://compatibility.rockwellautomation.com/GeneratedReleaseNote.aspx?v1=62715)
 [ALMA instruction](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/alarm-instructions/analog-alarm---alma.html)
 [ALARM_ANALOG structure](https://www.rockwellautomation.com/en-dk/docs/studio-5000-logix-designer/37-02/contents-ditamap/studio-5000-logix-designer/alarms/instruction-based-alarms/analog-and-digital-alarm-properties-dialog-boxes/structure-definition-for-alarm_analog-tags--all-la.html)
 
@@ -254,10 +254,34 @@ for H comes from the first step and the time for HH comes from the
 second. The tags and HTTP state preserve exact decimal strings.
 [Rockwell ALMA status tab](https://www.rockwellautomation.com/en-fi/docs/studio-5000-logix-designer/37-00/contents-ditamap/studio-5000-logix-designer/alarms/instruction-based-alarms/analog-and-digital-alarm-properties-dialog-boxes/alma-properties-dialog-box---status-tab.html)
 
+## Ladder alarms in Add-On Instructions
+
+A ladder AOI can use `ALMD` and `ALMA` with writable scalar
+`ALARM_DIGITAL` and `ALARM_ANALOG` records passed as required
+`InOut` parameters. The instruction updates the caller's record, and
+its timing, acknowledgment edges and shelves follow that record through
+aliases and nested bindings. Each caller's separate record has its own
+history. Local alarm records and member or array alarm operands remain
+outside this profile.
+
+Prescan clears the referenced alarm's runtime state. An AOI can author
+an `EnableInFalse` routine. In AOI Alarm Lab it calls both instructions
+with false rung power. The active-high digital condition returns to
+normal, while the analog condition retains its published result and
+interrupts unfinished timing. With no false routine, a false AOI call
+skips the alarm instructions.
+
+Load **AOI Alarm lab** from Examples. Set `RunAlarms` and `Trip` true, set
+`Pressure` to 90 and take three 10 ms steps. The controller tags
+`MotorAlarm.InAlarm` and `PressureAlarm.HHInAlarm` become true. Pulse
+`AckAll` to acknowledge both. Select the AOI call and choose **Open AOI
+logic** to inspect its two alarm instructions.
+[Rockwell Add-On Instructions manual](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm010_-en-p.pdf#page=24)
+
 ## Scope
 
 Native alarm messages, event delivery and packed records remain open.
-ST, FBD, AOI alarms and ASO remain separate. The
+ST, FBD and ASO remain separate. The
 native alarm discovery services still expose only verified empty catalogs.
 Runtime behavior is based on the installed v35 alarm instruction help and
 the import/export record description. Native execution and transfer parity
