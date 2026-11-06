@@ -371,7 +371,7 @@ class Project:
         self.processor = c.get("ProcessorType", "unknown")
         self.minor_version = c.get('MinorRev','0')
         if self.version != "35": self.issues.append(f"Revision {self.version}: this prototype targets v35")
-        for attr in ("PowerLossProgram", "PowerUpHandlerProgram", "MajorFaultProgram"):
+        for attr in ("PowerLossProgram", "PowerUpHandlerProgram"):
             if c.get(attr): self.issues.append(f"{attr} execution is unsupported")
         for d in c.findall("./DataTypes/DataType"):
             self.udts[d.get("Name").lower()] = d
@@ -455,9 +455,42 @@ class Project:
                                "class": t.get("Class", "Standard"),
                                "programs": [p.get("Name") for p in t.findall("./ScheduledPrograms/ScheduledProgram")]})
             if self.tasks[-1]["type"]=="Event":self.tasks[-1]["event"]=event_specification(t)
+        self.fault_handler_routine = None
+        try:
+            self.fault_handler_routine = self._controller_fault_routine(c)
+        except ModelError as error:
+            self.issues.append(str(error))
         self.initial = {k: copy.deepcopy(t.value) for k, t in self.tags.items()}
         from .pseudo_operands import initialize_ladder_operands
         initialize_ladder_operands(self)
+
+    def _controller_fault_routine(self, controller):
+        fields = [key for key in controller.attrib
+                  if key.rsplit('}', 1)[-1].casefold() in ('majorfaultprogram', 'majorfaultprogramuid')]
+        configured = [key for key in fields if controller.attrib[key]]
+        if not configured:
+            return None
+        from .integer_math import CONTROLLERS
+        if (configured != ['MajorFaultProgram']
+                or any(key not in ('MajorFaultProgram', 'MajorFaultProgramUId') for key in fields)
+                or self.version != '35' or self.processor.upper() not in CONTROLLERS):
+            raise ModelError('Controller fault handler requires a named v35 ControlLogix 5580 source assignment')
+        target = controller.attrib['MajorFaultProgram'].casefold()
+        name = next((name for name in self.programs if name and name.casefold()==target), None)
+        program = self.programs.get(name)
+        if (not program or program['class'] != 'Standard' or program['use_as_folder']
+                or not self.task_configuration.proves_unscheduled(name, source_sha256=self.sha256)
+                or self.program_configuration.execution_disabled(name, source_sha256=self.sha256) is not False):
+            raise ModelError('Controller fault handler requires an enabled, unscheduled Standard Program')
+        node = next(item for item in controller.findall('./Programs/Program') if item.get('Name')==name)
+        names = self.executable_configuration.routine_names(name, source_sha256=self.sha256)
+        key = f"{name}/{program['main']}".casefold()
+        routine = self.routines.get(key)
+        if (not names or len(names)!=1 or names[0].casefold()!=program['main'].casefold()
+                or routine is None or routine.kind!='RLL' or node.get('FaultRoutineName')
+                or node.findall('ChildPrograms/*')):
+            raise ModelError('Controller fault handler requires one ladder main routine and no child Programs or Program fault routine')
+        return key
 
     def _routine(self,r,scope,count=True):
         routine=Routine(scope,r.get('Name',''),r.get('Type','unknown'))

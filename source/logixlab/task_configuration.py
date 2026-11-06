@@ -253,6 +253,10 @@ class TaskConfiguration:
                 'safety_memory_modeled':False,
                 'native_id_inferred':False, 'native_writes':False, 'execution_state_changed':False}
 
+    def proves_unscheduled(self, program, *, source_sha256):
+        return (source_sha256 == self.source_sha256 and isinstance(program, str)
+                and program.casefold() in self._unscheduled_programs)
+
     def owner_attributes(self,program,*,source_sha256,source_acd_sha256,task_ids,
                          task_source_l5x_sha256,task_source_acd_sha256):
         if (source_sha256!=self.source_sha256 or task_source_l5x_sha256!=self.source_sha256 or

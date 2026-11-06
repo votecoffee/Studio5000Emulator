@@ -158,7 +158,8 @@ trips a latched I/O major fault during whole-project Run, including when a
 [simulated upstream fault interrupts a required connection](docs/gsv-configuration.md#required-module-loss-through-an-upstream-fault).
 Restore the affected connections and use **Clear I/O major fault** to return to
 Program with current tag values. A [required connection blocked by a simulated fault at Run entry](docs/gsv-configuration.md#required-module-fault-at-run-entry)
-trips before prescan.
+trips before prescan. A [ladder controller fault handler](docs/controller-handlers.md#simulated-io-fault-capture)
+can capture the active simulated I/O fault record.
 [Aggregate LEDStatus](docs/gsv-configuration.md#simulated-module-ledstatus)
 summarizes a complete simulated module inventory.
 

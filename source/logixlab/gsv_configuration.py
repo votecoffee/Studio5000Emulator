@@ -14,6 +14,8 @@ from .task_configuration import NAME
 TASK = {'rate':(2,'DINT'), 'watchdog':(12,'DINT'), 'priority':(6,'INT'),
         'disableupdateoutputs':(18,'DINT'), 'inhibittask':(19,'DINT')}
 DEVICE_NAME_SIZE = 33
+MAJOR_FAULT_RECORD = 'major-fault-record'
+MAJOR_FAULT_WORDS = 11
 MODULE_PATH = 'module-path'
 MODULE_STATUS = {'forcestatus': 9, 'ledstatus': 11}
 MODULE_FAULTED = 0x1000
@@ -238,6 +240,7 @@ def _latch_module_major_fault(engine, module, connection, code, *, upstream=None
     engine.module_major_fault = fault
     engine.fault = (f'Required module {label} {reason} '
                     f'(Type 3 Code {code}, {diagnostic} 0x{connection.fault_code:04X}, info {connection.fault_info}).')
+    engine.run_module_fault_handler()
 
 
 def fault_on_run_entry(engine):
@@ -368,6 +371,22 @@ def module_attribute(engine, instance, attribute, *, executing):
     return 'INT', value
 
 
+def _major_fault_record(engine, instance, scope, *, executing):
+    routine = engine.project.routines.get(engine.project.fault_handler_routine)
+    if (routine is None or scope != routine.program
+            or instance.casefold() not in ('this', scope.casefold())):
+        raise ModelError('GSV MajorFaultRecord requires THIS or the current Controller Fault Handler Program')
+    if not executing:
+        return MAJOR_FAULT_RECORD, None
+    fault = engine.module_major_fault
+    if engine._executing_routine is not routine or fault is None:
+        raise ModelError('GSV MajorFaultRecord requires an active simulated I/O major fault in the handler')
+    timestamp = fault['timestamp_us']
+    time_words = (None, None) if timestamp is None else struct.unpack('<2i', struct.pack('<q', timestamp))
+    type_code = (fault['code'] << 16) | fault['type']
+    return MAJOR_FAULT_RECORD, (*time_words, type_code) + (None,) * 8
+
+
 def source(engine, op, scope='', *, executing=False):
     if len(op.args)!=4 or any(not isinstance(a,str) for a in op.args):
         raise ModelError('GSV requires four neutral-text operands')
@@ -401,6 +420,8 @@ def source(engine, op, scope='', *, executing=False):
                 raise ModelError('GSV Controller '+op.args[2]+' requires an unambiguous explicit 0/1 setting')
             return dtype, coerce(value, dtype)
         raise ModelError('Unsupported GSV Controller configuration attribute '+op.args[2])
+    if cls == 'program' and attribute == 'majorfaultrecord':
+        return _major_fault_record(engine, instance, scope, executing=executing)
     if cls in ('program','routine') and attribute=='name':
         return 'STRING',component_name(engine,cls,instance,scope,executing=executing)
     if cls!='task':raise ModelError('GSV configuration supports Task/Controller settings, ControllerDevice identity, Module status and Program/Routine Name')
@@ -480,6 +501,11 @@ def destination(memory, ref, scope, dtype, value, *, allow_dint=False):
         if kind != 'SINT' or len(parts) != DEVICE_NAME_SIZE:
             raise ModelError('GSV ControllerDevice DeviceName requires 33 writable contiguous SINT elements')
         return key, parts, kind
+    if dtype == MAJOR_FAULT_RECORD:
+        key, paths, kind = prefix(memory, ref, scope, MAJOR_FAULT_WORDS, writable=True)
+        if kind != 'DINT' or len(paths) != MAJOR_FAULT_WORDS:
+            raise ModelError('GSV MajorFaultRecord requires 11 writable contiguous DINT elements')
+        return key, paths, kind
     if dtype == MODULE_PATH:
         key, parts, kind, region = location(memory, ref, scope, writable=True)
         size = len(value)
@@ -518,9 +544,9 @@ def validate(engine, op, scope):
 def execute(engine, op, scope):
     dtype,value=source(engine,op,scope,executing=True);memory=engine.memory
     key,paths,kind=destination(memory,op.args[3],scope,dtype,value,allow_dint=dtype=='INT' and op.args[0].casefold()=='module')
-    if dtype in ('SINT[33]', MODULE_PATH):
-        for path, byte in zip(paths, value, strict=True):
-            memory.store(key, path, byte)
+    if dtype in ('SINT[33]', MODULE_PATH, MAJOR_FAULT_RECORD):
+        for path, item in zip(paths, value, strict=True):
+            memory.store(key, path, item)
     elif dtype=='STRING':memory.write_string(op.args[3],value,scope)
     elif kind != dtype:
         old = memory.at(key, paths[0])

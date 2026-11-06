@@ -112,6 +112,12 @@ function render() {
   $('alert').hidden = !(blocked || inhibited || state.fault);
   $('alert').textContent = state.fault || (blocked ? `${state.blockers.length} execution blocker(s). Open Coverage for details.\n${state.blockers.slice(0,3).join('\n')}` : inhibited?'Native programming preparation inhibits scans. Release or disconnect the owning client to resume.':'');
   if (moduleFault) {
+    const handler = moduleFault.handler;
+    if (handler) {
+      $('alert').textContent += handler.status === 'completed'
+        ? ` Controller fault handler ${handler.routine} completed.`
+        : ` Controller fault handler ${handler.routine} rolled back. ${handler.error}`;
+    }
     const recovery = moduleFault.upstream_module ? 'the upstream and required modules' : 'the module';
     $('alert').textContent += moduleFault.clear_ready
       ? ' Clear the fault to return to Program with current tag values.'

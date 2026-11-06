@@ -23,6 +23,12 @@ from .structured import Structured
 from . import __version__
 
 
+FAULT_HANDLER_OPS = frozenset(('XIC','XIO','OTE','OTL','OTU','AFI','NOP','EQU','NEQ','LES','LEQ','GRT',
+                               'GEQ','LIM','MEQ','MOV','CLR','ADD','SUB','MUL','DIV','GSV'))
+FAULT_HANDLER_GSV = frozenset((('program','majorfaultrecord'), ('module','entrystatus'),
+                               ('module','faultcode'), ('module','faultinfo')))
+
+
 class ReturnRoutine(Exception):
     pass
 
@@ -294,6 +300,9 @@ class Engine:
             if self.selected not in self.project.routines:
                 self.blockers.append("Select a routine for the isolated harness")
                 return
+            if self.selected == self.project.fault_handler_routine:
+                self.blockers.append("Controller fault handler requires a simulated I/O major fault")
+                return
             self.entries = [self.selected]
         elif self.mode == "project":
             self.blockers.extend(self.project.issues)
@@ -325,6 +334,8 @@ class Engine:
                             self.entries.append(entry);local_entries.append(entry)
                         # Program prescan includes all its routines, including routines not called.
                         self.active.update(k for k, r in self.project.routines.items() if r.program == name)
+            if self.project.fault_handler_routine:
+                self.active.add(self.project.fault_handler_routine)
             try:self._task_scheduler=TaskScheduler(self.project.tasks,task_entries)
             except ModelError as error:self.blockers.append(str(error))
             for tag in self.project.tags.values():
@@ -369,6 +380,12 @@ class Engine:
                     previous=(self.memory.structural,self.memory.validating)
                     if r.kind=='ST':self.memory.structural=True;self.memory.validating=True
                     try:
+                        if key == self.project.fault_handler_routine:
+                            if op.name not in FAULT_HANDLER_OPS or op.name in self.project.aois:
+                                raise ModelError('Instruction is outside the controller fault handler profile')
+                            if op.name == 'GSV' and (len(op.args)!=4 or
+                                    (op.args[0].casefold(), op.args[2].casefold()) not in FAULT_HANDLER_GSV):
+                                raise ModelError('Controller fault handler GSV supports MajorFaultRecord and named Module diagnostics')
                         if not(r.kind=='ST' and op.name=='MID'):self._validate(op, r.program)
                         if op.name=='JMP' and op.args and op.args[0].lower() not in labels:
                             raise ModelError(f'Missing label {op.args[0]}')
@@ -576,7 +593,8 @@ class Engine:
     def _prescan(self):
         dormant = self._program_activation.keys() & self._disabled_programs
         self._prescan_routines(key for key in sorted(self.active)
-                              if self.project.routines[key].program.casefold() not in dormant)
+                              if key != self.project.fault_handler_routine
+                              and self.project.routines[key].program.casefold() not in dormant)
 
     def _prescan_routines(self, keys):
         for key in keys:
@@ -733,6 +751,33 @@ class Engine:
             self._timing_advance=None
             self._program_advance=None
             self._scan_controller_status=None
+        return self._record_tag_changes(before)
+
+    def run_module_fault_handler(self):
+        key = self.project.fault_handler_routine
+        if not key:
+            return
+        fault = self.module_major_fault
+        result = {'routine': self.project.routines[key].key, 'status': 'completed'}
+        fault['timestamp_us'] = current_value_microseconds()
+        fault['handler'] = result
+        before = copy.deepcopy(self.memory.values)
+        previous_budget, previous_first, previous_trace = self.budget, self.memory.first_scan, self.trace
+        self.budget = self.instruction_limit
+        self.memory.first_scan = False
+        self.trace = []
+        try:
+            self._routine(key, 0)
+            self.trace = (previous_trace + self.trace)[-5000:]
+            self._record_tag_changes(before)
+        except Exception as error:
+            self.memory.values = before
+            self.trace = previous_trace
+            result.update(status='rolled_back', error=str(error) or type(error).__name__)
+        finally:
+            self.budget, self.memory.first_scan = previous_budget, previous_first
+
+    def _record_tag_changes(self, before):
         changes = []
         def compare(path, old, new):
             if old is None and isinstance(new,(dict,list)):old=unknown_shape(new)

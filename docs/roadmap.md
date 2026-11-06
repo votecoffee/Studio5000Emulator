@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1106.115701` [ladder controller fault capture](controller-handlers.md#simulated-io-fault-capture)
+runs a bounded handler once for simulated I/O major faults, including an
+in-handler MajorFaultRecord read and rollback on handler failure.
+
 Available in `26.1106.114118` [upstream faults at Run entry](gsv-configuration.md#required-module-fault-at-run-entry)
 latch Type 3 Code 23 when an explicit upstream fault blocks a required route.
 Inhibited routes stay out of the startup check.
@@ -22,7 +26,7 @@ the project state and leaves Run as a separate action.
 
 Available in `26.1106.105957` [required module loss during Run](gsv-configuration.md#required-module-loss-during-run)
 trips a latched I/O major fault on an explicit Running-to-Faulted connection
-transition. Controller fault handlers remain open.
+transition.
 
 Available in `26.1106.104547` [browser module simulation controls](gsv-configuration.md#simulated-module-connection)
 set Running, Faulted or Clear input from Device I/O. The panel displays

@@ -301,8 +301,9 @@ and real module communication remain open.
 In whole-project Remote Run, changing a module's effective connection
 from Running to Faulted trips a latched Type 3 Code 16 I/O major fault
 when bit 0 of its effective Mode word is set. The command applies at a
-scan boundary and preserves the completed scan and tag values. The
-controller reports Faulted and Device I/O retains the applied input.
+scan boundary and preserves the completed scan count. A configured handler
+can write diagnostics before the controller reports Faulted. Device I/O
+retains the applied input.
 `/api/state` exposes the controller fault under
 `controller.module_major_fault` with `type`, `code`, the canonical
 `module` name, the injected `fault_code` and `fault_info`, the `fault_id`
@@ -312,8 +313,8 @@ Loss of an optional module leaves Run active unless it interrupts a
 [required connection downstream](#required-module-loss-through-an-upstream-fault).
 A module that was inhibited, waiting or unknown cannot directly trip the
 controller on a fault injection. Program-mode changes and isolated routine
-harnesses leave the controller latch alone. Controller fault-handler execution
-remains open.
+harnesses leave the controller latch alone. A supported [controller fault handler](controller-handlers.md#simulated-io-fault-capture)
+can record the simulated fault before recovery.
 
 In **Module status lab**, set ModeCommand to 1 and ApplyMode to true,
 then Step once to uninhibit RackOutput and keep it required. Set
@@ -361,8 +362,9 @@ leaves the controller fault latched.
 A whole-project Program-to-Run request trips Type 3 Code 23 if a module
 is required by its effective Mode word and has an effective simulated
 Faulted connection or is Waiting on an explicitly faulted routed ancestor.
-The request fails before prescan and preserves tags, simulated time and
-scan counters. Direct faults take precedence over upstream faults. Within
+The request fails before prescan and preserves simulated time and scan
+counters. A configured controller fault handler can write diagnostics.
+Direct faults take precedence over upstream faults. Within
 each group, the controller reports the first qualifying module in source order.
 
 An inhibited route and an unmodeled connection without a known upstream

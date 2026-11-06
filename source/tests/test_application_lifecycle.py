@@ -1,4 +1,5 @@
 """Exercise real HTTP sessions and graceful process shutdown."""
+import base64
 import json
 import re
 import socket
@@ -7,12 +8,45 @@ import sys
 import tempfile
 import time
 import unittest
+import xml.etree.ElementTree as ET
 from urllib.error import HTTPError
 from pathlib import Path
 from urllib.request import Request, urlopen
 
 from logixlab import __version__
 from tools.vmware_appliance import background_options
+
+
+def diagnostic_handler_l5x(*, extra_rung=None, scheduled=False):
+    sample = Path(__file__).resolve().parents[1] / 'samples' / 'ModuleStatusLab.L5X'
+    root = ET.parse(sample).getroot()
+    controller = root.find('Controller')
+    controller.set('MajorFaultProgram', 'FaultHandler')
+    tags = controller.find('Tags')
+    words = ET.SubElement(tags, 'Tag', Name='FaultWords', DataType='DINT', Dimensions='11', TagType='Base')
+    data = ET.SubElement(words, 'Data', Format='Decorated')
+    array = ET.SubElement(data, 'Array', DataType='DINT', Dimensions='11')
+    for index in range(11):
+        ET.SubElement(array, 'Element', Index=f'[{index}]', Value='0')
+    for name, value in (('HandlerCalls','0'), ('HandlerDivisor','1'), ('HandlerQuotient','-1')):
+        tag = ET.SubElement(tags, 'Tag', Name=name, DataType='DINT', TagType='Base')
+        data = ET.SubElement(tag, 'Data', Format='Decorated')
+        ET.SubElement(data, 'DataValue', DataType='DINT', Value=value)
+    program = ET.SubElement(controller.find('Programs'), 'Program', Name='FaultHandler',
+                            MainRoutineName='Capture', Disabled='false', Class='Standard')
+    ET.SubElement(program, 'Tags')
+    routine = ET.SubElement(ET.SubElement(program, 'Routines'), 'Routine', Name='Capture', Type='RLL')
+    logic = ET.SubElement(routine, 'RLLContent')
+    rungs = ['GSV(Program,THIS,MajorFaultRecord,FaultWords[0]);',
+             'ADD(HandlerCalls,1,HandlerCalls);', 'DIV(40,HandlerDivisor,HandlerQuotient);']
+    if extra_rung:
+        rungs.append(extra_rung)
+    for index, text in enumerate(rungs):
+        rung = ET.SubElement(logic, 'Rung', Number=str(index), Type='N')
+        ET.SubElement(rung, 'Text').text = text
+    if scheduled:
+        ET.SubElement(controller.find('./Tasks/Task/ScheduledPrograms'), 'ScheduledProgram', Name='FaultHandler')
+    return {'name':'DiagnosticHandler.L5X', 'content':base64.b64encode(ET.tostring(root)).decode()}
 
 
 class ApplicationLifecycleTests(unittest.TestCase):
@@ -448,6 +482,95 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual(clear(record)['controller']['mode'], 'Program')
         self.assertTrue(mode('Run')['controller']['running'])
         self.assertEqual(mode('Program')['controller']['mode'], 'Program')
+
+    def test_controller_fault_handler_captures_io_fault_and_rolls_back_on_error(self):
+        state = self.post('load', diagnostic_handler_l5x())
+        self.assertEqual(state['blockers'], [])
+        self.assertEqual(state['entry_routines'], ['mainprogram/main'])
+        generation = state['project_generation']
+        def write(tag, value):
+            return self.post('write', {'tag':tag, 'value':value})
+        def connection(status):
+            body = {'project_generation':generation, 'module':'RackOutput', 'state':status}
+            if status=='faulted':
+                body.update(fault_code=0x0204, fault_info=-42)
+            return self.post('module-connection', body)
+        def observe():
+            return self.post('observe', {})
+        def mode(value):
+            return self.post('controller-mode', {'mode':value, 'dt':25})
+        def clear(record):
+            connection('running')
+            return self.post('module-major-fault-clear', {
+                'project_generation':generation, 'fault_id':record['fault_id']})
+        def tags(snapshot):
+            return {item['name']:item['value'] for item in snapshot['tags']}
+
+        write('ModeCommand', 1)
+        write('ApplyMode', True)
+        self.assertEqual(tags(self.post('step', {'dt':25}))['HandlerCalls'], 0)
+        write('ApplyMode', False)
+        connection('running')
+        self.assertTrue(mode('Run')['controller']['running'])
+        connection('faulted')
+        after = observe()
+        record = after['controller']['module_major_fault']
+        self.assertEqual(after['controller']['mode'], 'Faulted')
+        self.assertEqual(record['handler'], {'routine':'FaultHandler/Capture', 'status':'completed'})
+        self.assertEqual((record['type'], record['code']), (3, 16))
+        data = tags(after)
+        low = data['FaultWords[0]'] & 0xffffffff
+        high = data['FaultWords[1]'] & 0xffffffff
+        self.assertEqual(low | (high << 32), record['timestamp_us'])
+        self.assertGreater(record['timestamp_us'], 0)
+        self.assertEqual(data['FaultWords[2]'], (16 << 16) | 3)
+        self.assertEqual([data[f'FaultWords[{i}]'] for i in range(3, 11)], [None]*8)
+        self.assertEqual((data['HandlerCalls'], data['HandlerQuotient']), (1, 40))
+        self.assertTrue(any(row['routine']=='FaultHandler/Capture' for row in after['trace']))
+        self.assertTrue(any(row['tag']=='HandlerCalls' and row['after']==1 for row in after['changes']))
+        connection('faulted')
+        self.assertEqual(tags(observe())['HandlerCalls'], 1)
+        self.assertEqual(clear(record)['controller']['mode'], 'Program')
+
+        write('HandlerDivisor', 0)
+        connection('faulted')
+        before = observe()
+        with self.assertRaises(HTTPError) as rejected:
+            mode('Run')
+        self.assertEqual(rejected.exception.code, 400)
+        rejected.exception.close()
+        faulted = observe()
+        fault = faulted['controller']['module_major_fault']
+        self.assertEqual((fault['type'], fault['code']), (3, 23))
+        self.assertEqual(fault['handler']['status'], 'rolled_back')
+        self.assertIn('zero', fault['handler']['error'].lower())
+        for key in ('tags', 'trace', 'changes', 'scan', 'ms', 'task_schedule'):
+            self.assertEqual(faulted[key], before[key], key)
+        self.assertEqual(faulted['controller']['prescan_count'], before['controller']['prescan_count'])
+        clear(fault)
+        write('HandlerDivisor', 1)
+        connection('faulted')
+        with self.assertRaises(HTTPError) as startup:
+            mode('Run')
+        self.assertEqual(startup.exception.code, 400)
+        startup.exception.close()
+        recovered = observe()
+        self.assertEqual(recovered['controller']['module_major_fault']['handler']['status'], 'completed')
+        self.assertEqual(tags(recovered)['HandlerCalls'], 2)
+        self.assertEqual(tags(recovered)['FaultWords[2]'], (23 << 16) | 3)
+
+    def test_controller_fault_handler_rejects_scheduling_and_unsupported_instructions(self):
+        cases = (({'scheduled':True}, 'unscheduled Standard Program'),
+                 ({'extra_rung':'SSV(Program,THIS,MajorFaultRecord,FaultWords[0]);'},
+                  'outside the controller fault handler profile'))
+        for options, expected in cases:
+            with self.subTest(options=options):
+                state = self.post('load', diagnostic_handler_l5x(**options))
+                self.assertTrue(any(expected in reason for reason in state['blockers']), state['blockers'])
+        loaded = self.post('load', diagnostic_handler_l5x())
+        self.assertEqual(loaded['blockers'], [])
+        harness = self.post('configure', {'mode':'routine', 'routine':'FaultHandler/Capture'})
+        self.assertIn('Controller fault handler requires a simulated I/O major fault', harness['blockers'])
 
     def test_data_lab_clipped_record_operations_preserve_neighbors_and_rollback_through_http(self):
         state=self.post('demo',{'sample':'DataLab'});self.assertEqual(state['blockers'],[])
