@@ -36,7 +36,7 @@ GSV(Controller,,TimeSlice,CommTimeSlice);
 | Module | LEDStatus, ForceStatus | INT or DINT low word | Complete controller-only I/O map |
 | Module | Mode | GSV to INT or DINT low word, SSV from INT | Named local or qualified Ethernet module with explicit Inhibited and MajorFault settings |
 | Module | EntryStatus | INT or DINT low word | Named local or qualified Ethernet module with an explicit Inhibited setting and effective inhibit active at the read |
-| Module | Path | SINT window in a one-dimensional array | Source-proven local backplane or IPv4 Ethernet route |
+| Module | Path | SINT window in a one-dimensional array | Source-proven local backplane, IPv4 Ethernet, or remote ControlLogix backplane route |
 | Controller | TimeSlice | INT | Explicit source setting, 10..90 |
 | Controller | ShareUnusedTimeSlice | INT | Explicit source setting, 0/1 |
 | Controller | CanUseRPIFromProducer | DINT | Explicit Controller setting, 0/1 |
@@ -177,8 +177,8 @@ behavior and force control remain unqualified.
 ## Named Module status
 
 In a complete v35 5580 project, a Program routine can use ladder or ST to
-read settings for an unambiguous named module directly under Local or
-through a qualified local Ethernet bridge. The initial Mode uses the explicit L5X boolean fields
+read settings for an unambiguous named module under Local or on a
+qualified Ethernet or remote chassis route. The initial Mode uses the explicit L5X boolean fields
 MajorFault for bit 0 and Inhibited for bit 2. EntryStatus returns 16#6000
 while the effective inhibit bit is set. Guard EntryStatus reads with Mode
 bit 2. Reaching the read for an uninhibited module faults the advance
@@ -206,7 +206,7 @@ because the read is skipped. Set ModeCommand to 4, disable ApplyMode and
 enable ApplyModeST to restore the inhibit through ST.
 [ModuleStatusLab.L5X](../source/samples/ModuleStatusLab.L5X)
 
-AOI module references, remote backplane slots, cyclic data, live connection
+AOI module references, cyclic data, live connection
 diagnostics and module-caused controller faults remain open. Bit 0
 controls the modeled Mode word. Fault generation on connection loss
 requires a connection model.
@@ -257,9 +257,26 @@ In **Module status lab**, ReadModule writes the configured PointAdapter
 route to EthernetPath starting at index 1. It begins with `0C 00 12 0A`
 followed by the ASCII bytes for `192.0.2.42`. The first and last array
 cells stay at -99 and 99. The route is configuration data. Native
-GSV byte parity, hostname resolution, IPv6, additional hops, and live I/O
-remain open.
+GSV byte parity, hostname resolution, IPv6, and live I/O remain open.
 [Rockwell ControlLogix EtherNet/IP routing reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/um/1756-um004_-en-p.pdf)
+
+## Remote ControlLogix backplane path
+
+GSV Module Path can extend a qualified IPv4 route to a remote
+1756-EN2T or 1756-EN2TR by appending port 1 and a slot on that chassis.
+This works with the controller's embedded Ethernet port or a qualified
+local bridge. The adapter must declare a downstream ICP port 1, its
+own slot and the remote chassis size. The target needs an upstream
+ICP port 1, and its slot must be in range and unique within that chassis.
+An ambiguous adapter address also withholds routes to its children.
+
+In **Module status lab**, ReadModule writes the route for RemoteInput
+at slot 4 on the remote chassis. At RemotePath[1], the prefix is
+`0E 00 12 09` followed by the ASCII address `192.0.2.7`, a pad byte,
+and `01 04`. The existing SINT destination and Mode rules apply.
+The model covers one remote ControlLogix backplane. Native byte parity,
+other remote bus types and live module connections remain open.
+[Rockwell ControlLogix backplane routing reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/um/1756-um003_-en-p.pdf)
 
 ## Changing a periodic task rate
 

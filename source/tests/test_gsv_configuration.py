@@ -246,6 +246,72 @@ class GsvConfigurationTests(unittest.TestCase):
                      Address=address, Upstream='true')
         return parent, child
 
+    @classmethod
+    def add_remote_backplane(cls, root, *, bridged=False, adapter_slot='0', target_slot='4'):
+        _, adapter = cls.add_ethernet_path(root, bridged=bridged, address='192.0.2.7')
+        adapter.attrib.update(CatalogNumber='1756-EN2TR', Vendor='1')
+        ports = adapter.find('Ports')
+        ports.find('Port').set('Id', '2')
+        backplane = E.SubElement(ports, 'Port', Id='1', Type='ICP', Address=adapter_slot, Upstream='false')
+        E.SubElement(backplane, 'Bus', Size='7')
+        module = E.SubElement(root.find('./Controller/Modules'), 'Module', Name='RemoteInput',
+                              CatalogNumber='1756-IB16', ProductType='7', ParentModule='PointRemote',
+                              ParentModPortId='1', Inhibited='true', MajorFault='false')
+        E.SubElement(E.SubElement(module, 'Ports'), 'Port', Id='1', Type='ICP',
+                     Address=target_slot, Upstream='true')
+        return adapter, module
+
+    def test_remote_backplane_path_appends_port_and_slot_to_the_counted_route(self):
+        for st, prefix, adapter_slot, target_slot in (
+                (False, b'', '0', '4'), (True, bytes((1, 3)), '4', '0')):
+            with self.subTest(st=st):
+                payload = prefix + bytes((18, 9)) + b'192.0.2.7' + bytes((0, 1, int(target_slot)))
+                def source(root):
+                    self.add_remote_backplane(root, bridged=st, adapter_slot=adapter_slot, target_slot=target_slot)
+                    device_buffer(root, count=len(payload) + 4)
+                calls = ['GSV(Module,RemoteInput,Path,DeviceBytes[1]);',
+                         'GSV(Module,RemoteInput,Mode,PriorityOut);',
+                         'GSV(Module,RemoteInput,EntryStatus,Out);']
+                e = self.checked(calls, st=st, mutate=source)
+                e.step()
+                self.assertEqual(e.memory.read('DeviceBytes'), [-1, len(payload), 0, *payload, -1])
+                self.assertEqual(e.memory.read('PriorityOut'), 4)
+                self.assertEqual(e.memory.read('Out'), -65536 + 0x6000)
+                self.assertFalse(e.project.io_map.empty)
+                self.assertIsNone(e.project.io_map.connection_class_attributes())
+
+    def test_remote_backplane_path_rejects_unproven_chassis_and_slot(self):
+        for case in ('unknown-adapter', 'unsupported-port', 'missing-bus', 'no-adapter-slot',
+                     'adapter-slot', 'outside-chassis', 'duplicate-slot', 'duplicate-ip',
+                     'wrong-parent-port', 'short'):
+            with self.subTest(case=case):
+                def source(root):
+                    adapter, module = self.add_remote_backplane(root, bridged=True)
+                    backplane = adapter.find('./Ports/Port[@Id="1"]')
+                    port = module.find('./Ports/Port')
+                    modules = root.find('./Controller/Modules')
+                    if case == 'unknown-adapter':
+                        adapter.set('CatalogNumber', '1734-AENTR')
+                    elif case == 'unsupported-port':
+                        backplane.set('Type', 'RIO')
+                    elif case == 'missing-bus':
+                        backplane.remove(backplane.find('Bus'))
+                    elif case == 'no-adapter-slot':
+                        del backplane.attrib['Address']
+                    elif case == 'adapter-slot':
+                        port.set('Address', '0')
+                    elif case == 'outside-chassis':
+                        port.set('Address', '7')
+                    elif case in ('duplicate-slot', 'duplicate-ip'):
+                        other = copy.deepcopy(module if case == 'duplicate-slot' else adapter)
+                        other.set('Name', 'Duplicate')
+                        modules.append(other)
+                    elif case == 'wrong-parent-port':
+                        module.set('ParentModPortId', '2')
+                    device_buffer(root, count=18 if case == 'short' else 20)
+                e = self.engine(['GSV(Module,RemoteInput,Path,DeviceBytes[1]);'], mutate=source)
+                self.assertTrue(any('GSV Module' in error for error in e.blockers), e.blockers)
+
     def test_module_ethernet_paths_encode_length_and_padding(self):
         for st, bridged, address, payload in (
                 (False, False, '192.0.2.42', bytes((18, 10)) + b'192.0.2.42'),
@@ -560,6 +626,7 @@ class GsvConfigurationTests(unittest.TestCase):
         self.assertEqual(e.memory.read('StMode'), 5)
         self.assertEqual(e.memory.read('PathBytes'), [-99, 2, 0, 1, 2, 99])
         self.assertEqual(e.memory.read('EthernetPath'), [-99, 12, 0, 18, 10, *b'192.0.2.42', 99])
+        self.assertEqual(e.memory.read('RemotePath'), [-99, 14, 0, 18, 9, *b'192.0.2.7', 0, 1, 4, 99])
         self.assertTrue(e.memory.read('ModuleInhibited'))
         e.memory.write('ApplyMode', True)
         e.memory.write('ModeCommand', 1)

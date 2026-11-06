@@ -25,18 +25,24 @@ def _ports(module):
     return module.findall('./Ports/Port') if len(module.findall('Ports')) == 1 else []
 
 
+def _port(ports, port_id, port_type, *, upstream):
+    matches = [port for port in ports if _decimal_field(port, 'Id') == port_id]
+    if len(matches) != 1:
+        return None
+    port = matches[0]
+    if (port.get('Id') != str(port_id) or port.get('Type') != port_type
+            or port.get('Upstream') != ('true' if upstream else 'false')):
+        return None
+    return port
+
+
 def _backplane_port(module, *, upstream):
     if module.get('ParentModPortId') != '1':
         return None
     ports = _ports(module)
-    port_one = [port for port in ports if port.get('Id') == '1']
-    upstream_ports = [port for port in ports if port.get('Upstream') == 'true']
-    if len(port_one) != 1 or upstream_ports != (port_one if upstream else []):
-        return None
-    port = port_one[0]
-    if port.get('Type') != 'ICP' or port.get('Upstream') != ('true' if upstream else 'false'):
-        return None
-    return port
+    port = _port(ports, 1, 'ICP', upstream=upstream)
+    upstream_ports = [candidate for candidate in ports if candidate.get('Upstream') == 'true']
+    return port if upstream_ports == ([port] if upstream else []) else None
 
 
 def _decimal_field(node, attribute):
@@ -44,33 +50,28 @@ def _decimal_field(node, attribute):
     return int(value) if 1 <= len(value) <= 2 and value.isascii() and value.isdecimal() else None
 
 
-def _backplane_slots(local, entries):
-    root_port = _backplane_port(local, upstream=False)
-    if root_port is None:
+def _backplane_slots(parent_port, children):
+    if parent_port is None:
         return {}
-    buses = root_port.findall('Bus')
+    buses = parent_port.findall('Bus')
     size = _decimal_field(buses[0], 'Size') if len(buses) == 1 else None
-    local_slot = _decimal_field(root_port, 'Address')
-    if size is None or local_slot is None or not 0 <= local_slot < size <= 17:
+    parent_slot = _decimal_field(parent_port, 'Address')
+    if size is None or parent_slot is None or not 0 <= parent_slot < size <= 17:
         return {}
     slots = {}
-    for name, module in entries.items():
-        if name == 'local' or module.get('ParentModule', '').casefold() != 'local':
-            continue
+    for name, module in children.items():
         port = _backplane_port(module, upstream=True)
         slot = _decimal_field(port, 'Address') if port is not None else None
         if slot is not None and 0 <= slot < size:
             slots[name] = slot
     counts = Counter(slots.values())
-    return {name: slot for name, slot in slots.items() if slot != local_slot and counts[slot] == 1}
+    return {name: slot for name, slot in slots.items() if slot != parent_slot and counts[slot] == 1}
 
 
-def _ethernet_port(module):
-    ports = [port for port in _ports(module) if _decimal_field(port, 'Id') == 2]
-    if (len(ports) == 1 and ports[0].get('Id') == '2' and ports[0].get('Type') == 'Ethernet'
-            and ports[0].get('Upstream') == 'false'):
-        return ports[0]
-    return None
+def _is_ethernet_bridge(module):
+    return (NAME.fullmatch(module.get('Name', '')) is not None
+            and module.get('CatalogNumber') in ETHERNET_BRIDGES and module.get('Vendor') == '1'
+            and module.get('ProductType') == '12' and 'SafetyNetwork' not in module.attrib)
 
 
 def _ethernet_address(module):
@@ -94,13 +95,11 @@ def _ethernet_address(module):
 def _ethernet_routes(local, entries, slots):
     # A parent must expose an unambiguous Ethernet port. A local bridge
     # also needs a proven slot to construct the first hop.
-    parents = {'local': (b'', _ethernet_port(local))}
+    parents = {'local': (b'', _port(_ports(local), 2, 'Ethernet', upstream=False))}
     for name, slot in slots.items():
         bridge = entries[name]
-        if (NAME.fullmatch(bridge.get('Name', '')) and bridge.get('CatalogNumber') in ETHERNET_BRIDGES
-                and bridge.get('Vendor') == '1'
-                and bridge.get('ProductType') == '12' and 'SafetyNetwork' not in bridge.attrib):
-            parents[name] = (bytes((1, slot)), _ethernet_port(bridge))
+        if _is_ethernet_bridge(bridge):
+            parents[name] = (bytes((1, slot)), _port(_ports(bridge), 2, 'Ethernet', upstream=False))
     links = {}
     for name, module in entries.items():
         parent = module.get('ParentModule', '').casefold()
@@ -129,9 +128,20 @@ def _module_settings(controller, modules):
             or local.get('CatalogNumber') != controller.get('ProcessorType')
             or local.get('Vendor') != '1' or local.get('ProductType') != '14'):
         return ()
-    slots = _backplane_slots(local, entries)
+    children = {}
+    for name, module in entries.items():
+        parent = module.get('ParentModule', '').casefold()
+        if name != parent:
+            children.setdefault(parent, {})[name] = module
+    slots = _backplane_slots(_backplane_port(local, upstream=False), children.get('local', {}))
     routes = {name: bytes((1, slot)) for name, slot in slots.items()}
-    routes.update(_ethernet_routes(local, entries, slots))
+    ethernet_routes = _ethernet_routes(local, entries, slots)
+    routes.update(ethernet_routes)
+    for name, prefix in ethernet_routes.items():
+        if name in children and _is_ethernet_bridge(entries[name]):
+            port = _port(_ports(entries[name]), 1, 'ICP', upstream=False)
+            remote_slots = _backplane_slots(port, children[name])
+            routes.update({child: prefix + bytes((1, slot)) for child, slot in remote_slots.items()})
     bool_values = {'true': True, 'false': False}
     settings = []
     for name, module in entries.items():

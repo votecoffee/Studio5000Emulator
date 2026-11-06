@@ -16,6 +16,15 @@
       <Module Name="PointAdapter" CatalogNumber="1734-AENTR" Vendor="1" ProductType="12" ParentModule="Local" ParentModPortId="2" Inhibited="true" MajorFault="false">
         <Ports><Port Id="1" Address="192.0.2.42" Type="Ethernet" Upstream="true" /></Ports>
       </Module>
+      <Module Name="RemoteRack" CatalogNumber="1756-EN2TR" Vendor="1" ProductType="12" ParentModule="Local" ParentModPortId="2" Inhibited="false" MajorFault="false">
+        <Ports>
+          <Port Id="1" Address="0" Type="ICP" Upstream="false"><Bus Size="7" /></Port>
+          <Port Id="2" Address="192.0.2.7" Type="Ethernet" Upstream="true" />
+        </Ports>
+      </Module>
+      <Module Name="RemoteInput" CatalogNumber="1756-IB16" Vendor="1" ProductType="7" ParentModule="RemoteRack" ParentModPortId="1" Inhibited="true" MajorFault="false">
+        <Ports><Port Id="1" Address="4" Type="ICP" Upstream="true" /></Ports>
+      </Module>
     </Modules>
     <AddOnInstructionDefinitions />
     <Tags>
@@ -37,6 +46,11 @@
           <Element Index="[0]" Value="-99" /><Element Index="[15]" Value="99" />
         </Array></Data>
       </Tag>
+      <Tag Name="RemotePath" DataType="SINT" TagType="Base" Dimensions="18">
+        <Data Format="Decorated"><Array DataType="SINT" Dimensions="18">
+          <Element Index="[0]" Value="-99" /><Element Index="[17]" Value="99" />
+        </Array></Data>
+      </Tag>
       <Tag Name="ModuleInhibited" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
     </Tags>
     <Programs>
@@ -52,6 +66,7 @@
               <Rung Number="4" Type="N"><Text>XIC(ReadModule)XIC(ModeWord.2)MEQ(StateWord,16#F000,16#6000)OTE(ModuleInhibited);</Text></Rung>
               <Rung Number="5" Type="N"><Text>XIC(ReadModule)GSV(Module,RackOutput,Path,PathBytes[1]);</Text></Rung>
               <Rung Number="6" Type="N"><Text>XIC(ReadModule)GSV(Module,PointAdapter,Path,EthernetPath[1]);</Text></Rung>
+              <Rung Number="7" Type="N"><Text>XIC(ReadModule)GSV(Module,RemoteInput,Path,RemotePath[1]);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="ReadModeST" Type="ST">

@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1106.095832` [remote ControlLogix backplane Path reads](gsv-configuration.md#remote-controllogix-backplane-path)
+extend qualified Ethernet routes with a remote rack slot in ladder and ST.
+Module Status Lab displays the configured path to a remote input module.
+
 Available in `26.1106.094856` [Module Ethernet Path reads](gsv-configuration.md#module-ethernet-path)
 derive IPv4 routes through a 5580 embedded Ethernet port or a local EN2T/EN2TR.
 Module Status Lab displays the counted route to a configured POINT I/O adapter.
