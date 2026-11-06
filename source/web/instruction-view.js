@@ -92,12 +92,15 @@
         .map(([label, member]) => ({label, ref: args[0] + '.' + member}));
     }
     if (op === 'ALMA') {
-      for (const member of ['HHLimit', 'HLimit', 'LLimit', 'LLLimit', 'ROCPeriod', 'ROCPosLimit', 'ROCNegLimit', 'ROC']) {
+      for (const member of ['HHLimit', 'HLimit', 'LLimit', 'LLLimit', 'ShelveDuration', 'MaxShelveDuration',
+        'ROCPeriod', 'ROCPosLimit', 'ROCNegLimit', 'ROC']) {
         fields.push({label: member, ref: args[0] + '.' + member, member: true, visible: true});
       }
       flags = [['HH', 'HHInAlarm'], ['H', 'HInAlarm'], ['L', 'LInAlarm'], ['LL', 'LLInAlarm'],
         ['R+', 'ROCPosInAlarm'], ['R-', 'ROCNegInAlarm'],
-        ['SUP', 'Suppressed'], ['DIS', 'Disabled'], ['FLT', 'Status.0']]
+        ['SUP', 'Suppressed'], ['DIS', 'Disabled'], ['FLT', 'Status.0'],
+        ['SHH', 'HHShelved'], ['SH', 'HShelved'], ['SL', 'LShelved'], ['SLL', 'LLShelved'],
+        ['S+', 'ROCPosShelved'], ['S-', 'ROCNegShelved']]
         .map(([label, member]) => ({label, ref: args[0] + '.' + member}));
     }
     if (Object.hasOwn(control, op)) {

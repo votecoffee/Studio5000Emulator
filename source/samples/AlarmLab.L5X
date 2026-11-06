@@ -42,7 +42,7 @@
       <Tag Name="EnableAnalog" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="PressureAlarm" TagType="Base" DataType="ALARM_ANALOG" ExternalAccess="Read/Write">
         <Data Format="Alarm">
-          <AlarmAnalogParameters HHLimit="90.0" HLimit="80.0" LLimit="20.0" LLLimit="10.0" Deadband="2.0" MinDurationPRE="20" />
+          <AlarmAnalogParameters HHLimit="90.0" HLimit="80.0" LLimit="20.0" LLLimit="10.0" Deadband="2.0" MinDurationPRE="20" ShelveDuration="1" MaxShelveDuration="5" />
           <AlarmConfig />
         </Data>
       </Tag>

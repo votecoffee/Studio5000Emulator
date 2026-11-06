@@ -1,7 +1,9 @@
 """Ladder ALMA for the v35 ControlLogix 5580 software model."""
 from typing import NamedTuple
 
-from .ladder_alarm import MAX_DINT, STATUS_BITS as DIGITAL_STATUS_BITS, available, alarm_parameters, _command, _record
+from .ladder_alarm import (
+    MAX_DINT, STATUS_BITS as DIGITAL_STATUS_BITS, available, alarm_parameters, _command, _record, _shelf_deadline,
+)
 from .model import ModelError, coerce, literal
 from .real_math import SOURCE_TYPES, real
 
@@ -53,6 +55,8 @@ class AlarmHistory(NamedTuple):
     ack_all: bool = False
     level_acks: frozenset[str] = frozenset()
     roc: RocSample | None = None
+    shelves: tuple[tuple[str, int], ...] = ()
+    shelf_requests: frozenset[str] = frozenset()
 
 
 def default():
@@ -162,8 +166,6 @@ def execute(engine, op, power, scope):
             engine.last_timer[identity] = history._replace(roc=None)
         return False
 
-    if any(obj[name] for name in SHELF_REQUESTS):
-        raise ModelError('ALMA shelving remains unqualified')
     preset = obj['MinDurationPRE']
     if not 0 <= preset <= MAX_DINT:
         raise ModelError('ALMA MinDurationPRE must be a nonnegative DINT')
@@ -194,11 +196,25 @@ def execute(engine, op, power, scope):
 
     global_ack = (ack_all and not history.ack_all) or obj['OperAckAll']
     level_acks = frozenset(level for level in CONDITIONS if obj[level+'ProgAck'])
+    shelf_requests = frozenset(level for level in CONDITIONS if obj[level+'OperShelve'])
+    new_shelf_requests = shelf_requests - history.shelf_requests
+    old_shelves = dict(history.shelves)
+    shelves = {}
     count_reset = obj['AlarmCountReset']
     any_unack = False
     for level, in_alarm in active.items():
+        cancel = obj['ProgUnshelveAll'] or obj[level+'OperUnshelve']
+        minutes = None
+        if level in new_shelf_requests and not cancel:
+            minutes = min(obj['ShelveDuration'], obj['MaxShelveDuration'])
+            if minutes < 1:
+                raise ModelError('ALMA shelving requires a positive duration and maximum in minutes')
+        deadline = _shelf_deadline(now, old_shelves.get(level), minutes=minutes, cancel=cancel)
+        shelved = deadline is not None
+        if shelved:
+            shelves[level] = deadline
         activated = in_alarm and not obj[level+'InAlarm']
-        rearm = in_alarm and not suppressed and (activated or was_suppressed)
+        rearm = in_alarm and not (suppressed or shelved) and (activated or was_suppressed or level in old_shelves)
         ack_requested = global_ack or (level in level_acks and level not in history.level_acks) or obj[level+'OperAck']
         acked = (obj[level+'Acked'] and not rearm) or not obj['AckRequired'] or ack_requested
         unack = in_alarm and not acked
@@ -206,12 +222,13 @@ def execute(engine, op, power, scope):
         count_field = COUNT_FIELDS[level]
         count = 0 if count_reset else min(MAX_DINT, obj[count_field] + int(activated))
         obj.update({level+'InAlarm': in_alarm, level+'Acked': acked, level+'InAlarmUnack': unack,
-                    count_field: count})
+                    level+'Shelved': shelved, count_field: count})
     obj.update(dict.fromkeys(OPERATOR, False))
     obj.update(EnableIn=True, EnableOut=True, In=sample, ProgAckAll=ack_all,
                ProgDisable=disable, ProgEnable=enable, Suppressed=suppressed, Disabled=disabled,
                AnyInAlarmUnack=any_unack, MinDurationACC=0, ROC=rate, Status=status)
-    engine.last_timer[identity] = AlarmHistory(low_since, high_since, ack_all, level_acks, roc)
+    engine.last_timer[identity] = AlarmHistory(low_since, high_since, ack_all, level_acks, roc,
+                                              tuple(shelves.items()), shelf_requests)
     return True
 
 
@@ -219,5 +236,6 @@ def description(project):
     return dict(available=available(project), instruction='ALMA', language='RLL', data_type=TYPE,
                 levels=['LL', 'L', 'H', 'HH'], timing='Shared qualification time per direction; inclusive pickup and deadband release',
                 rate_of_change='Sampled positive and negative conditions using the configured period',
-                remaining=['Shelving, timestamps, ST and FBD', 'Native layout and alarm event services'],
+                shelving='Independent timed shelves for all six conditions',
+                remaining=['Timestamps, ST and FBD', 'Native layout and alarm event services'],
                 native_runtime_parity=False)

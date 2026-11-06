@@ -185,11 +185,35 @@ to 100. Step once at `Pressure` 50 to set the baseline. Change pressure to
 R-. The faceplate shows +100 and -100 units per second respectively.
 [Rockwell ALARM_ANALOG structure](https://www.rockwellautomation.com/en-za/docs/studio-5000-logix-designer/38-00/contents-ditamap/studio-5000-logix-designer/alarms/instruction-based-alarms/analog-and-digital-alarm-properties-dialog-boxes/structure-definition-for-alarm_analog-tags--all-la.html)
 
+## Analog alarm shelving
+
+Each of the four level and two rate-of-change conditions has a shelf timer.
+Pulse the condition's `OperShelve` member, such as `HHOperShelve`, to start or
+restart its timer. `ShelveDuration` specifies minutes and the emulator caps
+it at `MaxShelveDuration`. Both must be positive for a new shelf. Each
+condition's `OperUnshelve` cancels that shelf. `ProgUnshelveAll` cancels every
+shelf while true. Unshelving takes precedence and consumes a simultaneous
+shelf edge. The instruction clears operator requests when it executes.
+
+Detection and counts continue while a condition is shelved. A condition
+acknowledged while shelved remains acknowledged through retriggering.
+If it is still active when its shelf expires or is cancelled, it requires
+acknowledgment again once it is unsuppressed. The first powered execution
+at or after the deadline processes the expiration. Prescan clears shelves.
+
+In Alarm Lab, turn on `AnalogRun` and hold `Pressure` at 90 for three 10 ms
+steps. Set `PressureAlarm.HHOperShelve` and `PressureAlarm.HHOperAck` and step.
+The ALMA faceplate lights SHH for the one-minute high-high shelf. H stays
+active and unacknowledged. Advance 60000 ms to clear SHH and rearm the
+high-high acknowledgment. The other shelf indicators are SH, SL, SLL, S+
+and S-.
+[Rockwell ALMA reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/alarm-instructions/analog-alarm---alma.html)
+[Rockwell shelf configuration](https://www.rockwellautomation.com/en-pl/docs/studio-5000-logix-designer/38-01/contents-ditamap/studio-5000-logix-designer/alarms/instruction-based-alarms/analog-and-digital-alarm-properties-dialog-boxes/alma-properties-dialog-box---configuration-tab-par.html)
+
 ## Scope
 
 Native alarm messages, event delivery and packed records remain open.
-ALMA shelving and timestamps remain open. Shelving requests block the
-modeled ALMA advance. ST, FBD, AOI alarms and ASO remain separate. The
+ALMA timestamps remain open. ST, FBD, AOI alarms and ASO remain separate. The
 native alarm discovery services still expose only verified empty catalogs.
 Runtime behavior is based on the installed v35 alarm instruction help and
 the import/export record description. Native execution and transfer parity

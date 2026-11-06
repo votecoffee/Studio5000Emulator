@@ -6,7 +6,7 @@ const instruction = require('../../web/instruction-view.js');
 const op = (name, ...args) => ({name, args});
 const rung = nodes => ({number: '0', comment: 'Seal in', text: 'source retained', nodes});
 const seal = () => graph.compile(rung([op('XIO', 'Stop'), {branch: [[op('XIC', 'Start')], [op('XIC', 'Latch')]]}, op('OTE', 'Latch')]), 'Main/Main');
-test('ALMA faceplate binds rate settings, live rate and both alarm flags', () => {
+test('ALMA faceplate binds rate settings, live rate and condition shelf flags', () => {
   const face = instruction.describe({opcode: 'ALMA', operands: ['Alarm', 'Input', 'Ack', 'Disable', 'Enable']});
   assert.deepEqual(face.rows.slice(-4).map(row => [row.label, row.ref, row.member]), [
     ['ROCPeriod', 'Alarm.ROCPeriod', true], ['ROCPosLimit', 'Alarm.ROCPosLimit', true],
@@ -14,6 +14,12 @@ test('ALMA faceplate binds rate settings, live rate and both alarm flags', () =>
   ]);
   assert.deepEqual(face.flags.filter(flag => flag.label.startsWith('R')), [
     {label: 'R+', ref: 'Alarm.ROCPosInAlarm'}, {label: 'R-', ref: 'Alarm.ROCNegInAlarm'},
+  ]);
+  assert.deepEqual(face.rows.slice(-6, -4).map(row => row.ref),
+    ['Alarm.ShelveDuration', 'Alarm.MaxShelveDuration']);
+  assert.deepEqual(face.flags.slice(-6).map(flag => flag.ref), [
+    'Alarm.HHShelved', 'Alarm.HShelved', 'Alarm.LShelved', 'Alarm.LLShelved',
+    'Alarm.ROCPosShelved', 'Alarm.ROCNegShelved',
   ]);
 });
 function validate(g) {

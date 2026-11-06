@@ -957,6 +957,33 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertTrue(row['PressureAlarm.ROCNegAcked'])
         self.assertFalse(row['PressureAlarm.AnyInAlarmUnack'])
 
+    def test_alarm_lab_analog_shelves_one_condition_through_http(self):
+        self.assertEqual(self.post('demo', {'sample': 'AlarmLab'})['blockers'], [])
+
+        def write(tag, value):
+            self.post('write', {'tag': tag, 'value': value})
+
+        def step(dt=10):
+            state = self.post('step', {'dt': dt})
+            return {row['name']: row['value'] for row in state['tags']}
+
+        write('AnalogRun', True)
+        write('Pressure', 90)
+        write('PressureAlarm.MinDurationPRE', 0)
+        self.assertTrue(step()['PressureAlarm.HHInAlarmUnack'])
+        write('PressureAlarm.HHOperShelve', True)
+        write('PressureAlarm.HHOperAck', True)
+        row = step()
+        self.assertTrue(row['PressureAlarm.HHShelved'])
+        self.assertTrue(row['PressureAlarm.HHAcked'])
+        self.assertFalse(row['PressureAlarm.HShelved'])
+        self.assertTrue(row['PressureAlarm.HInAlarmUnack'])
+        self.assertTrue(step(59_999)['PressureAlarm.HHShelved'])
+        row = step(1)
+        self.assertFalse(row['PressureAlarm.HHShelved'])
+        self.assertTrue(row['PressureAlarm.HHInAlarmUnack'])
+        self.assertEqual(row['PressureAlarm.HHAlarmCount'], 1)
+
     def test_string_lab_executes_rll_st_and_reflects_input_search_changes(self):
         state = self.post('demo', {'sample': 'StringLab'})
         self.assertEqual(state['blockers'], [])

@@ -126,13 +126,10 @@ def prescan(engine, op, scope):
     engine.last_timer.pop(('ALMD', key), None)
 
 
-def _shelf_deadline(obj, now, deadline, *, start, cancel):
+def _shelf_deadline(now, deadline, *, minutes, cancel):
     if cancel:
         return None
-    if start:
-        minutes = obj['ShelveDuration']
-        if not 1 <= minutes <= obj['MaxShelveDuration']:
-            raise ModelError('ALMD shelve duration must be 1..MaxShelveDuration minutes')
+    if minutes is not None:
         return now + minutes * 60_000
     return deadline if deadline is not None and now < deadline else None
 
@@ -164,7 +161,10 @@ def execute(engine, op, power, scope):
     was_shelved = shelf_until is not None
     unshelve_requested = obj['ProgUnshelve'] or obj['OperUnshelve']
     shelf_started = shelve_request and not old_shelve and not unshelve_requested
-    shelf_until = _shelf_deadline(obj, now, shelf_until, start=shelf_started, cancel=unshelve_requested)
+    minutes = obj['ShelveDuration'] if shelf_started else None
+    if minutes is not None and not 1 <= minutes <= obj['MaxShelveDuration']:
+        raise ModelError('ALMD shelve duration must be 1..MaxShelveDuration minutes')
+    shelf_until = _shelf_deadline(now, shelf_until, minutes=minutes, cancel=unshelve_requested)
     shelved = shelf_until is not None
     ack_requested = (ack and not old_ack) or obj['OperAck']
     reset_requested = (reset and not old_reset) or obj['OperReset']
