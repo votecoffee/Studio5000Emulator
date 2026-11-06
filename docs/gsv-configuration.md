@@ -15,6 +15,10 @@ GSV(Task,FastTask,Name,TaskName);
 GSV(Controller,,TimeSlice,CommTimeSlice);
 ```
 
+In a whole-project ladder scan, a handler that clears an out-of-bounds
+operand can skip the GSV write or SSV setting change and continue the rung.
+See [GSV and SSV array recovery](controller-handlers.md#recover-gsv-and-ssv-array-faults).
+
 ## Attributes and types
 
 | Class | Attribute | Destination type | Scope |

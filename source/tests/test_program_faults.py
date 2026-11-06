@@ -175,6 +175,12 @@ def add_string_recovery_tags(root):
         ET.SubElement(array,'Element',Index=f'[{index}]',Value=value)
 
 
+def add_system_value_recovery_tags(root):
+    tags = root.find('./Controller/Tags')
+    add_fault_dint_array(tags,'LabClockWords',[77]*9)
+    add_fault_dint_array(tags,'LabSetpoints',[600000,650000])
+
+
 def ladder_fault_load(*, controller_fallback=False, call_fault=None, instruction=None,
                       record_type=None, record_members=None, queue_values=None, **options):
     root = ET.parse(fixtures.SAMPLE).getroot()
@@ -539,7 +545,7 @@ class ProgramFaultTests(unittest.TestCase):
                 self.assertEqual(engine.memory.read('SpeedCommand'),52 if return_destination else 13)
 
     def test_jsr_argument_recovery_does_not_intercept_callee_errors(self):
-        for mnemonic in ('GSV','SQR','FRD','EQU','MOV'):
+        for mnemonic in ('FOR','GSV','SQR','FRD','EQU','MOV'):
             with self.subTest(mnemonic=mnemonic):
                 self.setUp()
 
@@ -553,6 +559,7 @@ class ProgramFaultTests(unittest.TestCase):
                     content.insert(2,set_index)
                     faulting = ET.Element('Rung',Number='3',Type='N')
                     line = {
+                        'FOR':'FOR(Reporting,CallInput,0,LabValues[LabIndex],1);',
                         'GSV':'GSV(Task,THIS,LastScanTime,LabValues[LabIndex]);',
                         'SQR':'SQR(LabValues[LabIndex],CallInput);',
                         'FRD':'FRD(LabValues[LabIndex],CallInput);',
@@ -566,7 +573,7 @@ class ProgramFaultTests(unittest.TestCase):
                 self.assertEqual(engine.blockers, [])
                 engine.memory.write('StartPB',True)
                 before = copy.deepcopy(engine.memory.values)
-                if mnemonic=='GSV':
+                if mnemonic=='FOR':
                     with self.assertRaisesRegex(ModelError,'Scan rolled back: Array index outside bounds'):
                         engine.step()
                     self.assertEqual(engine.memory.values,before)
@@ -1885,6 +1892,88 @@ class ProgramFaultTests(unittest.TestCase):
                 with self.assertRaisesRegex(ModelError,message):
                     engine.step()
                 self.assertEqual(engine.memory.values,before)
+                self.assertEqual(engine.scan_count,0)
+                self.assertIsNone(engine.last_cleared_program_fault)
+
+    def test_gsv_array_fault_preserves_the_complete_clock_window(self):
+        from test_gsv_wall_clock import FIELDS, MICROSECONDS
+
+        def configure(root):
+            controller_fault_fallback_fixture(root,controller_tail='CLR(LabIndex);')
+            add_system_value_recovery_tags(root)
+            set_fault_instruction(root,'GSV(WallClockTime,,DateTime,LabClockWords[LabIndex])')
+
+        engine = self.engine(mutate=configure)
+        self.assertEqual(engine.blockers,[])
+        engine.memory.write('LabIndex',9)
+        engine.memory.write('SpeedCommand',50)
+        engine.step()
+        self.assertIsNone(engine.last_cleared_program_fault)
+        self.assertEqual(engine.memory.read('LabIndex'),9)
+        engine.memory.write('StartPB',True)
+        engine.step()
+        fault = engine.last_cleared_program_fault
+        self.assertEqual((fault['type'],fault['code'],fault['instruction']),(4,20,'GSV'))
+        self.assertEqual(fault['handler']['routine'],'FaultHandler/Capture')
+        self.assertEqual(engine.memory.read('LabClockWords'),[77]*9)
+        self.assertEqual(engine.memory.read('SpeedCommand'),51)
+
+        with patch('logixlab.wall_clock.time.time_ns',return_value=MICROSECONDS*1000):
+            engine.step()
+        self.assertEqual(engine.memory.read('LabClockWords'),[*FIELDS,77,77])
+        self.assertEqual(engine.memory.read('SpeedCommand'),52)
+        self.assertFalse(any('recovery_source' in row for row in engine.trace))
+
+    def test_ssv_array_fault_keeps_the_live_task_setting_until_a_later_scan(self):
+        def configure(root):
+            ladder_fault_fixture(root,handler_tail='MOV(1,LabIndex);')
+            add_system_value_recovery_tags(root)
+            set_fault_instruction(root,'SSV(Task,THIS,Watchdog,LabSetpoints[LabIndex])'
+                                       'GSV(Task,THIS,Watchdog,LabValues[0])')
+
+        engine = self.engine(mutate=configure)
+        self.assertEqual(engine.blockers,[])
+        engine.memory.write('LabIndex',2)
+        engine.memory.write('SpeedCommand',50)
+        engine.step()
+        self.assertIsNone(engine.last_cleared_program_fault)
+        self.assertEqual(engine.memory.read('LabIndex'),2)
+        engine.memory.write('StartPB',True)
+        engine.step()
+        fault = engine.last_cleared_program_fault
+        self.assertEqual((fault['type'],fault['code'],fault['instruction']),(4,20,'SSV'))
+        self.assertEqual(engine.memory.read('LabValues'),[500000,13])
+        self.assertEqual(engine.memory.read('SpeedCommand'),51)
+
+        engine.step()
+        self.assertEqual(engine.memory.read('LabValues'),[650000,13])
+        self.assertEqual(engine.memory.read('SpeedCommand'),52)
+        self.assertFalse(any('recovery_source' in row for row in engine.trace))
+
+    def test_system_value_short_window_and_invalid_setting_keep_scan_rollback(self):
+        for instruction,index,message in (
+            ('GSV(WallClockTime,,DateTime,LabClockWords[LabIndex])',8,'modeled array/member boundary'),
+            ('SSV(Task,THIS,Watchdog,LabSetpoints[LabIndex])',0,'SSV Watchdog requires'),
+        ):
+            with self.subTest(instruction=instruction):
+                self.setUp()
+
+                def configure(root):
+                    ladder_fault_fixture(root,handler_tail='CLR(LabIndex);')
+                    add_system_value_recovery_tags(root)
+                    set_fault_instruction(root,'MOV(42,SpeedSetpoint)'+instruction)
+
+                engine = self.engine(mutate=configure)
+                self.assertEqual(engine.blockers,[])
+                engine.memory.write('LabIndex',index)
+                engine.memory.write('LabSetpoints[0]',999)
+                engine.memory.write('StartPB',True)
+                before = copy.deepcopy(engine.memory.values)
+                schedule = engine.scheduler_description()
+                with self.assertRaisesRegex(ModelError,message):
+                    engine.step()
+                self.assertEqual(engine.memory.values,before)
+                self.assertEqual(engine.scheduler_description(),schedule)
                 self.assertEqual(engine.scan_count,0)
                 self.assertIsNone(engine.last_cleared_program_fault)
 

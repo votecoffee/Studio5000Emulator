@@ -314,6 +314,20 @@ Structured Text calls use their existing rollback behavior.
 
 [Rockwell ASCII string instructions](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/ascii-string-instructions.html)
 
+## Recover GSV and SSV array faults
+
+During a whole-project ladder scan, an out-of-bounds subscript in a GSV
+destination or an SSV source can raise Type 4 Code 20. If a fault handler
+clears the record, GSV skips the complete destination write and SSV leaves
+the system setting untouched. The next instruction receives the incoming
+rung power. A later enabled scan resolves the operand again.
+
+False rungs skip live indices. A valid starting subscript with too few
+contiguous elements, invalid settings, and unavailable values still use
+scan rollback. Structured Text retains its existing rollback behavior.
+
+[Rockwell GSV and SSV reference](https://www.rockwellautomation.com/en-gb/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/input-output-instructions/get-system-value--gsv--and-set-system-value--ssv-.html)
+
 ## Escalate an uncleared Program fault
 
 For a modeled array fault, the assigned Controller Fault Handler runs

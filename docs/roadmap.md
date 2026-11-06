@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1106.154453` [GSV and SSV recovery](controller-handlers.md#recover-gsv-and-ssv-array-faults)
+lets a ladder handler clear Type 4 Code 20 without changing the GSV destination
+or the SSV setting. A short destination or an invalid setting uses scan rollback.
+
 Available in `26.1106.153633` [string operation and conversion recovery](controller-handlers.md#recover-string-operation-and-conversion-array-faults)
 lets a ladder handler clear Type 4 Code 20 before the string or numeric result
 write. A skipped string result keeps its length and backing bytes.
