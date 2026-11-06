@@ -6,6 +6,7 @@ from .ladder_alarm import (
 )
 from .model import ModelError, coerce, literal
 from .real_math import SOURCE_TYPES, real
+from .wall_clock import current_value_microseconds
 
 TYPE = 'ALARM_ANALOG'
 LOW_LEVELS = ('LL', 'L')
@@ -21,6 +22,9 @@ OPERATOR = ('OperAckAll', 'OperDisable', 'OperEnable', 'OperSuppress', 'OperUnsu
 PROGRAM = ('ProgAckAll', 'ProgDisable', 'ProgEnable', 'ProgSuppress', 'ProgUnsuppress')
 COUNT_FIELDS = {level: level+'AlarmCount' for level in LEVELS} | {
     'ROCPos': 'ROCPosInAlarmCount', 'ROCNeg': 'ROCNegAlarmCount'}
+CONDITION_TIMES = {level: level+'InAlarmTime' for level in CONDITIONS}
+TIMESTAMPS = (*CONDITION_TIMES.values(), 'AckTime', 'RetToNormalTime', 'AlarmCountResetTime',
+              'ShelveTime', 'UnshelveTime')
 INPUTS = dict(EnableIn=True, In=0.0, InFault=False, AckRequired=True,
               MinDurationPRE=0, Deadband=0.0, ROCPeriod=0.0,
               ROCPosLimit=0.0, ROCNegLimit=0.0, ROCPosSeverity=500, ROCNegSeverity=500,
@@ -35,8 +39,10 @@ for level in CONDITIONS:
     OUTPUTS.update({level+'InAlarm': False, level+'Acked': True, level+'InAlarmUnack': False,
                     level+'Shelved': False})
 OUTPUTS.update(dict.fromkeys(COUNT_FIELDS.values(), 0))
+OUTPUTS.update(dict.fromkeys(TIMESTAMPS, 0))
 FIELDS = {name: {bool: 'BOOL', int: 'DINT', float: 'REAL'}[type(value)]
           for name, value in (INPUTS | OUTPUTS).items()}
+FIELDS.update(dict.fromkeys(TIMESTAMPS, 'LINT'))
 STATUS_BITS = DIGITAL_STATUS_BITS | {'alarmlimitsinv': 3, 'deadbandinv': 4,
                                     'rocposlimitinv': 5, 'rocneglimitinv': 6,
                                     'rocperiodinv': 7, 'overflow': 8}
@@ -57,6 +63,7 @@ class AlarmHistory(NamedTuple):
     roc: RocSample | None = None
     shelves: tuple[tuple[str, int], ...] = ()
     shelf_requests: frozenset[str] = frozenset()
+    detections: tuple[tuple[str, int], ...] = ()
 
 
 def default():
@@ -123,21 +130,22 @@ def _diagnostics(obj, enabled, roc_enabled):
 
 
 def _direction(obj, levels, enabled, sample, band, since, now, preset, high):
-    tripped = {}
+    tripped = set()
     retained = {}
     for level in levels:
         limit = obj[level+'Limit']
-        tripped[level] = level in enabled and (sample >= limit if high else sample <= limit)
+        if level in enabled and (sample >= limit if high else sample <= limit):
+            tripped.add(level)
         retained[level] = level in enabled and obj[level+'InAlarm'] and (
             sample >= limit - band if high else sample <= limit + band)
-    if not any(tripped.values()) and not any(retained.values()):
-        return dict.fromkeys(levels, False), None
+    if not tripped and not any(retained.values()):
+        return dict.fromkeys(levels, False), None, tripped
     if since is None:
         since = now
     elapsed = now - since >= preset
     active = {level: retained[level] or
-              (tripped[level] and (elapsed or not obj[level+'MinDurationEnable'])) for level in levels}
-    return active, since
+              (level in tripped and (elapsed or not obj[level+'MinDurationEnable'])) for level in levels}
+    return active, since, tripped
 
 
 def _sample_roc(previous, period, sample, now):
@@ -182,8 +190,8 @@ def execute(engine, op, power, scope):
     detected = set() if disabled or invalid_limits else enabled
 
     now = engine.time_ms
-    low, low_since = _direction(obj, LOW_LEVELS, detected, sample, band, history.low_since, now, preset, False)
-    high, high_since = _direction(obj, HIGH_LEVELS, detected, sample, band, history.high_since, now, preset, True)
+    low, low_since, low_tripped = _direction(obj, LOW_LEVELS, detected, sample, band, history.low_since, now, preset, False)
+    high, high_since, high_tripped = _direction(obj, HIGH_LEVELS, detected, sample, band, history.high_since, now, preset, True)
     roc = _sample_roc(history.roc, 0.0 if disabled else period, sample, now)
     rate = roc.rate if roc is not None else 0.0
     if rate is None:
@@ -193,6 +201,10 @@ def execute(engine, op, power, scope):
         'ROCPos': 'ROCPos' in roc_enabled and rate >= obj['ROCPosLimit'],
         'ROCNeg': 'ROCNeg' in roc_enabled and rate <= -obj['ROCNegLimit'],
     }
+    old_active = {level for level in CONDITIONS if obj[level+'InAlarm']}
+    activating = {level for level, in_alarm in active.items() if in_alarm} - old_active
+    detecting = (low_tripped | high_tripped | activating) - old_active
+    detections = {level: stamp for level, stamp in history.detections if level in detecting}
 
     global_ack = (ack_all and not history.ack_all) or obj['OperAckAll']
     level_acks = frozenset(level for level in CONDITIONS if obj[level+'ProgAck'])
@@ -201,34 +213,65 @@ def execute(engine, op, power, scope):
     old_shelves = dict(history.shelves)
     shelves = {}
     count_reset = obj['AlarmCountReset']
+    manual_unshelve = False
+    shelf_started = False
+    events = set()
+    if count_reset:
+        events.add('AlarmCountResetTime')
+    if any(not active[level] for level in old_active):
+        events.add('RetToNormalTime')
     any_unack = False
     for level, in_alarm in active.items():
         cancel = obj['ProgUnshelveAll'] or obj[level+'OperUnshelve']
+        manual_unshelve |= cancel and level in old_shelves
         minutes = None
         if level in new_shelf_requests and not cancel:
             minutes = min(obj['ShelveDuration'], obj['MaxShelveDuration'])
             if minutes < 1:
                 raise ModelError('ALMA shelving requires a positive duration and maximum in minutes')
+            shelf_started = True
         deadline = _shelf_deadline(now, old_shelves.get(level), minutes=minutes, cancel=cancel)
         shelved = deadline is not None
         if shelved:
             shelves[level] = deadline
-        activated = in_alarm and not obj[level+'InAlarm']
+        activated = level in activating
         rearm = in_alarm and not (suppressed or shelved) and (activated or was_suppressed or level in old_shelves)
         ack_requested = global_ack or (level in level_acks and level not in history.level_acks) or obj[level+'OperAck']
         acked = (obj[level+'Acked'] and not rearm) or not obj['AckRequired'] or ack_requested
+        if ack_requested and (not obj[level+'Acked'] or rearm):
+            events.add('AckTime')
         unack = in_alarm and not acked
         any_unack |= unack
         count_field = COUNT_FIELDS[level]
         count = 0 if count_reset else min(MAX_DINT, obj[count_field] + int(activated))
         obj.update({level+'InAlarm': in_alarm, level+'Acked': acked, level+'InAlarmUnack': unack,
                     level+'Shelved': shelved, count_field: count})
+
+    plan_unshelve = shelf_started and not any(deadline > now for deadline in old_shelves.values())
+    if shelf_started:
+        events.add('ShelveTime')
+    if manual_unshelve and not shelves:
+        events.add('UnshelveTime')
+    new_detections = detecting - detections.keys()
+    if new_detections or events:
+        stamp = current_value_microseconds()
+        if stamp is None:
+            raise ModelError('ALMA requires a UTC WallClockTime timestamp for an alarm event')
+        detections.update(dict.fromkeys(new_detections, stamp))
+        obj.update(dict.fromkeys(events, stamp))
+        if plan_unshelve:
+            obj['UnshelveTime'] = coerce(stamp + (max(shelves.values()) - now) * 1000, 'LINT')
+    activation_times = {level: detections.pop(level) for level in activating}
+    obj.update({CONDITION_TIMES[level]: stamp for level, stamp in activation_times.items()})
+    if activation_times and not obj['AckRequired']:
+        obj['AckTime'] = max(activation_times.values())
+
     obj.update(dict.fromkeys(OPERATOR, False))
     obj.update(EnableIn=True, EnableOut=True, In=sample, ProgAckAll=ack_all,
                ProgDisable=disable, ProgEnable=enable, Suppressed=suppressed, Disabled=disabled,
                AnyInAlarmUnack=any_unack, MinDurationACC=0, ROC=rate, Status=status)
     engine.last_timer[identity] = AlarmHistory(low_since, high_since, ack_all, level_acks, roc,
-                                              tuple(shelves.items()), shelf_requests)
+                                              tuple(shelves.items()), shelf_requests, tuple(detections.items()))
     return True
 
 
@@ -237,5 +280,6 @@ def description(project):
                 levels=['LL', 'L', 'H', 'HH'], timing='Shared qualification time per direction; inclusive pickup and deadband release',
                 rate_of_change='Sampled positive and negative conditions using the configured period',
                 shelving='Independent timed shelves for all six conditions',
-                remaining=['Timestamps, ST and FBD', 'Native layout and alarm event services'],
+                timestamps='UTC WallClockTime detection and state-change microseconds',
+                remaining=['ST and FBD', 'Native layout and alarm event services'],
                 native_runtime_parity=False)

@@ -21,6 +21,11 @@ test('ALMA faceplate binds rate settings, live rate and condition shelf flags', 
     'Alarm.HHShelved', 'Alarm.HShelved', 'Alarm.LShelved', 'Alarm.LLShelved',
     'Alarm.ROCPosShelved', 'Alarm.ROCNegShelved',
   ]);
+  const timestamps = face.fields.filter(field => field.type === 'LINT');
+  assert.equal(timestamps.length, 11);
+  assert(timestamps.some(field => field.ref === 'Alarm.HHInAlarmTime' && field.visible === false));
+  assert(timestamps.some(field => field.ref === 'Alarm.UnshelveTime' && field.visible === false));
+  assert(face.rows.every(row => row.type !== 'LINT'));
 });
 function validate(g) {
   const nodes = new Map(g.nodes.map(node => [node.id, node]));

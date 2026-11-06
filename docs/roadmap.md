@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1105.204656` [ladder ALMA timestamps](ladder-alarm.md#analog-alarm-timestamps)
+record per-condition detection and shared state changes as exact UTC
+microseconds. Alarm Lab shows the timestamps in the instruction inspector.
+
 Available in `26.1105.203755` [ladder ALMA shelving](ladder-alarm.md#analog-alarm-shelving)
 gives each level and rate-of-change condition its own shelf timer. Alarm Lab
 shows which conditions are shelved while their alarm detection continues.

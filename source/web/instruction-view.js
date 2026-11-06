@@ -96,6 +96,11 @@
         'ROCPeriod', 'ROCPosLimit', 'ROCNegLimit', 'ROC']) {
         fields.push({label: member, ref: args[0] + '.' + member, member: true, visible: true});
       }
+      for (const member of ['HHInAlarmTime', 'HInAlarmTime', 'LInAlarmTime', 'LLInAlarmTime',
+        'ROCPosInAlarmTime', 'ROCNegInAlarmTime', 'AckTime', 'RetToNormalTime', 'AlarmCountResetTime',
+        'ShelveTime', 'UnshelveTime']) {
+        fields.push({label: member, ref: args[0] + '.' + member, type: 'LINT', member: true, visible: false});
+      }
       flags = [['HH', 'HHInAlarm'], ['H', 'HInAlarm'], ['L', 'LInAlarm'], ['LL', 'LLInAlarm'],
         ['R+', 'ROCPosInAlarm'], ['R-', 'ROCNegInAlarm'],
         ['SUP', 'Suppressed'], ['DIS', 'Disabled'], ['FLT', 'Status.0'],
@@ -122,7 +127,7 @@
         (['FSC', 'FAL'].includes(op) && (i === 3 || i === fields.length - 1));
     }
     return {kind: contacts.has(op) ? 'contact' : coils.has(op) ? 'coil' : inline.has(op) ? 'inline' : 'box',
-      title: entry?.title || op, fields, rows: fields, flags, known: !!entry};
+      title: entry?.title || op, fields, rows: fields.filter(field => field.visible), flags, known: !!entry};
   }
   function dimensions(node, presentation = describe(node)) {
     if (['contact', 'coil', 'inline'].includes(presentation.kind)) {

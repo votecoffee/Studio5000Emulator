@@ -984,6 +984,35 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertTrue(row['PressureAlarm.HHInAlarmUnack'])
         self.assertEqual(row['PressureAlarm.HHAlarmCount'], 1)
 
+    def test_alarm_lab_analog_timestamps_use_exact_utc_microseconds(self):
+        self.assertEqual(self.post('demo', {'sample': 'AlarmLab'})['blockers'], [])
+
+        def write(tag, value):
+            self.post('write', {'tag': tag, 'value': value})
+
+        def step():
+            state = self.post('step', {'dt': 10})
+            return {row['name']: row for row in state['tags']}
+
+        write('AnalogRun', True)
+        write('Pressure', 90)
+        before = time.time_ns() // 1000
+        self.assertEqual(step()['PressureAlarm.HInAlarmTime']['value'], '0')
+        after = time.time_ns() // 1000
+        step()
+        row = step()
+        alarm_time = row['PressureAlarm.HInAlarmTime']
+        self.assertEqual(alarm_time['type'], 'LINT')
+        self.assertIsInstance(alarm_time['value'], str)
+        self.assertTrue(before <= int(alarm_time['value']) <= after)
+        self.assertEqual(alarm_time['value'], row['PressureAlarm.HHInAlarmTime']['value'])
+        write('PressureAlarm.HHOperShelve', True)
+        write('PressureAlarm.HHOperAck', True)
+        row = step()
+        shelf = row['PressureAlarm.ShelveTime']['value']
+        self.assertEqual(shelf, row['PressureAlarm.AckTime']['value'])
+        self.assertEqual(int(row['PressureAlarm.UnshelveTime']['value']) - int(shelf), 60_000_000)
+
     def test_string_lab_executes_rll_st_and_reflects_input_search_changes(self):
         state = self.post('demo', {'sample': 'StringLab'})
         self.assertEqual(state['blockers'], [])

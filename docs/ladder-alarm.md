@@ -210,10 +210,38 @@ and S-.
 [Rockwell ALMA reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/alarm-instructions/analog-alarm---alma.html)
 [Rockwell shelf configuration](https://www.rockwellautomation.com/en-pl/docs/studio-5000-logix-designer/38-01/contents-ditamap/studio-5000-logix-designer/alarms/instruction-based-alarms/analog-and-digital-alarm-properties-dialog-boxes/alma-properties-dialog-box---configuration-tab-par.html)
 
+## Analog alarm timestamps
+
+ALMA uses the emulator's UTC WallClockTime in microseconds. Each
+condition's `InAlarmTime` member is published when the condition goes
+active. A level condition keeps its first crossing time through the
+minimum duration, and a crossing that clears before qualification is
+discarded. Rate-of-change conditions record the time they go active.
+Prescan clears the timestamps and keeps the alarm counts.
+
+`AckTime` records the most recent acknowledgment. When acknowledgment is
+automatic, it uses the latest detection time among conditions that
+activate on the scan. `RetToNormalTime` records the most recent transition
+of a condition out of alarm. `AlarmCountResetTime` records the count reset.
+Events on the same instruction execution share one clock sample.
+
+`ShelveTime` records each new shelf or reshelf. Following the v35
+instruction tag description, `UnshelveTime` records the planned end when
+the first shelf starts. Automatic expiration retains that value. A
+manual unshelve that leaves no remaining shelf records the current time.
+Each shelf's actual deadline uses simulated elapsed time.
+
+In Alarm Lab, set `AnalogRun` true and `Pressure` to 80. Step once,
+raise `Pressure` to 90 and step twice more. Select the ALMA box to see
+both detection times as exact `LINT` values in the inspector. The time
+for H comes from the first step and the time for HH comes from the
+second. The tags and HTTP state preserve exact decimal strings.
+[Rockwell ALMA status tab](https://www.rockwellautomation.com/en-fi/docs/studio-5000-logix-designer/37-00/contents-ditamap/studio-5000-logix-designer/alarms/instruction-based-alarms/analog-and-digital-alarm-properties-dialog-boxes/alma-properties-dialog-box---status-tab.html)
+
 ## Scope
 
 Native alarm messages, event delivery and packed records remain open.
-ALMA timestamps remain open. ST, FBD, AOI alarms and ASO remain separate. The
+ST, FBD, AOI alarms and ASO remain separate. The
 native alarm discovery services still expose only verified empty catalogs.
 Runtime behavior is based on the installed v35 alarm instruction help and
 the import/export record description. Native execution and transfer parity

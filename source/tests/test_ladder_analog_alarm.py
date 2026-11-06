@@ -3,6 +3,7 @@ import copy
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 from xml.etree import ElementTree as ET
 
 from logixlab.model import ModelError, Project
@@ -11,6 +12,7 @@ from logixlab.runtime import Engine
 
 SAMPLE = Path(__file__).resolve().parents[1] / 'samples/AlarmLab.L5X'
 ALARM = 'PressureAlarm'
+CLOCK = 'logixlab.ladder_analog_alarm.current_value_microseconds'
 
 
 class LadderAnalogAlarmTests(unittest.TestCase):
@@ -469,6 +471,121 @@ class LadderAnalogAlarmTests(unittest.TestCase):
         self.assertFalse(m.read('PressureAlarm.HInAlarm'))
         e.step()
         self.assertEqual(m.read('PressureAlarm.HAlarmCount'), 1)
+
+    def test_level_times_keep_each_first_detection_through_qualification(self):
+        e = self.engine()
+        m = e.memory
+        alarm = m.read(ALARM)
+        first = 1_700_000_000_000_123
+        m.write('PressureAlarm.AckRequired', False)
+        with patch(CLOCK, side_effect=[first, first + 1]) as clock:
+            m.write('Pressure', 80)
+            e.step()
+            self.assertEqual(alarm['HInAlarmTime'], 0)
+            m.write('Pressure', 90)
+            e.step()
+            self.assertEqual(alarm['HHInAlarmTime'], 0)
+            e.step()
+        self.assertEqual(clock.call_count, 2)
+        self.assertEqual((alarm['HInAlarmTime'], alarm['HHInAlarmTime']), (first, first + 1))
+        self.assertEqual(alarm['AckTime'], first + 1)
+        self.assertEqual(m.resolve('PressureAlarm.HHInAlarmTime')[2], 'LINT')
+        e.enter_run()
+        self.assertEqual((alarm['HInAlarmTime'], alarm['AckTime'], alarm['HHAlarmCount']), (0, 0, 1))
+
+    def test_level_aborted_detection_and_combined_events_share_clock_read(self):
+        e = self.engine()
+        m = e.memory
+        alarm = m.read(ALARM)
+        with patch(CLOCK, side_effect=[100, 130, 150]) as clock:
+            m.write('Pressure', 90)
+            e.step()
+            m.write('Pressure', 85)
+            e.step()
+            m.write('Pressure', 90)
+            e.step()
+            self.assertEqual((alarm['HInAlarmTime'], alarm['HHInAlarmTime']), (100, 130))
+            m.write('Pressure', 87)
+            m.write('AckAnalog', True)
+            m.write('PressureAlarm.AlarmCountReset', True)
+            e.step()
+            e.step()
+        self.assertEqual(clock.call_count, 3)
+        self.assertTrue(alarm['HInAlarm'])
+        self.assertFalse(alarm['HHInAlarm'])
+        self.assertEqual((alarm['AckTime'], alarm['RetToNormalTime'], alarm['AlarmCountResetTime']), (150,) * 3)
+        self.assertEqual((alarm['HAlarmCount'], alarm['HHAlarmCount']), (0, 0))
+
+    def test_roc_timestamps_only_record_new_activations(self):
+        e = self.engine()
+        m = e.memory
+        alarm = m.read(ALARM)
+        m.write('PressureAlarm.ROCPeriod', 0.01)
+        m.write('PressureAlarm.ROCPosLimit', 100)
+        m.write('PressureAlarm.ROCNegLimit', 100)
+        with patch(CLOCK, side_effect=[200, 220, 240]) as clock:
+            m.write('Pressure', 50)
+            e.step()
+            m.write('Pressure', 51)
+            e.step()
+            e.step(1)
+            m.write('Pressure', 50)
+            e.step(9)
+            m.write('PressureAlarm.ROCNegOperAck', True)
+            e.step(1)
+        self.assertEqual(clock.call_count, 3)
+        self.assertEqual((alarm['ROCPosInAlarmTime'], alarm['ROCNegInAlarmTime']), (200, 220))
+        self.assertEqual((alarm['RetToNormalTime'], alarm['AckTime']), (220, 240))
+
+    def test_shelve_time_tracks_new_requests_and_manual_last_unshelve(self):
+        e = self.engine()
+        m = e.memory
+        alarm = m.read(ALARM)
+        e.step()
+        with patch(CLOCK, side_effect=[100, 200, 300, 400, 500]) as clock:
+            m.write('PressureAlarm.HHOperShelve', True)
+            e.step()
+            first_plan = 60_000_100
+            self.assertEqual((alarm['ShelveTime'], alarm['UnshelveTime']), (100, first_plan))
+            m.write('PressureAlarm.HOperShelve', True)
+            e.step()
+            self.assertEqual((alarm['ShelveTime'], alarm['UnshelveTime']), (200, first_plan))
+            m.write('PressureAlarm.HOperUnshelve', True)
+            e.step()
+            self.assertEqual(alarm['UnshelveTime'], first_plan)
+            m.write('PressureAlarm.ShelveDuration', 2)
+            m.write('PressureAlarm.HHOperShelve', True)
+            e.step()
+            self.assertEqual((alarm['ShelveTime'], alarm['UnshelveTime']), (300, first_plan))
+            m.write('PressureAlarm.ProgUnshelveAll', True)
+            e.step()
+            self.assertEqual(alarm['UnshelveTime'], 400)
+            m.write('PressureAlarm.ProgUnshelveAll', False)
+            m.write('PressureAlarm.ShelveDuration', 1)
+            m.write('PressureAlarm.HHOperShelve', True)
+            e.step()
+            e.step(60_000)
+        self.assertEqual(clock.call_count, 5)
+        self.assertFalse(alarm['HHShelved'])
+        self.assertEqual((alarm['ShelveTime'], alarm['UnshelveTime']), (500, 60_000_500))
+
+    def test_clock_unavailable_and_planned_overflow_roll_back_shelf(self):
+        e = self.engine()
+        m = e.memory
+        with patch(CLOCK, return_value=None) as clock:
+            e.step()
+            clock.assert_not_called()
+        m.write('PressureAlarm.HOperShelve', True)
+        prior = copy.deepcopy((m.values, e.last_timer, e.time_ms, e.scan_count))
+        for stamp, error in ((None, 'UTC WallClockTime'), ((1 << 63) - 1, 'LINT overflow')):
+            with self.subTest(stamp=stamp), patch(CLOCK, return_value=stamp):
+                with self.assertRaisesRegex(ModelError, error):
+                    e.step()
+                self.assertEqual((m.values, e.last_timer, e.time_ms, e.scan_count), prior)
+        with patch(CLOCK, return_value=123):
+            e.step()
+        self.assertTrue(m.read('PressureAlarm.HShelved'))
+        self.assertEqual(m.read('PressureAlarm.ShelveTime'), 123)
 
     def test_import_checks_real_fields_and_processor_profile(self):
         for value in ('true', '1e100'):

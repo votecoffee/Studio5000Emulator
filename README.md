@@ -349,7 +349,8 @@ with low-low, low, high and high-high limits, directional delay and deadband.
 The faceplate shows the live [rate of change](docs/ladder-alarm.md#rate-of-change)
 and separate rising and falling conditions. Operators can
 [shelve individual ALMA conditions](docs/ladder-alarm.md#analog-alarm-shelving)
-for a set duration.
+for a set duration. The ALMA instruction inspector shows exact
+[UTC event timestamps](docs/ladder-alarm.md#analog-alarm-timestamps).
 
 [String conversions](docs/string-conversions.md) add LOWER/UPPER and STOR/RTOS
 in ladder and Structured Text, including user strings and existing AOI bindings.
