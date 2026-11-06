@@ -3,8 +3,8 @@
 ## Simulated I/O fault capture
 
 A complete v35 ControlLogix 5580 export can assign one enabled, unscheduled
-Standard Program through Controller `MajorFaultProgram`. Its single ladder
-main routine executes once when a simulated Type 3 Code 16 or Code 23 fault
+Standard Program through Controller `MajorFaultProgram`. Its ladder main
+routine executes once when a simulated Type 3 Code 16 or Code 23 fault
 latches. The routine runs outside normal task scheduling and prescan. Its
 tag writes and trace are recorded at the current scan and simulated time.
 The next prescan or scan replaces the trace. If the routine fails, its
@@ -12,7 +12,7 @@ writes and partial trace roll back. The original
 I/O major fault remains latched, and its `handler` record reports the
 routine, status and any error.
 
-The first profile accepts contacts, coils, compares, MOV, CLR, ADD, SUB,
+The handler profile accepts contacts, coils, compares, MOV, CLR, ADD, SUB,
 MUL, DIV, AFI, NOP and the listed GSV reads. The handler can read named Module
 EntryStatus, FaultCode and FaultInfo. To capture the active fault record,
 declare a writable DINT array and use its first element.
@@ -32,6 +32,22 @@ The existing recovery control can clear a fault after the simulated
 connection is restored.
 [Rockwell Major, Minor, and I/O Faults manual](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm014_-en-p.pdf)
 [Rockwell Program object reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/input-output-instructions/access-the-program-object.html)
+
+## Call ladder diagnostic subroutines
+
+The handler main can use JSR to call ladder routines in its own Program.
+Calls use the normal JSR/SBR/RET rules for typed parameter copies, with a
+25-call limit and an instruction budget shared by the handler. Recursive
+calls, calls to the main routine and unsupported instructions in called
+routines block project execution during validation.
+
+Called routines can read or clear the active MajorFaultRecord just like the
+main. Their tag writes, including input and return copies, and a pending
+fault clear commit together when the main finishes. An error anywhere in
+the call chain discards those writes and its trace. Handler routines stay
+outside normal task scheduling, prescan and the isolated routine harness.
+
+[Rockwell JSR, SBR and RET reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm003_-en-p.pdf)
 
 ## Read and clear a structured fault record
 

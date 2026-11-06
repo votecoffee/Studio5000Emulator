@@ -6,6 +6,9 @@ from .model import ModelError, Op, coerce, literal, operand_problem, operations
 from .integer_math import CONTROLLERS
 
 
+MAX_NESTING = 25
+
+
 class BreakLoop(Exception):
     """Unwind calls to the nearest active ladder FOR in the current task."""
 
@@ -147,7 +150,7 @@ class Calls:
         return key,index,sources
 
     def loop(self,op,scope,depth):
-        if len(self.stack)>=25:raise ModelError('JSR/FOR nesting limit of 25 exceeded')
+        if len(self.stack)>=MAX_NESTING:raise ModelError(f'JSR/FOR nesting limit of {MAX_NESTING} exceeded')
         key,_,_=self.loop_spec(op,scope)
         # Retain the selected index cell for this invocation. Bounds are live.
         index=self.operand(op.args[1],scope,writable=True,indirect=True)
@@ -196,7 +199,7 @@ class Calls:
             self.memory.store(dest.key,dest.parts,value)
 
     def call(self,op,scope,depth):
-        if len(self.stack)>=25:raise ModelError('JSR nesting limit of 25 exceeded')
+        if len(self.stack)>=MAX_NESTING:raise ModelError(f'JSR nesting limit of {MAX_NESTING} exceeded')
         key,sources,inputs,destinations=self.call_spec(op,scope,execute=True)
         frame={'key':key,'inputs':inputs,'values':self.values(sources),'destinations':destinations,'received':False,'returned':False}
         self.stack.append(frame)
@@ -223,7 +226,7 @@ class Calls:
         self.store(frame['destinations'],self.values(sources));frame['returned']=True
 
     def report(self):
-        return {'calls':self.edges,'nesting_limit':25,'parameters_per_direction':40,
+        return {'calls':self.edges,'nesting_limit':MAX_NESTING,'parameters_per_direction':40,
                 'contract':'Exact counts/types/dimensions; copied values; static formals/returns and bounded indirect caller elements; cross-parameter overlap rejected; prescan does not transfer parameters',
                 'indirect':dict(available=self.indirect_profile(''),profile='v35-5580-caller-elements',
                                 selection='Structural JSR preflight; false/prescan skip live caller indices and values',

@@ -18,13 +18,14 @@ from .model import ARITIES, Branch, Memory, ModelError, Op, operations, unknown_
 from .extended import Extensions
 from .function_blocks import FunctionBlocks,description as fbd_description
 from .addons import AddOns
-from .calls import Calls, BreakLoop
+from .calls import Calls, BreakLoop, MAX_NESTING
 from .structured import Structured
 from . import __version__
 
 
 FAULT_HANDLER_OPS = frozenset(('XIC','XIO','OTE','OTL','OTU','AFI','NOP','EQU','NEQ','LES','LEQ','GRT',
-                               'GEQ','LIM','MEQ','MOV','CLR','ADD','SUB','MUL','DIV','GSV','SSV'))
+                               'GEQ','LIM','MEQ','MOV','CLR','ADD','SUB','MUL','DIV','GSV','SSV',
+                               'JSR','SBR','RET'))
 FAULT_HANDLER_GSV = frozenset((('program','majorfaultrecord'), ('module','entrystatus'),
                                ('module','faultcode'), ('module','faultinfo')))
 
@@ -302,7 +303,7 @@ class Engine:
             if self.selected not in self.project.routines:
                 self.blockers.append("Select a routine for the isolated harness")
                 return
-            if self.selected == self.project.fault_handler_routine:
+            if self.selected in self.project.fault_handler_routines:
                 self.blockers.append("Controller fault handler requires a simulated I/O major fault")
                 return
             self.entries = [self.selected]
@@ -353,6 +354,10 @@ class Engine:
             if key in visiting:
                 self.blockers.append(f"Recursive JSR/FOR cycle at {key}")
                 return
+            in_handler = key in self.project.fault_handler_routines
+            if in_handler and len(visiting) > MAX_NESTING:
+                self.blockers.append(f"Controller fault handler JSR nesting limit of {MAX_NESTING} exceeded at {key}")
+                return
             if key in visited: return
             visited.add(key)
             r = self.project.routines.get(key)
@@ -366,7 +371,7 @@ class Engine:
             if self.project.programs[r.program]['use_as_folder']:
                 self.blockers.append(f"{r.key}: folder program execution is unsupported")
             for p in r.problems: self.blockers.append(f"{r.key}: {p}")
-            try:self.calls.validate_routine(r,entry=key in self.entries)
+            try:self.calls.validate_routine(r,entry=key in self.entries or key == self.project.fault_handler_routine)
             except ModelError as e:self.blockers.append(str(e))
             if r.kind=='FBD' and r.diagram:
                 try:self.function_blocks.validate(r,r.program)
@@ -382,7 +387,7 @@ class Engine:
                     previous=(self.memory.structural,self.memory.validating)
                     if r.kind=='ST':self.memory.structural=True;self.memory.validating=True
                     try:
-                        if key == self.project.fault_handler_routine:
+                        if in_handler:
                             if op.name not in FAULT_HANDLER_OPS or op.name in self.project.aois:
                                 raise ModelError('Instruction is outside the controller fault handler profile')
                             if op.name == 'GSV' and (len(op.args)!=4 or
@@ -597,7 +602,7 @@ class Engine:
     def _prescan(self):
         dormant = self._program_activation.keys() & self._disabled_programs
         self._prescan_routines(key for key in sorted(self.active)
-                              if key != self.project.fault_handler_routine
+                              if key not in self.project.fault_handler_routines
                               and self.project.routines[key].program.casefold() not in dormant)
 
     def _prescan_routines(self, keys):

@@ -391,7 +391,8 @@ def _handler_fault(engine, instance, scope, *, executing):
     if not executing:
         return None
     fault = engine.module_major_fault
-    if engine._executing_routine is not routine or fault is None:
+    current = engine._executing_routine
+    if current is None or current.key.lower() not in engine.project.fault_handler_routines or fault is None:
         raise ModelError('MajorFaultRecord requires an active simulated I/O major fault in the handler')
     return fault
 

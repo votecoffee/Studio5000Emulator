@@ -90,6 +90,47 @@ def structured_handler_l5x(layout, *, clear=None, info_count=8, first_member=Non
     return fixture
 
 
+
+def handler_subroutine_l5x(*, clear=True, nested_tail=None, main_call=None):
+    fixture = diagnostic_handler_l5x(clear_record=clear)
+    root = ET.fromstring(base64.b64decode(fixture['content']))
+    controller = root.find('Controller')
+    program = controller.find('./Programs/Program[@Name="FaultHandler"]')
+
+    def tag(parent, name, dtype, value):
+        element = ET.SubElement(parent, 'Tag', Name=name, DataType=dtype, TagType='Base')
+        data = ET.SubElement(element, 'Data', Format='Decorated')
+        ET.SubElement(data, 'DataValue', DataType=dtype, Value=str(value))
+
+    tag(controller.find('Tags'), 'HandlerCode', 'DINT', -1)
+    tag(controller.find('Tags'), 'HandlerWitness', 'BOOL', 1)
+    for name in ('DiagnosticInput', 'DiagnosticCode'):
+        tag(program.find('Tags'), name, 'DINT', -1)
+
+    def rungs(content, lines):
+        for index, line in enumerate(lines):
+            rung = ET.SubElement(content, 'Rung', Number=str(index), Type='N')
+            ET.SubElement(rung, 'Text').text = line
+
+    routines = program.find('Routines')
+    main = routines.find('./Routine/RLLContent')
+    capture, _, *clear_rungs, divide = [rung.findtext('Text') for rung in main]
+    main.clear()
+    rungs(main, [main_call or 'JSR(Diagnose,1,2,HandlerCode);', divide])
+    diagnose = ET.SubElement(routines, 'Routine', Name='Diagnose', Type='RLL')
+    rungs(ET.SubElement(diagnose, 'RLLContent'),
+          ['SBR(DiagnosticInput);', 'OTE(HandlerWitness);', capture,
+           'ADD(HandlerCalls,DiagnosticInput,HandlerCalls);', 'MOV(FaultWords[2],DiagnosticCode);',
+           'JSR(Recover,0);', 'RET(DiagnosticCode);', 'MOV(-999,HandlerCalls);'])
+    recover = ET.SubElement(routines, 'Routine', Name='Recover', Type='RLL')
+    # A named instance in the leaf exercises the same active record as THIS.
+    rungs(ET.SubElement(recover, 'RLLContent'),
+          [line.replace('Program,THIS,', 'Program,FaultHandler,')
+           for line in (clear_rungs or ['NOP();'])] + ([nested_tail] if nested_tail else []))
+    fixture['content'] = base64.b64encode(ET.tostring(root)).decode()
+    return fixture
+
+
 class ApplicationLifecycleTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -779,6 +820,99 @@ class ApplicationLifecycleTests(unittest.TestCase):
         loaded = self.post('load', diagnostic_handler_l5x())
         self.assertEqual(loaded['blockers'], [])
         harness = self.post('configure', {'mode':'routine', 'routine':'FaultHandler/Capture'})
+        self.assertIn('Controller fault handler requires a simulated I/O major fault', harness['blockers'])
+
+    def test_controller_fault_handler_calls_nested_ladder_subroutines(self):
+        def load(clear):
+            state = self.post('load', handler_subroutine_l5x(clear=clear))
+            self.assertEqual(state['blockers'], [])
+            self.assertEqual(state['entry_routines'], ['mainprogram/main'])
+            routines = {row['key']: row for row in state['routines']}
+            for name in ('Capture', 'Diagnose', 'Recover'):
+                row = routines[f'FaultHandler/{name}']
+                self.assertTrue(row['active'])
+                self.assertFalse(row['harness'])
+            generation = state['project_generation']
+            write('ModeCommand', 1)
+            write('ApplyMode', True)
+            step = self.post('step', {'dt':25})
+            self.assertEqual(values(step)['HandlerCalls'], 0)
+            self.assertTrue(values(step)['HandlerWitness'])
+            write('ApplyMode', False)
+            self.post('module-connection', {'project_generation':generation, 'module':'RackOutput',
+                                           'state':'faulted', 'fault_code':0x0204, 'fault_info':-42})
+
+        def write(name, value):
+            return self.post('write', {'tag':name, 'value':value})
+
+        def values(state):
+            return {row['name']:row['value'] for row in state['tags']}
+
+        def mode(name):
+            return self.post('controller-mode', {'mode':name, 'dt':25})
+
+        def rejected():
+            with self.assertRaises(HTTPError) as error:
+                mode('Run')
+            self.assertEqual(error.exception.code, 400)
+            error.exception.close()
+            return self.post('observe', {})
+
+        load(clear=False)
+        completed = rejected()
+        fault = completed['controller']['module_major_fault']
+        self.assertEqual(fault['handler']['status'], 'completed')
+        captured = (23 << 16) | 3
+        tags = values(completed)
+        self.assertEqual((tags['HandlerCalls'], tags['HandlerCode'], tags['FaultWords[2]']), (2,captured,captured))
+        self.assertEqual(tags['Program:FaultHandler.DiagnosticInput'], 2)
+        self.assertEqual({row['routine'] for row in completed['trace'] if row['routine'].startswith('FaultHandler/')},
+                         {'FaultHandler/Capture', 'FaultHandler/Diagnose', 'FaultHandler/Recover'})
+
+        load(clear=True)
+        started = mode('Run')
+        self.assertTrue(started['controller']['running'])
+        self.assertIsNone(started['controller']['module_major_fault'])
+        cleared = started['controller']['last_cleared_module_fault']
+        self.assertEqual(cleared['handler']['status'], 'cleared')
+        tags = values(started)
+        self.assertEqual((tags['HandlerCalls'], tags['HandlerCode'], tags['FaultWords[2]']), (2,captured,0))
+        mode('Program')
+        write('HandlerDivisor', 0)
+        before = self.post('observe', {})
+        failed = rejected()
+        self.assertEqual(failed['controller']['module_major_fault']['handler']['status'], 'rolled_back')
+        self.assertEqual(failed['controller']['last_cleared_module_fault'], cleared)
+        for key in ('tags', 'trace', 'changes', 'scan', 'ms', 'task_schedule'):
+            self.assertEqual(failed[key], before[key], key)
+
+    def test_controller_fault_handler_preflights_nested_subroutines(self):
+        for options, expected in (
+            ({'nested_tail':'JSR(Diagnose,1,2,HandlerCode);'}, 'Recursive JSR/FOR cycle'),
+            ({'nested_tail':'JSR(Capture,0);'}, 'JSR cannot call a main routine'),
+            ({'nested_tail':'JSR(Main,0);'}, 'Routine faulthandler/main is missing'),
+            ({'nested_tail':'TON(HandlerCalls,0,0);'}, 'outside the controller fault handler profile'),
+            ({'main_call':'JSR(Diagnose,0,HandlerCode);'}, 'Routine parameter counts must match exactly'),
+        ):
+            with self.subTest(options=options):
+                state = self.post('load', handler_subroutine_l5x(**options))
+                self.assertTrue(any(expected in reason for reason in state['blockers']), state['blockers'])
+
+        fixture = handler_subroutine_l5x(nested_tail='JSR(Diagnostic0,0);')
+        root = ET.fromstring(base64.b64decode(fixture['content']))
+        routines = root.find('./Controller/Programs/Program[@Name="FaultHandler"]/Routines')
+        for index in range(24):
+            routine = ET.SubElement(routines, 'Routine', Name=f'Diagnostic{index}', Type='RLL')
+            rung = ET.SubElement(ET.SubElement(routine, 'RLLContent'), 'Rung', Number='0', Type='N')
+            ET.SubElement(rung, 'Text').text = f'JSR(Diagnostic{index+1},0);' if index<23 else 'NOP();'
+        fixture['content'] = base64.b64encode(ET.tostring(root)).decode()
+        deep = self.post('load', fixture)
+        self.assertIn('Controller fault handler JSR nesting limit of 25 exceeded at faulthandler/diagnostic23',
+                      deep['blockers'])
+
+        loaded = self.post('load', handler_subroutine_l5x())
+        self.assertEqual(loaded['blockers'], [])
+        harness = self.post('configure', {'mode':'routine', 'routine':'FaultHandler/Recover'})
         self.assertIn('Controller fault handler requires a simulated I/O major fault', harness['blockers'])
 
     def test_data_lab_clipped_record_operations_preserve_neighbors_and_rollback_through_http(self):

@@ -284,7 +284,7 @@ class Application:
                                 for address,instance in e.addons.instances.items()},
                 "routines": [{"key": r.key, "kind": r.kind, "problems": r.problems,
                               "active": r.key.lower() in e.active or r.program[4:] in e.addons.active,
-                              'harness':not r.program.startswith('AOI:'),
+                              'harness':not r.program.startswith('AOI:') and r.key.lower() not in e.project.fault_handler_routines,
                               'lines':r.lines,'diagram':r.diagram,
                               "rungs": [{"number": x["number"], "text": x["text"], "comment": x["comment"],
                                          "nodes": serialize_nodes(x["nodes"])} for x in r.rungs]}
