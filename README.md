@@ -156,7 +156,8 @@ The Device I/O tab sets the simulated input and displays the effective state.
 [Simulated loss of a required Running module](docs/gsv-configuration.md#required-module-loss-during-run)
 trips a latched I/O major fault during whole-project Run. Restore the simulated
 connection and use **Clear I/O major fault** to return to Program with current
-tag values.
+tag values. An [explicitly faulted required connection at Run entry](docs/gsv-configuration.md#required-module-fault-at-run-entry)
+trips before prescan.
 [Aggregate LEDStatus](docs/gsv-configuration.md#simulated-module-ledstatus)
 summarizes a complete simulated module inventory.
 

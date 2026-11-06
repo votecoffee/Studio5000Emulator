@@ -99,7 +99,7 @@ function render() {
   const blocked = state.blockers.length > 0;
   const inhibited=!!state.connectivity?.native_programming_lease?.scan_inhibited;
   $('clear-module-fault').disabled = modePending || inhibited || !moduleFault?.clear_ready;
-  $('status').textContent = moduleFault ? 'I/O MAJOR FAULT · 3/16' : state.fault ? 'FAULT · ROLLED BACK' : blocked ? 'EXECUTION BLOCKED' : inhibited ? 'SCANS INHIBITED' : running ? 'REMOTE RUN' : 'REMOTE PROGRAM';
+  $('status').textContent = moduleFault ? `I/O MAJOR FAULT · ${moduleFault.type}/${moduleFault.code}` : state.fault ? 'FAULT · ROLLED BACK' : blocked ? 'EXECUTION BLOCKED' : inhibited ? 'SCANS INHIBITED' : running ? 'REMOTE RUN' : 'REMOTE PROGRAM';
   $('status').className = 'badge ' + (blocked || inhibited || state.fault ? 'blocked' : 'ready');
   $('step').disabled = blocked||inhibited||running||modePending||!!moduleFault;
   $('run').disabled = modePending||(!running&&(blocked||inhibited||!!state.fault));

@@ -137,7 +137,7 @@ class ApplicationLifecycleTests(unittest.TestCase):
         def rack(snapshot):
             return next(row for row in snapshot['module_simulation'] if row['name']=='rackoutput')
 
-        # A staged fault behind an inhibit, or a loss in Program, cannot trip Run.
+        # A staged fault behind an inhibit cannot trip an active Run.
         connection('RackOutput', 'running')
         self.assertTrue(mode('Run')['running'])
         fault('RackOutput')
@@ -147,8 +147,6 @@ class ApplicationLifecycleTests(unittest.TestCase):
         connection('RackOutput', 'running')
         fault('RackOutput')
         self.assertEqual(self.post('observe', {})['controller']['mode'], 'Program')
-        self.assertTrue(mode('Run')['running'])
-        mode('Program')
 
         # The active SSV override controls whether the module is required.
         self.assertFalse(rack(set_mode_word(0))['major_fault_on_loss'])
@@ -227,6 +225,86 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual(rack(reset)['input'], {'state':'clear'})
         self.assertTrue(mode('Run')['running'])
         self.assertEqual(mode('Program')['mode'], 'Program')
+
+    def test_required_faulted_connection_blocks_run_entry_before_prescan(self):
+        state = self.post('demo', {'sample':'ModuleStatusLab'})
+        generation = state['project_generation']
+        def set_connection(module, state, **details):
+            return self.post('module-connection', {
+                'project_generation':generation, 'module':module, 'state':state, **details})
+        def run(dt=25):
+            return self.post('controller-mode', {'mode':'Run', 'dt':dt})
+        def stop():
+            return self.post('controller-mode', {'mode':'Program'})
+        def observe():
+            return self.post('observe', {})
+
+        fault_details = {'fault_code':0x0204, 'fault_info':-42}
+        # Staged faults on optional or inhibited modules do not block entry.
+        set_connection('PointAdapter', 'faulted', **fault_details)
+        set_connection('RackOutput', 'faulted', **fault_details)
+        self.assertTrue(run()['controller']['running'])
+        stop()
+        self.post('write', {'tag':'ModeCommand', 'value':1})
+        self.post('write', {'tag':'ApplyMode', 'value':True})
+        self.post('write', {'tag':'RackModeCommand', 'value':1})
+        self.post('write', {'tag':'ApplyRackMode', 'value':True})
+        stepped = self.post('step', {'dt':25})
+        self.assertEqual(stepped['controller']['mode'], 'Program')
+        rack = next(row for row in stepped['module_simulation'] if row['name']=='rackoutput')
+        self.assertEqual(rack['entry_status'], 0x1000)
+        self.assertTrue(rack['major_fault_on_loss'])
+        self.post('write', {'tag':'ApplyMode', 'value':False})
+        self.post('write', {'tag':'ApplyRackMode', 'value':False})
+
+        # Unmodeled connection state is not a simulated failure.
+        set_connection('RackOutput', 'clear')
+        self.assertTrue(run()['controller']['running'])
+        stop()
+        # Injection order differs from the source order used to report the fault.
+        set_connection('RemoteRack', 'faulted', **fault_details)
+        set_connection('RackOutput', 'faulted', **fault_details)
+        before = observe()
+        with self.assertRaises(HTTPError) as invalid:
+            run(dt=0)
+        self.assertEqual(invalid.exception.code, 400)
+        invalid.exception.close()
+        self.assertIsNone(observe()['controller']['module_major_fault'])
+
+        with self.assertRaises(HTTPError) as rejected:
+            run()
+        self.assertEqual(rejected.exception.code, 400)
+        with rejected.exception as response:
+            self.assertIn('Type 3 Code 23', json.load(response)['error'])
+        faulted = observe()
+        controller = faulted['controller']
+        record = controller['module_major_fault']
+        self.assertEqual(controller['mode'], 'Faulted')
+        self.assertFalse(controller['running'])
+        self.assertEqual(record, {'type':3, 'code':23, 'module':'rackoutput', **fault_details,
+                                  'fault_id':record['fault_id'], 'clear_ready':False})
+        for field in ('scan', 'ms', 'tags', 'trace', 'changes', 'task_schedule',
+                      'project_generation', 'module_simulation'):
+            self.assertEqual(faulted[field], before[field], field)
+        for field in ('prescan_count', 'first_scan_pending', 'scan_interval_ms'):
+            self.assertEqual(controller[field], before['controller'][field], field)
+
+        set_connection('RackOutput', 'running')
+        cleared = self.post('module-major-fault-clear', {
+            'project_generation':generation, 'fault_id':record['fault_id']})
+        self.assertEqual(cleared['controller']['mode'], 'Program')
+        self.assertEqual(cleared['tags'], before['tags'])
+        with self.assertRaises(HTTPError) as second:
+            run()
+        self.assertEqual(second.exception.code, 400)
+        second.exception.close()
+        remaining = observe()['controller']['module_major_fault']
+        self.assertEqual((remaining['type'], remaining['code'], remaining['module']), (3, 23, 'remoterack'))
+        set_connection('RemoteRack', 'running')
+        self.post('module-major-fault-clear', {
+            'project_generation':generation, 'fault_id':remaining['fault_id']})
+        self.assertTrue(run()['controller']['running'])
+        self.assertEqual(stop()['controller']['mode'], 'Program')
 
     def test_data_lab_clipped_record_operations_preserve_neighbors_and_rollback_through_http(self):
         state=self.post('demo',{'sample':'DataLab'});self.assertEqual(state['blockers'],[])

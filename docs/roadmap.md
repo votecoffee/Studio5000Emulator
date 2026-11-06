@@ -4,13 +4,17 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1106.112448` [required module fault at Run entry](gsv-configuration.md#required-module-fault-at-run-entry)
+latches Type 3 Code 23 before prescan for an explicitly faulted required
+connection. The model checks the staged state immediately.
+
 Available in `26.1106.111517` [clear a simulated I/O major fault](gsv-configuration.md#required-module-loss-during-run)
 returns to Program after the required connection recovers. It preserves
 the project state and leaves Run as a separate action.
 
 Available in `26.1106.105957` [required module loss during Run](gsv-configuration.md#required-module-loss-during-run)
 trips a latched I/O major fault on an explicit Running-to-Faulted connection
-transition. Startup faults, downstream loss and fault handlers remain open.
+transition. Downstream loss and fault handlers remain open.
 
 Available in `26.1106.104547` [browser module simulation controls](gsv-configuration.md#simulated-module-connection)
 set Running, Faulted or Clear input from Device I/O. The panel displays

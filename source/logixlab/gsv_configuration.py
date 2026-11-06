@@ -160,22 +160,21 @@ def configure_module_connection(engine, data, *, running=False):
     if state == 'faulted' and (type(code) is not int or not 0 < code <= 0xffff
                                or type(info) is not int or not -(1 << 31) <= info < (1 << 31)):
         raise ModelError('Faulted module requires a nonzero 16-bit fault code and signed DINT fault info')
-    mode = _module_mode(engine, module)
-    trip = (running and engine.mode == 'project' and code and mode is not None
-            and mode & MODULE_MAJOR_FAULT_BIT
+    trip = (running and engine.mode == 'project' and code and _module_required(engine, module)
             and _module_connection_state(engine, module, project.io_map.named_module)[0] == MODULE_RUNNING)
-    engine._module_connections[module.name] = ModuleConnection(code, info)
+    connection = ModuleConnection(code, info)
+    engine._module_connections[module.name] = connection
     if trip:
-        label = module.display_name or module.name
-        engine.module_major_fault = {'type': 3, 'code': 16, 'module': module.name,
-                                     'fault_code': code, 'fault_info': info, 'fault_id': uuid4().hex}
-        engine.fault = (f'Required module {label} lost its simulated connection '
-                        f'(Type 3 Code 16, module fault 0x{code:04X}, info {info}).')
+        _latch_module_major_fault(engine, module, connection, 16)
     return {'module': module.name, 'state': state, 'fault_code': code, 'fault_info': info}
 
 
 def _module_mode(engine, module):
     return engine._module_modes.get(module.name, module.mode())
+
+
+def _module_required(engine, module):
+    return bool((_module_mode(engine, module) or 0) & MODULE_MAJOR_FAULT_BIT)
 
 
 def _module_inhibited(engine, module):
@@ -200,6 +199,31 @@ def _module_connection_state(engine, module, find_parent):
     if connection is None:
         return None, None
     return (MODULE_FAULTED if connection.fault_code else MODULE_RUNNING), connection
+
+
+def _latch_module_major_fault(engine, module, connection, code):
+    label = module.display_name or module.name
+    reason = ('lost its simulated connection' if code == 16
+              else 'could not establish its simulated connection before Run')
+    engine.module_major_fault = {'type': 3, 'code': code, 'module': module.name,
+                                 'fault_code': connection.fault_code, 'fault_info': connection.fault_info,
+                                 'fault_id': uuid4().hex}
+    engine.fault = (f'Required module {label} {reason} '
+                    f'(Type 3 Code {code}, module fault 0x{connection.fault_code:04X}, info {connection.fault_info}).')
+
+
+def fault_on_run_entry(engine):
+    if engine.mode != 'project' or not engine._module_connections:
+        return False
+    io_map = engine.project.io_map
+    for module in io_map.module_settings:
+        if module.name not in engine._module_connections or not _module_required(engine, module):
+            continue
+        status, connection = _module_connection_state(engine, module, io_map.named_module)
+        if status == MODULE_FAULTED:
+            _latch_module_major_fault(engine, module, connection, 23)
+            return True
+    return False
 
 
 def module_major_fault_state(engine):

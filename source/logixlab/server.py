@@ -183,6 +183,10 @@ class Application:
         if self.running and interval == self.scan_interval_ms:return
         changed=not self.running
         if changed:
+            if not self.engine.blockers and gsv_configuration.fault_on_run_entry(self.engine):
+                self._io_dirty = True
+                self.publish_device_io()
+                raise ModelError(self.engine.fault)
             self.engine.enter_run()
             self._io_dirty=True
         self.scan_interval_ms = interval

@@ -312,8 +312,7 @@ Loss of an optional module leaves Run active. A fault injected while the
 module is inhibited, waiting or lacks a Running input does not trip the
 controller. Program-mode changes and isolated routine harnesses also
 leave the controller latch alone. The model covers direct injected loss.
-Startup connection checks, downstream loss propagation and controller
-fault-handler execution remain open.
+Downstream loss propagation and controller fault-handler execution remain open.
 
 In **Module status lab**, set ModeCommand to 1 and ApplyMode to true,
 then Step once to uninhibit RackOutput and keep it required. Set
@@ -334,6 +333,29 @@ from a previous fault cannot clear a later one. The response is the updated
 emulator state. Clearing this simulated fault is a local control.
 [Rockwell Logix 5000 Controllers Information and Status](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm015_-en-p.pdf)
 [Rockwell Clear Faults help](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-03/contents-ditamap/studio-5000-logix-designer/controller-properties/clear-faults.html)
+
+## Required module fault at Run entry
+
+A whole-project Program-to-Run request trips Type 3 Code 23 if a module
+is required by its effective Mode word and already has an effective
+simulated Faulted connection. The request fails before prescan and leaves
+tags, simulated time and scan counters intact. If several modules qualify,
+the controller records the first one in the source module order.
+
+Optional, inhibited, waiting and unknown module states do not trigger
+this startup check. Manual Step and isolated routine Run stay available
+for diagnostics when there is no controller fault latch. The simulator
+checks the explicit input immediately. Rockwell's connection attempt and
+startup delay require live I/O and are outside this model.
+
+In **Module status lab**, set ModeCommand to 1, Step with ApplyMode true,
+and set ApplyMode back to false. In **Device I/O**, apply Faulted to
+RackOutput while still in Program. Select **Run** to see **I/O MAJOR FAULT
+· 3/23**. Restore RackOutput to Running, clear the fault, then select
+Run again. The same API fault record and recovery controls apply to both
+3/23 and 3/16. If another required module is still faulted, the next Run
+request reports that module.
+[Rockwell Logix 5000 Controllers Information and Status](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm015_-en-p.pdf)
 
 ## Module backplane path
 
