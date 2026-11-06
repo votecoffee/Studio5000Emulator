@@ -890,6 +890,7 @@ class Engine:
         if routine.kind=='ST':self.structured.execute(routine,scope,depth,context);return
         pc=0;enabled=True;plan=self._mcr_plans.get(routine.key.lower(),{})
         while pc<len(routine.rungs):
+            rung_index=pc
             rung=routine.rungs[pc];events=[];power=False;control='';breaking=False
             role=plan.get(pc);forced=role in ('body','close') and not enabled
             try:
@@ -903,8 +904,12 @@ class Engine:
                 control='return';pc=len(routine.rungs)
             except BreakLoop:
                 control='break';breaking=True
-            self.trace.append({"routine":routine.key,"context":context,"number":rung['number'],"power":power,"events":events,'control':control,
-                               'task':self._executing_task,'release_ms':self.time_ms,**({'mcr_forced_false':forced} if plan else {})})
+            visit = {"routine":routine.key,"context":context,"number":rung['number'],"rung_index":rung_index,
+                     "power":power,"events":events,'control':control,'task':self._executing_task,'release_ms':self.time_ms}
+            if plan:visit['mcr_forced_false'] = forced
+            if any('recovered_fault' in event for event in events):
+                visit['recovery_source'] = rung['text']
+            self.trace.append(visit)
             if len(self.trace)>5000:self.trace=self.trace[-5000:]
             if breaking:raise BreakLoop()
 

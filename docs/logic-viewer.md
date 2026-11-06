@@ -21,6 +21,16 @@ represented integer bits, simple indirect tag indices and AOI instance bindings
 are resolved from snapshot metadata. More complex address expressions can remain
 unavailable in the viewer even when the runtime supports them.
 
+## Fault recovery in the ladder monitor
+
+When a fault handler clears a fault and the rung resumes, the skipped
+instruction is marked in amber with the fault code. Its details also
+show the skip. The wires continue to show the recorded rung power.
+
+The mark belongs to the last recorded visit to that rung and instruction.
+A later visit without recovery removes it. Editing the rung also removes
+the mark from the changed source.
+
 ## Instruction presentation
 
 AOI calls use the imported definition name, an instance row and the visible

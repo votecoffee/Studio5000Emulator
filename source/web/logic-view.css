@@ -45,6 +45,10 @@
 .lv-instruction-description {margin:0;padding:8px 12px;border-bottom:1px solid #dce3eb;white-space:pre-wrap}
 .lv-instruction.live .lv-block {stroke:#17802a;stroke-width:2}
 .lv-instruction.unsupported .lv-block,.lv-instruction.unsupported .lv-selection {stroke:#af7925}
+.lv-instruction.recovered-fault .lv-block {fill:#fff6df;stroke:#a3610c;stroke-width:2}
+.lv-instruction.recovered-fault .lv-symbol {stroke:#a3610c;stroke-width:2.2}
+.lv-instruction.recovered-fault .lv-energized-fill {fill:#ffe3ab}
+.lv-fault-marker {fill:#793f00;font:bold 11px Consolas,monospace;text-anchor:end;pointer-events:none}
 .lv-param-name {fill:#465b6b;font:10px Segoe UI,sans-serif}
 .lv-param-reference {fill:#173b9c;font:11px Consolas,monospace}
 .lv-param-value {fill:#256732;font:10px Consolas,monospace;text-anchor:end}
@@ -55,6 +59,7 @@
 .lv-empty {margin:0;padding:28px;color:#607080;white-space:pre-wrap}
 #instruction-inspector {border-top:1px solid #a5b9cd;background:#f8fafc;color:#243747;font-size:11px;max-height:210px;overflow:auto}
 .lv-inspector-head {position:sticky;top:0;display:flex;align-items:center;gap:12px;padding:7px 12px;background:#e6edf5;border-bottom:1px solid #c3d0dd;z-index:1}
+.lv-inspector-fault {margin:0;padding:7px 12px;background:#fff0cd;color:#693800;border-bottom:1px solid #e0b66d;font-weight:600}
 .lv-inspector-head strong {font:700 12px Consolas,monospace}
 .lv-inspector-head span {margin-right:auto;color:#4a6278;font-size:10px}
 .lv-inspector-head button {background:#fff;color:#315d81;border:1px solid #bdcbd8;border-radius:2px;padding:3px 7px;font-size:10px}

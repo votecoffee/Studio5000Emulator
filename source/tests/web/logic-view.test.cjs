@@ -127,6 +127,20 @@ test('a partial jump trace cannot energize unvisited instructions', () => {
   assert.equal(values.nodes[g.order[1]].event, null);assert.equal(values.nodes[g.order[1]].out, undefined);
   const intoSkipped = g.edges.find(e => e.to.node === g.order[1]);assert.equal(values.edges[intoSkipped.id], undefined);
 });
+test('recovery marks the exact trace node while the outgoing wire stays powered', () => {
+  const g = graph.compile(rung([{branch: [[op('MOV', 'A', 'X')], [op('MOV', 'A', 'X')]]}, op('MOV', 'B', 'Y')]));
+  const fault = {type: 4, code: 20}, move = {instruction: 'MOV', args: ['A', 'X'], in: true, out: true};
+  const trace = {rung_index: 1, recovery_source: g.source, events: [
+    move, {...move, recovered_fault: fault}, {...move, args: ['B', 'Y']}]};
+  const values = graph.power(g, trace, 1);
+  assert.deepEqual(g.order.map(id => values.nodes[id].recoveredFault), [null, fault, null]);
+  for (const edge of g.edges) assert.equal(values.edges[edge.id], true);
+  assert.deepEqual(graph.power(g, trace, 0).nodes[g.order[1]].recoveredFault, null);
+  assert.deepEqual(graph.power({...g, source: 'edited rung'}, trace, 1).nodes[g.order[1]].recoveredFault, null);
+  const mismatch = {...trace, events: [move, {...move, args: ['A', 'Z'], recovered_fault: fault}, move]};
+  assert.deepEqual(graph.power(g, mismatch, 1).nodes[g.order[1]].recoveredFault, null);
+  assert.deepEqual(graph.power(g, {...trace, events: [move, move, move]}, 1).nodes[g.order[1]].recoveredFault, null);
+});
 test('an empty rung remains a direct rail-to-rail connection', () => {
   const g = graph.compile(rung([]));validate(g);assert.equal(g.edges.length, 1);assert.equal(g.order.length, 0);
   assert.equal(graph.power(g, {power: true, events: []}).edges[g.edges[0].id], true);

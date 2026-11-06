@@ -207,7 +207,10 @@ class ProgramFaultTests(unittest.TestCase):
                 self.assertEqual(engine.memory.read('SpeedSetpoint'),91)
                 self.assertEqual(engine.memory.read('LabValues'),[12,13])
                 self.assertEqual((engine.fault,engine.scan_count,engine.time_ms),('',2,20))
-                event = next(event for row in engine.trace for event in row['events'] if 'recovered_fault' in event)
+                visit = next(row for row in engine.trace if 'recovery_source' in row)
+                source = engine.project.routines['mainprogram/mainroutine'].rungs[0]['text']
+                self.assertEqual((visit['rung_index'],visit['recovery_source']),(0,source))
+                event = next(event for event in visit['events'] if 'recovered_fault' in event)
                 self.assertEqual((event['instruction'],event['recovered_fault'],event['out']),
                                  ('MOV',{'type':4,'code':20},True))
                 self.assertEqual(engine.program_fault_attributes('MainProgram',source_sha256=engine.project.sha256),{})

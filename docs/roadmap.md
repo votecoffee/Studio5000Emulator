@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1106.133631` [ladder fault recovery markers](logic-viewer.md#fault-recovery-in-the-ladder-monitor)
+label the skipped instruction with its cleared fault code and keep the
+recorded power visible on the rung.
+
 Available in `26.1106.132745` [ladder bitwise array fault recovery](controller-handlers.md#recover-a-ladder-bitwise-array-fault)
 lets handlers clear Type 4 Code 20 on AND, OR, XOR, NOT, MVM and BTD.
 The faulted instruction skips its destination write and the rung resumes.

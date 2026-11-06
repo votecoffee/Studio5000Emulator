@@ -170,6 +170,8 @@ can clear out-of-bounds MOV, [COP/CPS](docs/controller-handlers.md#recover-cop-a
 and [bitwise](docs/controller-handlers.md#recover-a-ladder-bitwise-array-fault)
 operands to continue at the next instruction. The Controller Fault Handler can
 [recover an uncleared array fault](docs/controller-handlers.md#escalate-an-uncleared-program-fault).
+The [ladder monitor marks the skipped instruction](docs/logic-viewer.md#fault-recovery-in-the-ladder-monitor)
+and shows the cleared fault code in its details.
 [Aggregate LEDStatus](docs/gsv-configuration.md#simulated-module-ledstatus)
 summarizes a complete simulated module inventory.
 

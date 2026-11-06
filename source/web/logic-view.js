@@ -14,6 +14,8 @@
   }
   const short = (text, limit = 28) => String(text).length > limit ? String(text).slice(0, limit - 1) + '…' : String(text);
   const valueText = row => !row || row.value == null ? '?' : typeof row.value === 'boolean' ? (row.value ? '1' : '0') : String(row.value);
+  const faultCode = fault => fault ? `${fault.type}/${fault.code}` : '';
+  const faultMessage = code => `Instruction skipped after fault ${code} was cleared.`;
   function html(tag, className, text) {
     const el = document.createElement(tag);if (className) el.className = className;
     if (text !== undefined) el.textContent = text;return el;
@@ -103,7 +105,8 @@
       const fields = item.fields || parameters(item.node), event = doc.graph ? doc.power?.nodes[selected] : null;
       const rows = fields.map(field => ({...field, row: read(field.ref, item.node)}));
       const face = item.graph ? presentation(item.node) : null;
-      const fingerprint = JSON.stringify([selected, rows, event?.in, event?.out, face?.description]);if (fingerprint === inspection) return;
+      const recovery = faultCode(event?.recoveredFault);
+      const fingerprint = JSON.stringify([selected, rows, event?.in, event?.out, recovery, face?.description]);if (fingerprint === inspection) return;
       inspection = fingerprint;inspector.replaceChildren();
       const head = html('div', 'lv-inspector-head');head.append(html('strong', '', face ? (face.kind === 'aoi' ? face.title : item.node.opcode + ' · ' + face.title) : item.node.type || item.node.kind));
       const context = doc.graph ? `Rung ${doc.graph.number} · Last scan ${event?.in === undefined ? '?' : Number(event.in)} → ${event?.out === undefined ? '?' : Number(event.out)}` : current.routine.key;
@@ -116,6 +119,7 @@
       const aoi = item.graph && openAOI(item.node);
       if (aoi) {const open = html('button', '', 'Open AOI logic ↗');open.onclick = () => options.onOpenRoutine(aoi.key, aoi.context);head.insertBefore(open, close);}
       inspector.append(head);
+      if (recovery) inspector.append(html('p', 'lv-inspector-fault', faultMessage(recovery)));
       if (face?.description) inspector.append(html('p', 'lv-instruction-description', face.description));
       const table = html('div', 'lv-operand-list');
       for (const field of rows) {
@@ -177,13 +181,16 @@
       for (const name of ['in', 'out']) group.append(svg('circle', {class: 'lv-port', cx: name === 'in' ? 0 : width, cy: 0, r: 3,
         'data-port-id': name, 'data-port-direction': name === 'in' ? 'in' : 'out'}));
       const navigate = op === 'JMP' ? () => {const target = labelTarget(documents.map(d => d.graph), node.operands[0]);if (target) select(target.nodeId, true);} : null;
-      bind(group, node.id, `${op} ${node.operands.join(', ')}. Select instruction details.${navigate ? ' Ctrl+Enter to follow label.' : ''}`, navigate);
-      return {group, monitors: fields, node, graph, title};
+      const label = `${op} ${node.operands.join(', ')}. Select instruction details.${navigate ? ' Ctrl+Enter to follow label.' : ''}`;
+      const marker = svg('text', {x: symbol ? width - 5 : position.boxWidth - 8, y: symbol ? -38 : -31,
+        class: 'lv-fault-marker', 'aria-hidden': 'true'}, '');
+      group.append(marker);bind(group, node.id, label, navigate);
+      return {group, monitors: fields, node, graph, title, titleText: title.textContent, label, marker};
     }
     function renderLadder() {
       const graphs = current.routine.rungs.map(rung => root.LadderGraph.compile(rung, current.routine.key));
       const minimum = Math.max(760, ...graphs.map(graph => root.LadderGraph.layout(graph, 0, node => faceplates.dimensions(node, presentation(node))).width));
-      for (const graph of graphs) {
+      for (const [rungIndex, graph] of graphs.entries()) {
         const geometry = root.LadderGraph.layout(graph, minimum, node => faceplates.dimensions(node, presentation(node))), row = html('section', 'lv-rung');row.dataset.rung = graph.number;
         const comment = html('div', 'lv-rung-comment', graph.comment);comment.hidden = !showComments || !graph.comment;row.append(comment);
         const picture = svg('svg', {class: 'lv-ladder', viewBox: `0 0 ${geometry.width} ${geometry.height}`, width: geometry.width * zoom,
@@ -204,7 +211,7 @@
             picture.append(path);junctions.set(node.id, path);
           }
         }
-        row.append(picture);canvas.append(row);documents.push({graph, row, geometry, svg: picture, instructions, paths, junctions});
+        row.append(picture);canvas.append(row);documents.push({graph, rungIndex, row, geometry, svg: picture, instructions, paths, junctions});
       }
     }
     function renderST() {
@@ -273,16 +280,27 @@
     }
     function update() {
       lastTraces = new Map();
-      for (const item of current.state.trace || []) if (item.routine === current.routine.key && (!current.context || item.context === current.context)) lastTraces.set(String(item.number), item);
+      for (const item of current.state.trace || []) if (item.routine === current.routine.key && (!current.context || item.context === current.context)) {
+        lastTraces.set(item.rung_index ?? String(item.number), item);
+      }
       for (const doc of documents) {
         if (doc.graph) {
-          doc.power = root.LadderGraph.power(doc.graph, trace(doc.graph.number));
+          const indexed = trace(doc.rungIndex);
+          const visit = String(indexed?.number) === doc.graph.number ? indexed : trace(doc.graph.number);
+          doc.power = root.LadderGraph.power(doc.graph, visit, doc.rungIndex);
           for (const [id, path] of doc.paths) path.classList.toggle('live', doc.power.edges[id] === true);
           for (const [id, path] of doc.junctions) path.classList.toggle('live', doc.power.nodes[id]?.out === true);
           for (const [id, item] of doc.instructions) {
             const power = doc.power.nodes[id];item.group.classList.toggle('live', power?.out === true);
             item.group.classList.toggle('power-in', power?.in === true);item.group.classList.toggle('untraced', !power?.event);
             item.group.classList.toggle('unsupported', !current.recognized(item.node.opcode));
+            const recovery = faultCode(power?.recoveredFault), marker = recovery ? `SKIPPED ${recovery}` : '';
+            if (item.marker.textContent !== marker) {
+              item.marker.textContent = marker;
+              item.group.classList.toggle('recovered-fault', !!recovery);
+              item.group.setAttribute('aria-label', recovery ? `${item.label} ${faultMessage(recovery)}` : item.label);
+              item.title.textContent = recovery ? `${item.titleText}\n${faultMessage(recovery)}` : item.titleText;
+            }
             for (const field of item.monitors) {const row = read(field.ref, item.node);field.el.textContent = field.flag || (row?.aggregate ? '' : valueText(row));field.el.classList.toggle('unknown', !row || row.value == null);field.el.classList.toggle('on', !!field.flag && row?.value === true);}
           }
         } else if (doc.rows) {
