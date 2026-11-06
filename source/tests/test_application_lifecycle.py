@@ -194,7 +194,8 @@ class ApplicationLifecycleTests(unittest.TestCase):
 
     def test_data_lab_clipped_record_operations_preserve_neighbors_and_rollback_through_http(self):
         state=self.post('demo',{'sample':'DataLab'});self.assertEqual(state['blockers'],[])
-        self.assertEqual(len(state['routines']),3)
+        routines = {row['key']: row['kind'] for row in state['routines']}
+        self.assertEqual(routines.get('MainProgram/ClippedRecords'), 'RLL')
         values=lambda s:{row['name']:row['value'] for row in s['tags']}
         def write(tag,value):return self.post('write',{'tag':tag,'value':value})
         def step():return self.post('step',{'dt':25})
@@ -768,7 +769,8 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual((after['tags'],after['scan'],after['ms'],after['task_schedule']),(before['tags'],before['scan'],before['ms'],before['task_schedule']))
         write('FaultDivisor',1);write('Input',1);state=step((2.0,-2.0))
         self.assertEqual(state['scan'],before['scan']+1);self.assertEqual(values(state)['CallCount'],8)
-        report=self.post('report',{});self.assertEqual(report['st_capture']['instructions'],['MAXC','MEQ','MINC'])
+        report = self.post('report', {})
+        self.assertEqual(report['st_capture']['instructions'], ['MAXC', 'MINC'])
         self.assertFalse(report['st_capture']['native_runtime_parity']);self.assertIn('capture-demo',self.get('/').decode())
 
     def test_moving_lab_samples_weights_resize_diagnostics_and_rollback_through_http(self):
@@ -1846,7 +1848,9 @@ class ApplicationLifecycleTests(unittest.TestCase):
         with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
         for key in ('tags','routines','scan','ms','task_schedule'):self.assertEqual(after[key],before[key],key)
         self.post('write', {'tag':'TimingMode','value':1});self.assertEqual(values(self.post('step', {'dt':125}))['Output'],1.0)
-        profile=self.post('report', {})['st_rate'];self.assertEqual(profile['instructions'],['ACS','ASN','ATN','BTDT','COS','DEG','FRD','LN','LOG','MOD','RAD','RLIM','SIN','SQR','TAN','TOD','TRN','XPY']);self.assertFalse(profile['native_runtime_parity'])
+        profile = self.post('report', {})['st_rate']
+        self.assertEqual(profile['instructions'], ['RLIM'])
+        self.assertFalse(profile['native_runtime_parity'])
 
     def test_signal_lab_limits_negation_sum_and_rollback_through_http(self):
         self.assertEqual(self.post('demo', {'sample':'SignalLab'})['blockers'], [])
@@ -1912,7 +1916,9 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.post('write', {'tag':'RawMinimum','value':0.0});self.post('write', {'tag':'EUMinimum','value':100.0})
         self.post('write', {'tag':'EUMaximum','value':-100.0});self.post('write', {'tag':'RawValue','value':2047.5})
         v=values(self.post('step', {'dt':10}));self.assertEqual(v['ScaledValue'],0.0);self.assertFalse(v['ScaleFault'])
-        profile=self.post('report', {})['st_scale'];self.assertEqual(profile['instructions'],['ACS','ASN','ATN','BTDT','COS','DEG','FRD','LN','LOG','MOD','RAD','SCL','SIN','SQR','TAN','TOD','TRN','XPY']);self.assertFalse(profile['native_runtime_parity'])
+        profile = self.post('report', {})['st_scale']
+        self.assertEqual(profile['instructions'], ['SCL'])
+        self.assertFalse(profile['native_runtime_parity'])
 
     def test_pulse_lab_st_edges_skips_and_rollback_through_http(self):
         self.assertEqual(self.post('demo', {'sample':'PulseLab'})['blockers'], [])
@@ -1936,7 +1942,8 @@ class ApplicationLifecycleTests(unittest.TestCase):
         error.exception.close()
         self.post('write', {'tag':'FaultDivisor','value':1});v=values(self.post('step', {'dt':10}))
         self.assertTrue(v['RisingOutput']);self.assertEqual(v['RisingPulses'],2)
-        profile=self.post('report', {})['st_oneshot'];self.assertEqual(profile['instructions'],['ACS','ASN','ATN','BTDT','COS','DEG','FRD','LN','LOG','MOD','OSFI','OSRI','RAD','SIN','SQR','TAN','TOD','TRN','XPY'])
+        profile = self.post('report', {})['st_oneshot']
+        self.assertEqual(profile['instructions'], ['OSFI', 'OSRI'])
         self.assertFalse(profile['native_runtime_parity'])
 
     def test_counter_lab_st_edges_wrap_reset_and_retry_through_http(self):
@@ -2816,7 +2823,10 @@ class ApplicationLifecycleTests(unittest.TestCase):
         with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
         for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
         write('FillReal',32766.5);row=step();self.assertEqual((row['ByteFill[1]'],row['WordFill[1]'],row['RealFill[1]']),(42,42,32766))
-        report=self.post('report',{})['numeric_fill'];self.assertTrue(report['available']);self.assertFalse(report['clipping']);self.assertFalse(report['native_runtime_parity'])
+        report = self.post('report', {})['numeric_fill']
+        self.assertTrue(report['available'])
+        self.assertTrue(report['clipping'])
+        self.assertFalse(report['native_runtime_parity'])
 
     def test_data_lab_size_truncate_and_recovery_through_http(self):
         self.assertEqual(self.post('demo',{'sample':'DataLab'})['blockers'],[])
@@ -2941,7 +2951,11 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual(error.exception.code,400);error.exception.close();after=current()
         for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
         write('MoveReal',3.5);row=step();self.assertEqual((row['MoveRounded'],row['ByteFill[0]'],row['ByteFill[4]']),(4,101,99))
-        report=self.post('report',{})['numeric_storage'];self.assertEqual(len(report['types']),9);self.assertFalse(report['native_math_status'])
+        report = self.post('report', {})['numeric_storage']
+        self.assertCountEqual(report['types'], [
+            'SINT', 'INT', 'DINT', 'LINT', 'USINT', 'UINT', 'UDINT', 'ULINT', 'REAL', 'LREAL',
+        ])
+        self.assertFalse(report['native_math_status'])
 
     def test_imported_unknown_numeric_move_and_clear_recover_through_http(self):
         import base64
@@ -3982,7 +3996,11 @@ class ApplicationLifecycleTests(unittest.TestCase):
         write('DoubleConstantsLateDivisor',0);fault('zero');write('DoubleConstantsLateDivisor',1);step()
         write('EnableDoubleConstants',False);write('DoubleConstantsIndex',99);row=values(step())
         for name in expected:self.assertFalse(row['DoubleConstants'+name])
-        for item in (self.post('report',{})['scalar_math']['lreal_arithmetic'],self.post('report',{})['numeric_comparisons']['lreal_ordering']):self.assertIn('Signed DINT',item['constants'])
+        report = self.post('report', {})
+        for item in (report['scalar_math']['lreal_arithmetic'], report['numeric_comparisons']['lreal_ordering']):
+            self.assertIn('DINT', item['constants'])
+            self.assertIn('L/U/UL', item['constants'])
+            self.assertIn('binary64 promotion', item['constants'])
 
     def test_math_lab_mixed_lreal_powers_precision_and_atomic_recovery(self):
         self.assertEqual(self.post('demo',{'sample':'MathLab'})['blockers'],[])
@@ -4006,7 +4024,12 @@ class ApplicationLifecycleTests(unittest.TestCase):
         write('MixedPowerLateDivisor',0);fault('zero');write('MixedPowerLateDivisor',1)
         write('MixedPowerValues[1]',3);row=values(step());self.assertEqual(row['MixedPowerResults[1]'],27.0)
         write('MixedPowerEnabled',False);write('MixedPowerIndex',99);row=values(step());self.assertEqual(row['MixedPowerResults[1]'],27.0)
-        power=self.post('report',{})['real_math']['lreal']['power'];self.assertEqual(len(power['source_types']),10);self.assertIn('Signed DINT',power['constants']);self.assertFalse(power['native_runtime_parity'])
+        power = self.post('report', {})['real_math']['lreal']['power']
+        self.assertEqual(len(power['source_types']), 10)
+        self.assertIn('DINT', power['constants'])
+        self.assertIn('L/U/UL', power['constants'])
+        self.assertIn('binary64 promotion', power['constants'])
+        self.assertFalse(power['native_runtime_parity'])
 
     def test_math_lab_numeric_unary_lreal_results_and_atomic_recovery(self):
         self.assertEqual(self.post('demo',{'sample':'MathLab'})['blockers'],[])
