@@ -336,7 +336,8 @@ transactional rollback.
 
 [Indirect routine arguments](docs/indirect-routine-calls.md) let JSR callers
 select input and return elements at runtime with copied values and captured
-call-entry addresses. Ladder SBR and RET select the callee's indexed elements
+call-entry addresses. Two JSR return operands can select distinct elements
+of the same array. Ladder SBR and RET select the callee's indexed elements
 when their transfer runs.
 
 [Statistics operand selection](docs/statistics-operands.md) defers dormant

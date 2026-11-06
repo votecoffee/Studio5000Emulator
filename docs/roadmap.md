@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1106.162211` [same-array JSR return destinations](indirect-routine-calls.md#return-two-values-to-one-array)
+let a call write different elements of one array. JSR checks the resolved
+destinations before entering the routine. Call Lab includes a working example.
+
 Available in `26.1106.161334` [indexed ladder SBR and RET](indirect-routine-calls.md#indexed-ladder-sbr-and-ret)
 let a callee select input destinations and return sources at transfer time.
 JSR keeps its captured caller addresses. A failed callee transfer rolls back

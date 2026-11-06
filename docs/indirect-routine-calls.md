@@ -70,8 +70,11 @@ keep their static operand rules.
 
 Bit/system selections, constant destinations and mismatched signatures remain
 blocked. FOR has a [separate selection profile](ladder-loops.md#runtime-selected-operands).
-JSR still uses conservative preflight overlap checks for caller operands.
-Multiple indirect results in separate arrays are supported.
+Preflight blocks overlapping static selections and whole-tag overlaps.
+For explicit indirect elements, JSR checks the actual caller destinations
+before entering the routine. Two destinations can select distinct cells of
+the same array. If both select the same cell, the scan rolls back before any
+callee writes. Cross-parameter overlaps are also checked before each copy.
 
 During whole-project ladder execution, an out-of-bounds array index at
 call entry can [skip the JSR after a fault clear](controller-handlers.md#recover-a-jsr-argument-fault).
@@ -100,6 +103,15 @@ the selected record: result A is 23 and omitted B stays unknown. Disable the
 gate before changing the source to observe independent result storage. Bad
 live indices or unknown consumed scalar inputs fault transactionally; correct
 them and retry. See [CallLab.L5X](../source/samples/CallLab.L5X).
+
+### Return two values to one array
+
+In **Call lab**, set CallInputIndex to 0 and CallOutputIndex to 2. Leave the
+other indirect calls disabled, enable SharedResultCall, and step. The callee
+writes 17 to IndexedCallResults[0] and 29 to IndexedCallResults[2].
+Set both indices to 2 and step to see the overlap error. The existing
+results stay in place. Change CallOutputIndex to 1 and step again. The new
+call writes 17 to IndexedCallResults[2] and 29 to IndexedCallResults[1].
 
 Rockwell's [JSR/SBR/RET reference](https://www.rockwellautomation.com/en-fi/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/program-control-instructions/jump-to-subroutine--jsr---subroutine--sbr---and-re.html)
 describes copied parameters, matching types/dimensions and nesting limits.

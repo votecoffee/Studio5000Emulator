@@ -40,8 +40,11 @@ def shape(value):
 
 
 def overlaps(a,b):
-    return (not a.deferred_overlap and not b.deferred_overlap and a.key is not None and a.key==b.key
-            and (a.parts[:len(b.parts)]==b.parts or b.parts[:len(a.parts)]==a.parts))
+    if a.key is None or a.key!=b.key:return False
+    # A whole tag overlaps any selection within it, even at preflight.
+    if not a.parts or not b.parts:return True
+    if a.deferred_overlap or b.deferred_overlap:return False
+    return a.parts[:len(b.parts)]==b.parts or b.parts[:len(a.parts)]==a.parts
 
 
 class Calls:
@@ -52,7 +55,7 @@ class Calls:
         return (self.engine.project.version=='35' and self.engine.project.processor.upper() in CONTROLLERS
                 and scope not in self.memory.frames)
 
-    def operand(self,ref,scope,writable=False,*,indirect=False,defer_overlap=False):
+    def operand(self,ref,scope,writable=False,*,indirect=False):
         try:
             value=literal(ref)
             if writable:raise ModelError('Parameter destination must be a writable tag')
@@ -68,7 +71,7 @@ class Calls:
         value=self.memory.at(key,parts)
         if dynamic and shape(value):raise ModelError('Indirect routine arguments must select one complete element')
         return Operand(self.memory.address(key,parts),'',key,parts,dtype,shape(value),
-                       defer_overlap and self.memory.structural and dynamic)
+                       self.memory.structural and dynamic)
 
     def check_pairs(self,sources,destinations):
         if len(sources)!=len(destinations):raise ModelError('Routine parameter counts must match exactly')
@@ -118,7 +121,7 @@ class Calls:
         previous=self.memory.structural
         if structural and indirect:self.memory.structural=True
         try:
-            return [self.operand(ref,scope,writable=op.name=='SBR',indirect=indirect,defer_overlap=indirect)
+            return [self.operand(ref,scope,writable=op.name=='SBR',indirect=indirect)
                     for ref in op.args]
         finally:self.memory.structural=previous
 
@@ -273,5 +276,5 @@ class Calls:
                                 selection='Structural JSR preflight; false/prescan skip live caller indices and values',
                                 capture='Input and return-destination addresses captured at call entry before input copies; current values copied before SBR writes',
                                 callee='Ladder SBR destinations and RET sources select live elements only on the reached transfer, with all addresses and values captured before the first write',
-                                boundaries='One selected element per explicit indirect operand; ST SBR/RET retain static rules; FOR uses its separate profile; structural overlap defers for explicit indirect callee operands',
+                                boundaries='One selected element per explicit indirect operand; ST SBR/RET retain static rules; FOR uses its separate profile; preflight defers element overlap for explicit indirect operands until the live call or transfer',
                                 native_runtime_parity=False)}

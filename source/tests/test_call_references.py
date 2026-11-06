@@ -122,6 +122,47 @@ class CallReferenceTests(unittest.TestCase):
         self.assertEqual(self.snapshot(e), before); e.memory.write('OutputIndex', 2); e.step()
         self.assertEqual(e.memory.read('Outputs')[1:], [0, 0])
 
+    def test_caller_accepts_distinct_live_return_elements_of_the_same_array(self):
+        def setup(root):
+            self.routine('Two',['SBR(NestedInput);','ADD(CallCount,1,CallCount);',
+                                'MOV(2,OutputIndex);','RET(NestedInput,29);'])
+        e = self.checked(['XIC(IndirectEnabled)JSR(Two,1,InputValue,Outputs[InputIndex],Outputs[OutputIndex]);'],setup)
+        e.step()
+        self.assertEqual(e.memory.read('Outputs'),[None,None,None])
+        for ref,value in [('InputIndex',0),('OutputIndex',1),('IndirectEnabled',True)]:
+            e.memory.write(ref,value)
+        e.step()
+        self.assertEqual(e.memory.read('OutputIndex'),2)
+        self.assertEqual(e.memory.read('Outputs'),[7,29,None])
+        self.assertEqual(e.memory.read('CallCount'),1)
+
+        e.memory.write('InputIndex',2)
+        before = self.snapshot(e)
+        with self.assertRaisesRegex(ModelError,'Overlapping parameter destinations'):
+            e.step()
+        self.assertEqual(self.snapshot(e),before)
+        e.memory.write('OutputIndex',0)
+        e.step()
+        self.assertEqual(e.memory.read('Outputs'),[29,29,7])
+        self.assertEqual(e.memory.read('CallCount'),2)
+        self.assertEqual(e.calls.stack,[])
+
+    def test_caller_defers_cross_parameter_overlap_until_input_selection(self):
+        def setup(root):
+            self.routine('Two',['SBR(Inputs[0],WorkValue);'])
+        e = self.checked(['JSR(Two,2,17,Inputs[InputIndex]);'],setup)
+        e.memory.write('InputIndex',1)
+        e.memory.write('Inputs[1]',29)
+        e.step()
+        self.assertEqual(e.memory.read('Inputs'),[17,29,None])
+        self.assertEqual(e.memory.read('WorkValue'),29)
+
+        e.memory.write('InputIndex',0)
+        before = self.snapshot(e)
+        with self.assertRaisesRegex(ModelError,'Cross-parameter'):
+            e.step()
+        self.assertEqual(self.snapshot(e),before)
+
     def test_nested_and_later_faults_restore_transfers_call_stack_and_scheduler(self):
         for inner in (False, True):
             def fault(root):
@@ -244,8 +285,16 @@ class CallReferenceTests(unittest.TestCase):
             target.set('Type','ST')
             E.SubElement(E.SubElement(target,'STContent'),'Line',Number='0').text='RET(Inputs[InputIndex]);'
         self.assertTrue(self.engine(['AFI()JSR(Bad,0,Result);'],st_callee).blockers)
-        def overlap(root):self.routine('Two', ['RET(WorkValue,NestedOutput);'])
-        self.assertTrue(self.engine(['AFI()JSR(Two,0,Outputs[InputIndex],Outputs[OutputIndex]);'], overlap).blockers)
+        def fixed_overlap(root):
+            E.SubElement(root.find('./Controller/Tags'),'Tag',Name='FixedOutput',TagType='Alias',AliasFor='Outputs[0]')
+            self.routine('Two',['RET(WorkValue,NestedOutput);'])
+        e = self.engine(['AFI()JSR(Two,0,FixedOutput,Outputs[0]);'],fixed_overlap)
+        self.assertTrue(any('Overlapping parameter destinations' in problem for problem in e.blockers))
+
+        def whole_overlap(root):
+            self.routine('Two',['RET(ArrayFormal,WorkValue);'])
+        e = self.engine(['AFI()JSR(Two,0,ArrayOutput,ArrayOutput[OutputIndex]);'],whole_overlap)
+        self.assertTrue(any('Overlapping parameter destinations' in problem for problem in e.blockers))
 
 
 if __name__ == '__main__':unittest.main()
