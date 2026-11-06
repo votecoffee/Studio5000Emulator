@@ -3,12 +3,14 @@ import math
 import re
 from dataclasses import dataclass, replace
 
+from .identity import Identity
 from .integer_math import CONTROLLERS
 from .model import ModelError, coerce
 
 MAX_ELEMENTS = 64
 MAX_PENDING = 32
 DEFAULT_TIMEOUT_US = 30_000_000
+IDENTITY_ATTRIBUTES = frozenset((1, 2, 3, 4, 6, 7))
 FIELDS = dict.fromkeys(('EW', 'ER', 'DN', 'ST', 'EN', 'TO'), 'BOOL') | {
     'ERR': 'INT', 'EXERR': 'DINT', 'REQ_LEN': 'INT', 'DN_LEN': 'INT',
     'LocalIndex': 'DINT', 'RemoteIndex': 'DINT', 'RemoteElement': 'STRING',
@@ -44,11 +46,22 @@ class Configuration:
 
 
 @dataclass(frozen=True)
-class Pending:
+class IdentityRead:
+    destination: Endpoint
+    payload: bytes
+
+
+@dataclass(frozen=True)
+class DataTableTransfer:
     configuration: Configuration
     local_start: int | None
     remote: Endpoint | None
     remote_start: int | None
+
+
+@dataclass(frozen=True)
+class Pending:
+    request: DataTableTransfer | IdentityRead
     deadline_us: int
     enabled: bool = True
     started: bool = False
@@ -83,6 +96,30 @@ def _endpoint(attributes, side):
     return endpoint
 
 
+def _hex_number(attributes, name):
+    match = re.fullmatch(r'(?:16#)?([0-9A-F]{1,4})', attributes.get(name, ''), re.ASCII | re.I)
+    if match is None:
+        raise ModelError(f'CIP Generic {name} requires a hexadecimal value')
+    return int(match[1], 16)
+
+
+def _identity_read(project, attributes):
+    service = _hex_number(attributes, 'ServiceCode')
+    cls = _hex_number(attributes, 'ObjectType')
+    instance = _number(attributes, 'TargetObject', 0, 65535)
+    attribute = _hex_number(attributes, 'AttributeNumber')
+    if (service, cls, instance) != (0x0E, 1, 1) or attribute not in IDENTITY_ATTRIBUTES:
+        raise ModelError('CIP Generic supports Get Attribute Single on modeled static Identity attributes')
+    _number(attributes, 'RequestedLength', 0, 0, '0')
+    if attributes.get('LocalElement', '').strip() or attributes.get('RemoteElement', '').strip():
+        raise ModelError('CIP Generic Identity reads require an empty source and no request payload')
+    destination = _parse_endpoint(attributes.get('DestinationTag', '').strip(), 0)
+    if destination is None or destination.variable or ':' in destination.name:
+        raise ModelError('CIP Generic Identity requires a controller DestinationTag with a fixed array start')
+    identity = Identity.from_project('logix-v35-l85e', project)
+    return IdentityRead(destination, identity.attributes()[attribute])
+
+
 def from_tag(project, tag, element, dims):
     if (project.version != '35' or project.processor.upper() not in CONTROLLERS
             or tag.scope or tag.constant or tag.tag_class != 'Standard' or dims):
@@ -93,13 +130,15 @@ def from_tag(project, tag, element, dims):
         raise ModelError('MESSAGE requires one MessageParameters element in Message data')
     attributes = data[0][0].attrib
     kind = attributes.get('MessageType', '').casefold()
-    if kind not in ('cip data table read', 'cip data table write'):
-        raise ModelError('MESSAGE supports CIP Data Table Read and Write')
     if (attributes.get('ConnectionPath', '').strip().casefold() != 'this'
             or attributes.get('CommTypeCode', '0') != '0'
             or any(attributes.get(name, '0').casefold() not in ('0', 'false')
                    for name in ('ConnectedFlag', 'CacheConnections', 'LargePacketUsage'))):
         raise ModelError('MESSAGE supports only unconnected CIP transfers on the THIS path')
+    if kind == 'cip generic':
+        return _identity_read(project, attributes)
+    if kind not in ('cip data table read', 'cip data table write'):
+        raise ModelError('MESSAGE supports CIP Data Table Read, Write and bounded CIP Generic Identity reads')
     return Configuration(kind.endswith('read'), _endpoint(attributes, 'Local'),
                          _endpoint(attributes, 'Remote'), attributes['RemoteElement'].strip(),
                          _number(attributes, 'RequestedLength', 1, MAX_ELEMENTS))
@@ -110,13 +149,15 @@ def _words(dtype, count):
 
 
 def initial(project, configuration):
-    local = project.tags.get(configuration.local.name)
-    requested = _words(local.dtype.upper(), configuration.count) if local and not local.problem else 0
     record = dict.fromkeys(('EW', 'ER', 'DN', 'ST', 'EN', 'TO'), False) | {
-        'ERR': 0, 'EXERR': 0, 'REQ_LEN': requested, 'DN_LEN': 0,
-        'LocalIndex': configuration.local.offset, 'RemoteIndex': configuration.remote.offset,
+        'ERR': 0, 'EXERR': 0, 'REQ_LEN': 0, 'DN_LEN': 0,
         'UnconnectedTimeout': DEFAULT_TIMEOUT_US,
     }
+    if isinstance(configuration, IdentityRead):
+        return record
+    local = project.tags.get(configuration.local.name)
+    requested = _words(local.dtype.upper(), configuration.count) if local and not local.problem else 0
+    record.update(REQ_LEN=requested, LocalIndex=configuration.local.offset, RemoteIndex=configuration.remote.offset)
     # Preserve long authored addresses that predate the writable STRING field.
     text = configuration.remote_text
     if len(text) <= project.string_capacity('STRING'):
@@ -162,11 +203,24 @@ def _control_key(engine, name, scope, instruction):
     return key
 
 
+def _identity_destination(memory, destination):
+    key, paths, dtype = _region(memory, destination, destination.start(0), 1, remote=False, write=True)
+    if dtype != 'SINT' or not paths[0]:
+        raise TransferError(0xFC)
+    return key, paths[0][0]
+
+
 def validate(engine, op, scope, kind='RLL'):
     if kind != 'RLL' or engine.mode != 'project' or scope in engine.memory.frames:
         raise ModelError('MSG requires a whole-project ladder scan outside AOIs')
     key = _control_key(engine, op.args[0], scope, op.name)
     configuration = engine.project.message_configs[key]
+    if isinstance(configuration, IdentityRead):
+        try:
+            _identity_destination(engine.memory, configuration.destination)
+        except TransferError as error:
+            raise ModelError(f'CIP Generic Identity requires a writable SINT array destination (16#{error.code:04X})') from error
+        return key
     try:
         # A variable start needs a valid array shape, independent of its saved index.
         _region(engine.memory, configuration.local, configuration.local.start(0), configuration.count,
@@ -221,10 +275,9 @@ def prescan(engine, op, scope):
     key = validate(engine, op, scope)
     record = engine.memory.values[key]
     defaults = initial(engine.project, engine.project.message_configs[key])
-    defaults.update(LocalIndex=record['LocalIndex'], RemoteIndex=record['RemoteIndex'],
-                    UnconnectedTimeout=record['UnconnectedTimeout'])
-    if 'RemoteElement' in record:
-        defaults['RemoteElement'] = record['RemoteElement']
+    for name in ('LocalIndex', 'RemoteIndex', 'RemoteElement', 'UnconnectedTimeout'):
+        if name in record:
+            defaults[name] = record[name]
     engine.memory.values[key] = defaults
     if engine._message_advance is not None:
         engine._message_advance.pop(key, None)
@@ -264,21 +317,29 @@ def execute(engine, op, power):
             record.update(ER=True, ERR=0x02)
         else:
             record['EW'] = True
-            configuration = engine.project.message_configs[key]
-            remote = _capture_remote(engine.memory, key, configuration, record)
-            queue[key] = Pending(configuration, configuration.local.start(record['LocalIndex']),
-                                 remote, remote.start(record['RemoteIndex']) if remote is not None else None,
-                                 deadline_us=engine.time_ms * 1000 + timeout_us)
+            request = engine.project.message_configs[key]
+            if not isinstance(request, IdentityRead):
+                remote = _capture_remote(engine.memory, key, request, record)
+                request = DataTableTransfer(request, request.local.start(record['LocalIndex']), remote,
+                                            remote.start(record['RemoteIndex']) if remote is not None else None)
+            queue[key] = Pending(request, deadline_us=engine.time_ms * 1000 + timeout_us)
     return power
 
 
-def _transfer(memory, pending):
-    configuration = pending.configuration
-    if pending.remote is None:
+def _transfer(memory, request):
+    if isinstance(request, IdentityRead):
+        key, start = _identity_destination(memory, request.destination)
+        if len(request.payload) > len(memory.values[key]) - start:
+            raise TransferError(0x11)
+        for index, byte in enumerate(request.payload, start):
+            memory.store(key, (index,), byte if byte < 128 else byte - 256)
+        return len(request.payload)
+    configuration = request.configuration
+    if request.remote is None:
         raise TransferError(0x05)
-    local_key, local_paths, dtype = _region(memory, configuration.local, pending.local_start,
+    local_key, local_paths, dtype = _region(memory, configuration.local, request.local_start,
                                             configuration.count, remote=False, write=configuration.read)
-    remote_key, remote_paths, remote_dtype = _region(memory, pending.remote, pending.remote_start,
+    remote_key, remote_paths, remote_dtype = _region(memory, request.remote, request.remote_start,
                                                      configuration.count, remote=True, write=not configuration.read)
     if dtype != remote_dtype:
         raise TransferError(0xFC)
@@ -309,7 +370,7 @@ def service(memory, queue, now_ms):
             continue
         else:
             try:
-                transferred = _transfer(memory, pending)
+                transferred = _transfer(memory, pending.request)
             except TransferError as failure:
                 error = failure.code
             else:

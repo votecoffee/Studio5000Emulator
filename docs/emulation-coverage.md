@@ -114,7 +114,7 @@ firmware features are separate profiles, not implicit L85E capabilities.
 | FANUC robots | HTTP/optional MQTT can connect an external tag simulator | FANUC device assemblies, handshakes, robot state/faults and optional robot-simulator integration |
 | EDS/AOP | No EDS parser or device-model generator | EDS import/validation, assemblies/parameters/connections and separately authored behavioral models |
 | Produced/consumed tags | No executing producer/consumer model | Connections, sampling, updates, timeouts, status and peer scheduling |
-| Messaging | [Virtual MSG reads and writes](ladder-message.md) with bounded queuing, cancellation and error state | Network paths, packet handling, device replies, connections, retries and timeouts |
+| Messaging | [Virtual MSG reads and writes](ladder-message.md) with bounded queuing, cancellation, simulated timeouts and a CIP Generic Identity read | Network paths, additional services, device replies, and connections |
 | Safety/redundancy | No Safety or redundancy execution | Separate logical profiles and validation; no functional-safety certification claim |
 | Studio 5000 | Bounded SDK Online/transfers/routine replacement accepted for tested fixtures | General GUI behavior, direct uploaded-project saving, replacement and complete edit lifecycle; deferred |
 

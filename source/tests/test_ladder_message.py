@@ -194,7 +194,7 @@ class MessageTests(unittest.TestCase):
 
     def test_message_timeout_ssv_and_readback_roll_back_with_later_fault(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='8', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='9', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         engine = self.engine(configure)
@@ -229,6 +229,66 @@ class MessageTests(unittest.TestCase):
         blockers = self.engine(configure).blockers
         self.assertTrue(any('GSV' in problem and 'whole-project ladder scan' in problem for problem in blockers))
         self.assertTrue(any('SSV' in problem and 'whole-project ladder scan' in problem for problem in blockers))
+
+    def test_generic_identity_read_uses_the_message_queue_and_preserves_neighbors(self):
+        engine = self.engine()
+        self.assertEqual(engine.blockers, [])
+        engine.memory.write('SendIdentityRead', True)
+        engine.step()
+        self.assert_flags(engine, 'IdentityControl', EN=True, EW=True, REQ_LEN=0, DN_LEN=0)
+        engine.step()
+        self.assert_flags(engine, 'IdentityControl', ST=True, DN=False)
+        self.assertEqual(engine.memory.read('IdentityReply'), [-9, 0, 0, -9])
+        engine.step()
+        self.assertEqual(engine.memory.read('IdentityReply'), [-9, 35, 11, -9])
+        self.assert_flags(engine, 'IdentityControl', ST=False, DN=True, ER=False, DN_LEN=2)
+
+    def test_generic_identity_reads_exact_byte_payloads(self):
+        for attribute, payload in [(1, b'\x01\x00'), (2, b'\x0e\x00'), (3, b'\xa8\x00'),
+                                   (4, b'\x23\x0b'), (6, b'\x01\x00LL'), (7, b'\x0b1756-L85E/B')]:
+            with self.subTest(attribute=attribute):
+                def configure(root):
+                    control = root.find('.//Tag[@Name="IdentityControl"]//MessageParameters')
+                    control.set('AttributeNumber', str(attribute))
+                    tag = root.find('.//Tag[@Name="IdentityReply"]')
+                    tag.set('Dimensions', '16')
+                    tag.find('Data/Array').set('Dimensions', '16')
+
+                engine = self.engine(configure)
+                self.assertEqual(engine.blockers, [])
+                engine.memory.write('SendIdentityRead', True)
+                for _ in range(3):
+                    engine.step()
+                reply = engine.memory.read('IdentityReply')
+                self.assertEqual(bytes(value & 255 for value in reply[1:1 + len(payload)]), payload)
+                self.assertEqual(reply[0], -9)
+                self.assert_flags(engine, 'IdentityControl', DN=True, DN_LEN=len(payload))
+
+    def test_generic_identity_short_destination_and_timeout_preserve_all_bytes(self):
+        def long_reply(root):
+            root.find('.//Tag[@Name="IdentityControl"]//MessageParameters').set('AttributeNumber', '7')
+
+        for configure, timeout, error in [(long_reply, 30_000_000, 0x11), (None, 10_000, 0xFE)]:
+            with self.subTest(error=error):
+                engine = self.engine(configure)
+                self.assertEqual(engine.blockers, [])
+                engine.memory.write('IdentityControl.UnconnectedTimeout', timeout)
+                engine.memory.write('SendIdentityRead', True)
+                for _ in range(3):
+                    engine.step()
+                self.assertEqual(engine.memory.read('IdentityReply'), [-9, 0, 0, -9])
+                self.assert_flags(engine, 'IdentityControl', DN=False, ER=True, ERR=error, DN_LEN=0)
+
+    def test_generic_identity_rejects_unqualified_services_and_destinations(self):
+        for name, value in [('ServiceCode', '16#10'), ('ObjectType', '2'), ('TargetObject', '2'),
+                            ('AttributeNumber', '5'), ('RequestedLength', '1'),
+                            ('DestinationTag', 'ReadValue'), ('DestinationTag', 'IdentityReply[*]'),
+                            ('ConnectionPath', '2,192.0.2.20')]:
+            with self.subTest(name=name, value=value):
+                def configure(root):
+                    root.find('.//Tag[@Name="IdentityControl"]//MessageParameters').set(name, value)
+
+                self.assertTrue(any('MSG:' in problem for problem in self.engine(configure).blockers))
 
     def test_array_offsets_and_overlapping_source_snapshot(self):
         def configure(root):
@@ -431,7 +491,7 @@ class MessageTests(unittest.TestCase):
             program = root.find('.//Program')
             program.set('Name', program_name)
             root.find('.//ScheduledProgram').set('Name', program_name)
-            for parameters in root.findall('.//MessageParameters'):
+            for parameters in root.findall('.//MessageParameters[@RemoteElement]'):
                 remote = parameters.get('RemoteElement')
                 parameters.set('RemoteElement', remote.replace('Program:MainProgram.', f'Program:{program_name}.'))
             tag = ET.SubElement(program.find('Tags'), 'Tag', Name=tag_name, TagType='Base', DataType='DINT')
@@ -514,7 +574,7 @@ class MessageTests(unittest.TestCase):
     def test_completion_and_queue_roll_back_with_later_fault(self):
         def configure(root):
             content = root.find('.//RLLContent')
-            rung = ET.SubElement(content, 'Rung', Number='8', Type='N')
+            rung = ET.SubElement(content, 'Rung', Number='9', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         for timeout in (30_000_000, 10_000):

@@ -1,6 +1,7 @@
 # Ladder MSG
 
-LogixLab models CIP Data Table Read and Write over the unconnected `THIS`
+LogixLab models CIP Data Table Read and Write and a bounded CIP Generic
+Identity read over the unconnected `THIS`
 path in whole-project v35 ControlLogix 5580 ladder execution. It transfers
 values between tags in the current project. The `MSG` faceplate shows the
 message control and its `EN`, `DN` and `ER` bits.
@@ -47,6 +48,26 @@ and step three times. The read sets ER and leaves ReadValue
 untouched. Set ReadTimeoutUs to 20,000 and step with SendRead off. Turn
 SendRead on and step three times to retry. ReadValue receives 17 and DN sets.
 
+## CIP Generic Identity read
+
+On a v35 1756-L85E project, ladder MSG can issue Get Attribute Single
+(service 16#0E) to Identity class 16#01, instance 1, on THIS. It reads
+the emulator's L85E identity profile. Supported attributes are Vendor ID
+(1), Device Type (2), Product Code (3), Revision (4), Serial Number (6)
+and Product Name (7).
+
+Configure MessageType as CIP Generic with ServiceCode, ObjectType,
+TargetObject and AttributeNumber. Use zero RequestedLength and a direct,
+writable controller SINT array DestinationTag, optionally with a literal
+start such as IdentityReply[1]. The reply writes its bytes in CIP order and
+preserves surrounding elements. DN_LEN reports bytes for this Generic form.
+A short destination reports 16#0011 without changing the array. The usual
+queue, cancel and simulated timeout rules apply.
+
+In Message Lab, set SendIdentityRead to 1 and step three times. IdentityReply
+changes from [-9, 0, 0, -9] to [-9, 35, 11, -9]. The middle bytes are the
+major and minor revision. Other Generic services and objects remain open.
+
 ## Supported configuration and timing
 
 - Use a scalar Standard controller base tag with `DataType="MESSAGE"` and
@@ -54,7 +75,7 @@ SendRead on and step three times to retry. ReadValue receives 17 and DN sets.
   `MessageType`, `ConnectionPath`, `RequestedLength`, `LocalElement`,
   `RemoteElement`, and optional decimal `LocalIndex` and `RemoteIndex`. Use
   CIP communications, with the connected, cache and large packet options off.
-- Both endpoints must use matching SINT, INT, DINT, LINT, or finite REAL types.
+- Data Table endpoints must use matching SINT, INT, DINT, LINT, or finite REAL types.
   They can name scalar tags or spans of 1 to 64 elements in one-dimensional
   arrays. A `[*]` selector takes its starting position from the corresponding
   writable DINT member, LocalIndex or RemoteIndex. The exported index supplies
@@ -95,7 +116,7 @@ SendRead on and step three times to retry. ReadValue receives 17 and DN sets.
 - Up to 32 requests may be pending. Completion uses submission order and
   snapshots the source span before changing the destination. Status and data
   roll back together if a later rung faults in the same controller advance.
-  `REQ_LEN` and `DN_LEN` report 16-bit words in this model. Odd byte counts
+  Data Table `REQ_LEN` and `DN_LEN` report 16-bit words. Odd byte counts
   round up to a whole word. A LINT uses four words.
 
 This profile is an in-process simulation. External routing, network packet
@@ -103,6 +124,7 @@ timing, native MESSAGE layouts, runtime path changes, and Studio 5000
 runtime qualification remain open. Decorated-only MESSAGE fields remain readable as
 saved data. The native Message object inventory is separate.
 
+- [ODVA Identity object reference](https://www.odva.org/wp-content/uploads/2020/06/PUB00123R1_Common-Industrial_Protocol_and_Family_of_CIP_Networks.pdf)
 - [Rockwell message instruction](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/input-output-instructions/message--msg-.html)
 - [Rockwell unconnected timeout units](https://www.rockwellautomation.com/en-pl/docs/studio-5000-logix-designer/38-01/contents-ditamap/instruction-set/input-output-instructions/access-the-message-object.html)
 - [Rockwell communication paths](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/input-output-instructions/specify-the-communication-details.html)

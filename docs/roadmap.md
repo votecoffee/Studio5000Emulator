@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1106.181345` ladder [CIP Generic Identity read](ladder-message.md#cip-generic-identity-read)
+returns static v35 L85E identity bytes through MSG on THIS. Message lab shows
+the firmware revision in a SINT array and preserves adjacent elements.
+
 Available in `26.1106.175911` ladder [Message UnconnectedTimeout](ladder-message.md)
 GSV and SSV read or set the live timeout using DINT or TIME32. Message lab
 shows same-scan readback and preserves a queued request’s captured deadline.
