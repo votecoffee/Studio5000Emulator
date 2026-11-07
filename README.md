@@ -387,7 +387,9 @@ guarded record, timer, counter and string fill examples.
 
 [Ladder timers](docs/ladder-timers.md) check the saved values and history each
 TON/TOF/RTO path consumes. **Timer lab** adds ladder delay, retention and pause
-examples with clock-history rollback.
+examples with clock-history rollback. A handler can clear
+[negative timing values](docs/controller-handlers.md#recover-negative-timing-values)
+in whole-project ladder as Type 4 Code 34.
 
 [Ladder counters and resets](docs/ladder-counters.md) require known PRE/ACC and
 edge history when consumed. **Counter lab** adds ladder counting and resets

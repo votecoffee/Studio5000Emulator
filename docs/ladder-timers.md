@@ -43,10 +43,12 @@ and its [pseudo-operand initialization reference](https://www.rockwellautomation
 
 ## Consumed values
 
-Every reached call requires known nonnegative DINT PRE and ACC. This retains
-the model's existing negative-value checks on both rung states. Unknown,
-negative or out-of-range values fail explicitly; an upcoming output write
-does not bypass that check. Old TT is not consumed.
+Every reached call requires known nonnegative DINT PRE and ACC. True TON/RTO
+and false TOF raise [Type 4 Code 34](controller-handlers.md#recover-negative-timing-values)
+for negative DINT values during whole-project ladder execution. Other rung
+states still reject negative values through scan rollback. Unknown and
+out-of-range values remain errors even when the instruction would overwrite
+a field. Old TT is not consumed.
 
 | Instruction and input power | Saved EN/DN selection |
 | --- | --- |
@@ -82,7 +84,8 @@ the existing elapsed-since-last-call policy; this is not a newly qualified
 native skipped-execution contract. Clock sources, precision, overshoot, timing
 limits, native status/fault/retention and full controller parity remain separate.
 
-A [cleared Type 4 Code 20](controller-handlers.md#recover-timer-counter-and-reset-array-faults)
+A cleared [Type 4 Code 20](controller-handlers.md#recover-timer-counter-and-reset-array-faults)
+or [Type 4 Code 34](controller-handlers.md#recover-negative-timing-values)
 skips the timer in a whole-project scan and retains its last execution time.
 Unknown consumed fields, unrecovered faults, accumulator overflow and later
 errors restore values, clock history, AOI bindings, time and scheduling within

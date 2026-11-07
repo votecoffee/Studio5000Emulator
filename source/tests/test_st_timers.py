@@ -211,8 +211,10 @@ class StructuredTimerTests(unittest.TestCase):
             def profile(root):root.find('Controller').set('ProcessorType',processor);root.find('Controller').set('MajorRev',version)
             self.assertTrue(self.engine(mutate=profile).blockers)
 
-    def test_rll_forms_are_blocked_and_do_not_inflate_rll_dispatch_count(self):
-        self.assertEqual(len(ARITIES),106);self.assertTrue({'TONR','RTOR','TOFR'}<=set(ST_ONLY_ARITIES))
+    def test_timer_calls_are_st_only(self):
+        timers = {'TONR', 'RTOR', 'TOFR'}
+        self.assertTrue(timers <= ST_ONLY_ARITIES.keys())
+        self.assertFalse(timers & ARITIES.keys())
         def ladder(root):
             r=root.find('./Controller/Programs/Program/Routines/Routine');r.set('Type','RLL');r.remove(r.find('STContent'))
             E.SubElement(E.SubElement(E.SubElement(r,'RLLContent'),'Rung',Number='0',Type='N'),'Text').text='TONR(T);'

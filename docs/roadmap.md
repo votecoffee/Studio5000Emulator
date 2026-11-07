@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1107.115351` [timer value recovery](controller-handlers.md#recover-negative-timing-values)
+routes negative PRE/ACC through Type 4 Code 34 on true TON/RTO and false TOF.
+A handler clear skips the call while preserving the timer's last execution time.
+
 Available in `26.1107.114236` [SRT/STD cursor recovery](controller-handlers.md#recover-negative-sort-and-deviation-cursors)
 raises modeled Type 4 Code 21 for a reached negative LEN or POS in ladder.
 SRT latches ER before the handler runs and waits for the bit to be cleared.

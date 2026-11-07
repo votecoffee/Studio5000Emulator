@@ -163,9 +163,26 @@ COUNTER and CONTROL. A valid CONTROL reset uses the same resolved address
 to clear the record and its incremental file progress, even if clearing
 POS changes the expression that selected it.
 
-Prescan array faults have their own startup behavior. Unknown fields,
-invalid presets and arithmetic overflow use the existing scan rollback.
+Prescan array faults have their own startup behavior. Unknown fields
+and arithmetic overflow use the existing scan rollback.
 
+### Recover negative timing values
+
+In the v35 ControlLogix 5580 model, a negative DINT PRE or ACC raises
+Type 4 Code 34 when the rung is true for TON/RTO or false for TOF.
+The fault is raised before the timer changes its record or last execution
+time. The Program or Controller handler can read the record, repair the
+tag and clear the fault. In a flat DINT record, word 2 holds
+`2228228` (`16#0022_0004`).
+
+A clear skips the current timer call and preserves incoming rung power.
+The next valid call uses the elapsed time since its last successful
+execution. An uncleared fault rolls back the scan. The other rung states
+still require known nonnegative PRE/ACC under the existing software
+validation rules. Native timing, fault and controller behavior remain
+unverified.
+
+[Rockwell general instructions reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm003_-en-p.pdf)
 [Rockwell timer and counter instruction reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-01/contents-ditamap/instruction-set/timer-and-counter-instructions.html)
 [Rockwell RES reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-00/contents-ditamap/instruction-set/timer-and-counter-instructions/reset--res-.html)
 

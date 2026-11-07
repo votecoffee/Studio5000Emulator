@@ -43,6 +43,10 @@ FAULT_HANDLER_GSV = frozenset((('program','majorfaultrecord'), ('module','entrys
                                ('module','faultcode'), ('module','faultinfo')))
 
 
+class NegativeTimerValueError(ModelError):
+    """A timing path encountered a negative TIMER.PRE or ACC."""
+
+
 class ReturnRoutine(Exception):
     pass
 
@@ -561,9 +565,15 @@ class Engine:
     def _timer_execute(self,op,power,scope):
         if op.name not in ('TON','TOF','RTO') or not bit_logic.available(self.project):return None
         obj=self._counter_record(op.args[0],scope,'TIMER');timer=dict(obj)
-        for member in ('PRE','ACC'):
-            if type(timer[member]) is not int or not 0<=timer[member]<=2147483647:
-                raise ModelError(op.name+': TIMER.'+member+' is unknown or outside nonnegative DINT')
+        timing = not power if op.name == 'TOF' else power
+        for member in ('PRE', 'ACC'):
+            value = timer[member]
+            if type(value) is int:
+                if 0 <= value <= 2147483647:
+                    continue
+                if timing and -2147483648 <= value < 0:
+                    raise NegativeTimerValueError(f'{op.name}: TIMER.{member} is negative (Type 4 Code 34)')
+            raise ModelError(f'{op.name}: TIMER.{member} is unknown or outside nonnegative DINT')
         def flag(member):
             if type(timer[member]) is not bool:raise ModelError('TIMER.'+member+' is unknown or not BOOL')
             return timer[member]
@@ -827,6 +837,10 @@ class Engine:
             if op.name not in ('FAL', 'FSC', 'SRT', 'STD'):
                 return None
             code = 21
+        elif isinstance(error, NegativeTimerValueError):
+            if op.name not in ('TON', 'TOF', 'RTO'):
+                return None
+            code = 34
         elif isinstance(error, CallOperandBoundsError):
             if op.name not in ('JSR', 'FOR') or error.call is not op:
                 return None
@@ -972,7 +986,7 @@ class Engine:
                 try:
                     result=self._op(node,incoming,scope,depth,event=event)
                     power=False if force_false else result
-                except (ArrayBoundsError, control_operations.NegativeFileCursorError) as error:
+                except (ArrayBoundsError, control_operations.NegativeFileCursorError, NegativeTimerValueError) as error:
                     code = self._recover_ladder_fault(node, scope, error)
                     if code is None:
                         raise
@@ -1202,7 +1216,8 @@ class Engine:
                     clock='Existing deterministic millisecond elapsed-time recurrence, canonical record identity and first-enable behavior',
                     lifecycle='Prescan needs actual indices; TON/TOF clear ACC/DN, RTO retains them; completed prescan is separate from scan rollback',
                     array_recovery='A cleared Type 4 Code 20 skips a whole-project timer call and preserves its last execution time',
-                    faults='Unknown fields, unrecovered array faults, negative/overflow values and later faults roll back values and timer history',
+                    value_recovery='A cleared Type 4 Code 34 skips true TON/RTO or false TOF with a negative PRE/ACC and preserves its last execution time',
+                    faults='Unknown fields, unrecovered faults, out-of-range values and later faults roll back values and timer history',
                     native_runtime_parity=False),
                 'ladder_counters':dict(available=bit_logic.available(self.project),language='RLL',instructions=['CTU','CTD','RES'],
                     counting='Known DINT PRE/ACC and required BOOL edge history; signed wrap, DN comparison and latched OV/UN',

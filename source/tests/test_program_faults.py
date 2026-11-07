@@ -1012,6 +1012,76 @@ class ProgramFaultTests(unittest.TestCase):
                 self.assertEqual(engine.memory.read('LabRecords')[1],before[1])
                 self.assertFalse(any('recovery_source' in row for row in engine.trace))
 
+    def test_negative_timer_fields_recover_without_advancing_the_clock(self):
+        for name in ('TON', 'TOF', 'RTO'):
+            for member, correction in (('PRE', 100), ('ACC', 4)):
+                with self.subTest(instruction=name, member=member):
+                    self.setUp()
+
+                    def configure(root):
+                        repair = (f'MOV(LabRecords[0].{member},LabIndex)'
+                                  f'MOV({correction},LabRecords[0].{member});')
+                        if name == 'TOF':
+                            controller_fault_fallback_fixture(root, fault_code=34, controller_tail=repair)
+                        else:
+                            ladder_fault_fixture(root, fault_code=34, handler_tail=repair)
+                        add_fault_record_array(root, 'TIMER')
+                        set_fault_instruction(root, f'{name}(LabRecords[0],?,?)')
+
+                    engine = self.engine(mutate=configure)
+                    self.assertEqual(engine.blockers, [])
+                    engine.memory.write('StartPB', True)
+                    engine.step()
+                    power = name != 'TOF'
+                    engine.memory.write('StartPB', power)
+                    engine.step()
+                    expected = copy.deepcopy(engine.memory.read('LabRecords'))
+                    expected[0][member] = correction
+                    clock = engine.last_timer.copy()
+                    engine.memory.write(f'LabRecords[0].{member}', -1)
+                    engine.memory.write('SpeedCommand', 50)
+                    engine.step()
+
+                    fault = engine.last_cleared_program_fault
+                    self.assertEqual((fault['type'], fault['code'], fault['instruction']), (4, 34, name))
+                    handler = 'MainProgram/RecoverMove' if power else 'FaultHandler/Capture'
+                    self.assertEqual(fault['handler']['routine'], handler)
+                    self.assertEqual(engine.memory.read('CapturedFault'), 2228228)
+                    self.assertEqual(engine.memory.read('LabIndex'), -1)
+                    self.assertEqual(engine.memory.read('LabRecords'), expected)
+                    self.assertEqual(engine.last_timer, clock)
+                    self.assertEqual(engine.memory.read('SpeedCommand'), 51 if power else 50)
+                    event = next(event for row in engine.trace for event in row['events'] if 'recovered_fault' in event)
+                    self.assertEqual((event['in'], event['out'], event['recovered_fault']),
+                                     (power, power, {'type': 4, 'code': 34}))
+                    engine.step()
+                    self.assertEqual(engine.memory.read('LabRecords[0].ACC'), expected[0]['ACC'] + 20)
+
+    def test_uncleared_timer_fault_and_other_invalid_timer_values_roll_back(self):
+        cases = ((True, -1, 'Program fault 4/34.*without clearing'),
+                 (False, -1, 'outside nonnegative DINT$'),
+                 (True, None, 'outside nonnegative DINT$'))
+        for power, value, detail in cases:
+            with self.subTest(power=power, value=value):
+                self.setUp()
+
+                def configure(root):
+                    ladder_fault_fixture(root, fault_code=20)
+                    add_fault_record_array(root, 'TIMER')
+                    set_fault_instruction(root, 'TON(LabRecords[0],?,?)')
+
+                engine = self.engine(mutate=configure)
+                self.assertEqual(engine.blockers, [])
+                engine.memory.write('StartPB', power)
+                engine.memory.values['labrecords'][0]['PRE'] = value
+                before = copy.deepcopy(engine.memory.values)
+                with self.assertRaisesRegex(ModelError, detail):
+                    engine.step()
+                self.assertEqual(engine.memory.values, before)
+                self.assertEqual((engine.scan_count, engine.time_ms), (0, 0))
+                self.assertFalse(engine.last_timer)
+                self.assertIsNone(engine.last_cleared_program_fault)
+
     def test_counter_array_fault_preserves_the_next_counting_edge(self):
         for name,edge,delta in (('CTU','CU',1),('CTD','CD',-1)):
             with self.subTest(instruction=name):
