@@ -129,19 +129,22 @@ the reply. The modeled Program and Run values are 16#3070 and 16#3060.
 Configure MessageType as CIP Generic with ServiceCode, ObjectType and
 TargetObject. Get Attribute Single also requires AttributeNumber. Get
 Attributes All ignores a valid hexadecimal placeholder in that field.
-Use zero RequestedLength and a direct, writable local SINT, INT or DINT
-DestinationTag. A one-dimensional array can start at a literal index such
-as IdentityReply[1]. The reply starts in the low byte of the selected
-element and fills consecutive elements in little-endian order. A partial
+Use zero RequestedLength and a writable local SINT, INT or DINT
+DestinationTag. A buffer can be a scalar, array, numeric UDT member or
+static alias to one of these. Use all coordinates for a multidimensional
+start. The reply starts in the low byte of the selected element and fills
+consecutive elements in little-endian order, with the last dimension
+varying fastest. The span stays inside the selected array or member. An
+alias to a single array element provides just that element. A partial
 final element retains its untouched high bytes. A complete element can
 replace an unknown value. DN_LEN reports reply bytes. A short destination
 reports 16#0011. An unknown partial element reports 16#0003. Both errors
 preserve the entire destination. The usual queue, cancel and simulated
 timeout rules apply.
 
-Get Attribute List (service 16#03) uses LocalElement as a direct SINT,
-INT or DINT source or fixed one-dimensional array start. RequestedLength
-is 4 through 66 bytes and must match the request. The request consists of
+Get Attribute List (service 16#03) uses LocalElement as a SINT, INT or
+DINT source with the same buffer addressing rules. RequestedLength is
+4 through 66 bytes and must match the request. The request consists of
 a little-endian 16-bit count followed by 1 through 32 unsigned 16-bit
 attribute IDs. The instruction captures the list at admission. REQ_LEN
 reports bytes. The reply contains a 16-bit count and, in request order,
@@ -167,7 +170,8 @@ including the two Program status bytes at indices 9 and 10 when stepping
 from Program mode. Enable SendIdentityWord to read the revision into a
 DINT. IdentityWordReply changes from 16#11223344 to 16#11220B23 and
 IdentityWordControl.DN_LEN reports 2. Enable SendIdentityList to request
-Revision and Serial Number together. IdentityListReply begins with
+Revision and Serial Number together. The rung uses IdentityRequestAlias
+and IdentityReplyAlias for the request and reply buffers. IdentityListReply begins with
 `[2, 4, 0, 16#0B23, 6, 0, 1, 16#4C4C]` and keeps its last element at 91.
 To exercise the item error, rearm the rung and put 65535 in the request
 as the signed INT value -1.

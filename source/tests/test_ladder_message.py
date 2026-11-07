@@ -471,6 +471,83 @@ class MessageTests(unittest.TestCase):
                 self.assertEqual(memory.read('IdentityReply'), [-9, 0, 0, -9])
                 self.assert_flags(engine, 'IdentityListControl', DN=False, ER=True, ERR=error, DN_LEN=0)
 
+    def test_generic_buffers_select_numeric_udt_members_through_aliases(self):
+        def configure(root):
+            tags = root.find('./Controller/Tags')
+            ET.SubElement(tags, 'Tag', Name='SampleBuffer', TagType='Alias', DataType='INT',
+                          AliasFor='RecordEcho.Samples')
+            control = tags.find('Tag[@Name="IdentityListControl"]//MessageParameters')
+            control.set('LocalElement', 'RecordSource.Samples')
+            control.set('RequestedLength', '4')
+            tags.find('Tag[@Name="IdentityControl"]//MessageParameters').set('DestinationTag', 'SampleBuffer[1]')
+
+        engine = self.engine(configure)
+        self.assertEqual(engine.blockers, [])
+        memory = engine.memory
+        memory.write('RecordSource.Samples[0]', 1)
+        memory.write('RecordSource.Samples[1]', 3)
+        memory.write('SendIdentityList', True)
+        memory.write('SendIdentityRead', True)
+        for _ in range(3):
+            engine.step()
+
+        self.assertEqual(memory.read('RecordEcho.Samples'), [0, 0x0B23])
+        self.assertEqual(memory.read('IdentityListReply')[:4], [1, 3, 0, 168])
+        self.assert_flags(engine, 'IdentityListControl', DN=True, ERR=0, DN_LEN=8)
+        self.assert_flags(engine, 'IdentityControl', DN=True, ERR=0, DN_LEN=2)
+
+    def test_generic_reply_spans_rows_within_a_fixed_array_window(self):
+        def configure(root):
+            tag = root.find('.//Tag[@Name="IdentityReply"]')
+            tag.set('Dimensions', '2 2')
+            array = tag.find('.//Array')
+            array.set('Dimensions', '2 2')
+            for index, element in enumerate(array):
+                element.set('Index', f'[{index // 2},{index % 2}]')
+            control = root.find('.//Tag[@Name="IdentityControl"]//MessageParameters')
+            control.set('DestinationTag', 'IdentityReply[0,1]')
+
+        engine = self.engine(configure)
+        self.assertEqual(engine.blockers, [])
+        engine.memory.write('SendIdentityRead', True)
+        for _ in range(3):
+            engine.step()
+        self.assertEqual(engine.memory.read('IdentityReply'), [[-9, 35], [11, -9]])
+        self.assert_flags(engine, 'IdentityControl', DN=True, ERR=0, DN_LEN=2)
+
+    def test_generic_fixed_element_alias_cannot_spill_into_next_cell(self):
+        def configure(root):
+            tags = root.find('./Controller/Tags')
+            ET.SubElement(tags, 'Tag', Name='FixedReply', TagType='Alias', DataType='SINT',
+                          AliasFor='IdentityReply[1]')
+            tags.find('Tag[@Name="IdentityControl"]//MessageParameters').set('DestinationTag', 'FixedReply')
+
+        engine = self.engine(configure)
+        self.assertEqual(engine.blockers, [])
+        engine.memory.write('SendIdentityRead', True)
+        for _ in range(3):
+            engine.step()
+        self.assertEqual(engine.memory.read('IdentityReply'), [-9, 0, 0, -9])
+        self.assert_flags(engine, 'IdentityControl', ER=True, ERR=0x11, DN_LEN=0)
+
+    def test_generic_reply_alias_cannot_cross_the_executing_program_scope(self):
+        def configure(root):
+            programs = root.find('./Controller/Programs')
+            other = ET.SubElement(programs, 'Program', Name='Other', Type='Normal')
+            other_tags = ET.SubElement(other, 'Tags')
+            reply = ET.SubElement(other_tags, 'Tag', Name='OtherReply', TagType='Base',
+                                  DataType='INT', Usage='Local')
+            ET.SubElement(ET.SubElement(reply, 'Data', Format='Decorated'),
+                          'DataValue', DataType='INT', Value='0')
+            tags = root.find('./Controller/Tags')
+            ET.SubElement(tags, 'Tag', Name='ScopedReply', TagType='Alias', DataType='INT',
+                          AliasFor='Program:Other.OtherReply')
+            tags.find('Tag[@Name="IdentityControl"]//MessageParameters').set('DestinationTag', 'ScopedReply')
+
+        engine = self.engine(configure)
+        self.assertIn('program:other.otherreply', engine.project.tags)
+        self.assertTrue(any('MSG: CIP Generic requires a writable' in problem for problem in engine.blockers))
+
     def test_generic_identity_list_requires_a_qualified_source_span(self):
         for name, value in (('LocalElement', 'VirtualValue'), ('LocalElement', 'IdentityListRequest[*]'),
                             ('RequestedLength', '5'), ('RequestedLength', '68')):

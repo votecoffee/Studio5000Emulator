@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1107.102748` [ladder CIP Generic buffers](ladder-message.md#cip-generic-identity-read)
+can use static aliases, numeric UDT members and fixed multidimensional starts.
+Message Lab uses aliases for the Identity attribute-list request and reply.
+
 Available in `26.1107.101811` [ladder CIP Generic Ethernet Link reads](ladder-message.md#cip-generic-ethernet-link-object)
 expose the active adapter's MAC address and available link fields from the
 startup snapshot. Message Lab demonstrates reading the six MAC octets.

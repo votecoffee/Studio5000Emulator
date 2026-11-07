@@ -171,8 +171,8 @@ members through direct addresses or aliases. It also demonstrates CIP Generic
 reads of virtual controller identity, mode, UTC clock, Time Sync, port
 diagnostics, TCP/IP configuration and the active endpoint's Ethernet Link
 metadata. It supports
-runtime attribute selection, ordered lists and SINT,
-INT or DINT reply buffers.
+runtime attribute selection, ordered lists and SINT, INT or DINT buffers
+addressed directly or through static aliases and numeric UDT members.
 [Simulated loss of a required Running module](docs/gsv-configuration.md#required-module-loss-during-run)
 trips a latched I/O major fault during whole-project Run, including when a
 [simulated upstream fault interrupts a required connection](docs/gsv-configuration.md#required-module-loss-through-an-upstream-fault).

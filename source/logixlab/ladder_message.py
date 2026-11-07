@@ -202,8 +202,8 @@ def _hex_number(attributes, name):
 
 def _generic_endpoint(attributes, name):
     endpoint = _parse_endpoint(attributes.get(name, '').strip(), 0)
-    if endpoint is None or endpoint.member_path or endpoint.variable or len(endpoint.coordinates) > 1:
-        raise ModelError(f'CIP Generic requires a direct {name} or fixed array start')
+    if endpoint is None or endpoint.variable:
+        raise ModelError(f'CIP Generic {name} requires a tag or fixed array start')
     return endpoint
 
 
@@ -469,12 +469,11 @@ def _check_tag_access(tag, remote, write):
         raise TransferError(0x0F)
 
 
-def _follow_aliases(project, endpoint, start, count, *, remote=False, write=False, scope=None, allow_alias=True):
+def _follow_aliases(project, endpoint, start, count, *, remote=False, write=False, scope=None):
     seen = set()
     tag = _endpoint_tag(project, endpoint, scope)
     while tag.alias:
-        if (not allow_alias or endpoint.member_path or endpoint.name in seen
-                or len(seen) >= MAX_ALIAS_HOPS):
+        if endpoint.member_path or endpoint.name in seen or len(seen) >= MAX_ALIAS_HOPS:
             raise TransferError(0x05)
         seen.add(endpoint.name)
         _check_tag_access(tag, remote, write)
@@ -487,11 +486,11 @@ def _follow_aliases(project, endpoint, start, count, *, remote=False, write=Fals
     return tag, endpoint, start
 
 
-def _region(memory, endpoint, start, count, *, remote, write, record=None, scope=None, allow_alias=True):
+def _region(memory, endpoint, start, count, *, remote, write, record=None, scope=None):
     project = memory.project
     original = endpoint.name
     tag, endpoint, start = _follow_aliases(project, endpoint, start, count, remote=remote,
-                                          write=write, scope=scope, allow_alias=allow_alias)
+                                          write=write, scope=scope)
     dtype = tag.dtype.upper()
     if not endpoint.member_path and dtype not in ELEMENT_BYTES and (
             endpoint.name != original or record is None or dtype != record.dtype):
@@ -521,21 +520,22 @@ def _control_key(engine, name, scope, instruction):
     return key
 
 
-def _generic_span(memory, endpoint, size, *, write):
-    key, paths, dtype = _region(memory, endpoint, endpoint.start(0), 1, remote=False, write=write, allow_alias=False)
-    if dtype not in GENERIC_BUFFER_TYPES or len(paths[0]) > 1:
+def _generic_span(memory, endpoint, size, *, write, scope=None):
+    start = endpoint.start(0)
+    key, paths, dtype = _region(memory, endpoint, start, 1, remote=False, write=write, scope=scope)
+    if dtype not in GENERIC_BUFFER_TYPES:
         raise TransferError(0xFC)
-    first = paths[0]
     width = ELEMENT_BYTES[dtype]
     count = (size + width - 1) // width
-    if not first:
-        if count > 1:
-            raise TransferError(0x11)
-        return key, ((),), dtype
-    start = first[0]
-    if count > len(memory.values[key]) - start:
-        raise TransferError(0x11)
-    return key, tuple((index,) for index in range(start, start + count)), dtype
+    if count <= 1:
+        return key, paths[:count], dtype
+    try:
+        return _region(memory, endpoint, start, count, remote=False, write=write, scope=scope)
+    except TransferError as error:
+        if error.code != 0x05:
+            raise
+        # The first element resolved, so a longer invalid span means insufficient room.
+        raise TransferError(0x11) from error
 
 
 def _capture_attribute_numbers(memory, request):
@@ -581,12 +581,12 @@ def validate(engine, op, scope, kind='RLL'):
             raise ModelError('MSG local data must belong to the program executing the instruction')
     if isinstance(configuration, GenericRead):
         try:
-            _generic_span(engine.memory, configuration.destination, 1, write=True)
+            _generic_span(engine.memory, configuration.destination, 1, write=True, scope=scope)
         except TransferError as error:
-            raise ModelError(f'CIP Generic requires a writable SINT, INT or DINT scalar or one-dimensional array destination (16#{error.code:04X})') from error
+            raise ModelError(f'CIP Generic requires a writable SINT, INT or DINT destination (16#{error.code:04X})') from error
         if configuration.source is not None:
             try:
-                _generic_span(engine.memory, configuration.source, configuration.source_size, write=False)
+                _generic_span(engine.memory, configuration.source, configuration.source_size, write=False, scope=scope)
             except TransferError as error:
                 raise ModelError(f'CIP Generic attribute list requires a SINT, INT or DINT source with room for the configured byte count (16#{error.code:04X})') from error
         return key
