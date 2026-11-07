@@ -135,6 +135,15 @@ class ArraySortTests(unittest.TestCase):
         with self.assertRaises(ModelError):e.step()
         self.assertEqual(e.memory.values,before)
 
+    def test_st_negative_cursor_rolls_back_without_committing_er(self):
+        engine = self.st('SRT(Queue[0],0,Ctl);', position=-1)
+        self.assertEqual(engine.blockers, [])
+        before = copy.deepcopy(engine.memory.values)
+        with self.assertRaisesRegex(ModelError, 'Type 4 Code 21'):
+            engine.step()
+        self.assertEqual(engine.memory.values, before)
+        self.assertIsNone(engine.last_cleared_program_fault)
+
     def test_read_only_arrays_and_controls_rejected(self):
         for name in ('Queue','Ctl'):
             def constant(root):root.find(f'./Controller/Tags/Tag[@Name="{name}"]').set('Constant','true')
@@ -159,7 +168,7 @@ class ArraySortTests(unittest.TestCase):
             self.assertTrue(self.engine(['SRT(Queue[0],0,Ctl,?,?);'],dtype=dtype).blockers)
         for text in ('SRT(Queue,0,Ctl,?,?);','SRT(Queue[Ctl.POS],0,Ctl,?,?);',
                      'SRT(Queue[0],Incoming,Ctl,?,?);','SRT(Queue[0],1,Ctl,?,?);',
-                     'SRT(Queue[0],0,Ctl);','SRT(Queue[0],0,Ctl,4,16#0);'):
+                     'SRT(Queue[0],0,Ctl);','SRT(Queue[0],0,Ctl,4,16#GG);'):
             self.assertTrue(self.engine([text]).blockers,text)
         for text in ('SRT(Queue[0],0);','SRT(Queue[0],0,Ctl,4);','SRT(Queue[0],0,Ctl,4,0);'):
             self.assertTrue(self.st(text).blockers,text)

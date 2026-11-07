@@ -824,7 +824,7 @@ class Engine:
             return None
         code = 20
         if isinstance(error, control_operations.NegativeFileCursorError):
-            if op.name not in ('FAL', 'FSC'):
+            if op.name not in ('FAL', 'FSC', 'SRT', 'STD'):
                 return None
             code = 21
         elif isinstance(error, CallOperandBoundsError):

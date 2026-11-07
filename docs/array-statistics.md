@@ -74,13 +74,14 @@ while retaining LEN and data.
 
 In a whole-project ladder scan, a handler can
 [clear a reached array subscript fault](controller-handlers.md#recover-sort-and-statistics-array-faults)
-and skip both the result write and CONTROL update. Unknown required values,
-short windows, invalid lengths, partial positions, accumulation overflow and
-later execution faults roll back the modeled advance, including data, control
-flags, time and scheduler state. Native ER/POS fault
-side effects, partial results, math flags and fault classifications remain
-unfinished. Wider types, partial-state execution and broader AOI forms remain
-open. Neither instruction is available as an ST call or FBD instruction.
+and skip both the result write and CONTROL update. A reached negative
+STD LEN or POS raises [Type 4 Code 21](controller-handlers.md#recover-negative-sort-and-deviation-cursors)
+before writing the result or changing CONTROL. Other invalid cursors,
+unknown values, short windows, accumulation overflow and unrecovered
+faults roll back the modeled advance. Native ER/POS fault side effects,
+partial results, math flags and fault classifications remain unfinished.
+Wider types, partial-state execution and broader AOI forms remain open.
+Neither instruction is available as an ST call or FBD instruction.
 
 ## Stats Lab
 

@@ -38,7 +38,7 @@ def execute(memory, op, power, scope):
         return False
     if controls.flag(obj, 'ER') or controls.flag(obj, 'EN'):
         return True
-    length, position = controls.integer(obj, 'LEN'), controls.integer(obj, 'POS')
+    length, position = controls.nonnegative_file_cursor(obj, 'SRT', latch_error=True)
     if position != 0 or length < 1:
         raise ModelError('SRT qualified whole-region profile requires POS zero and positive LEN')
     key, paths, _, dtype = geometry.region(memory, op, scope, length, writable=True, references=True)
@@ -69,6 +69,7 @@ def description():
                 write_effects='Whole selected array member; enclosing parent arrays widened conservatively for FOR bounds/step; CONTROL EN/DN tracked separately',
                 position='Qualified POS zero retained; positive LEN, at most 4096 values in selected dimension/member',
                 array_recovery='A cleared Type 4 Code 20 during a whole-project ladder scan skips the sort before any writes',
+                cursor_recovery='In whole-project ladder, negative LEN/POS latches ER and raises Type 4 Code 21 before sorting',
                 prescan='No state initialization', native_math_status=False, native_fault_classification=False,
                 remaining=['Native internal POS cursor and partial-state behavior', 'Native faults/side effects',
                            'Broader AOI lifecycle, conservative FOR effects and additional types'])

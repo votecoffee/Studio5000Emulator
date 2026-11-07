@@ -94,7 +94,10 @@ def execute(memory, op, power, scope):
         return False
     if controls.flag(obj, 'ER') or controls.flag(obj, 'EN') or controls.flag(obj, 'DN'):
         return True
-    length, position = controls.integer(obj, 'LEN'), controls.integer(obj, 'POS')
+    if op.name == 'STD':
+        length, position = controls.nonnegative_file_cursor(obj, 'STD')
+    else:
+        length, position = controls.integer(obj, 'LEN'), controls.integer(obj, 'POS')
     if position != 0:
         raise ModelError('Statistics require POS zero for a fresh complete operation; resume is unqualified')
     if length < (2 if op.name == 'STD' else 1):
@@ -126,6 +129,7 @@ def description():
                 selection='Structural source/result/control preflight; false or EN/DN/ER-inhibited calls skip live result indices and values',
                 result_writes='A fresh calculation resolves the actual result before reading samples; full writes establish unknown destinations',
                 array_recovery='A cleared Type 4 Code 20 during a whole-project ladder scan skips both the result write and CONTROL update',
+                cursor_recovery='Reached negative STD LEN/POS raises Type 4 Code 21 before calculating or updating CONTROL',
                 control_selection='Actual CONTROL addresses remain required in prescan/runtime, with existing flag and LEN/POS reads',
                 dimensions='Fully subscripted one/two/three-dimensional arrays; selected dimension varies without flattening',
                 starting_references='Aliases and bounded indirect indices; no CONTROL.POS-dependent starts; false or latched EN/DN/ER calls skip live source indices and values',

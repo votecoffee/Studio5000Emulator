@@ -40,17 +40,23 @@ def integer(obj, name):
 
 
 class NegativeFileCursorError(ModelError):
-    """A reached FAL or FSC operation had negative CONTROL.LEN or POS."""
+    """A reached file instruction had negative CONTROL.LEN or POS."""
+
+
+def nonnegative_file_cursor(obj, instruction, *, latch_error=False):
+    length, position = integer(obj, 'LEN'), integer(obj, 'POS')
+    if length < 0 or position < 0:
+        if latch_error:
+            obj['ER'] = True
+        raise NegativeFileCursorError(instruction + ' requires nonnegative LEN/POS (Type 4 Code 21)')
+    return length, position
 
 
 def file_cursor(obj, instruction):
-    length, position = integer(obj, 'LEN'), integer(obj, 'POS')
-    if 0 <= position <= length:
-        return length, position
-    message = instruction + ' requires nonnegative LEN/POS with POS no greater than LEN'
-    if length < 0 or position < 0:
-        raise NegativeFileCursorError(message + ' (Type 4 Code 21)')
-    raise ModelError(message)
+    length, position = nonnegative_file_cursor(obj, instruction)
+    if position > length:
+        raise ModelError(instruction + ' requires nonnegative LEN/POS with POS no greater than LEN')
+    return length, position
 
 
 def flag(obj, name):

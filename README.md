@@ -461,7 +461,9 @@ exact integer ordering and selected array dimensions. **Stats lab** demonstrates
 ladder enable edges and ST sorting on each executed call. [Sorting references
 and AOIs](docs/sort-references.md) add alias/indirect starts, one/two/three-dimensional
 InOut/local arrays and conservative ST FOR write protection. Choose **AOI sort lab**
-to compare independent instances and selected axes.
+to compare independent instances and selected axes. Whole-project ladder
+[negative SRT/STD cursor recovery](docs/controller-handlers.md#recover-negative-sort-and-deviation-cursors)
+routes Type 4 Code 21 through the fault handlers.
 
 [Statistics references and AOIs](docs/statistics-references.md) extend AVE/STD to
 alias/indirect arrays and independent one-, two- and three-dimensional InOut/local

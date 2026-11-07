@@ -1779,6 +1779,97 @@ class ProgramFaultTests(unittest.TestCase):
                     self.assertIs(engine.last_cleared_program_fault,fault)
                     self.assertFalse(any('recovery_source' in row for row in engine.trace))
 
+    def test_std_negative_cursor_clears_through_program_handler(self):
+        for member, correction in (('LEN', 3), ('POS', 0)):
+            with self.subTest(member=member):
+                self.setUp()
+
+                def configure(root):
+                    repair = f'MOV(LabRecords[0].{member},FaultWords[3])MOV({correction},LabRecords[0].{member});'
+                    ladder_fault_fixture(root, fault_code=21, handler_tail=repair)
+                    add_array_calculation_tags(root)
+                    set_fault_instruction(root, 'STD(LabQueue[1],0,LabStats[0],LabRecords[0],?,?)')
+
+                engine = self.engine(mutate=configure)
+                self.assertEqual(engine.blockers, [])
+                control = dict(engine.memory.read('LabRecords')[0])
+                engine.memory.write(f'LabRecords[0].{member}', -1)
+                engine.memory.write('StartPB', True)
+                engine.step()
+
+                fault = engine.last_cleared_program_fault
+                self.assertEqual((fault['type'], fault['code'], fault['instruction']), (4, 21, 'STD'))
+                self.assertEqual(fault['handler']['routine'], 'MainProgram/RecoverMove')
+                self.assertEqual(engine.memory.read('FaultWords[3]'), -1)
+                self.assertEqual(engine.memory.read('LabRecords')[0], control)
+                self.assertEqual(engine.memory.read('LabStats'), [11.0, 22.0])
+                engine.step()
+                self.assertEqual(engine.memory.read('LabStats'), [2.0, 22.0])
+                self.assertTrue(engine.memory.read('LabRecords[0].DN'))
+
+    def test_sort_negative_cursor_latches_error_before_controller_handler(self):
+        for member, correction in (('LEN', 3), ('POS', 0)):
+            with self.subTest(member=member):
+                self.setUp()
+
+                def configure(root):
+                    repair = f'MOV({correction},LabRecords[0].{member});'
+                    controller_fault_fallback_fixture(root, fault_code=21,
+                        program_tail='XIC(LabRecords[0].ER)MOV(1,LabIndex);',
+                        controller_tail=repair)
+                    add_array_calculation_tags(root)
+                    set_fault_instruction(root, 'SRT(LabQueue[1],0,LabRecords[0],?,?)')
+
+                engine = self.engine(mutate=configure)
+                self.assertEqual(engine.blockers, [])
+                engine.memory.write(f'LabRecords[0].{member}', -1)
+                engine.step()
+                self.assertIsNone(engine.last_cleared_program_fault)
+                self.assertFalse(engine.memory.read('LabRecords[0].ER'))
+                engine.memory.write('StartPB', True)
+                engine.memory.write('SpeedCommand', 50)
+                engine.step()
+
+                fault = engine.last_cleared_program_fault
+                self.assertEqual((fault['type'], fault['code'], fault['instruction']), (4, 21, 'SRT'))
+                self.assertEqual(fault['handler']['routine'], 'FaultHandler/Capture')
+                self.assertEqual(engine.memory.read('LabIndex'), 1)
+                self.assertEqual(engine.memory.read(f'LabRecords[0].{member}'), correction)
+                self.assertTrue(engine.memory.read('LabRecords[0].ER'))
+                self.assertEqual(engine.memory.read('LabQueue'), [99, 6, 2, 4, 77])
+                self.assertEqual(engine.memory.read('SpeedCommand'), 51)
+                engine.step()
+                self.assertEqual(engine.memory.read('LabQueue'), [99, 6, 2, 4, 77])
+                engine.memory.write('LabRecords[0].ER', False)
+                engine.step()
+                self.assertEqual(engine.memory.read('LabQueue'), [99, 2, 4, 6, 77])
+                self.assertTrue(engine.memory.read('LabRecords[0].DN'))
+
+    def test_uncleared_sort_fault_and_ave_negative_length_roll_back(self):
+        cases = (
+            ('SRT(LabQueue[1],0,LabRecords[0],?,?)', 'Program fault 4/21.*without clearing'),
+            ('AVE(LabQueue[1],0,LabStats[0],LabRecords[0],?,?)', 'AVE requires at least one'),
+        )
+        for instruction, detail in cases:
+            with self.subTest(instruction=instruction):
+                self.setUp()
+
+                def configure(root):
+                    ladder_fault_fixture(root, fault_code=20)
+                    add_array_calculation_tags(root)
+                    set_fault_instruction(root, instruction)
+
+                engine = self.engine(mutate=configure)
+                self.assertEqual(engine.blockers, [])
+                engine.memory.write('LabRecords[0].LEN', -1)
+                engine.memory.write('StartPB', True)
+                before = copy.deepcopy(engine.memory.values)
+                with self.assertRaisesRegex(ModelError, detail):
+                    engine.step()
+                self.assertEqual(engine.memory.values, before)
+                self.assertEqual((engine.scan_count, engine.time_ms), (0, 0))
+                self.assertIsNone(engine.last_cleared_program_fault)
+
     def test_sort_and_statistics_short_windows_keep_scan_rollback(self):
         for instruction in (
             'SRT(LabQueue[LabIndex],0,LabRecords[0],?,?)',

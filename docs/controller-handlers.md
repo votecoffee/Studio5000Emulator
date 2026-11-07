@@ -277,10 +277,30 @@ window or calculate its result on the retained edge. False or
 inhibited calls continue to skip live array and result operands
 according to the instruction. The CONTROL address is still required.
 
-A valid start with a window that extends beyond its selected dimension,
-an unknown consumed value or an invalid LEN/POS uses scan rollback.
+A valid start with a window that extends beyond its selected dimension
+or an unknown consumed value uses scan rollback.
 The recovery path applies to ladder execution.
 
+### Recover negative sort and deviation cursors
+
+A reached negative CONTROL.LEN or CONTROL.POS in ladder SRT or STD
+raises Type 4 Code 21 before sorting or writing the deviation. The
+Program or Controller handler can clear the record and continue the
+rung with its incoming power.
+
+SRT sets CONTROL.ER before the handler runs. If the fault is cleared,
+the ER bit stays set until logic clears it. Fix LEN/POS and clear ER
+before the sort can run again. STD leaves its CONTROL and result
+unchanged before the handler runs. The next eligible scan can use a
+corrected cursor.
+
+An uncleared fault rolls back the scan, including any SRT ER write.
+Other invalid cursors, including unsupported positive positions and
+AVE cursor errors, use scan rollback. This recovery covers whole-project
+ladder. Native Studio and controller behavior remain unverified.
+
+[Rockwell STD reference](https://www.rockwellautomation.com/en-mde/docs/studio-5000-logix-designer/37-02/contents-ditamap/instruction-set/array-file-misc-instructions/file-standard-deviation-std.html)
+[Rockwell SRT reference](https://www.rockwellautomation.com/en-il/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/array-file-misc-instructions/file-sort-srt.html)
 [Rockwell array and file instructions reference](https://www.rockwellautomation.com/en-dk/docs/studio-5000-logix-designer/37-02/contents-ditamap/instruction-set/array-file-misc-instructions.html)
 
 ## Recover BCD, size and truncation array faults
