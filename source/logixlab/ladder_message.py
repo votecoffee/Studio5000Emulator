@@ -6,6 +6,7 @@ from dataclasses import dataclass, replace
 from .identity import Identity
 from .integer_math import CONTROLLERS
 from .model import ModelError, coerce
+from .templates import Catalog, MAX_BYTES
 
 MAX_ELEMENTS = 64
 THROTTLE_POSITIONS = 16
@@ -44,12 +45,21 @@ class Endpoint:
 
 
 @dataclass(frozen=True)
+class RecordLayout:
+    dtype: str
+    size: int
+    writable: bool
+    leaves: tuple[tuple[tuple[str | int, ...], str], ...]
+
+
+@dataclass(frozen=True)
 class Configuration:
     read: bool
     local: Endpoint
     remote: Endpoint
     remote_text: str
     count: int
+    record: RecordLayout | None = None
 
 
 @dataclass(frozen=True)
@@ -165,7 +175,7 @@ def from_tag(project, tag, element, dims):
                          _number(attributes, 'RequestedLength', 1, MAX_ELEMENTS))
 
 
-def bind_local(project, configuration, scope):
+def _bind_local(project, configuration, scope):
     """Resolve the saved local element after all controller and program tags are loaded."""
     field = 'destination' if isinstance(configuration, IdentityRead) else 'local'
     endpoint = getattr(configuration, field)
@@ -176,8 +186,41 @@ def bind_local(project, configuration, scope):
     return configuration
 
 
-def _words(dtype, count):
-    return (ELEMENT_BYTES.get(dtype, 0) * count + 1) // 2
+def _record_layout(catalog, dtype):
+    template = catalog.for_type(dtype)
+    if template is None:
+        return None
+    writable = all(member.get('ExternalAccess', 'Read/Write') == 'Read/Write'
+                   for item in catalog.closure((template.instance,)).values()
+                   for member in catalog.project.udts[item.name.casefold()].findall('./Members/Member')
+                   if member.get('Hidden', 'false').casefold() != 'true')
+    leaves = tuple((tuple(int(part) if part.isdigit() else part for part in re.findall(r'\w+', ref, re.ASCII)), kind)
+                   for _, kind, ref, _ in catalog.leaves(template, ''))
+    return RecordLayout(dtype, template.size, writable, leaves)
+
+
+def initialize(project):
+    catalog = None
+    records = {}
+    for key, configuration in project.message_configs.items():
+        tag = project.tags[key]
+        configuration = _bind_local(project, configuration, tag.scope)
+        if isinstance(configuration, Configuration):
+            local = project.tags.get(configuration.local.name)
+            if local and not local.problem and local.dtype.casefold() in project.udts:
+                dtype = local.dtype.upper()
+                if dtype not in records:
+                    if catalog is None:
+                        catalog = Catalog(project)
+                    records[dtype] = _record_layout(catalog, dtype)
+                configuration = replace(configuration, record=records[dtype])
+        project.message_configs[key] = configuration
+        tag.value = initial(project, configuration)
+
+
+def _words(dtype, count, record=None):
+    element_bytes = record.size if record else ELEMENT_BYTES.get(dtype, 0)
+    return (element_bytes * count + 1) // 2
 
 
 def status_members(word):
@@ -201,8 +244,9 @@ def initial(project, configuration):
         record.update(Class=configuration.class_id, Instance=configuration.instance, Attribute=configuration.attribute)
         return record
     local = project.tags.get(configuration.local.name)
-    requested = _words(local.dtype.upper(), configuration.count) if local and not local.problem else 0
-    record.update(REQ_LEN=requested, LocalIndex=configuration.local.offset, RemoteIndex=configuration.remote.offset)
+    requested = _words(local.dtype.upper(), configuration.count, configuration.record) if local and not local.problem else 0
+    record.update(REQ_LEN=requested if requested <= MAX_BYTES // 2 else 0,
+                  LocalIndex=configuration.local.offset, RemoteIndex=configuration.remote.offset)
     # Preserve long authored addresses that predate the writable STRING field.
     text = configuration.remote_text
     if len(text) <= project.string_capacity('STRING'):
@@ -235,7 +279,7 @@ def _array_paths(value, start, count):
     return tuple(paths)
 
 
-def _region(memory, endpoint, start, count, *, remote, write):
+def _region(memory, endpoint, start, count, *, remote, write, record=None):
     tag = memory.project.tags.get(endpoint.name)
     if tag is None or tag.problem or tag.alias or tag.tag_class != 'Standard':
         raise TransferError(0x05)
@@ -243,7 +287,7 @@ def _region(memory, endpoint, start, count, *, remote, write):
     if tag.scope and not project.program_configuration.type_attributes(tag.scope, source_sha256=project.sha256):
         raise TransferError(0x05)
     dtype = tag.dtype.upper()
-    if dtype not in ELEMENT_BYTES:
+    if dtype not in ELEMENT_BYTES and (record is None or dtype != record.dtype):
         raise TransferError(0xFC)
     if ((write and tag.constant) or (remote and tag.external_access != 'Read/Write'
                                     and (write or tag.external_access != 'Read Only'))):
@@ -290,12 +334,15 @@ def validate(engine, op, scope, kind='RLL'):
         except TransferError as error:
             raise ModelError(f'CIP Generic Identity requires a writable SINT array destination (16#{error.code:04X})') from error
         return key
+    record = configuration.record
+    if record and configuration.count * record.size > MAX_BYTES:
+        raise ModelError(f'MSG record transfer exceeds {MAX_BYTES} modeled bytes')
     try:
         # A variable start needs a valid array shape, independent of its saved index.
         _region(engine.memory, configuration.local, configuration.local.start(0), configuration.count,
-                remote=False, write=configuration.read)
+                remote=False, write=configuration.read, record=record)
     except TransferError as error:
-        raise ModelError(f'MSG local element cannot address the requested numeric span (16#{error.code:04X})') from error
+        raise ModelError(f'MSG local element cannot address the requested span (16#{error.code:04X})') from error
     return key
 
 
@@ -412,6 +459,26 @@ def execute(engine, op, power, scope):
     return power
 
 
+def _known_scalar(value, dtype):
+    if dtype == 'REAL':
+        return type(value) is float and math.isfinite(value)
+    if dtype == 'BOOL':
+        return type(value) is bool
+    return type(value) is int
+
+
+def _check_record(value, record):
+    try:
+        for path, dtype in record.leaves:
+            member = value
+            for part in path:
+                member = member[part]
+            if not _known_scalar(member, dtype) or coerce(member, dtype) != member:
+                raise TransferError(0x03)
+    except (ModelError, IndexError, KeyError, TypeError, OverflowError) as error:
+        raise TransferError(0x03) from error
+
+
 def _transfer(memory, request, status_word):
     if isinstance(request, IdentityRead):
         if (request.class_id, request.instance) != (1, 1):
@@ -429,26 +496,29 @@ def _transfer(memory, request, status_word):
             memory.store(key, (index,), byte if byte < 128 else byte - 256)
         return len(payload)
     configuration = request.configuration
+    record = configuration.record
     if request.remote is None:
         raise TransferError(0x05)
     local_key, local_paths, dtype = _region(memory, configuration.local, request.local_start,
-                                            configuration.count, remote=False, write=configuration.read)
+                                            configuration.count, remote=False, write=configuration.read, record=record)
     remote_key, remote_paths, remote_dtype = _region(memory, request.remote, request.remote_start,
-                                                     configuration.count, remote=True, write=not configuration.read)
+                                                     configuration.count, remote=True, write=not configuration.read,
+                                                     record=record)
     if dtype != remote_dtype:
         raise TransferError(0xFC)
+    if record and not configuration.read and not record.writable:
+        raise TransferError(0x0F)
     source, destination = ((remote_key, remote_paths), (local_key, local_paths)) if configuration.read else (
         (local_key, local_paths), (remote_key, remote_paths))
     values = [memory.at(source[0], path) for path in source[1]]
-    if dtype == 'REAL':
-        known = all(type(value) is float and math.isfinite(value) for value in values)
-    else:
-        known = all(type(value) is int for value in values)
-    if not known:
+    if record:
+        for value in values:
+            _check_record(value, record)
+    elif not all(_known_scalar(value, dtype) for value in values):
         raise TransferError(0x03)
     for path, value in zip(destination[1], values):
         memory.store(destination[0], path, value)
-    return _words(dtype, configuration.count)
+    return _words(dtype, configuration.count, record)
 
 
 def _finish(record, enabled, error, transferred=0):

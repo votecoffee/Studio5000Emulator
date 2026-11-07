@@ -33,7 +33,7 @@ def add_message_burst(root):
                       MessageType='CIP Data Table Read', LocalElement=f'BurstValues[{index}]',
                       RemoteElement='VirtualValue', RequestedLength='1', ConnectedFlag='0',
                       ConnectionPath='THIS', CommTypeCode='0')
-        rung = ET.SubElement(content, 'Rung', Number=str(15 + index), Type='N')
+        rung = ET.SubElement(content, 'Rung', Number=str(17 + index), Type='N')
         ET.SubElement(rung, 'Text').text = f'XIC(SendBurst)MSG({name});'
 
 
@@ -157,7 +157,7 @@ class MessageTests(unittest.TestCase):
 
     def test_copy_into_flags_keeps_the_in_progress_status(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='15', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='17', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CaptureReadFlags)COP(IdentityAttribute,ReadControl.FLAGS,1);'
 
         engine = self.engine(configure)
@@ -275,7 +275,7 @@ class MessageTests(unittest.TestCase):
 
     def test_message_timeout_ssv_and_readback_roll_back_with_later_fault(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='15', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='17', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         engine = self.engine(configure)
@@ -455,7 +455,7 @@ class MessageTests(unittest.TestCase):
 
     def test_generic_identity_all_rolls_back_response_and_queue_after_later_fault(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='15', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='17', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         engine = self.engine(configure)
@@ -829,7 +829,7 @@ class MessageTests(unittest.TestCase):
     def test_completion_and_queue_roll_back_with_later_fault(self):
         def configure(root):
             content = root.find('.//RLLContent')
-            rung = ET.SubElement(content, 'Rung', Number='15', Type='N')
+            rung = ET.SubElement(content, 'Rung', Number='17', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         for timeout in (30_000_000, 10_000):
@@ -964,6 +964,98 @@ class MessageTests(unittest.TestCase):
 
         self.assertTrue(any('local data must belong to the program' in item for item in self.engine(foreign).blockers))
         self.assertTrue(any('must be Local tags' in item for item in self.engine(public).blockers))
+
+    def test_matching_record_transfers_preserve_typed_members_and_report_words(self):
+        engine = self.engine()
+        self.assertEqual(engine.blockers, [])
+        memory = engine.memory
+        memory.write('SendRecord', True)
+        engine.step()
+        self.assert_flags(engine, 'RecordWriteControl', EW=True, REQ_LEN=16)
+        self.assert_flags(engine, 'Program:MainProgram.RecordReadControl', EW=True, REQ_LEN=16)
+        memory.write('RecordSource.Lot', 9007199254740997)
+        engine.step()
+        self.assertEqual(memory.read('RecordEcho.Batch'), 0)
+        engine.step()
+        expected = {'Batch': 73, 'Lot': 9007199254740997, 'Ready': True,
+                    'Samples': [12, -3], 'Quality': {'Value': 2.5, 'Code': 7}}
+        self.assertEqual(memory.read('RecordEcho'), expected)
+        self.assertEqual(memory.read('Program:MainProgram.RecordInbox'), expected)
+        self.assert_flags(engine, 'RecordWriteControl', DN=True, ER=False, DN_LEN=16)
+        self.assert_flags(engine, 'Program:MainProgram.RecordReadControl', DN=True, ER=False, DN_LEN=16)
+        memory.write('RecordSource.Quality.Value', 1.25)
+        self.assertEqual(memory.read('RecordEcho.Quality.Value'), 2.5)
+        self.assertEqual(memory.read('Program:MainProgram.RecordInbox.Quality.Value'), 2.5)
+
+    def test_record_array_transfer_snapshots_overlap_and_rejects_unknown_source_atomically(self):
+        for unknown in (False, True):
+            with self.subTest(unknown=unknown):
+                def configure(root):
+                    tag = root.find('.//Tag[@Name="RecordSource"]')
+                    tag.set('Dimensions', '3')
+                    data = tag.find('Data')
+                    example = data[0]
+                    data.remove(example)
+                    array = ET.SubElement(data, 'Array', DataType='MessageRecord', Dimensions='3')
+                    for index in range(3):
+                        record = copy.deepcopy(example)
+                        record.find('DataValueMember[@Name="Batch"]').set('Value', str(10 * (index + 1)))
+                        if unknown and index == 1:
+                            quality = record.find('StructureMember[@Name="Quality"]')
+                            quality.remove(quality.find('DataValueMember[@Name="Value"]'))
+                        ET.SubElement(array, 'Element', Index=f'[{index}]').append(record)
+                    config = root.find('.//Tag[@Name="RecordWriteControl"]//MessageParameters')
+                    config.attrib.update(LocalElement='RecordSource[0]', RemoteElement='RecordSource[1]', RequestedLength='2')
+
+                engine = self.engine(configure)
+                self.assertEqual(engine.blockers, [])
+                memory = engine.memory
+                before = copy.deepcopy(memory.read('RecordSource'))
+                memory.write('SendRecord', True)
+                for _ in range(3):
+                    engine.step()
+                if unknown:
+                    self.assertEqual(memory.read('RecordSource'), before)
+                    self.assert_flags(engine, 'RecordWriteControl', DN=False, ER=True, ERR=3, DN_LEN=0)
+                else:
+                    self.assertEqual(memory.read('RecordSource'), [before[0], before[0], before[1]])
+                    self.assert_flags(engine, 'RecordWriteControl', DN=True, ER=False, DN_LEN=32)
+
+    def test_record_write_checks_nested_access_and_exact_declared_type(self):
+        for different_type in (False, True):
+            with self.subTest(different_type=different_type):
+                def configure(root):
+                    if different_type:
+                        source_type = root.find('.//DataType[@Name="MessageRecord"]')
+                        other = copy.deepcopy(source_type)
+                        other.set('Name', 'OtherRecord')
+                        root.find('.//DataTypes').append(other)
+                        echo = root.find('.//Tag[@Name="RecordEcho"]')
+                        echo.set('DataType', 'OtherRecord')
+                        echo.find('Data/Structure').set('DataType', 'OtherRecord')
+                    else:
+                        member = root.find('.//DataType[@Name="MessageQuality"]//Member[@Name="Code"]')
+                        member.set('ExternalAccess', 'Read Only')
+
+                engine = self.engine(configure)
+                self.assertEqual(engine.blockers, [])
+                memory = engine.memory
+                before = copy.deepcopy(memory.read('RecordEcho'))
+                memory.write('SendRecord', True)
+                for _ in range(3):
+                    engine.step()
+                self.assertEqual(memory.read('RecordEcho'), before)
+                self.assert_flags(engine, 'RecordWriteControl', DN=False, ER=True, ERR=0xFC if different_type else 0x0F)
+                self.assert_flags(engine, 'Program:MainProgram.RecordReadControl', DN=True, ER=False)
+
+    def test_record_payload_cap_blocks_before_queueing(self):
+        def configure(root):
+            root.find('.//DataType[@Name="MessageRecord"]//Member[@Name="Samples"]').set('Dimension', '4096')
+            root.find('.//Tag[@Name="RecordWriteControl"]//MessageParameters').set('RequestedLength', '5')
+
+        engine = self.engine(configure)
+        self.assertTrue(any('record transfer exceeds 32768' in item for item in engine.blockers))
+        self.assert_flags(engine, 'RecordWriteControl', REQ_LEN=0)
 
     def test_queue_exhaustion_waits_and_retries_on_a_false_rung(self):
         engine = self.engine()

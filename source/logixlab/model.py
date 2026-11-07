@@ -469,11 +469,7 @@ class Project:
             self.issues.append(str(error))
         if self.message_configs:
             from . import ladder_message
-            for key, config in self.message_configs.items():
-                tag = self.tags[key]
-                config = ladder_message.bind_local(self, config, tag.scope)
-                self.message_configs[key] = config
-                tag.value = ladder_message.initial(self, config)
+            ladder_message.initialize(self)
         self.initial = {k: copy.deepcopy(t.value) for k, t in self.tags.items()}
         from .pseudo_operands import initialize_ladder_operands
         initialize_ladder_operands(self)

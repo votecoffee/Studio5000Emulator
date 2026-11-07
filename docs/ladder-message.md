@@ -1,7 +1,8 @@
 # Ladder MSG
 
-LogixLab models CIP Data Table Read and Write and a bounded CIP Generic
-Identity read over the unconnected `THIS`
+LogixLab models CIP Data Table Read and Write for numeric tags and
+matching user-defined records, plus a bounded CIP Generic Identity read
+over the unconnected `THIS`
 path in whole-project v35 ControlLogix 5580 ladder execution. It transfers
 values between tags in the current project. The `MSG` faceplate shows the
 message control and its `EN`, `DN` and `ER` bits.
@@ -42,6 +43,11 @@ The program-local LocalReadControl reads VirtualValue into
 Program:MainProgram.LocalInbox[1]. LocalWriteControl sends the program's
 LocalOutbox value of 73 to the controller tag LocalEcho. Both local
 buffers have External Access set to None.
+
+Set SendRecord to 1 and step three scans to send the complete MessageRecord
+to the program-local RecordInbox and to RecordEcho. Inspect their Batch,
+Lot, Ready, Samples and Quality fields in Tag Watch. The bundled record
+uses a 32-byte modeled layout, so both controls report 16 words.
 
 For a runtime index change, scan SendTyped false, then set SetReadIndices
 to 1, ReadLocalIndex to 1, and ReadRemoteIndex to 0. Set SendTyped to 1 and
@@ -116,7 +122,7 @@ two SINT elements. Those bytes encode product code 168.
   `MessageType`, `ConnectionPath`, `RequestedLength`, `LocalElement`,
   `RemoteElement`, and optional decimal `LocalIndex` and `RemoteIndex`. Use
   CIP communications, with the connected, cache and large packet options off.
-- Data Table endpoints must use matching SINT, INT, DINT, LINT, or finite REAL types.
+- Numeric Data Table endpoints must use matching SINT, INT, DINT, LINT, or finite REAL types.
   They can name scalar tags or spans of 1 to 64 elements in arrays of up to
   three dimensions. A two- or three-dimensional start must specify every
   coordinate, for example `Grid[0,2]` or `Cube[0,1,0]`, with no additional
@@ -127,6 +133,15 @@ two SINT elements. Those bytes encode product code 168.
   the initial value. A literal subscript keeps its authored start and offset.
   Runtime writes to the index members affect only `[*]` selectors. A new
   fully indexed multidimensional RemoteElement is captured when queued.
+- Data Table endpoints can also use the same explicit UDT type. The
+  emulator uses its [structured tag layout](connectivity.md#structured-transfers) to size complete
+  records and qualify nested numeric members, member arrays, and explicitly
+  packed BOOLs. The 64-element limit applies to records, and the complete
+  span may use up to 32,768 modeled bytes. A remote write requires every
+  visible member to allow Read/Write. Unknown or invalid source members
+  reject the entire span before any destination changes. Built-in STRING,
+  operational records and layouts with unmodeled members remain outside
+  this profile.
 - Local endpoints name direct Standard controller tags or data in the
   calling Standard program. For a Program Local control, a bare local data
   name resolves in its own program before looking in controller scope.
@@ -180,7 +195,8 @@ two SINT elements. Those bytes encode product code 168.
   changing the destination. Status and data roll back together if a later
   rung faults in the same controller advance.
   Data Table `REQ_LEN` and `DN_LEN` report 16-bit words. Odd byte counts
-  round up to a whole word. A LINT uses four words.
+  round up to a whole word. A LINT uses four words. UDT lengths include
+  alignment padding from the emulator's layout.
 
 This profile is an in-process simulation. External routing, network packet
 timing, native MESSAGE layouts, runtime path changes, and Studio 5000
