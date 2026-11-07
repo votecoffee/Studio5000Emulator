@@ -29,6 +29,13 @@
     <AddOnInstructionDefinitions />
     <Tags>
       <Tag Name="UseAlternateRead" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="SendTcpIpRead" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="TcpIpReply" DataType="SINT" TagType="Base" Dimensions="80">
+        <Data Format="Decorated"><Array DataType="SINT" Dimensions="80"><Element Index="[0]" Value="-9" /></Array></Data>
+      </Tag>
+      <Tag Name="TcpIpReadControl" DataType="MESSAGE" TagType="Base" ExternalAccess="None">
+        <Data Format="Message"><MessageParameters MessageType="CIP Generic" ServiceCode="16#0E" ObjectType="16#F5" TargetObject="1" AttributeNumber="16#05" RequestedLength="0" DestinationTag="TcpIpReply[0]" ConnectedFlag="0" ConnectionPath="THIS" CommTypeCode="0" /></Data>
+      </Tag>
       <Tag Name="SendPortRead" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="PortReply" DataType="SINT" TagType="Base" Dimensions="20">
         <Data Format="Decorated"><Array DataType="SINT" Dimensions="20"><Element Index="[0]" Value="0" /></Array></Data>
@@ -300,6 +307,7 @@
               <Rung Number="29" Type="N"><Text>XIC(SendClockRead)MSG(ClockReadControl);</Text></Rung>
               <Rung Number="30" Type="N"><Text>XIC(SendTimeSyncRead)MSG(TimeSyncReadControl);</Text></Rung>
               <Rung Number="31" Type="N"><Text>XIC(SendPortRead)MSG(PortReadControl);</Text></Rung>
+              <Rung Number="32" Type="N"><Text>XIC(SendTcpIpRead)MSG(TcpIpReadControl);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

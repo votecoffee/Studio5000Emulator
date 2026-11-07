@@ -143,6 +143,40 @@ class NetworkObjectTests(unittest.TestCase):
             '800200c000ffffff010200c0350200c0360200c003006c616200'))
         self.assertEqual(self.app.connectivity()['network_interface']['netmask'], '255.255.255.0')
 
+    def test_managed_endpoint_shares_startup_snapshot_with_ladder_and_wire(self):
+        self.client.close()
+        self.app.command('connectivity-stop', {})
+        self.app.command('demo', {'sample': 'MessageLab'})
+        snapshot = replace(SNAPSHOT, address='127.0.0.1', netmask='255.0.0.0')
+        with patch('logixlab.ethernetip.interface_snapshot', return_value=(snapshot, None)) as reader:
+            self.app.command('connectivity-start', {'port': 0})
+            self.endpoint = self.app.endpoint
+            self.client = Client(self.endpoint.port)
+            self.client.register()
+            self.assertFalse(self.app.connectivity()['network_interface']['captured_on_first_query'])
+            payload = self.send(0xF5, 1, 5)[4:]
+            self.assertEqual(payload, bytes.fromhex('0100007f000000ff010200c0350200c0360200c003006c616200'))
+
+            self.app.command('configure', {'mode': 'project'})
+            memory = self.app.engine.memory
+            memory.write('SendTcpIpRead', True)
+            for _ in range(3):
+                self.app.command('step', {})
+            self.assertTrue(memory.read('TcpIpReadControl.DN'))
+            self.assertEqual(memory.read('TcpIpReadControl.DN_LEN'), len(payload))
+            self.assertEqual(bytes(v & 255 for v in memory.read('TcpIpReply')[:len(payload)]), payload)
+
+            self.client.close()
+            self.app.command('connectivity-stop', {})
+            memory.write('SendTcpIpRead', False)
+            self.app.command('step', {})
+            memory.write('SendTcpIpRead', True)
+            for _ in range(3):
+                self.app.command('step', {})
+            self.assertEqual(memory.read('TcpIpReadControl.ERR'), 0x0C)
+            self.assertEqual(bytes(v & 255 for v in memory.read('TcpIpReply')[:len(payload)]), payload)
+            reader.assert_called_once_with('127.0.0.1')
+
     def test_metadata_query_is_lazy_and_hostname_uses_current_host(self):
         with patch('logixlab.ethernetip.interface_snapshot') as reader, patch.object(socket, 'gethostname', return_value='lab-vm'):
             self.assertEqual(self.send(0xF5, 1, 6)[4:], b'\6\0lab-vm')

@@ -180,7 +180,7 @@ class PreparedValues:
         try:candidate=Engine(headers.engine.project,defer_prescan=True,
                              coordinated_clock=headers.engine.coordinated_clock,
                              application_instance_id=headers.engine.application_instance_id,
-                             ethernet_address=headers.engine.ethernet_address)
+                             network_binding=headers.engine.network_binding)
         except ModelError:raise ImageError('download_initial_execution_plan_unavailable') from None
         if candidate.blockers or candidate.fault or candidate.memory.values!=candidate.project.initial:
             raise ImageError('download_initial_execution_plan_unavailable')

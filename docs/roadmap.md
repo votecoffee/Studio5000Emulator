@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1107.100832` [ladder CIP Generic TCP/IP Interface reads](ladder-message.md#cip-generic-tcpip-interface-object)
+expose the active adapter's captured IPv4 configuration to ladder. Message Lab
+demonstrates reading the same configuration payload as an EtherNet/IP client.
+
 Available in `26.1107.095630` [ladder CIP Generic Port Object](ladder-message.md#cip-generic-port-object)
 adds class, backplane and Ethernet metadata reads. Message Lab shows the
 captured backplane target and the endpoint's bound IPv4 address.

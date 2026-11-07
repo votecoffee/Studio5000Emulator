@@ -8,7 +8,10 @@ from . import software_clock, time_sync, wall_clock
 from .identity import Identity
 from .integer_math import CONTROLLERS
 from .model import ModelError, coerce
-from .network_objects import PORT_CLASS_ID, port_attributes
+from .network_objects import (
+    PORT_CLASS_ID, TCPIP_CLASS_ID, TCPIP_INTERFACE_ATTRIBUTES,
+    port_attributes, tcpip_class_attributes, tcpip_interface_attributes,
+)
 from .numeric_copy import decode, encode, location
 from .templates import Catalog, MAX_BYTES, aligned
 
@@ -22,18 +25,19 @@ MAX_TIMEOUT_MULTIPLIER = 7
 PATH_BUFFER_SIZE = 82
 IDENTITY_ATTRIBUTES = frozenset(range(1, 8))
 GENERIC_SERVICES = {
-    1: (0x01, 0x03, 0x0E),
-    wall_clock.CLASS_ID: (0x03, 0x0E),
-    time_sync.CLASS_ID: (0x03, 0x0E),
-    PORT_CLASS_ID: (0x01, 0x03, 0x0E),
+    1: {1: (0x01, 0x03, 0x0E)},
+    wall_clock.CLASS_ID: {1: (0x03, 0x0E)},
+    time_sync.CLASS_ID: {1: (0x03, 0x0E)},
+    PORT_CLASS_ID: dict.fromkeys((0, 1, 2), (0x01, 0x03, 0x0E)),
+    TCPIP_CLASS_ID: {0: (0x01, 0x03, 0x0E), 1: (0x03, 0x0E)},
 }
 GENERIC_SINGLE_ATTRIBUTES = {
     1: IDENTITY_ATTRIBUTES,
     wall_clock.CLASS_ID: range(1, 12),
     time_sync.CLASS_ID: time_sync.INSTANCE_ATTRIBUTES,
     PORT_CLASS_ID: (1, 2, 3, 4, 5, 7, 8, 9),
+    TCPIP_CLASS_ID: (1, 2, 3, 4, 5, 6, 101, 102),
 }
-GENERIC_INSTANCES = {PORT_CLASS_ID: (0, 1, 2)}
 GENERIC_BUFFER_TYPES = frozenset(('SINT', 'INT', 'DINT'))
 MAX_ATTRIBUTE_LIST = 32
 STATUS_BITS = {'EW': 2, 'ER': 4, 'DN': 5, 'ST': 6, 'EN': 7, 'TO': 8, 'EN_CC': 9}
@@ -204,7 +208,7 @@ def _generic_read(project, attributes):
     service = _hex_number(attributes, 'ServiceCode')
     cls = _hex_number(attributes, 'ObjectType')
     instance = _number(attributes, 'TargetObject', 0, 65535)
-    if instance not in GENERIC_INSTANCES.get(cls, (1,)) or service not in GENERIC_SERVICES.get(cls, ()):
+    if service not in GENERIC_SERVICES.get(cls, {}).get(instance, ()):
         raise ModelError('CIP Generic requires a supported read service, class and instance')
     single = service == 0x0E
     attribute = _hex_number(attributes, 'AttributeNumber') if single or attributes.get('AttributeNumber') else 0
@@ -839,10 +843,10 @@ def _attribute_list_reply(numbers, values):
 
 def _generic_reply(engine, request, numbers, status_word):
     project = engine.project
-    if (request.class_id not in GENERIC_SERVICES
-            or request.instance not in GENERIC_INSTANCES.get(request.class_id, (1,))):
+    services = GENERIC_SERVICES.get(request.class_id, {}).get(request.instance)
+    if services is None:
         raise TransferError(0x05)
-    if request.service not in GENERIC_SERVICES[request.class_id]:
+    if request.service not in services:
         raise TransferError(0x08)
     if request.service == 0x03 and numbers is None:
         raise TransferError(0x03)
@@ -859,12 +863,29 @@ def _generic_reply(engine, request, numbers, status_word):
         attributes = identity.attributes(status_word=status_word)
         values = {number: attributes[number] for number in IDENTITY_ATTRIBUTES}
     elif request.class_id == PORT_CLASS_ID:
-        address = engine.ethernet_address() if request.instance == 2 and engine.ethernet_address else None
-        values = port_attributes(request.instance, address)
+        binding = engine.network_binding() if request.instance == 2 and engine.network_binding else None
+        values = port_attributes(request.instance, binding.address if binding else None)
         if request.service == 0x01:
-            if request.instance == 2 and address is None:
+            if request.instance == 2 and binding is None:
                 raise TransferError(0x0C)
             return 0, b''.join(values.values())
+    elif request.class_id == TCPIP_CLASS_ID:
+        if request.instance == 0:
+            values = tcpip_class_attributes()
+            if request.service == 0x01:
+                return 0, b''.join(values[n] for n in (1, 2, 3))
+        else:
+            binding = engine.network_binding() if engine.network_binding else None
+            if binding is None:
+                raise TransferError(0x0C)
+            requested = numbers if request.service == 0x03 else (request.attribute,)
+            include_interface = bool(TCPIP_INTERFACE_ATTRIBUTES.intersection(requested))
+            values = tcpip_interface_attributes(binding.interface, binding.hostname,
+                                                include_interface=include_interface)
+            if include_interface and binding.interface is None and request.service == 0x03:
+                raise TransferError(0x0C)
+            if include_interface and request.service == 0x0E and request.attribute not in values:
+                raise TransferError(0x0C)
     else:
         requested = numbers if request.service == 0x03 else (request.attribute,)
         if request.class_id == wall_clock.CLASS_ID:

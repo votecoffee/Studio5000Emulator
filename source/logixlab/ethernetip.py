@@ -22,7 +22,10 @@ from .model import ModelError,operations
 from .identity import Identity, controller_status_word
 from .templates import Catalog, MAX_BYTES
 from .catalog_revision import CatalogRevision
-from .network_objects import interface_snapshot, port_attributes, cip_string
+from .network_objects import (
+    NetworkBinding, TCPIP_INTERFACE_ATTRIBUTES, cip_string, interface_snapshot,
+    port_attributes, tcpip_class_attributes, tcpip_interface_attributes,
+)
 from .broadcast_discovery import prepare_broadcasts
 from . import routine_state
 from . import read_transport,routine_read
@@ -701,7 +704,7 @@ class Router:
                     self.require_download_namespace(lease,identity)
                     if self.app.controller_state()['mode']!='Program':return reject(0x0C,'program_mode_required')
                     if limit<6+4*len(setup_write_profile(path.class_id,payload)):return reject(0x1B,'download_setup_reply_budget')
-                    if path.class_id==0xF6:self.network_interface()
+                    if path.class_id==0xF6:self.endpoint.capture_interface()
                     value=namespace.setup.stage(path.class_id,payload,self.download_setup_bindings(lease))
                     self.endpoint.record('native_download_setup_configured',class_id=path.class_id,**namespace.setup.description())
                 return reply(inner[0],0,value)
@@ -903,13 +906,6 @@ class Router:
         except programming_lease.LeaseError as error:return reject(error.status,error.reason)
         except (library_staging.LibraryError,metadata_staging.MetadataError,resilient_transport.TransportError,edit_transfer.EditTransferError) as error:return reject(error.status,error.reason)
         except ImageError as error:return reject(0x0C,error.reason)
-
-    def network_interface(self):
-        if not self.endpoint.interface_queried:
-            snapshot,error=interface_snapshot(self.endpoint.bind_address)
-            with self.endpoint.lock:
-                self.endpoint.interface=snapshot;self.endpoint.interface_error=error;self.endpoint.interface_queried=True
-        return self.endpoint.interface
 
     def attribute_read(self,service,path,data,attributes,*,limit=None):
         if service==0x0E:
@@ -2131,11 +2127,7 @@ class Router:
                 if service==1 and path.attribute is None:
                     exact(data,0);return 0,b''.join(attributes.values())
             elif instance==0:
-                attributes={1:b'\1\0',2:b'\1\0',3:b'\1\0'}
-                if path.class_id==0xF5:
-                    # No embedded HTTP service on the PLC interface. The
-                    # separate local management UI is not this service.
-                    attributes.update({101:b'\0',102:b'\0'})
+                attributes=tcpip_class_attributes() if path.class_id==0xF5 else {1:b'\1\0',2:b'\1\0',3:b'\1\0'}
                 if service==1 and path.attribute is None:
                     exact(data,0);return 0,b''.join(attributes[n] for n in (1,2,3))
             elif instance==1 and path.class_id==0xF6:
@@ -2150,7 +2142,7 @@ class Router:
                     if not 1<=count<=32:raise CIPError(3,'Attribute count must be 1..32')
                     selected=set(struct.unpack_from('<'+'H'*count,data,2))
                 if {1,2,3,4,5,6,7,8,9,10}.intersection(selected):
-                    snapshot=self.network_interface()
+                    snapshot=self.endpoint.capture_interface()
                     if snapshot is not None:
                         if snapshot.mac is not None:attributes[3]=snapshot.mac
                         label=snapshot.interface_label()
@@ -2162,24 +2154,18 @@ class Router:
                         raise CIPError(0x0C,'Ethernet link attribute is unavailable on this interface')
             elif instance==1:
                 if service==0x0E:exact(data,0)
-                attributes={6:cip_string(socket.gethostname())}
-                # Query the local OS only when the caller needs this attribute.
-                # Unknown interface data is an error, never a guessed /24 or MAC.
-                requested=service==0x0E and path.attribute in (1,2,3,4,5)
+                hostname=cip_string(socket.gethostname())
+                requested=service==0x0E and path.attribute in TCPIP_INTERFACE_ATTRIBUTES
                 if service==3 and path.attribute is None:
                     need(data,2);count=struct.unpack_from('<H',data)[0];exact(data,2+2*count)
                     if not 1<=count<=32:raise CIPError(3,'Attribute count must be 1..32')
-                    requested=bool({1,2,3,4,5}.intersection(struct.unpack_from('<'+'H'*count,data,2)))
-                if requested:
-                    snapshot=self.network_interface()
-                    attributes[4]=b'\2\0\x20\xF6\x24\1' if snapshot is not None and snapshot.mac else b'\0\0'
-                    if snapshot is not None:
-                        attributes[1]=struct.pack('<I',1)
-                        attributes[5]=snapshot.configuration()
-                        if snapshot.tcpip is not None:attributes.update(snapshot.tcpip.attributes())
-                    elif path.attribute==5 or service==3:raise CIPError(0x0C,'Local IPv4 configuration is unavailable')
-                    if service==0x0E and path.attribute not in attributes:
-                        raise CIPError(0x0C,'TCP/IP configuration attribute is unavailable on this interface')
+                    requested=bool(TCPIP_INTERFACE_ATTRIBUTES.intersection(struct.unpack_from('<'+'H'*count,data,2)))
+                snapshot=self.endpoint.capture_interface() if requested else None
+                attributes=tcpip_interface_attributes(snapshot,hostname,include_interface=requested)
+                if requested and snapshot is None and (path.attribute==5 or service==3):
+                    raise CIPError(0x0C,'Local IPv4 configuration is unavailable')
+                if requested and service==0x0E and path.attribute not in attributes:
+                    raise CIPError(0x0C,'TCP/IP configuration attribute is unavailable on this interface')
             else:raise CIPError(5,'Unknown TCP/IP Interface object instance')
             return self.attribute_read(service,path,data,attributes)
         if path.class_id==0x69:
@@ -2529,8 +2515,25 @@ class Endpoint:
         self.connections=set();self.threads=[];self.tcp=None;self.udp=None;self.enabled=False;self.slots=threading.BoundedSemaphore(16)
         self._locator_clock=time.monotonic;self._locator_until=0.0;self._locator_started=0.0;self._locator_request=None
         self.interface=None;self.interface_error=None;self.interface_queried=False
+        self.network_binding = None
         self.broadcast_servers=[]
         self.discovery_status={'broadcast_enabled':False,'broadcast_addresses':[],'interface':None,'reason':'Endpoint is stopped'}
+
+    def capture_interface(self):
+        with self.lock:
+            if not self.interface_queried:
+                self.interface, self.interface_error = interface_snapshot(self.bind_address)
+                self.interface_queried = True
+            return self.interface
+
+    def prepare_network_binding(self):
+        """Capture local metadata before publishing a binding to the scan engine."""
+        snapshot = self.capture_interface()
+        try:
+            hostname = cip_string(socket.gethostname())
+        except (OSError, ValueError):
+            hostname = None
+        self.network_binding = NetworkBinding(self.bind_address, snapshot, hostname)
 
     def flash_leds(self,seconds):
         # Identification is independent of application tag-write permission.
@@ -2670,7 +2673,8 @@ class Endpoint:
                     'native_aois':self.app.native_aois.description() if self.enabled and getattr(self.app,'native_aois',None) else None,
                     'native_aoi_routines':self.app.native_aoi_routines.description() if self.enabled and getattr(self.app,'native_aoi_routines',None) else None,
                     'locator':self.locator_state(),
-                    'network_interface':self.interface.description() if self.interface else None,
+                    'network_interface':self.interface.description(
+                        captured_on_first_query=self.network_binding is None) if self.interface else None,
                     'ethernet_counters':self.ethernet_counters.description() if self.enabled else None,
                     'network_interface_error':self.interface_error,'network_interface_queried':self.interface_queried,
                     'discovery':{**self.discovery_status,'broadcast_enabled':self.enabled and bool(self.broadcast_servers)},
@@ -2831,8 +2835,9 @@ class Endpoint:
                 if attempt+1==attempts:
                     raise ModelError(f'Cannot bind EtherNet/IP {transport} at {self.bind_address}:{failed_port}: {e}. '
                         'Use an IP assigned to this PC and a free TCP/UDP port. A listener on 0.0.0.0 may also reserve this port.') from e
+        snapshot_result = (self.interface, self.interface_error) if self.interface_queried else None
         self.broadcast_servers,self.discovery_status=prepare_broadcasts(self.bind_address,self.port,
-            lambda raw,peer:self.packet(raw,Session(peer=str(peer)),True),self.record)
+            lambda raw,peer:self.packet(raw,Session(peer=str(peer)),True),self.record,snapshot_result=snapshot_result)
         self.enabled=True
         for server in (self.tcp,self.udp,*self.broadcast_servers):
             thread=threading.Thread(target=server.serve_forever,kwargs={'poll_interval':0.05},daemon=True);thread.start();self.threads.append(thread)

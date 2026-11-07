@@ -2,9 +2,8 @@
 
 LogixLab models CIP Data Table Read and Write for numeric tags, matching
 strings and user-defined records, plus bounded CIP Generic reads of Identity,
-Wall Clock Time, Time Sync and the Port Object in whole-project v35
-ControlLogix 5580 ladder
-execution. It transfers
+Wall Clock Time, Time Sync, the Port Object and the TCP/IP Interface Object
+in whole-project v35 ControlLogix 5580 ladder execution. It transfers
 values between tags in the current project. The `MSG` faceplate shows the
 message control and its `EN`, `DN` and `ER` bits.
 
@@ -241,6 +240,28 @@ scan. Without a binding, the Ethernet node address is unavailable and a
 Get Attributes All on that instance reports ERR 16#000C. Backplane and
 Ethernet port metadata remain readable. These replies do not enable
 routing to another device.
+
+## CIP Generic TCP/IP Interface Object
+
+With EtherNet/IP enabled, set SendTcpIpRead in Message Lab and step three
+times. Rung 32 reads class 16#F5, instance 1, attribute 5 into TcpIpReply.
+The first five little-endian UDINTs contain the IPv4 address, subnet mask,
+gateway and two DNS addresses. A length-prefixed, even-padded domain string
+follows. The fields come from the endpoint's selected adapter snapshot.
+
+Class instance 0 supports Get Attribute Single, Get Attribute List and
+Get Attributes All. Instance 1 supports single and list reads of status,
+configuration capability and control, physical link path, IPv4 configuration
+and hostname. Capability and control require a recognized DHCP configuration.
+A list from a valid snapshot can return ERR 16#000A with individual status
+16#0014 for unavailable attributes. An instance 1 read without an enabled
+endpoint, or a configuration read without an adapter snapshot, reports
+ERR 16#000C and preserves the destination. Attribute 4 on an enabled endpoint
+without verified physical-link data returns an empty path.
+
+Ladder uses the snapshot captured during endpoint startup and refreshed on
+endpoint restart. The same field encoders serve inbound EtherNet/IP requests.
+See the [TCP/IP object layout](connectivity.md#port-and-tcpip-interface-metadata).
 
 ## Supported configuration and timing
 

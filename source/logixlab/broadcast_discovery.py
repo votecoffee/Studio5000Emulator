@@ -93,7 +93,7 @@ class BroadcastServer(socketserver.UDPServer):
             self.record('broadcast_discovery', destination=destination, interface_index=self.interface.index)
 
 
-def prepare_broadcasts(address, port, reply, record):
+def prepare_broadcasts(address, port, reply, record, *, snapshot_result=None):
     """Optional discovery; failed setup closes every extra socket, preserving unicast."""
     status = {'broadcast_enabled': False, 'broadcast_addresses': [], 'interface': None, 'reason': None}
     if not sys.platform.startswith('linux'):
@@ -104,7 +104,7 @@ def prepare_broadcasts(address, port, reply, record):
         return [], status
     servers = []
     try:
-        snapshot, error = interface_snapshot(address)
+        snapshot, error = interface_snapshot(address) if snapshot_result is None else snapshot_result
         if snapshot is None:
             raise ValueError(error or 'Selected interface metadata is unavailable')
         network = ipaddress.IPv4Network(address + '/' + snapshot.netmask, strict=False)

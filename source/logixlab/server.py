@@ -234,9 +234,9 @@ class Application:
         with self.connectivity_lock:
             if self.endpoint and self.endpoint.enabled:self.endpoint.stop()
 
-    def _ethernet_address(self):
+    def _network_binding(self):
         endpoint = self.endpoint
-        return endpoint.bind_address if endpoint is not None and endpoint.enabled else None
+        return endpoint.network_binding if endpoint is not None and endpoint.enabled else None
 
     def connectivity(self,trace=False):
         return self.endpoint.state(trace) if self.endpoint else {'enabled':False,'address':'127.0.0.1:44818','bind_address':'127.0.0.1',
@@ -320,6 +320,7 @@ class Application:
                         if self.engine is None or self.busy:raise ModelError('Load a project before starting connectivity')
                         if self.endpoint and self.endpoint.enabled:raise ModelError('EtherNet/IP endpoint is already running')
                         endpoint=Endpoint(self,data.get('port',44818),data.get('allow_writes',False),data.get('profile','research'),data.get('bind_address','127.0.0.1'),data.get('native_read_only',False))
+                        endpoint.prepare_network_binding()
                         self.endpoint=endpoint.start()
                         return self.state()
                 raise ModelError('Unknown connectivity action')
@@ -511,7 +512,7 @@ class Application:
                 native_routine_reference_symbols=RoutineReferenceSymbols.from_source(project,native_identity,native_symbols,native_routines,native_auxiliary_symbols)
                 if native_routine_reference_symbols:provenance['native_routine_reference_symbols']=native_routine_reference_symbols.description()
                 engine = Engine(project,defer_prescan=True,coordinated_clock=self.coordinated_clock,
-                                application_instance_id=self.instance_id,ethernet_address=self._ethernet_address)
+                                application_instance_id=self.instance_id,network_binding=self._network_binding)
                 with self.lock:
                     if self.endpoint and self.endpoint.enabled:
                         from .identity import Identity
@@ -606,7 +607,7 @@ class Application:
             elif action == "configure":
                 engine = Engine(e.project, data.get("mode", "project"), data.get("routine", ""),defer_prescan=True,
                                 coordinated_clock=self.coordinated_clock,application_instance_id=self.instance_id,
-                                ethernet_address=self._ethernet_address)
+                                network_binding=self._network_binding)
                 self.set_controller_mode('Program')
                 self.engine = engine
                 self.scan_interval_ms = self.default_scan_interval()
@@ -640,7 +641,7 @@ class Application:
             elif action == "reset":
                 self.set_controller_mode('Program')
                 self.engine = Engine(e.project, e.mode, e.selected,defer_prescan=True,coordinated_clock=self.coordinated_clock,
-                                     application_instance_id=self.instance_id,ethernet_address=self._ethernet_address)
+                                     application_instance_id=self.instance_id,network_binding=self._network_binding)
                 self.scan_interval_ms = self.engine.fixed_scan_interval() or self.scan_interval_ms
                 self.generation += 1
                 self.device_io.bind(self.generation); self._io_dirty = True

@@ -10,6 +10,7 @@ from unittest.mock import patch
 from xml.etree import ElementTree as ET
 
 from logixlab.model import ModelError, Project
+from logixlab.network_objects import InterfaceSnapshot, NetworkBinding, cip_string
 from logixlab.runtime import Engine
 from logixlab.software_clock import clock_identity
 
@@ -35,7 +36,7 @@ def add_message_burst(root):
                       MessageType='CIP Data Table Read', LocalElement=f'BurstValues[{index}]',
                       RemoteElement='VirtualValue', RequestedLength='1', ConnectedFlag='0',
                       ConnectionPath='THIS', CommTypeCode='0')
-        rung = ET.SubElement(content, 'Rung', Number=str(32 + index), Type='N')
+        rung = ET.SubElement(content, 'Rung', Number=str(33 + index), Type='N')
         ET.SubElement(rung, 'Text').text = f'XIC(SendBurst)MSG({name});'
 
 
@@ -664,7 +665,7 @@ class MessageTests(unittest.TestCase):
 
     def test_generic_port_captures_instance_and_reads_current_endpoint_address(self):
         address = '192.0.2.10'
-        engine = self.engine(ethernet_address=lambda: address)
+        engine = self.engine(network_binding=lambda: NetworkBinding(address) if address else None)
         memory = engine.memory
         self.assertEqual(engine.blockers, [])
         memory.write('SendPortRead', True)
@@ -733,7 +734,7 @@ class MessageTests(unittest.TestCase):
 
     def test_generic_port_node_address_needs_an_active_binding(self):
         address = '192.0.2.10'
-        engine = self.engine(ethernet_address=lambda: address)
+        engine = self.engine(network_binding=lambda: NetworkBinding(address) if address else None)
         memory = engine.memory
         memory.write('PortReadControl.Instance', 2)
         memory.write('PortReadControl.Attribute', 7)
@@ -752,6 +753,57 @@ class MessageTests(unittest.TestCase):
             engine.step()
         self.assertEqual(memory.read('PortReply'), previous)
         self.assert_flags(engine, 'PortReadControl', DN=False, ER=True, ERR=0x14, DN_LEN=0)
+
+    def test_generic_tcpip_offline_config_error_keeps_reply_and_class_inventory_reads(self):
+        def configure(root):
+            control = root.find('.//Tag[@Name="IdentityAllControl"]//MessageParameters')
+            control.set('ObjectType', '16#F5')
+            control.set('TargetObject', '0')
+            control.set('DestinationTag', 'IdentityAllReply[1]')
+
+        engine = self.engine(configure)
+        memory = engine.memory
+        self.assertEqual(engine.blockers, [])
+        memory.write('SendTcpIpRead', True)
+        memory.write('SendIdentityAll', True)
+        for _ in range(3):
+            engine.step()
+        self.assert_flags(engine, 'TcpIpReadControl', ER=True, ERR=0x0C, DN_LEN=0)
+        self.assertEqual(memory.read('TcpIpReply')[:2], [-9, None])
+        self.assert_flags(engine, 'IdentityAllControl', DN=True, ERR=0, DN_LEN=6)
+        self.assertEqual(memory.read('IdentityAllReply')[:8], [-9, 1, 0, 1, 0, 1, 0, None])
+
+        memory.write('SendIdentityAll', False)
+        engine.step()
+        memory.write('IdentityAllControl.Instance', 1)
+        memory.write('SendIdentityAll', True)
+        for _ in range(3):
+            engine.step()
+        self.assert_flags(engine, 'IdentityAllControl', ER=True, ERR=0x08, DN_LEN=0)
+        self.assertEqual(memory.read('IdentityAllReply')[:8], [-9, 1, 0, 1, 0, 1, 0, None])
+
+    def test_generic_tcpip_list_retains_order_and_unavailable_capability_status(self):
+        def configure(root):
+            control = root.find('.//Tag[@Name="IdentityListControl"]//MessageParameters')
+            control.set('ObjectType', '16#F5')
+            control.set('DestinationTag', 'TcpIpReply[1]')
+            array = root.find('.//Tag[@Name="IdentityListRequest"]//Array')
+            array.find('Element[@Index="[1]"]').set('Value', '6')
+            array.find('Element[@Index="[2]"]').set('Value', '2')
+
+        snapshot = InterfaceSnapshot('192.0.2.10', '255.255.255.0')
+        binding = NetworkBinding(snapshot.address, snapshot, cip_string('lab'))
+        engine = self.engine(configure, network_binding=lambda: binding)
+        memory = engine.memory
+        self.assertEqual(engine.blockers, [])
+        memory.write('SendIdentityList', True)
+        for _ in range(3):
+            engine.step()
+        expected = struct.pack('<3H', 2, 6, 0) + cip_string('lab') + struct.pack('<2H', 2, 0x14)
+        self.assert_flags(engine, 'IdentityListControl', ER=True, ERR=0x0A, DN_LEN=len(expected))
+        reply = memory.read('TcpIpReply')
+        self.assertEqual(bytes(reply[1:1 + len(expected)]), expected)
+        self.assertEqual((reply[0], reply[1 + len(expected)]), (-9, None))
 
     def test_generic_identity_attribute_written_by_ladder_applies_to_next_request(self):
         engine = self.engine()

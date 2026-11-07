@@ -2078,8 +2078,10 @@ unavailable. IPv4 values are CIP little-endian UDINTs; domain/hostname values us
 length-prefixed, even-padded CIP strings. The configuration uses the selected
 local address, actual subnet mask, default gateway, IPv4 DNS servers and domain.
 
-Configuration is captured lazily on the first IPv4/physical-link query and retained for
-that endpoint. Linux queries interface ioctls, its route table and resolver file;
+LogixLab captures and retains configuration when it starts the EtherNet/IP endpoint.
+Ladder reads this snapshot during scans. Standalone protocol probes that construct
+an endpoint directly can still capture it on the first IPv4 or physical-link request.
+Linux queries interface ioctls, its route table and resolver file;
 Windows calls the read-only IP Helper API directly. It does not launch a shell
 on a CIP request. Restart the endpoint to refresh
 the snapshot after an OS configuration change. If the selected configuration

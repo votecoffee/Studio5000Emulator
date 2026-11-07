@@ -58,13 +58,13 @@ class InterfaceSnapshot:
         # CIP UDINTs are little endian, including their numeric IPv4 values.
         return b''.join(struct.pack('<I', int(ipaddress.IPv4Address(a))) for a in addresses) + cip_string(self.domain)
 
-    def description(self):
+    def description(self, *, captured_on_first_query=True):
         return {'address': self.address, 'netmask': self.netmask, 'gateway': self.gateway,
                 'dns': list(self.dns), 'domain': self.domain, 'interface': self.name,
                 'mac_address': self.mac.hex(':') if self.mac else None,
                 'ethernet_link': self.link.description() if self.link else None,
                 'tcpip_configuration': self.tcpip.description() if self.tcpip else None,
-                'writable': False, 'captured_on_first_query': True}
+                'writable': False, 'captured_on_first_query': captured_on_first_query}
 
     def interface_label(self):
         """Installed v35 Ethernet Link field 10: a byte count and 64 characters."""
@@ -146,6 +146,32 @@ def interface_snapshot(address):
 
 
 PORT_CLASS_ID = 0xF4
+TCPIP_CLASS_ID = 0xF5
+TCPIP_INTERFACE_ATTRIBUTES = frozenset(range(1, 6))
+
+
+@dataclass(frozen=True)
+class NetworkBinding:
+    address: str
+    interface: InterfaceSnapshot | None = None
+    hostname: bytes | None = None
+
+
+def tcpip_class_attributes():
+    # The separate management UI is not an embedded HTTP service on this port.
+    return {1: b'\1\0', 2: b'\1\0', 3: b'\1\0', 101: b'\0', 102: b'\0'}
+
+
+def tcpip_interface_attributes(snapshot, hostname, *, include_interface):
+    values = {6: hostname} if hostname is not None else {}
+    if include_interface:
+        values[4] = b'\2\0\x20\xF6\x24\1' if snapshot is not None and snapshot.mac else b'\0\0'
+        if snapshot is not None:
+            values[1] = struct.pack('<I', 1)
+            values[5] = snapshot.configuration()
+            if snapshot.tcpip is not None:
+                values.update(snapshot.tcpip.attributes())
+    return values
 
 
 def port_attributes(instance, address='127.0.0.1'):
