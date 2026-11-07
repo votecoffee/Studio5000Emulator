@@ -6,6 +6,7 @@ from xml.etree import ElementTree as ET
 from unittest.mock import patch
 import test_runtime as fixtures
 from logixlab.model import ModelError
+from logixlab.runtime import Engine
 
 
 def add_fault_dint_array(tags, name, values):
@@ -1208,6 +1209,52 @@ class ProgramFaultTests(unittest.TestCase):
                 self.assertEqual(engine.memory.read('LabRecords[0].POS'),0)
                 self.assertEqual(engine.memory.read('LabRecords[1].POS'),1)
                 self.assertEqual(engine._file_incremental,{sibling})
+
+    def test_control_prescan_skips_out_of_bounds_without_mutating_any_control(self):
+        instructions = (
+            'BSL(LabQueue[0],LabRecords[LabIndex],StartPB,?)',
+            'BSR(LabQueue[0],LabRecords[LabIndex],StartPB,?)',
+            'FFL(12,LabQueue[0],LabRecords[LabIndex],?,?)',
+            'FFU(LabQueue[0],LabValues[0],LabRecords[LabIndex],?,?)',
+            'LFL(12,LabQueue[0],LabRecords[LabIndex],?,?)',
+            'LFU(LabQueue[0],LabValues[0],LabRecords[LabIndex],?,?)',
+            'SQL(LabQueue[0],12,LabRecords[LabIndex],?,?)',
+            'SQO(LabQueue[0],255,LabValues[0],LabRecords[LabIndex],?,?)',
+            'AVE(LabQueue[0],0,LabStats[0],LabRecords[LabIndex],?,?)',
+            'STD(LabQueue[0],0,LabStats[0],LabRecords[LabIndex],?,?)',
+            'FBC(LabValues[0],LabQueue[0],LabResults[0],LabRecords[1],?,?,LabRecords[LabIndex],?,?)',
+            'DDT(LabValues[0],LabQueue[0],LabResults[0],LabRecords[1],?,?,LabRecords[LabIndex],?,?)',
+        )
+        for instruction in instructions:
+            with self.subTest(instruction=instruction):
+                self.setUp()
+
+                def configure(root):
+                    ladder_fault_fixture(root)
+                    add_array_calculation_tags(root)
+                    tags = root.find('./Controller/Tags')
+                    add_fault_dint_array(tags, 'LabResults', [-1, -1, 88])
+                    saved_index = '0' if instruction.startswith(('FBC', 'DDT')) else '2'
+                    tags.find('./Tag[@Name="LabIndex"]/Data/DataValue').set('Value', saved_index)
+                    compare = tags.find('./Tag[@Name="LabRecords"]/Data/Array/Element[@Index="[1]"]/Structure')
+                    for member in ('EN', 'DN', 'FD', 'POS'):
+                        compare.find(f'DataValueMember[@Name="{member}"]').set('Value', '1')
+                    set_fault_instruction(root, instruction)
+                    later = root.find('./Controller/Programs/Program/Routines/Routine/RLLContent/Rung[@Number="1"]/Text')
+                    later.text = 'OTE(FaultWitness);'
+
+                engine = self.engine(mutate=configure)
+                self.assertEqual(engine.blockers, [])
+                if instruction.startswith(('FBC', 'DDT')):
+                    engine = Engine(engine.project, defer_prescan=True)
+                    self.assertEqual(engine.blockers, [])
+                    engine.memory.write('LabIndex', 2)
+                engine.enter_run()
+                self.assertEqual(engine.memory.read('LabRecords'), engine.project.initial['labrecords'])
+                self.assertFalse(engine.memory.read('FaultWitness'))
+                self.assertEqual(engine.memory.read('LabIndex'), 2)
+                self.assertEqual(engine.scan_count, 0)
+                self.assertIsNone(engine.last_cleared_program_fault)
 
     def test_shift_array_faults_preserve_words_and_rearm_the_same_edge(self):
         for instruction,expected in (

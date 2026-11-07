@@ -194,9 +194,8 @@ The loaded index keeps its value. Unknown indices and errors rejected
 during structural validation still block initialization.
 
 Normal execution evaluates the actual index again and can raise Type 4
-Code 20 as described above. The prescan rule applies to those five
-instructions. Other instruction families and native controller behavior
-remain unverified.
+Code 20 as described above. Native controller behavior remains
+unverified.
 
 [Rockwell prescan fault reference](https://www.rockwellautomation.com/en-fi/docs/studio-5000-logix-designer/38-02/contents-ditamap/studio-5000-logix-designer/access-remote-i-o/clearing-a-major-fault-during-prescan.html)
 
@@ -260,6 +259,22 @@ Unknown consumed values, prescan and other errors remain separate.
 
 [Rockwell general instructions reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm003_-en-p.pdf)
 [Rockwell SQO reference](https://www.rockwellautomation.com/en-gb/docs/studio-5000-logix-designer/38-00/contents-ditamap/instruction-set/sequencer-instructions/sequencer-output--sqo-.html)
+
+## Skip out-of-bounds CONTROL records during prescan
+
+In the v35 ControlLogix 5580 ladder profile, prescan skips an out-of-bounds
+CONTROL selection in BSL, BSR, FFL, FFU, LFL, LFU, SQL, SQO, AVE, STD,
+FBC or DDT. The instruction leaves its records intact, and prescan
+continues without running a Program or Controller fault handler.
+FBC and DDT resolve both records before updating either one. Their load-time
+validation still requires valid control addresses. The prescan skip applies
+if a control index becomes invalid after load.
+
+Unknown indices and missing control fields still fail when required.
+Normal scans still resolve the live index and use the existing
+Type 4 Code 20 path. Native controller behavior remains unverified.
+
+[Rockwell prescan fault reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-02/contents-ditamap/studio-5000-logix-designer/controller-properties/major-fault-state.html)
 
 ## Recover file arithmetic and search array faults
 

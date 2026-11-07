@@ -39,6 +39,11 @@ ARRAY_FAULT_RECOVERY_OPS = (
     | numeric_conversions.INSTRUCTIONS | real_math.INSTRUCTIONS
     | string_operations.INSTRUCTIONS | string_conversions.INSTRUCTIONS | ladder_pid.INSTRUCTIONS
 )
+_CONTROL_PRESCAN = {
+    instruction: family.prescan
+    for family in (control_operations, sequencer_operations, array_statistics, file_bit_compare)
+    for instruction in family.INSTRUCTIONS
+}
 FAULT_HANDLER_GSV = frozenset((('program','majorfaultrecord'), ('module','entrystatus'),
                                ('module','faultcode'), ('module','faultinfo')))
 
@@ -690,11 +695,14 @@ class Engine:
                 elif n=='ALMD':ladder_alarm.prescan(self,op,scope)
                 elif n=='ALMA':ladder_analog_alarm.prescan(self,op,scope)
                 elif n=='MSG':ladder_message.prescan(self,op,scope)
-                elif n in control_operations.INSTRUCTIONS:control_operations.prescan(self.memory,op,scope)
-                elif n in sequencer_operations.INSTRUCTIONS:sequencer_operations.prescan(self.memory,op,scope)
-                elif n in array_statistics.INSTRUCTIONS:array_statistics.prescan(self.memory,op,scope)
+                elif n in _CONTROL_PRESCAN:
+                    # These handlers resolve all CONTROL addresses before changing any fields.
+                    try:
+                        _CONTROL_PRESCAN[n](self.memory, op, scope)
+                    except ArrayBoundsError:
+                        if not bit_logic.available(self.project):
+                            raise
                 elif n=='DTR':data_transition.execute(self.memory,op,False,scope)
-                elif n in file_bit_compare.INSTRUCTIONS:file_bit_compare.prescan(self.memory,op,scope)
                 elif n in bit_logic.PRESCAN_WRITES and bit_logic.available(self.project):
                     bit_logic.prescan(self.memory, op, scope)
                 elif n=='OTE':w('',False)

@@ -38,9 +38,10 @@ new enable edge. A changed indirect payload or mask index therefore matters
 on a held true call; these are not queue load/unload latches.
 
 Actual CONTROL addresses remain required at runtime, including false calls.
-SQO/SQL prescan selects the actual control and sets EN; SQI has no prescan
-write. The existing runtime LEN/POS/EN reads and row/edge rules remain. These
-changes do not make every false CONTROL index dormant.
+SQO/SQL prescan selects the actual control and sets EN. An out-of-bounds
+selection [skips that prescan write](controller-handlers.md#skip-out-of-bounds-control-records-during-prescan).
+SQI has no prescan write. Runtime LEN/POS/EN reads and row and edge rules
+still apply.
 
 ## Boundaries and recovery
 

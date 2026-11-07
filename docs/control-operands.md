@@ -36,10 +36,10 @@ selects and writes its destination. In whole-project scans, a handler can
 and skip the instruction. The CONTROL state and any moved queue elements are
 restored before the handler runs.
 
-Prescan still selects actual CONTROL records. Queue prescan needs known LEN
-and POS for status; runtime queue calls retain those reads even when false or
-held. Shift/queue CONTROL indices are not universally skipped. Existing edge
-latches, bounds, guard preservation and invalid-state policies are unchanged.
+Prescan resolves live CONTROL addresses and
+[skips out-of-bounds selections](controller-handlers.md#skip-out-of-bounds-control-records-during-prescan).
+Queue prescan needs known LEN and POS for status when it selects a record.
+Runtime queue calls retain those reads even when false or held.
 Aliases and supported AOI local/InOut arrays retain their own binding rules.
 
 ## CONTROL reset

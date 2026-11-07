@@ -370,7 +370,9 @@ AVE/STD result indices and establishes unknown REAL/integer result elements.
 [Sequencer operand selection](docs/sequencer-operands.md) defers dormant mask
 and payload indices while preserving held output/teach updates and table checks.
 
-[CONTROL operand selection](docs/control-operands.md) defers shift and FIFO/LIFO
+[CONTROL prescan recovery](docs/controller-handlers.md#skip-out-of-bounds-control-records-during-prescan)
+skips out-of-bounds selections in shifts, queues, sequencers, statistics, and
+bit diagnostics. [CONTROL operand selection](docs/control-operands.md) defers shift and FIFO/LIFO
 payload indices until needed and lets false CONTROL resets skip live addresses.
 
 [Clipped record operations](docs/clipped-aggregates.md) stop COP/CPS and zero

@@ -53,8 +53,10 @@ unqualified. STD is not widened by the integer AVE profile.
 [Statistics operand selection](statistics-operands.md) adds structural preflight
 for result references. False and EN/DN/ER-inhibited calls skip live result
 indices; fresh calculations resolve actual results before reading samples and
-full writes establish unknown elements. Actual CONTROL addresses/prescan and
-existing flag, length and position reads remain required.
+full writes establish unknown elements. Prescan resolves the CONTROL
+address and [skips out-of-bounds selections](controller-handlers.md#skip-out-of-bounds-control-records-during-prescan).
+Runtime still requires the actual CONTROL address and the flag, length and
+position values it consumes.
 
 ## CONTROL transitions
 

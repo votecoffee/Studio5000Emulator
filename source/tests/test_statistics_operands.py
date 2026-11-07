@@ -106,10 +106,13 @@ class StatisticsOperandTests(unittest.TestCase):
         self.assertEqual(self.snapshot(e), before); e.memory.write('SpeedSetpoint', 1); e.step()
         self.assertEqual(e.memory.read('Results')[1], 4); self.assertTrue(e.memory.read('Ctl.DN'))
 
-    def test_prescan_still_requires_actual_controls_and_existing_ave_error_history(self):
+    def test_prescan_skips_out_of_bounds_controls_but_requires_ave_error_history(self):
         for op in ('AVE', 'STD'):
-            e = self.engine([f'AFI(){op}(Queue[0],0,Results[ResultIndex],Controls[ControlIndex],?,?);'])
-            self.assertTrue(any('Prescan' in b for b in e.blockers))
+            engine = self.checked([f'AFI(){op}(Queue[0],0,Results[ResultIndex],Controls[ControlIndex],?,?);'])
+            before = self.snapshot(engine)
+            with self.assertRaisesRegex(ModelError, 'outside bounds'):
+                engine.step()
+            self.assertEqual(self.snapshot(engine), before)
         self.assertTrue(any('CONTROL.ER' in b for b in self.engine(['AFI()AVE(Queue[0],0,Results[ResultIndex],Controls[0],?,?);']).blockers))
 
     def test_literal_bounds_permissions_shapes_and_overlap_guards_remain(self):

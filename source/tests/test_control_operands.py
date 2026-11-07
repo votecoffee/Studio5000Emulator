@@ -114,9 +114,15 @@ class ControlOperandTests(unittest.TestCase):
         e.step(); e.memory.values['inputs'][1] = 53; e.memory.write('SourceIndex', 1); e.memory.write('StartPB', True); e.step()
         self.assertEqual(e.memory.read('Queue[0]'), 53); self.assertEqual(e.memory.read('Inputs')[1], 53)
 
-    def test_prescan_still_needs_actual_control_addresses_and_queue_state(self):
+    def test_prescan_skips_bad_control_addresses_but_requires_known_indices_and_queue_state(self):
         for text in ('BSL(Words[0],Controls[ControlIndex],BitIn,?);', 'FFL(Incoming,Queue[0],Controls[ControlIndex],?,?);'):
-            self.assertTrue(any('Prescan' in b for b in self.engine(['AFI()' + text]).blockers))
+            engine = self.checked(['AFI()' + text])
+            before = self.snapshot(engine)
+            with self.assertRaisesRegex(ModelError, 'outside bounds'):
+                engine.step()
+            self.assertEqual(self.snapshot(engine), before)
+        unknown = self.engine(['AFI()BSL(Words[0],Controls[Inputs[0]],BitIn,?);'])
+        self.assertTrue(any('Prescan' in b and 'Unknown' in b for b in unknown.blockers))
         self.assertTrue(any('CONTROL.LEN' in b for b in self.engine(['AFI()FFL(Incoming,Queue[0],Controls[0],?,?);']).blockers))
 
     def test_structural_errors_permissions_literal_bounds_and_older_profiles_stay_blocked(self):

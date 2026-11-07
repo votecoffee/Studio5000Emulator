@@ -104,12 +104,15 @@ class SequencerOperandTests(unittest.TestCase):
                 self.assertEqual(self.snapshot(e), before); e.memory.write('Outputs[1]', 0x120000); e.step()
                 self.assertEqual(e.memory.read('Outputs')[1], 0x12000a)
 
-    def test_prescan_and_runtime_still_require_actual_control_addresses(self):
-        self.assertTrue(any('Prescan' in b for b in self.engine(['AFI()SQO(Queue[0],0,Outgoing,Controls[PayloadIndex],?,?);']).blockers))
-        e = self.checked(['AFI()SQI(Queue[0],0,Incoming,Controls[PayloadIndex],?,?);'])
-        before = self.snapshot(e)
-        with self.assertRaisesRegex(ModelError, 'outside bounds'):e.step()
-        self.assertEqual(self.snapshot(e), before)
+    def test_runtime_checks_control_addresses_after_prescan(self):
+        for text in ('SQO(Queue[0],0,Outgoing,Controls[PayloadIndex],?,?);',
+                     'SQI(Queue[0],0,Incoming,Controls[PayloadIndex],?,?);'):
+            with self.subTest(instruction=text):
+                engine = self.checked(['AFI()' + text])
+                before = self.snapshot(engine)
+                with self.assertRaisesRegex(ModelError, 'outside bounds'):
+                    engine.step()
+                self.assertEqual(self.snapshot(engine), before)
 
     def test_alias_constant_mask_and_input_sources_resolve_canonical_values(self):
         def setup(root):
