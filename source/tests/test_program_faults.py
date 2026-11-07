@@ -978,6 +978,49 @@ class ProgramFaultTests(unittest.TestCase):
         self.assertEqual(engine.memory.read('LabIndex'),1)
         self.assertEqual(engine.memory.read('LabValues'),[12,15])
 
+    def test_timer_and_counter_prescan_skips_bad_index_and_continues_to_valid_record(self):
+        for name in ('TON', 'TOF', 'RTO', 'CTU', 'CTD'):
+            with self.subTest(instruction=name):
+                self.setUp()
+                is_timer = name in ('TON', 'TOF', 'RTO')
+
+                def configure(root):
+                    ladder_fault_fixture(root, handler_tail='CLR(LabIndex);')
+                    controller = root.find('Controller')
+                    controller.find('./Tags/Tag[@Name="LabIndex"]/Data/DataValue').set('Value', '2')
+                    if is_timer:
+                        add_fault_record_array(root, 'TIMER', EN=True, TT=True, DN=True)
+                    else:
+                        add_fault_record_array(root, 'COUNTER')
+                    set_fault_instruction(root, f'{name}(LabRecords[LabIndex],?,?)')
+                    next_rung = controller.find('./Programs/Program/Routines/Routine/RLLContent/Rung[@Number="1"]/Text')
+                    next_rung.text = f'AFI(){name}(LabRecords[1],?,?);'
+
+                engine = self.engine(mutate=configure)
+                self.assertEqual(engine.blockers, [])
+                engine.enter_run()
+                initial = engine.project.initial['labrecords']
+                records = engine.memory.read('LabRecords')
+                self.assertEqual(records[0], initial[0])
+                expected = dict(initial[1])
+                if is_timer:
+                    expected.update(EN=False, TT=False)
+                    if name != 'RTO':
+                        expected.update(DN=False, ACC=100 if name == 'TOF' else 0)
+                else:
+                    expected['CU' if name == 'CTU' else 'CD'] = True
+                self.assertEqual(records[1], expected)
+                self.assertEqual(engine.scan_count, 0)
+                self.assertIsNone(engine.last_cleared_program_fault)
+                self.assertFalse(engine.last_timer)
+
+                engine.memory.write('StartPB', True)
+                engine.step()
+                fault = engine.last_cleared_program_fault
+                self.assertEqual((fault['type'], fault['code'], fault['instruction']), (4, 20, name))
+                self.assertEqual(engine.memory.read('LabIndex'), 0)
+                self.assertEqual(engine.memory.read('LabRecords')[0], initial[0])
+
     def test_timer_array_fault_preserves_records_and_last_execution_time(self):
         for name in ('TON','TOF','RTO'):
             with self.subTest(instruction=name):

@@ -650,6 +650,20 @@ class Engine:
         updates.update(ACC=value,DN=value>=obj['PRE']);obj.update(updates)
         return power
 
+    def _prescan_timer_counter(self, name, ref, scope):
+        is_timer = name in ('TON', 'TOF', 'RTO')
+        try:
+            record = self._counter_record(ref, scope, 'TIMER' if is_timer else 'COUNTER')
+        except ArrayBoundsError:
+            # Prescan skips this instruction before any member writes.
+            return
+        if is_timer:
+            record.update(EN=False, TT=False)
+            if name != 'RTO':
+                record.update(DN=False, ACC=record['PRE'] if name == 'TOF' else 0)
+        else:
+            record['CU' if name == 'CTU' else 'CD'] = True
+
     def _prescan(self):
         dormant = self._program_activation.keys() & self._disabled_programs
         self._prescan_routines(key for key in sorted(self.active)
@@ -685,9 +699,8 @@ class Engine:
                 elif n in ('ONS','OSR','OSF'):
                     w('',n!='OSF')
                     if n!='ONS':self.memory.write(a[1],False,scope)
-                elif n=='TOF' and bit_logic.available(self.project):
-                    timer = self._counter_record(a[0], scope, 'TIMER')
-                    timer.update(EN=False, TT=False, DN=False, ACC=timer['PRE'])
+                elif n in ('TON','TOF','RTO','CTU','CTD') and bit_logic.available(self.project):
+                    self._prescan_timer_counter(n, a[0], scope)
                 elif n in ('TON','TOF','RTO'):
                     w('.EN',False);w('.TT',False)
                     if n!='RTO':w('.DN',False);w('.ACC',0)
@@ -1220,7 +1233,7 @@ class Engine:
                     selection='True TON/RTO and false TOF consume known EN/DN; other paths establish outputs or retain unread fields',
                     clock='Deterministic millisecond elapsed-time recurrence, canonical record identity and first-enable behavior',
                     overflow='Elapsed accumulation saturates ACC at the positive DINT limit and completes the timing interval',
-                    lifecycle='Prescan needs actual indices; TON clears ACC/DN, TOF copies PRE to ACC and clears DN, RTO retains ACC/DN',
+                    lifecycle='Prescan skips out-of-bounds selections; TON clears ACC/DN, TOF copies PRE to ACC and clears DN, RTO retains ACC/DN',
                     array_recovery='A cleared Type 4 Code 20 skips a whole-project timer call and preserves its last execution time',
                     value_recovery='A cleared Type 4 Code 34 skips true TON/RTO or false TOF with a negative PRE/ACC and preserves its last execution time',
                     faults='Unknown fields, unrecovered faults, out-of-range values and later faults roll back values and timer history',
@@ -1229,7 +1242,7 @@ class Engine:
                     counting='Known DINT PRE/ACC and required BOOL edge history; signed wrap, DN comparison and latched OV/UN',
                     unknowns='False CTU/CTD establish their edge flag without old history; unread opposite-edge/overflow flags are retained',
                     reset='TIMER/COUNTER RES preserves PRE, establishes zero ACC and false status bits without old field values',
-                    selection='Structural counter/reset preflight; false RES skips live indices; counter prescan and execution require actual record addresses',
+                    selection='Structural preflight; false RES skips live indices; CTU/CTD prescan skips out-of-bounds selections; normal execution resolves live addresses',
                     array_recovery='A cleared Type 4 Code 20 skips a whole-project count or reset and preserves the addressed records',
                     boundaries='Completed prescan separate from runtime rollback; existing timer recurrence and reset rules apply',
                     native_runtime_parity=False),

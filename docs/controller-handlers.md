@@ -163,10 +163,25 @@ COUNTER and CONTROL. A valid CONTROL reset uses the same resolved address
 to clear the record and its incremental file progress, even if clearing
 POS changes the expression that selected it.
 
-Prescan array faults have their own startup behavior. Unknown fields
-use scan rollback. Elapsed-time overflow in the modeled v35 5580
-[TIMER profile](ladder-timers.md#existing-clock-policy) saturates the
-accumulator and completes the interval.
+Unknown fields use scan rollback. Elapsed-time overflow in the modeled
+v35 5580 [TIMER profile](ladder-timers.md#existing-clock-policy) saturates
+the accumulator and completes the interval.
+
+### Skip timer and counter array faults during prescan
+
+In the v35 ControlLogix 5580 ladder profile, prescan skips TON, TOF, RTO,
+CTU or CTD when resolving the record raises an out-of-bounds array fault.
+No record is written for that instruction, and prescan continues with the
+next instruction without invoking a Program or Controller fault routine.
+The loaded index keeps its value. Unknown indices and errors rejected
+during structural validation still block initialization.
+
+Normal execution evaluates the actual index again and can raise Type 4
+Code 20 as described above. The prescan rule applies to those five
+instructions. Other instruction families and native controller behavior
+remain unverified.
+
+[Rockwell prescan fault reference](https://www.rockwellautomation.com/en-fi/docs/studio-5000-logix-designer/38-02/contents-ditamap/studio-5000-logix-designer/access-remote-i-o/clearing-a-major-fault-during-prescan.html)
 
 ### Recover negative timing values
 

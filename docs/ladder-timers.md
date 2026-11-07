@@ -70,9 +70,10 @@ operands without consuming saved fields. Prescan still needs actual timer
 addresses and clears EN/TT for all three. TON clears ACC and DN. TOF clears
 DN and copies the selected record's current PRE to ACC. If PRE is unknown,
 ACC becomes unknown and runtime validation reports the missing preset when
-the instruction executes. RTO retains ACC and DN. An unknown or invalid
-selected index at prescan remains a blocker even for a false rung. Actual
-execution also requires a valid timer address.
+the instruction executes. RTO retains ACC and DN. An out-of-bounds selection
+[skips that instruction during prescan](controller-handlers.md#skip-timer-and-counter-array-faults-during-prescan).
+Unknown indices and errors caught by structural validation still block
+initialization. Normal execution requires a valid timer address.
 [Rockwell TOF prescan reference](https://www.rockwellautomation.com/en-ca/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/timer-and-counter-instructions/timer-off-delay--tof-.html)
 
 ## Existing clock policy

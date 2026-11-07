@@ -220,7 +220,9 @@ class LadderTimerTests(unittest.TestCase):
         for op in ('TON','TOF','RTO'):
             def constant(root):root.find('./Controller/Tags/Tag[@Name="TimerCells"]').set('Constant','true')
             self.assertTrue(self.engine([f'AFI(){op}(TimerCells[0],?,?);'],constant).blockers)
-            self.assertTrue(any('Prescan' in b for b in self.engine([f'AFI(){op}(TimerCells[BadIndex],?,?);']).blockers))
+            self.assertEqual(self.engine([f'AFI(){op}(TimerCells[BadIndex],?,?);']).blockers, [])
+            unknown = self.engine([f'AFI(){op}(TimerCells[TimerCells[2].ACC],?,?);'])
+            self.assertTrue(any('Prescan' in b and 'Unknown' in b for b in unknown.blockers))
         def older(root):root.find('Controller').set('ProcessorType','1756-L75')
         e=self.engine(['AFI()TON(TimerCells[1],?,?);'],older);self.assertEqual(e.blockers,[]);self.assertFalse(e.report()['ladder_timers']['available'])
         report=self.checked(['AFI()RTO(TimerCells[0],?,?);']).report()['ladder_timers'];self.assertEqual(report['instructions'],['TON','TOF','RTO']);self.assertFalse(report['native_runtime_parity'])

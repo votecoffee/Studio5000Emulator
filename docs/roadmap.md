@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1107.121903` [timer and counter prescan recovery](controller-handlers.md#skip-timer-and-counter-array-faults-during-prescan)
+skips an out-of-bounds selection in ladder TON, TOF, RTO, CTU or CTD.
+Prescan continues initializing subsequent instructions.
+
 Available in `26.1107.121030` [ladder TOF prescan](ladder-timers.md#consumed-values)
 copies the current PRE to ACC while clearing EN, TT and DN. Program-mode
 preview preserves the loaded accumulator until prescan commits.

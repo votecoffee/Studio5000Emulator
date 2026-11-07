@@ -35,10 +35,12 @@ executed instruction's edge flag are complete BOOL writes.
 
 Structural preflight checks record shape, declared type, reference grammar,
 permissions and neutral operands without requiring saved field values. Counter
-prescan still resolves actual addresses and establishes CU/CD true to suppress
-startup edges. A bad or unknown selected counter index at prescan remains a
-blocker, even if its rung would be false. Reached counter operations likewise
-need a valid record address and their consumed values.
+prescan resolves actual addresses and establishes CU/CD true to suppress
+startup edges. An out-of-bounds selection
+[skips that instruction during prescan](controller-handlers.md#skip-timer-and-counter-array-faults-during-prescan).
+Unknown indices and errors caught by structural validation still block
+initialization. Reached counter operations need a valid address and their
+consumed values.
 
 ## Reset selection
 

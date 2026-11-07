@@ -397,7 +397,9 @@ in whole-project ladder as Type 4 Code 34.
 
 [Ladder counters and resets](docs/ladder-counters.md) require known PRE/ACC and
 edge history when consumed. **Counter lab** adds ladder counting and resets
-that initialize unknown timer/counter fields while preserving PRE.
+that initialize unknown timer/counter fields while preserving PRE. v35 5580
+[ladder prescan](docs/controller-handlers.md#skip-timer-and-counter-array-faults-during-prescan)
+skips out-of-bounds timer and counter selections and continues initialization.
 
 [Numeric COP/CPS selection](docs/numeric-copies.md#operand-selection) defers saved
 lengths and indices until reached. **Byte copy lab** includes an indexed ladder

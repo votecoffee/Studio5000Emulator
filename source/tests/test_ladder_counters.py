@@ -123,10 +123,12 @@ class LadderCounterTests(unittest.TestCase):
         with self.assertRaisesRegex(ModelError,'zero'):e.step()
         self.assertEqual(self.snapshot(e),before);e.memory.write('SpeedSetpoint',1);e.step();self.assertEqual(e.memory.read('CounterCells[0].ACC'),1);self.assertFalse(e.memory.read('CounterCells[0].OV'))
 
-    def test_static_type_shape_operands_and_counter_prescan_indices_stay_strict(self):
+    def test_counter_prescan_skips_bounds_but_requires_known_indices_and_valid_shapes(self):
         for text in ('CTU(TimerCells[0],?,?);','CTD(CounterCells,?,?);','RES(CounterCells[99]);','RES(StartPB);','CTU(CounterCells[Index],1,2);'):
             e=self.engine(['AFI()'+text]);self.assertTrue(e.blockers,text);self.assertFalse(e.memory.structural)
-        e=self.engine(['AFI()CTU(CounterCells[ResetIndex],?,?);']);self.assertTrue(any('Prescan' in b and 'outside bounds' in b for b in e.blockers))
+        self.assertEqual(self.engine(['AFI()CTU(CounterCells[ResetIndex],?,?);']).blockers, [])
+        unknown = self.engine(['AFI()CTU(CounterCells[Positions[0]],?,?);'])
+        self.assertTrue(any('Prescan' in b and 'Unknown' in b for b in unknown.blockers))
         def older(root):root.find('Controller').set('ProcessorType','1756-L75')
         self.assertTrue(self.engine(['AFI()RES(CounterCells[ResetIndex]);'],older).blockers)
         report=self.checked(['AFI()RES(CounterCells[ResetIndex]);']).report()['ladder_counters'];self.assertEqual(report['instructions'],['CTU','CTD','RES']);self.assertFalse(report['native_runtime_parity'])
