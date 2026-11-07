@@ -566,10 +566,11 @@ class Engine:
         if op.name not in ('TON','TOF','RTO') or not bit_logic.available(self.project):return None
         obj=self._counter_record(op.args[0],scope,'TIMER');timer=dict(obj)
         timing = not power if op.name == 'TOF' else power
+        accumulator_limit = 2147483647
         for member in ('PRE', 'ACC'):
             value = timer[member]
             if type(value) is int:
-                if 0 <= value <= 2147483647:
+                if 0 <= value <= accumulator_limit:
                     continue
                 if timing and -2147483648 <= value < 0:
                     raise NegativeTimerValueError(f'{op.name}: TIMER.{member} is negative (Type 4 Code 34)')
@@ -587,7 +588,8 @@ class Engine:
                 if flag('EN'):elapsed=0
                 timer['EN']=False
                 if flag('DN'):
-                    timer['ACC']+=elapsed;timer['DN']=timer['ACC']<timer['PRE']
+                    timer['ACC'] = min(timer['ACC'] + elapsed, accumulator_limit)
+                    timer['DN'] = timer['ACC'] < timer['PRE']
                 timer['TT']=timer['DN']
         elif not power:
             timer.update(EN=False,TT=False)
@@ -596,9 +598,9 @@ class Engine:
             if not flag('EN'):elapsed=0
             timer['EN']=True
             if not flag('DN'):
-                timer['ACC']+=elapsed;timer['DN']=timer['ACC']>=timer['PRE']
+                timer['ACC'] = min(timer['ACC'] + elapsed, accumulator_limit)
+                timer['DN'] = timer['ACC'] >= timer['PRE']
             timer['TT']=not timer['DN']
-        if timer['ACC']>2147483647:raise ModelError('Timer accumulator overflow')
         obj.update(timer);self.last_timer[identity]=self.time_ms
         return power
 
@@ -1213,7 +1215,8 @@ class Engine:
                 'ladder_timers':dict(available=bit_logic.available(self.project),language='RLL',instructions=['TON','TOF','RTO'],
                     operands='Scalar writable TIMER; known nonnegative DINT PRE/ACC; structural shape/type/permission preflight',
                     selection='True TON/RTO and false TOF consume known EN/DN; other paths establish outputs or retain unread fields',
-                    clock='Existing deterministic millisecond elapsed-time recurrence, canonical record identity and first-enable behavior',
+                    clock='Deterministic millisecond elapsed-time recurrence, canonical record identity and first-enable behavior',
+                    overflow='Elapsed accumulation saturates ACC at the positive DINT limit and completes the timing interval',
                     lifecycle='Prescan needs actual indices; TON/TOF clear ACC/DN, RTO retains them; completed prescan is separate from scan rollback',
                     array_recovery='A cleared Type 4 Code 20 skips a whole-project timer call and preserves its last execution time',
                     value_recovery='A cleared Type 4 Code 34 skips true TON/RTO or false TOF with a negative PRE/ACC and preserves its last execution time',

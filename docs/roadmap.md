@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1107.120203` [ladder timer saturation](ladder-timers.md#existing-clock-policy)
+clamps TON, TOF and RTO accumulators at the DINT maximum on elapsed overflow
+and completes the timing interval with the instruction's normal status bits.
+
 Available in `26.1107.115351` [timer value recovery](controller-handlers.md#recover-negative-timing-values)
 routes negative PRE/ACC through Type 4 Code 34 on true TON/RTO and false TOF.
 A handler clear skips the call while preserving the timer's last execution time.

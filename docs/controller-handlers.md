@@ -164,7 +164,9 @@ to clear the record and its incremental file progress, even if clearing
 POS changes the expression that selected it.
 
 Prescan array faults have their own startup behavior. Unknown fields
-and arithmetic overflow use the existing scan rollback.
+use scan rollback. Elapsed-time overflow in the modeled v35 5580
+[TIMER profile](ladder-timers.md#existing-clock-policy) saturates the
+accumulator and completes the interval.
 
 ### Recover negative timing values
 

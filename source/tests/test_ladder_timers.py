@@ -85,13 +85,48 @@ class LadderTimerTests(unittest.TestCase):
             with self.assertRaisesRegex(ModelError,'zero'):e.step()
             self.assertEqual(self.snapshot(e),before);e.memory.write('SpeedSetpoint',1);e.step();self.assertEqual(e.memory.read('TimerCells[1].ACC'),10)
 
-    def test_accumulator_overflow_restores_history_and_recovery_advances_once(self):
-        for op in ('TON','TOF','RTO'):
-            e=self.checked([f'XIC(StartPB){op}(TimerCells[1],?,?);']);e.memory.write('StartPB',True);e.step()
-            if op=='TOF':e.memory.write('StartPB',False);e.step()
-            e.memory.write('TimerCells[1].PRE',2147483647);e.memory.write('TimerCells[1].ACC',2147483647);e.memory.write('TimerCells[1].DN',op=='TOF');before=self.snapshot(e)
-            with self.assertRaisesRegex(ModelError,'overflow'):e.step()
-            self.assertEqual(self.snapshot(e),before);e.memory.write('TimerCells[1].ACC',0);e.step();self.assertEqual(e.memory.read('TimerCells[1].ACC'),10)
+    def test_accumulator_saturates_and_completes_at_the_dint_boundary(self):
+        limit = 2147483647
+        for op in ('TON', 'TOF', 'RTO'):
+            for offset in (11, 10, 9):
+                with self.subTest(instruction=op, offset=offset):
+                    engine = self.checked([f'XIC(StartPB){op}(TimerCells[1],?,?);'])
+                    engine.memory.write('TimerCells[1].PRE', limit)
+                    engine.memory.write('StartPB', True)
+                    engine.step()
+                    on_delay = op != 'TOF'
+                    if not on_delay:
+                        engine.memory.write('StartPB', False)
+                        engine.step()
+
+                    engine.memory.write('TimerCells[1].ACC', limit - offset)
+                    engine.step()
+                    complete = offset <= 10
+                    result = engine.memory.read('TimerCells')[1]
+                    self.assertEqual(result, dict(PRE=limit, ACC=limit if complete else limit - 1,
+                                                  EN=on_delay, DN=complete == on_delay, TT=not complete))
+                    self.assertEqual(engine.last_timer[('timercells', (1,))], engine.time_ms)
+                    self.assertIsNone(engine.last_cleared_program_fault)
+                    if complete:
+                        engine.step()
+                        self.assertEqual(engine.memory.read('TimerCells')[1], result)
+
+    def test_later_fault_rolls_back_saturated_value_and_timer_clock(self):
+        engine = self.checked(['TON(TimerCells[1],?,?);', 'DIV(1,SpeedSetpoint,SpeedCommand);'])
+        engine.memory.write('TimerCells[1].PRE', 2147483647)
+        engine.memory.write('SpeedSetpoint', 1)
+        engine.step()
+        engine.memory.write('TimerCells[1].ACC', 2147483646)
+        engine.memory.write('SpeedSetpoint', 0)
+        before = self.snapshot(engine)
+
+        with self.assertRaisesRegex(ModelError, 'zero'):
+            engine.step()
+        self.assertEqual(self.snapshot(engine), before)
+        engine.memory.write('SpeedSetpoint', 1)
+        engine.step()
+        self.assertEqual(engine.memory.read('TimerCells[1].ACC'), 2147483647)
+        self.assertTrue(engine.memory.read('TimerCells[1].DN'))
 
     def test_aliases_share_clock_identity_and_other_elements_remain_independent(self):
         def alias(root):E.SubElement(root.find('./Controller/Programs/Program/Tags'),'Tag',Name='View',TagType='Alias',DataType='TIMER',AliasFor='TimerCells')

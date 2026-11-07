@@ -78,6 +78,14 @@ clears TT. False TON clears its accumulated state; false RTO retains it.
 TOF true establishes its enabled state, and the first false call starts its
 off-delay at zero elapsed time. Later false calls accumulate until PRE.
 
+If adding elapsed milliseconds would exceed `2,147,483,647`, the
+v35 5580 ladder profile stores that DINT limit in ACC and completes
+the timing interval. TON and RTO set DN. TOF clears DN. All three
+clear TT and commit the current execution time. At the exact DINT
+limit, normal preset comparison produces the same completion state.
+These transitions follow the installed v35 timing flowcharts.
+[Rockwell General Instructions reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm003_-en-p.pdf)
+
 Aliases share the resolved record's clock identity. Other array elements and
 AOI instances keep independent histories. An entirely skipped routine retains
 the existing elapsed-since-last-call policy; this is not a newly qualified
@@ -87,9 +95,9 @@ limits, native status/fault/retention and full controller parity remain separate
 A cleared [Type 4 Code 20](controller-handlers.md#recover-timer-counter-and-reset-array-faults)
 or [Type 4 Code 34](controller-handlers.md#recover-negative-timing-values)
 skips the timer in a whole-project scan and retains its last execution time.
-Unknown consumed fields, unrecovered faults, accumulator overflow and later
-errors restore values, clock history, AOI bindings, time and scheduling within
-the modeled advance. Completed prescan is a separate lifecycle boundary. No new ST
+Unknown consumed fields, unrecovered faults and later errors restore values,
+clock history, AOI bindings, time and scheduling within the modeled advance.
+This includes any saturation that took place earlier in the advance. Completed prescan is a separate lifecycle boundary. No new ST
 or FBD forms are introduced; [ST timer calls](st-timers.md) retain their own
 FBD_TIMER contract. Other controller profiles keep their previous path.
 
