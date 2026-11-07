@@ -205,10 +205,19 @@ class LadderTimerTests(unittest.TestCase):
                 self.assertEqual(engine.project.initial['timercells'][0]['PRE'], 20)
                 self.assertEqual(engine.project.initial['timercells'][0]['ACC'], 7)
 
+    def test_radix_timer_initializers_zero_fill_and_merge_with_decimal_values(self):
+        engine = self.checked([
+            'AFI()RTO(TimerCells[1],16#FFFF,8#12);',
+            'AFI()RTO(TimerCells[1],65535,2#1010);',
+        ])
+        self.assertEqual((engine.memory.read('TimerCells[1].PRE'), engine.memory.read('TimerCells[1].ACC')),
+                         (65535, 10))
+
     def test_invalid_literal_initializers_and_runtime_edit_candidates_are_rejected(self):
         from logixlab.routine_source import RoutineSource, SourceError, SourceRung, validate_plan
 
-        for token in ('-1', '2147483648', '2.0', '16#FF', 'Index'):
+        for token in ('-1', '2147483648', '2.0', '16#8000_0000', '16#1_0000_0000',
+                      '2#102', '8#8', '16#FFL', '-16#01', 'Index'):
             with self.subTest(token=token):
                 engine = self.engine([f'AFI()TOF(TimerCells[1],{token},0);'])
                 self.assertTrue(engine.blockers)

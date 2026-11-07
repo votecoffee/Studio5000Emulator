@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1107.110611` [radix literals for ladder pseudo-operands](ladder-timers.md#literal-presets-on-import)
+accept binary, octal, and hexadecimal DINT patterns in imported TIMER,
+COUNTER and CONTROL initializers. Timer Lab demonstrates all three bases.
+
 Available in `26.1107.105750` [aliased ladder pseudo-operand initialization](ladder-timers.md#literal-presets-on-import)
 seeds TIMER, COUNTER and CONTROL fields through static aliases on import.
 The initializer detects conflicting values against the shared backing record.

@@ -155,7 +155,7 @@ class LadderCounterTests(unittest.TestCase):
             E.SubElement(root.find('./Controller/Tags'), 'Tag', Name='Selected', TagType='Alias',
                          AliasFor='CounterCells[0]', DataType='COUNTER')
 
-        engine = self.checked(['XIC(StartPB)CTU(Selected,4,-1);'], alias)
+        engine = self.checked(['XIC(StartPB)CTU(Selected,8#4,16#FFFF_FFFF);'], alias)
         self.assertEqual((engine.memory.read('CounterCells[0].PRE'), engine.memory.read('CounterCells[0].ACC')), (4, -1))
         engine.step()
         engine.memory.write('StartPB', True)

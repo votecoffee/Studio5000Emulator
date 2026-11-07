@@ -255,7 +255,7 @@ class ControlOperationTests(unittest.TestCase):
                          DataType='CONTROL', TagType='Alias', AliasFor='Ctl')
 
         e = self.checked([
-            'XIC(StartPB)FFL(Incoming,Queue[0],QueueControl,+3,1);',
+            'XIC(StartPB)FFL(Incoming,Queue[0],QueueControl,2#11,8#1);',
             'XIC(PartSensor)FFU(Queue[0],Outgoing,CTL,3,?);',
         ], length=19, queue=(7, 0, 0, 999), mutate=alias)
         self.assertEqual((e.memory.read('Ctl.LEN'), e.memory.read('Ctl.POS')), (3, 1))

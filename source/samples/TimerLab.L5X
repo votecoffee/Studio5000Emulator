@@ -219,10 +219,10 @@
           <Routine Name="LiteralPresetDemo" Type="RLL">
             <RLLContent>
               <Rung Number="0" Type="N">
-                <Text>XIC(LiteralInput)RTO(LiteralTimerAlias,50,10);</Text>
+                <Text>XIC(LiteralInput)RTO(LiteralTimerAlias,16#32,2#1010);</Text>
               </Rung>
               <Rung Number="1" Type="N">
-                <Text>XIC(LiteralInput)CTU(LiteralCounterAlias,4,-1);</Text>
+                <Text>XIC(LiteralInput)CTU(LiteralCounterAlias,8#4,16#FFFF_FFFF);</Text>
               </Rung>
             </RLLContent>
           </Routine>

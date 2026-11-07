@@ -20,8 +20,9 @@ See [implementation](../source/logixlab/control_operations.py).
 
 ## Literal LEN and POS on import
 
-In v35 L81E–L85E Standard ladder routines, decimal DINT literals can initialize
-CONTROL.LEN/POS in the imported image. BSL and BSR initialize LEN only. FFL,
+In v35 L81E–L85E Standard ladder routines, DINT literals can initialize
+CONTROL.LEN/POS in the imported image. Use signed decimal values or 32-bit
+binary, octal, or hexadecimal patterns. BSL and BSR initialize LEN only. FFL,
 FFU, LFL, LFU, SQI, SQO, SQL, AVE, STD, SRT, FAL and FSC can initialize both
 members. FBC and DDT have separate compare and result pairs.
 

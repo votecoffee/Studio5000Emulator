@@ -16,10 +16,13 @@ See [runtime.py](../source/logixlab/runtime.py) and
 
 ## Literal presets on import
 
-The v35 5580 profile accepts decimal DINT PRE and ACC initializers on TON, TOF,
-RTO, CTU and CTD in imported Standard ladder routines. Each `?` keeps its
-corresponding saved member. TIMER initializers must be nonnegative and COUNTER
-initializers can be signed. The target must resolve to one writable record,
+The v35 5580 profile accepts DINT PRE and ACC initializers on TON, TOF,
+RTO, CTU and CTD in imported Standard ladder routines. Use signed decimal
+values or unsigned binary, octal, or hexadecimal patterns up to 32 bits.
+Short radix patterns zero-fill to DINT width. For example, 16#FFFF is
+65,535 and 16#FFFF_FFFF is -1. Each `?` keeps its corresponding saved
+member. TIMER initializers must be nonnegative and COUNTER initializers
+can be signed. The target must resolve to one writable record,
 such as a base tag, a statically selected array element or a UDT member.
 Static aliases can select those records through up to eight hops. Every
 subscript must be literal, including subscripts inside AliasFor. AOI bodies,
@@ -104,8 +107,9 @@ Enabling the initially retained timer without establishing DN reports an
 explicit unknown-history fault and rolls back the scan; initialize it and retry.
 For explicit initializers, enable LiteralPresets and step with LiteralInput
 false. The ladder rungs use LiteralTimerAlias and LiteralCounterAlias to
-initialize the backing records. Set LiteralInput true and step twice at
-10 ms. LiteralRetained starts
+initialize the backing records using 16#32, 2#1010, 8#4, and
+16#FFFF_FFFF. Set LiteralInput true and step twice at 10 ms.
+LiteralRetained starts
 at PRE=50 and ACC=10, then reaches ACC=20. LiteralCount starts at PRE=4 and
 ACC=-1, increments to zero on the rising edge and holds. Changing either live
 PRE persists across steps. Reset restores the imported values.

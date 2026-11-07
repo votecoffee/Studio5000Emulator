@@ -2,8 +2,8 @@
 
 import re
 
-from .integer_math import CONTROLLERS
-from .model import ARITIES, Memory, ModelError, coerce, operations
+from .integer_math import CONTROLLERS, bit_value
+from .model import ARITIES, Memory, ModelError, coerce, literal, operations
 from .numeric_copy import static_reference
 
 
@@ -36,6 +36,19 @@ def literal_operands(project):
                         yield routine, rung, op, dtype, op.args[reference], fields
 
 
+def _initializer_value(token, member):
+    if re.fullmatch(r'[+-]?[0-9]+', token):
+        return coerce(int(token), 'DINT')
+    if re.fullmatch(r'(?:2|8|16)#[0-9A-Fa-f]+(?:[ _]+[0-9A-Fa-f]+)*', token):
+        try:
+            value = literal(token.replace(' ', ''))
+        except ValueError as error:
+            raise ModelError(f'{member} radix initializer has invalid digits') from error
+        if value < 1 << 32:
+            return bit_value(value, 'DINT')
+    raise ModelError(f'{member} initializer requires a decimal DINT, 32-bit radix pattern or ?')
+
+
 def initialize_ladder_operands(project):
     if project.version != '35' or project.processor.upper() not in CONTROLLERS:
         return
@@ -56,10 +69,7 @@ def initialize_ladder_operands(project):
             if dtype != expected or not isinstance(memory.at(key, parts), dict):
                 raise ModelError(f'{op.name} requires one writable {expected} record per backing tag')
             for i, member in fields:
-                token = op.args[i]
-                if not re.fullmatch(r'[+-]?[0-9]+', token):
-                    raise ModelError(f'{member} initializer requires a decimal DINT or ?')
-                value = coerce(int(token), 'DINT')
+                value = _initializer_value(op.args[i], member)
                 if dtype == 'TIMER' and value < 0:
                     raise ModelError(f'TIMER.{member} initializer must be nonnegative')
                 target = (key, (*parts, member))
