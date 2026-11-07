@@ -33,8 +33,9 @@ can initialize the same record. Conflicts block execution and leave the
 saved image intact because routine order does not identify the last native
 edit. AOI bodies and computed backing indices use the neutral-text
 profile. [Routine replacement](supported-routine-edits.md#transaction-and-activation)
-can carry over an unchanged initializer rung and preserve the live CONTROL
-members. Added or modified rungs use neutral pseudo-operands.
+can retain an existing initializer through changes to surrounding ladder logic
+when the opcode and operands match. The live CONTROL members carry over. Use
+neutral pseudo-operands for new or changed initializers.
 
 The regular prescan and execution paths may write POS after import. Reset
 recreates the imported image. Resource, data and state checks still apply

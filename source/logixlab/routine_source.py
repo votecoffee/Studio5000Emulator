@@ -312,6 +312,9 @@ def candidate_project(source,neutral,project,program):
         if previous['nodes'] != rung['nodes']:
             rung['nodes'] = copy.deepcopy(previous['nodes'])
     remaining = [rung for index, rung in enumerate(old) if index not in matched]
+    if remaining and changed and project.routines[key].kind == 'RLL':
+        from .pseudo_operands import retain_ladder_operands
+        retain_ladder_operands(remaining, changed)
     for rung in changed:
         match = next((i for i, item in enumerate(remaining) if item['nodes'] == rung['nodes']), None)
         if match is not None:

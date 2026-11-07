@@ -1,9 +1,10 @@
 """Seed saved ladder backing members from explicit L5X pseudo-operands."""
 
+from collections import defaultdict, deque
 import re
 
 from .integer_math import CONTROLLERS, bit_value
-from .model import ARITIES, Memory, ModelError, coerce, literal, operations
+from .model import ARITIES, Memory, ModelError, coerce, literal, operations, parse_rung
 from .numeric_copy import static_reference
 
 
@@ -88,3 +89,23 @@ def initialize_ladder_operands(project):
     for _, _, op, _, _, fields in initializers:
         for i, _ in fields:
             op.args[i] = '?'
+
+
+def retain_ladder_operands(previous_rungs, candidate_rungs):
+    """Carry existing compiled pseudo-operands into edited surrounding logic."""
+    retained = defaultdict(deque)
+    for rung in previous_rungs:
+        compiled = list(operations(rung['nodes']))
+        if not any(op.name in LAYOUTS for op in compiled):
+            continue
+        authored = operations(parse_rung(rung['text']))
+        for original, op in zip(authored, compiled, strict=True):
+            if original.name in LAYOUTS and original.args != op.args:
+                retained[original.name, tuple(original.args)].append(op.args)
+    if not retained:
+        return
+    for rung in candidate_rungs:
+        for op in operations(rung['nodes']):
+            matches = retained.get((op.name, tuple(op.args)))
+            if matches:
+                op.args = list(matches.popleft())

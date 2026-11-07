@@ -244,6 +244,41 @@ class LadderTimerTests(unittest.TestCase):
         self.assertEqual(candidate.memory.read('TimerCells[1].ACC'), 21)
         self.assertEqual(engine.memory.read('TimerCells[1].ACC'), 21)
 
+    def test_routine_replacement_can_change_the_gate_of_an_existing_initializer(self):
+        from logixlab.routine_edits import prepare
+        from logixlab.routine_source import RoutineSource, SourceRung
+
+        text = 'AFI()RTO(TimerCells[1],16#32,2#1010);'
+        replacement = 'XIC(StartPB)RTO(TimerCells[1],16#32,2#1010);'
+        engine = self.checked([text])
+        engine.memory.write('TimerCells[1].PRE', 80)
+        engine.memory.write('TimerCells[1].ACC', 21)
+        source = RoutineSource('MainRoutine', (SourceRung(0, replacement),), 0, '', 0, '')
+        candidate, _ = prepare(engine, source, (replacement,), 'MainProgram', 0)
+
+        rung = candidate.project.routines['mainprogram/mainroutine'].rungs[0]
+        self.assertEqual(rung['text'], replacement)
+        self.assertEqual(rung['nodes'][-1].args, ['TimerCells[1]', '?', '?'])
+        self.assertEqual(candidate.memory.read('TimerCells[1].PRE'), 80)
+        self.assertEqual(candidate.memory.read('TimerCells[1].ACC'), 21)
+        candidate.memory.write('StartPB', True)
+        candidate.step(10)
+        candidate.step(10)
+        self.assertEqual(candidate.memory.read('TimerCells[1].ACC'), 31)
+        self.assertEqual(engine.memory.read('TimerCells[1].ACC'), 21)
+
+    def test_routine_replacement_cannot_duplicate_an_initializer_under_a_new_gate(self):
+        from logixlab.routine_source import RoutineSource, SourceError, SourceRung, validate_plan
+
+        text = 'AFI()RTO(TimerCells[1],30,4);'
+        extra = 'XIC(StartPB)RTO(TimerCells[1],30,4);'
+        engine = self.checked([text])
+        before = self.snapshot(engine)
+        source = RoutineSource('MainRoutine', (SourceRung(0, extra), SourceRung(1, text)), 0, '', 0, '')
+        with self.assertRaisesRegex(SourceError, 'execution_plan_unsupported'):
+            validate_plan(source, (extra, text), engine.project, 'MainProgram')
+        self.assertEqual(self.snapshot(engine), before)
+
     def test_routine_replacement_cannot_add_another_literal_rung_from_one_existing_match(self):
         from logixlab.routine_source import RoutineSource, SourceError, SourceRung, validate_plan
 
