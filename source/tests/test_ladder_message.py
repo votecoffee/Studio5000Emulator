@@ -33,7 +33,7 @@ def add_message_burst(root):
                       MessageType='CIP Data Table Read', LocalElement=f'BurstValues[{index}]',
                       RemoteElement='VirtualValue', RequestedLength='1', ConnectedFlag='0',
                       ConnectionPath='THIS', CommTypeCode='0')
-        rung = ET.SubElement(content, 'Rung', Number=str(26 + index), Type='N')
+        rung = ET.SubElement(content, 'Rung', Number=str(27 + index), Type='N')
         ET.SubElement(rung, 'Text').text = f'XIC(SendBurst)MSG({name});'
 
 
@@ -157,7 +157,7 @@ class MessageTests(unittest.TestCase):
 
     def test_copy_into_flags_keeps_the_in_progress_status(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='26', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='27', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CaptureReadFlags)COP(IdentityAttribute,ReadControl.FLAGS,1);'
 
         engine = self.engine(configure)
@@ -275,7 +275,7 @@ class MessageTests(unittest.TestCase):
 
     def test_message_timeout_ssv_and_readback_roll_back_with_later_fault(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='26', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='27', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         engine = self.engine(configure)
@@ -458,7 +458,7 @@ class MessageTests(unittest.TestCase):
 
     def test_generic_identity_all_rolls_back_response_and_queue_after_later_fault(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='26', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='27', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         engine = self.engine(configure)
@@ -834,7 +834,7 @@ class MessageTests(unittest.TestCase):
     def test_completion_and_queue_roll_back_with_later_fault(self):
         def configure(root):
             content = root.find('.//RLLContent')
-            rung = ET.SubElement(content, 'Rung', Number='26', Type='N')
+            rung = ET.SubElement(content, 'Rung', Number='27', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         for timeout in (30_000_000, 10_000):
@@ -1437,7 +1437,7 @@ class MessageTests(unittest.TestCase):
     def test_ladder_cache_release_rolls_back_if_a_later_rung_faults(self):
         def configure(root):
             content = root.find('.//RLLContent')
-            rung = ET.SubElement(content, 'Rung', Number='26', Type='N')
+            rung = ET.SubElement(content, 'Rung', Number='27', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         engine = self.engine(configure)
@@ -1537,6 +1537,98 @@ class MessageTests(unittest.TestCase):
         self.assertEqual(memory.read('ConnectedValue'), 17)
         self.assertEqual(memory.message_cache, {})
 
+    def test_connectionpath_buffer_round_trip_and_admission_snapshot(self):
+        engine = self.engine()
+        memory = engine.memory
+        self.assertEqual(engine.blockers, [])
+        memory.write('ApplyPathBuffer', True)
+        engine.step()
+        self.assertEqual(memory.read('CachedReadControl.Path.LEN'), 2)
+        self.assertEqual(memory.read('MessagePathEcho'), [2, 0, 1, 0] + [0] * 78)
+        memory.write('ApplyPathBuffer', False)
+        memory.write('SendConnectedRead', True)
+        engine.step()
+        memory.write('MessagePathBuffer[3]', -1)
+        memory.write('ApplyPathBuffer', True)
+        for _ in range(3):
+            engine.step()
+        self.assert_flags(engine, 'CachedReadControl', DN=True, ERR=0)
+        self.assertEqual(memory.read('MessagePathEcho[3]'), -1)
+        self.assertEqual(memory.read('CachedReadControl.Path.DATA[1]'), -1)
+        self.assertEqual(memory.read('ConnectedValue'), 17)
+
+        memory.write('ApplyPathBuffer', False)
+        memory.write('SendConnectedRead', False)
+        memory.write('VirtualValue', 71)
+        engine.step()
+        memory.write('SendConnectedRead', True)
+        for _ in range(4):
+            engine.step()
+        self.assert_flags(engine, 'CachedReadControl', ER=True, ERR=5)
+        self.assertEqual(memory.read('ConnectedValue'), 17)
+
+        memory.write('ApplyPathBuffer', True)
+        memory.write('MessagePathBuffer[0]', 0)
+        engine.step()
+        self.assertEqual(memory.read('CachedReadControl.Path.LEN'), 0)
+        self.assertEqual(memory.read('MessagePathEcho'), [0] * 82)
+
+    def test_connectionpath_bad_count_unknown_active_data_and_late_fault_roll_back(self):
+        def configure(root):
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='27', Type='N')
+            ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
+
+        for tag, value, error in (
+            ('MessagePathBuffer[1]', 1, 'length exceeds 80 bytes'),
+            ('MessagePathBuffer[0]', 3, 'requires known SINT header and active bytes'),
+            ('CancelRead', True, 'Scan rolled back'),
+        ):
+            with self.subTest(tag=tag):
+                engine = self.engine(configure)
+                memory = engine.memory
+                memory.write('ApplyPathBuffer', True)
+                memory.write(tag, value)
+                with self.assertRaisesRegex(ModelError, error):
+                    engine.step()
+                self.assertEqual(memory.read('CachedReadControl.Path.LEN'), 0)
+                self.assertEqual(memory.read('MessagePathEcho[81]'), 9)
+                self.assertEqual(engine.scan_count, 0)
+
+    def test_connectionpath_windows_defer_indirect_indices_and_preserve_neighbors(self):
+        def configure(root):
+            tags = root.find('./Controller/Tags')
+            for name in ('WindowSource', 'WindowDest'):
+                tag = ET.SubElement(tags, 'Tag', Name=name, TagType='Base', DataType='SINT', Dimensions='84')
+                data = ET.SubElement(ET.SubElement(tag, 'Data', Format='Decorated'), 'Array', DataType='SINT', Dimensions='84')
+                for index, value in ((0, 99), (1, 2), (2, 0), (3, 1), (4, 0), (83, 99)):
+                    ET.SubElement(data, 'Element', Index=f'[{index}]', Value=str(value))
+            root.find('.//Tag[@Name="ReadLocalIndex"]/Data/DataValue').set('Value', '100')
+            root.find('.//Rung[@Number="26"]/Text').text = (
+                'XIC(ApplyPathBuffer)SSV(Message,ReadControl,ConnectionPath,WindowSource[ReadLocalIndex])'
+                'GSV(Message,ReadControl,ConnectionPath,WindowDest[ReadLocalIndex]);')
+
+        engine = self.engine(configure)
+        memory = engine.memory
+        self.assertEqual(engine.blockers, [])
+        engine.step()
+        memory.write('ReadLocalIndex', 1)
+        memory.write('ApplyPathBuffer', True)
+        engine.step()
+        self.assertEqual(memory.read('WindowDest'), [99, 2, 0, 1, 0] + [0] * 78 + [99])
+        memory.write('ReadLocalIndex', 3)
+        with self.assertRaisesRegex(ModelError, 'requires 82 contiguous SINT elements'):
+            engine.step()
+        self.assertEqual(memory.read('ReadControl.Path.LEN'), 2)
+
+    def test_connectionpath_buffer_blocks_wrong_operand_shapes(self):
+        for operand in ('IdentityReply', 'ReadValue', 'MessagePathEcho[1]'):
+            with self.subTest(operand=operand):
+                def configure(root):
+                    root.find('.//Rung[@Number="26"]/Text').text = (
+                        f'GSV(Message,ReadControl,ConnectionPath,{operand});')
+
+                self.assertTrue(any('requires 82 contiguous SINT elements' in item for item in self.engine(configure).blockers))
+
     def test_connected_response_timeout_is_captured_and_distinct_from_setup(self):
         engine = self.engine()
         memory = engine.memory
@@ -1602,7 +1694,7 @@ class MessageTests(unittest.TestCase):
     def test_ladder_connected_timing_rejects_bad_settings_and_rolls_back(self):
         def configure(root):
             content = root.find('.//RLLContent')
-            rung = ET.SubElement(content, 'Rung', Number='26', Type='N')
+            rung = ET.SubElement(content, 'Rung', Number='27', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         cases = (
@@ -1655,7 +1747,7 @@ class MessageTests(unittest.TestCase):
 
     def test_connected_completion_and_cache_roll_back_with_later_rung_fault(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='26', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='27', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         engine = self.engine(configure)

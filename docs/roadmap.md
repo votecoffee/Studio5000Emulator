@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1107.090819` ladder [Message ConnectionPath](ladder-message.md#supported-configuration-and-timing)
+reads and writes the live MSG route through a counted SINT buffer. Message Lab
+shows immediate readback and route capture at request admission.
+
 Available in `26.1106.202643` [ladder MSG](ladder-message.md#supported-configuration-and-timing)
 supports a saved or ladder-written route to the declared local controller
 slot. An admitted request keeps its path. A changed route needs a new setup,

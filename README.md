@@ -161,8 +161,8 @@ slot. It supports runtime MESSAGE.Path changes and connected requests with
 optional per-control caching. **Message lab** shows message status in
 the ladder viewer, runtime target and index changes, exact LINT writes,
 multidimensional array transfers and simulated timeouts with ladder-controlled retries.
-Ladder GSV and SSV can read and set the setup timeout, connected packet rate
-and response timeout multiplier. Ladder can copy the packed FLAGS word
+Ladder GSV and SSV can read and set the length-prefixed ConnectionPath,
+setup timeout, connected packet rate and response timeout multiplier. Ladder can copy the packed FLAGS word
 and use its TO bit to cancel a request or EN_CC to control connection reuse.
 The simulated throttle admits 16
 requests at a time and retries waiting messages. The lab exercises program-local

@@ -6,6 +6,7 @@ from dataclasses import dataclass, replace
 from .identity import Identity
 from .integer_math import CONTROLLERS
 from .model import ModelError, coerce
+from .numeric_copy import location
 from .templates import Catalog, MAX_BYTES, aligned
 
 MAX_ELEMENTS = 64
@@ -15,6 +16,7 @@ MAX_CACHED = 32
 DEFAULT_TIMEOUT_US = 30_000_000
 DEFAULT_CONNECTION_RATE_US = 7_500_000
 MAX_TIMEOUT_MULTIPLIER = 7
+PATH_BUFFER_SIZE = 82
 IDENTITY_ATTRIBUTES = frozenset(range(1, 8))
 STATUS_BITS = {'EW': 2, 'ER': 4, 'DN': 5, 'ST': 6, 'EN': 7, 'TO': 8, 'EN_CC': 9}
 EN_MASK = 1 << STATUS_BITS['EN']
@@ -504,10 +506,10 @@ def validate(engine, op, scope, kind='RLL'):
     return key
 
 
-def matches_timing_attribute(op):
+def matches_attribute(op):
     return (len(op.args) == 4 and all(isinstance(arg, str) for arg in op.args)
             and op.args[0].casefold() == 'message'
-            and op.args[2].casefold() in TIMING_ATTRIBUTES)
+            and (op.args[2].casefold() == 'connectionpath' or op.args[2].casefold() in TIMING_ATTRIBUTES))
 
 
 def _timing_operand(memory, op, scope, member, types):
@@ -519,26 +521,71 @@ def _timing_operand(memory, op, scope, member, types):
     return key, parts, dtype
 
 
-def validate_timing_attribute(engine, op, scope, kind):
-    member, types = TIMING_ATTRIBUTES[op.args[2].casefold()]
+def _path_window(memory, op, scope):
+    key, parts, dtype, region = location(memory, op.args[3], scope, writable=op.name == 'GSV')
+    error = f'{op.name} Message ConnectionPath requires 82 contiguous SINT elements in a one-dimensional array'
+    if dtype != 'SINT' or region is None:
+        raise ModelError(error)
+    base, cells = region
+    start = parts[-1] if parts != base else 0
+    if len(cells) - start < PATH_BUFFER_SIZE or isinstance(cells[0], list):
+        raise ModelError(error)
+    return key, base, start
+
+
+def _path_byte(value):
+    if type(value) is not int or not -128 <= value <= 127:
+        raise ModelError('SSV Message ConnectionPath requires known SINT header and active bytes')
+    return value & 0xFF
+
+
+def _execute_path_attribute(memory, op, scope, control):
+    key, base, start = _path_window(memory, op, scope)
+    ref = control + '.Path'
+    if op.name == 'SSV':
+        cells = memory.at(key, base)
+        size = _path_byte(cells[start]) | (_path_byte(cells[start + 1]) << 8)
+        if size > PATH_BUFFER_SIZE - 2:
+            raise ModelError('SSV Message ConnectionPath length exceeds 80 bytes')
+        raw = bytes(_path_byte(value) for value in cells[start + 2:start + 2 + size])
+        memory.write_string(ref, raw.decode('latin-1'))
+        return
+
+    raw = memory.string(ref).encode('latin-1')
+    if len(raw) > PATH_BUFFER_SIZE - 2:
+        raise ModelError('GSV Message ConnectionPath length exceeds 80 bytes')
+    counted = (len(raw).to_bytes(2, 'little') + raw).ljust(PATH_BUFFER_SIZE, b'\x00')
+    for index, value in enumerate(counted, start):
+        memory.store(key, base + [index], value if value < 128 else value - 256)
+
+
+def validate_attribute(engine, op, scope, kind):
+    attribute = op.args[2].casefold()
     memory = engine.memory
     if kind != 'RLL' or engine.mode != 'project' or scope in memory.frames:
-        raise ModelError(f'Message {member} requires a whole-project ladder scan outside AOIs')
+        raise ModelError(f'Message {op.args[2]} requires a whole-project ladder scan outside AOIs')
     control = _control_key(engine, op.args[1], scope, op.name)
-    if member != 'UnconnectedTimeout' and not engine.project.message_configs[control].connected:
-        raise ModelError(f'{op.name} Message {member} requires a configured connected MESSAGE')
     previous = memory.structural
     memory.structural = True
     try:
+        if attribute == 'connectionpath':
+            _path_window(memory, op, scope)
+            return
+        member, types = TIMING_ATTRIBUTES[attribute]
+        if member != 'UnconnectedTimeout' and not engine.project.message_configs[control].connected:
+            raise ModelError(f'{op.name} Message {member} requires a configured connected MESSAGE')
         _timing_operand(memory, op, scope, member, types)
     finally:
         memory.structural = previous
 
 
-def execute_timing_attribute(engine, op, scope):
-    member, types = TIMING_ATTRIBUTES[op.args[2].casefold()]
+def execute_attribute(engine, op, scope):
+    attribute = op.args[2].casefold()
     memory = engine.memory
     control = _control_key(engine, op.args[1], scope, op.name)
+    if attribute == 'connectionpath':
+        return _execute_path_attribute(memory, op, scope, control)
+    member, types = TIMING_ATTRIBUTES[attribute]
     key, parts, dtype = _timing_operand(memory, op, scope, member, types)
     record = memory.values[control]
     if op.name == 'GSV':

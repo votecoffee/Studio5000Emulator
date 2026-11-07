@@ -43,6 +43,7 @@ See [GSV and SSV array recovery](controller-handlers.md#recover-gsv-and-ssv-arra
 | Module | EntryStatus | INT or DINT low word | Explicit Inhibited setting on the target and a modeled inhibit, waiting condition or simulated connection |
 | Module | FaultCode | INT or DINT low word | Effective simulated connection |
 | Module | FaultInfo | DINT | Effective simulated connection |
+| Message | ConnectionPath | 82 contiguous SINT elements | [Named configured MESSAGE tag in whole-project ladder](ladder-message.md#supported-configuration-and-timing) |
 | Message | UnconnectedTimeout | DINT or TIME32 | [Named configured MESSAGE tag in whole-project ladder](ladder-message.md#supported-configuration-and-timing) |
 | Message | ConnectionRate | DINT or TIME32 | [Named connected MESSAGE tag in whole-project ladder](ladder-message.md#supported-configuration-and-timing) |
 | Message | TimeoutMultiplier | SINT | [Named connected MESSAGE tag in whole-project ladder](ladder-message.md#supported-configuration-and-timing) |

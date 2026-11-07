@@ -51,6 +51,12 @@ trigger a read to use this route. Set LocalMessageRoute.DATA[1] to 1 and
 apply the route again to select an unsupported slot. The next request
 returns ERR 16#0005 and keeps the previous destination value.
 
+ApplyPathBuffer runs the same route change through the Message object on
+rung 26. SSV consumes the count and path in MessagePathBuffer. GSV then
+writes the live route into MessagePathEcho. The first four bytes are
+`[2, 0, 1, 0]` for slot 0 and the rest of the output buffer is zero.
+Change MessagePathBuffer[0] to 0 to select THIS on the next request.
+
 Set `CaptureReadFlags` and `SendRead` on a fresh Message Lab and step three
 times. The ladder MOV copies the current `ReadControl.FLAGS` into
 `ReadFlagsSnapshot` each scan. The INT word is 132 (EN and EW), then 192
@@ -171,6 +177,13 @@ two SINT elements. Those bytes encode product code 168.
   with invalid bytes, invalid LEN, unknown active DATA or an unsupported
   route reports ERR 16#0005 and leaves its destination untouched. Prescan
   retains the live path and Reset restores the authored path.
+- Ladder GSV and SSV access Message ConnectionPath through an 82-element
+  contiguous SINT window in a one-dimensional array. The first two bytes
+  form an unsigned little-endian count of 0 through 80. The active path
+  follows the header. SSV ignores trailing bytes, while GSV writes all 82
+  elements and zeroes the unused output. Unknown header or active bytes,
+  excessive counts and short windows fault the scan. SSV can store an
+  unsupported route for readback. MSG reports its path error if triggered.
 - Numeric Data Table endpoints must use matching SINT, INT, DINT, LINT, or finite REAL types.
   They can name scalar tags or spans of 1 to 64 elements in arrays of up to
   three dimensions. A two- or three-dimensional start must specify every
@@ -298,8 +311,8 @@ two SINT elements. Those bytes encode product code 168.
   alignment padding from the emulator's layout.
 
 This profile is an in-process simulation. External routing, network packet
-timing, native MESSAGE layouts, the Message object ConnectionPath
-GSV/SSV buffer, and Studio 5000 runtime qualification remain open. Decorated-only MESSAGE fields remain readable as
+timing, native MESSAGE layouts and Studio 5000 runtime qualification
+remain open. Decorated-only MESSAGE fields remain readable as
 saved data. The native Message object inventory is separate.
 
 - [ODVA Identity object reference](https://www.odva.org/wp-content/uploads/2020/06/PUB00123R1_Common-Industrial_Protocol_and_Family_of_CIP_Networks.pdf)
