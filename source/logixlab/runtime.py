@@ -105,6 +105,8 @@ class Engine:
         self._immediate_output_advance = None
         self._messages = {}
         self._message_advance = None
+        self._message_cache = set()
+        self._message_cache_advance = None
         self._program_scanned = set()
         self._disabled_programs = set()
         self._program_activation = {}
@@ -299,6 +301,7 @@ class Engine:
         if preview:restore()
         else:
             self._messages.clear()
+            self._message_cache.clear()
             self.prescan_count+=1
             self._initial_prescan_pending=False
             self._program_scanned=set()
@@ -718,10 +721,12 @@ class Engine:
                                                        set(self._activation_prescan_pending))
         self._immediate_output_advance = {}
         self._message_advance = self._messages.copy()
+        self._message_cache_advance = self._message_cache.copy()
         try:
             self._scan_controller_status = controller_status_word(self.controller_mode(running=running))
             # Service at the committed boundary, before any task release in this advance.
-            ladder_message.service(self.memory,self._message_advance,self.time_ms,self._scan_controller_status)
+            ladder_message.service(self.memory,self._message_advance,self._message_cache_advance,
+                                   self.time_ms,self._scan_controller_status)
             task_wall_time=current_value_microseconds() if single_timing else None
             task_start=task_runtime.perf_counter_ns() if single_timing else None
             programs=self._program_advance
@@ -783,6 +788,7 @@ class Engine:
             self._task_scan_timings=task_timings
             if self._event_dispatch is not None:self._task_event_status=self._event_dispatch.status
             self._messages = self._message_advance
+            self._message_cache = self._message_cache_advance
             if self._immediate_output_advance:
                 self.immediate_outputs = self.immediate_outputs | self._immediate_output_advance
         except (ModelError, ArithmeticError, ValueError, TypeError, KeyError, IndexError, OverflowError) as e:
@@ -806,6 +812,7 @@ class Engine:
             self._scan_controller_status=None
             self._immediate_output_advance=None
             self._message_advance=None
+            self._message_cache_advance=None
         return self._record_tag_changes(before)
 
     def _recover_ladder_array_fault(self, op, scope, error):

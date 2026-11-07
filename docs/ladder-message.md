@@ -2,8 +2,8 @@
 
 LogixLab models CIP Data Table Read and Write for numeric tags, matching
 strings and user-defined records, plus a bounded CIP Generic Identity read
-over the unconnected `THIS`
-path in whole-project v35 ControlLogix 5580 ladder execution. It transfers
+over the simulated `THIS` path in whole-project v35 ControlLogix 5580 ladder
+execution. It transfers
 values between tags in the current project. The `MSG` faceplate shows the
 message control and its `EN`, `DN` and `ER` bits.
 
@@ -22,6 +22,11 @@ sample latches `ReadControl.FLAGS.8`, which is the same bit as `ReadControl.TO`.
 At the next step the message completes
 with `ER` set, `ERR` equal to `16#00FE`, and the destination retains its value.
 Clear `CancelRead` and scan `SendRead` false before issuing another read.
+
+Set `SendConnectedRead` to 1 and step four scans. CachedReadControl opens
+a modeled connection and reads 17 into ConnectedValue. Scan the trigger
+false, then set it true again. The repeated request takes three scans
+because it reuses the cached connection.
 
 Set `CaptureReadFlags` and `SendRead` on a fresh Message Lab and step three
 times. The ladder MOV copies the current `ReadControl.FLAGS` into
@@ -131,7 +136,9 @@ two SINT elements. Those bytes encode product code 168.
   looking in controller scope. The model reads
   `MessageType`, `ConnectionPath`, `RequestedLength`, `LocalElement`,
   `RemoteElement`, and optional decimal `LocalIndex` and `RemoteIndex`. Use
-  CIP communications, with the connected, cache and large packet options off.
+  CIP communications on THIS. The connected and cache options are supported
+  for the simulated path. Cache requires ConnectedFlag and large packets
+  remain outside this profile.
 - Numeric Data Table endpoints must use matching SINT, INT, DINT, LINT, or finite REAL types.
   They can name scalar tags or spans of 1 to 64 elements in arrays of up to
   three dimensions. A two- or three-dimensional start must specify every
@@ -202,7 +209,7 @@ two SINT elements. Those bytes encode product code 168.
   and status while preserving live index values. Reset restores authored indices.
 - The INT `FLAGS` word and the named status members share one value. Its
   bit positions are EW (2), ER (4), DN (5), ST (6), EN (7), TO (8) and
-  EN_CC (9). The unconnected model keeps EN_CC clear. Writes through the
+  EN_CC (9). EN_CC reflects the saved CacheConnections setting. Writes through the
   word or a named or numbered bit can change TO. The emulator preserves
   managed status and reserved bits. A cancellation clears TO on completion.
 - UnconnectedTimeout is a positive DINT in microseconds. Its default is
@@ -217,6 +224,19 @@ two SINT elements. Those bytes encode product code 168.
   value. A later GSV in the same scan reads the setting immediately. A
   pending MSG keeps its captured deadline. A later scan fault rolls back
   the SSV setting and GSV destination together.
+- A connected request without a cached connection spends one extra advance
+  opening it. UnconnectedTimeout governs setup. When ST sets, the response
+  gets a new deadline from `ConnectionRate × 2^(TimeoutMultiplier + 2)`.
+  The positive DINT ConnectionRate is in microseconds and defaults to
+  7,500,000. The SINT multiplier ranges from 0 through 7 and defaults to
+  zero. The request captures both settings at admission. Expiry and
+  cancellation use ERR 16#00FE and preserve the destination.
+- The emulator retains up to 32 successful cached connections, one per
+  control tag. A cached request skips setup. Errors and cancellation
+  discard that control's cache entry. Prescan and Reset clear the cache.
+  A full cache leaves newly completed requests uncached. Cache and transfer
+  changes commit together with the scan. This models local scheduling and
+  timeouts. Physical connection establishment and network sharing remain open.
 - The simulated throttle admits up to 16 requests per controller advance,
   with a ceiling of 48 admitted requests. A message that cannot enter
   stays enabled with EW, ST and ER clear. It retries on its next instruction
@@ -238,6 +258,7 @@ saved data. The native Message object inventory is separate.
 
 - [ODVA Identity object reference](https://www.odva.org/wp-content/uploads/2020/06/PUB00123R1_Common-Industrial_Protocol_and_Family_of_CIP_Networks.pdf)
 - [Rockwell message instruction](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/input-output-instructions/message--msg-.html)
+- [Rockwell connected message timeout formula and units](https://www.rockwellautomation.com/content/dam/rockwell-automation/sites/downloads/pdf/developerguide.pdf)
 - [Rockwell MESSAGE tag scope](https://www.rockwellautomation.com/en-ro/docs/studio-5000-logix-designer/37-02/contents-ditamap/studio-5000-logix-designer/tag-editor-and-data-monitor/work-with-tags/enter-an-msg-tag.html)
 - [Rockwell unconnected timeout units](https://www.rockwellautomation.com/en-pl/docs/studio-5000-logix-designer/38-01/contents-ditamap/instruction-set/input-output-instructions/access-the-message-object.html)
 - [Rockwell communication paths](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/input-output-instructions/specify-the-communication-details.html)

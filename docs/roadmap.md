@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1106.195821` [ladder MSG](ladder-message.md#supported-configuration-and-timing)
+models connected THIS transfers, separate setup and response deadlines, and
+per-control cache reuse. Message lab shows cold and repeated reads.
+
 Available in `26.1106.194910` [ladder MSG](ladder-message.md#supported-configuration-and-timing)
 resolves static numeric aliases and checks access on every alias and its
 target. Message lab writes a nested REAL member through two alias endpoints.
