@@ -1,8 +1,8 @@
 # Ladder MSG
 
 LogixLab models CIP Data Table Read and Write for numeric tags, matching
-strings and user-defined records, plus a bounded CIP Generic Identity read
-to the simulated controller in whole-project v35 ControlLogix 5580 ladder
+strings and user-defined records, plus bounded CIP Generic Identity and
+Wall Clock Time reads to the simulated controller in whole-project v35 ControlLogix 5580 ladder
 execution. It transfers
 values between tags in the current project. The `MSG` faceplate shows the
 message control and its `EN`, `DN` and `ER` bits.
@@ -151,8 +151,8 @@ malformed request reports 16#0003 and leaves the destination untouched.
 
 The Generic control exposes Class (INT), Instance (DINT) and Attribute
 (INT) as writable members. A queued request keeps the values captured at
-trigger time. Later writes affect the next request. Class and Instance must
-resolve to Identity instance 1. An unsupported class or instance completes
+trigger time. Later writes affect the next request. An Identity read uses
+class 1 and instance 1. An unsupported class or instance completes
 with 16#0005. An unsupported single attribute completes with 16#0014.
 Neither error changes the reply buffer. Get Attributes All and Get
 Attribute List ignore Attribute.
@@ -177,6 +177,30 @@ ApplyIdentityAttribute to 1 and step twice more. The first request still
 returns Revision. Scan SendIdentityRead false and then re-trigger it.
 The next request reads Product Code and writes -88 and 0 to the middle
 two SINT elements. Those bytes encode product code 168.
+
+## CIP Generic Wall Clock Time
+
+On Message Lab, set SendClockRead and step three times. Rung 29 reads
+class 16#8B, instance 1, attribute 7 into ClockReply. The seven DINTs
+contain the UTC year, month, day, hour, minute, second and microsecond.
+Set ClockReadControl.Attribute to 6 and trigger a new request to read
+the 64-bit UTC microsecond counter into the first two DINTs. Attribute 11
+returns the same counter. DN_LEN reports 28 bytes for the calendar and
+8 bytes for either counter.
+
+Get Attribute Single and Get Attribute List use the emulator's existing
+[Wall Clock Time model](wall-clock-policy.md). A list uses one sample of
+the host UTC clock at completion for all requested time attributes.
+Legacy attributes and UTC policy fields require the existing source
+qualification. An unavailable single attribute returns ERR 16#0014 and
+preserves the destination. A list records the error per item.
+
+Class and Instance are captured at admission along with the single
+attribute or list payload. Ladder can retarget a supported single or list
+read between Identity and Wall Clock Time on qualified projects.
+Get Attributes All remains specific to Identity. Changing its Class to
+16#8B reports ERR 16#0008. The clock is read-only and reflects the emulator
+host's UTC time.
 
 ## Supported configuration and timing
 
@@ -336,6 +360,7 @@ timing, native MESSAGE layouts and Studio 5000 runtime qualification
 remain open. Decorated-only MESSAGE fields remain readable as
 saved data. The native Message object inventory is separate.
 
+- [Rockwell Wall Clock Time attributes](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm003_-en-p.pdf)
 - [Rockwell Get Attribute List request and response example](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm020_-en-p.pdf)
 - [Rockwell CIP Generic DINT destination example](https://literature.rockwellautomation.com/idc/groups/literature/documents/um/dnet-um004_-en-p.pdf)
 - [ODVA Identity object reference](https://www.odva.org/wp-content/uploads/2020/06/PUB00123R1_Common-Industrial_Protocol_and_Family_of_CIP_Networks.pdf)

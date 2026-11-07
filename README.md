@@ -168,8 +168,8 @@ The simulated throttle admits 16
 requests at a time and retries waiting messages. The lab exercises program-local
 message controls, matching strings and UDT records, and selected numeric UDT
 members through direct addresses or aliases. It also demonstrates CIP Generic
-reads of virtual controller identity and mode with runtime attribute
-selection, ordered attribute lists and SINT, INT or DINT reply buffers.
+reads of virtual controller identity, mode and UTC clock with runtime
+attribute selection, ordered lists and SINT, INT or DINT reply buffers.
 [Simulated loss of a required Running module](docs/gsv-configuration.md#required-module-loss-during-run)
 trips a latched I/O major fault during whole-project Run, including when a
 [simulated upstream fault interrupts a required connection](docs/gsv-configuration.md#required-module-loss-through-an-upstream-fault).

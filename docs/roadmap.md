@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1107.093613` [ladder CIP Generic Wall Clock Time](ladder-message.md#cip-generic-wall-clock-time)
+supports single and list reads of the existing software clock model. A
+list shares one completion-time sample. Message Lab shows the calendar
+and the 64-bit UTC counter.
+
 Available in `26.1107.092620` [ladder CIP Generic Identity](ladder-message.md#cip-generic-identity-read)
 supports Get Attribute List with an admission-time request snapshot and
 ordered values and per-attribute statuses. Message Lab demonstrates a

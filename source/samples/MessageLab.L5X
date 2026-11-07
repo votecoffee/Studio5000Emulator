@@ -28,6 +28,17 @@
     <AddOnInstructionDefinitions />
     <Tags>
       <Tag Name="UseAlternateRead" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="SendClockRead" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="ClockReply" DataType="DINT" TagType="Base" Dimensions="7">
+        <Data Format="Decorated"><Array DataType="DINT" Dimensions="7">
+          <Element Index="[0]" Value="0" /><Element Index="[1]" Value="0" /><Element Index="[2]" Value="0" />
+          <Element Index="[3]" Value="0" /><Element Index="[4]" Value="0" /><Element Index="[5]" Value="0" />
+          <Element Index="[6]" Value="0" />
+        </Array></Data>
+      </Tag>
+      <Tag Name="ClockReadControl" DataType="MESSAGE" TagType="Base" ExternalAccess="None">
+        <Data Format="Message"><MessageParameters MessageType="CIP Generic" ServiceCode="16#0E" ObjectType="16#8B" TargetObject="1" AttributeNumber="16#07" RequestedLength="0" DestinationTag="ClockReply[0]" ConnectedFlag="0" ConnectionPath="THIS" CommTypeCode="0" /></Data>
+      </Tag>
       <Tag Name="SendIdentityList" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="IdentityListRequest" DataType="INT" TagType="Base" Dimensions="3">
         <Data Format="Decorated"><Array DataType="INT" Dimensions="3">
@@ -268,6 +279,7 @@
               <Rung Number="26" Type="N"><Text>XIC(ApplyPathBuffer)SSV(Message,CachedReadControl,ConnectionPath,MessagePathBuffer[0])GSV(Message,CachedReadControl,ConnectionPath,MessagePathEcho[0]);</Text></Rung>
               <Rung Number="27" Type="N"><Text>XIC(SendIdentityWord)MSG(IdentityWordControl);</Text></Rung>
               <Rung Number="28" Type="N"><Text>XIC(SendIdentityList)MSG(IdentityListControl);</Text></Rung>
+              <Rung Number="29" Type="N"><Text>XIC(SendClockRead)MSG(ClockReadControl);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>
