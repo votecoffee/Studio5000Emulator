@@ -5,7 +5,7 @@ Length/position pseudo-operands use saved LEN/POS, never per-scan initialization
 """
 import re
 
-from .model import ArrayBoundsError, ModelError, coerce, literal, split_indices
+from .model import ArrayBoundsError, BlockExtentError, ModelError, coerce, literal, split_indices
 from .integer_math import CONTROLLERS
 from . import fifo_values
 
@@ -37,6 +37,10 @@ def integer(obj, name):
     if type(value) is not int:
         raise ModelError('CONTROL.' + name + ' is unknown or not an integer')
     return coerce(value, 'DINT')
+
+
+class ShiftExtentError(ArrayBoundsError):
+    """The bit shift reached past the end of its standalone array."""
 
 
 class NegativeFileCursorError(ModelError):
@@ -279,13 +283,20 @@ def shift(memory, op, power, scope, obj):
     if length < 0:
         obj['ER'] = True
         return True
+    if length:
+        count = (length + 31) // 32
+        try:
+            key, paths, _ = array_region(memory, a[0], count, scope, references=True)
+        except BlockExtentError as error:
+            if (memory.project.version != '35' or memory.project.processor.upper() not in CONTROLLERS
+                    or any(isinstance(part, str) for part in error.parts)):
+                raise
+            raise ShiftExtentError(f'{op.name} LEN exceeds the remaining array bits (Type 4 Code 20)') from error
     source = memory.read(a[2], scope)
     if type(source) is not bool:raise ModelError('Shift source bit is unknown or not BOOL')
     if length == 0:
         obj.update(DN=True, POS=0, UL=source)
         return True
-    count = (length + 31) // 32
-    key, paths, _ = array_region(memory, a[0], count, scope, references=True)
     words = [memory.read(memory.address(key, path)) for path in paths]
     if any(type(word) is not int for word in words):raise ModelError('Shift requires known DINT array words')
     bits = sum((word & 0xffffffff) << (32 * i) for i, word in enumerate(words))
@@ -357,14 +368,17 @@ def execute(memory, op, power, scope):
     try:
         operation = shift if is_shift else fifo
         return operation(memory, op, power, scope, obj)
-    except ArrayBoundsError:
+    except ArrayBoundsError as error:
         obj.update(previous)
+        if isinstance(error, ShiftExtentError):
+            obj['ER'] = True
         raise
 
 
 def description():
     return dict(instructions=sorted(INSTRUCTIONS), language='RLL', control_fields=['LEN', 'POS', *FLAGS],
                 shifts='DINT arrays, rising EN, low-to-high word order, partial last word preserved',
+                shift_extent='v35 5580 standalone array overrun sets ER for Type 4 Code 20 recovery; member and software limits retain rollback',
                 fifo='SINT/INT/DINT/REAL plus qualified v35 5580 mixed numeric payloads and matching TIMER/COUNTER/CONTROL, strings and explicit UDTs; rising EN/EU, saved LEN/POS, selected-member bounds',
                 numeric_conversions='v35 5580 RLL FFL/FFU/LFL/LFU: narrow numeric payload/array pairs; signed integer extension, low-bit narrowing, float32 REAL and representable nearest-even integer results',
                 numeric_selection='Bounded DINT/finite REAL load immediates; structural payload preflight, lazy edge reads, complete unknown writes and whole-advance rollback',

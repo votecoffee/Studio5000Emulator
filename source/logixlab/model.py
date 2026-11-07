@@ -38,6 +38,14 @@ class ArrayBoundsError(ModelError):
     """A valid integer subscript selected outside an existing array."""
 
 
+class BlockExtentError(ModelError):
+    """A valid start selected a region larger than its storage boundary."""
+
+    def __init__(self, parts):
+        super().__init__('Block operation exceeds the modeled array/member boundary')
+        self.parts = tuple(parts)
+
+
 @dataclass
 class Op:
     name: str
@@ -1179,7 +1187,8 @@ class Memory:
             if start is None:raise ModelError('Block start does not address an array element')
             addresses=addresses[start:]
         else:addresses=[parts]
-        if count>len(addresses):raise ModelError('Block operation exceeds the modeled array/member boundary')
+        if count > len(addresses):
+            raise BlockExtentError(parts)
         return key,addresses[:count],dtype
 
     def _string_data(self, ref, scope):

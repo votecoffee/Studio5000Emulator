@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+[Bit-shift extent recovery](controller-handlers.md#recover-shift-and-queue-array-faults)
+routes a standalone BSL/BSR array overrun to Type 4 Code 20 as of
+`26.1107.135236`. The fault handler can observe ER and repair LEN.
+
 [Ladder counter operand reads](ladder-counters.md#counting-and-unknown-values)
 follow the count and DN comparison paths as of `26.1107.134254`. A latched
 counter can retain DN without reading unused preset or accumulator values.

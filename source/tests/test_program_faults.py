@@ -1294,6 +1294,51 @@ class ProgramFaultTests(unittest.TestCase):
                 engine.step()
                 self.assertEqual(engine.memory.read('LabValues'),expected)
 
+    def test_shift_length_fault_sets_error_before_handler_and_retries_without_rearming(self):
+        for op, start, expected in (
+            ('BSL', 'LabValues[LabIndex]', 11),
+            ('BSR', 'ShiftStart', 14),
+        ):
+            with self.subTest(op=op):
+                self.setUp()
+
+                def configure(root):
+                    ladder_fault_fixture(root, handler_tail='MOV(4,LabRecords[0].LEN);')
+                    add_fault_record_array(root, 'CONTROL', LEN=33)
+                    tags = root.find('./Controller/Tags')
+                    tags.find('Tag[@Name="LabIndex"]/Data/DataValue').set('Value', '1')
+                    ET.SubElement(tags, 'Tag', Name='ShiftStart', DataType='DINT', TagType='Alias',
+                                  AliasFor='LabValues[LabIndex]')
+                    root.find('.//Routine[@Name="RecoverMove"]/RLLContent/Rung/Text').text = (
+                        'XIC(LabRecords[0].ER)OTE(FaultWitness);')
+                    set_fault_instruction(root, f'{op}({start},LabRecords[0],LabValues[0].2,?)')
+
+                engine = self.engine(mutate=configure)
+                self.assertEqual(engine.blockers, [])
+                memory = engine.memory
+                memory.write('SpeedCommand', 50)
+                engine.step()
+                saved = memory.read('LabRecords')
+                self.assertIsNone(engine.last_cleared_program_fault)
+                self.assertFalse(saved[0]['ER'])
+
+                memory.write('StartPB', True)
+                engine.step()
+                fault = engine.last_cleared_program_fault
+                self.assertEqual((fault['type'], fault['code'], fault['instruction']), (4, 20, op))
+                self.assertIn('remaining array bits', fault['detail'])
+                self.assertEqual(memory.read('LabValues'), [12, 13])
+                self.assertEqual(memory.read('LabRecords'), [saved[0] | dict(LEN=4, ER=True), saved[1]])
+                self.assertTrue(memory.read('FaultWitness'))
+                self.assertEqual(memory.read('SpeedCommand'), 51)
+
+                engine.step()
+                self.assertEqual(memory.read('LabValues'), [12, expected])
+                self.assertEqual(memory.read('LabRecords[0].POS'), 4)
+                self.assertFalse(memory.read('LabRecords[0].ER'))
+                engine.step()
+                self.assertEqual(memory.read('LabValues'), [12, expected])
+
     def test_queue_load_bounds_preserve_position_and_skip_full_payload_reads(self):
         for instruction,expected in (
             ('FFL(LabValues[LabIndex],LabQueue[0],LabRecords[0],?,?)',[31,13,99]),

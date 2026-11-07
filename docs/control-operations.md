@@ -53,7 +53,10 @@ Prescan and false rungs clear EN/DN/ER/POS and retain array data and UL. A true
 rung with EN already set does not shift again. A new edge sets EN, clears other
 control bits and then performs the operation. Success sets DN and POS=LEN.
 LEN=0 sets DN, POS=0 and UL=SourceBit without changing data; negative LEN sets ER.
-An excessive region stops and rolls back the modeled advance.
+A positive LEN that extends past a standalone array can
+[raise Type 4 Code 20](controller-handlers.md#recover-shift-and-queue-array-faults)
+in the v35 5580 profile. The fault handler can observe ER. Overruns of
+structure members and the emulator's work limit use scan rollback.
 
 ## FIFO pair
 

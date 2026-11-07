@@ -6,8 +6,8 @@ import unittest
 from pathlib import Path
 from xml.etree import ElementTree as E
 
-from logixlab.control_operations import FLAGS, default
-from logixlab.model import ModelError, Project
+from logixlab.control_operations import FLAGS, ShiftExtentError, default
+from logixlab.model import BlockExtentError, ModelError, Project
 from logixlab.runtime import Engine
 
 SAMPLES = Path(__file__).resolve().parents[1] / 'samples'
@@ -93,9 +93,10 @@ class ControlOperationTests(unittest.TestCase):
         e.step();self.assertEqual(e.memory.read('Words'),[1,17,7]);self.assertTrue(e.memory.read('Ctl.UL'))
 
     def test_shift_bounds_resource_limit_and_late_fault_roll_back_everything(self):
-        for length in (97,131073):
+        for length, error_type in ((97, ShiftExtentError), (131073, ModelError)):
             e=self.checked(['BSL(Words[0],Ctl,BitIn,?);'],length=length);before=copy.deepcopy(e.memory.values)
-            with self.assertRaises(ModelError):e.step()
+            with self.assertRaises(ModelError) as fault:e.step()
+            self.assertIs(type(fault.exception.__cause__), error_type)
             self.assertEqual(e.memory.values,before);self.assertEqual((e.scan_count,e.time_ms),(0,0))
         e=self.checked(['BSL(Words[0],Ctl,BitIn,?);','DIV(1,0,SpeedCommand);']);before=copy.deepcopy(e.memory.values)
         with self.assertRaises(ModelError):e.step()
@@ -304,7 +305,8 @@ class ControlOperationTests(unittest.TestCase):
         self.assertEqual(e.memory.read('Record.Bits'),[1,1]);self.assertEqual(e.memory.read('Record.State.POS'),33)
         e=self.checked(['BSL(Record.Bits[0],ControlAlias,BitIn,?);'],mutate=record)
         e.memory.write('Record.State.LEN',65)
-        with self.assertRaises(ModelError):e.step()
+        with self.assertRaises(ModelError) as fault:e.step()
+        self.assertIs(type(fault.exception.__cause__), BlockExtentError)
 
     def test_alias_start_array_is_supported_and_st_calls_remain_blocked(self):
         def alias(root):E.SubElement(root.find('./Controller/Tags'),'Tag',Name='ArrayAlias',DataType='DINT',TagType='Alias',AliasFor='Words[0]')

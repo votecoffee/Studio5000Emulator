@@ -232,8 +232,14 @@ This covers the selected CONTROL address, a reached array start, a
 load or shift source, and an unload destination, including the write
 on an empty unload. Valid unloads still resolve their destination
 after moving the queue. False, held and full-load paths retain their
-existing rules for when to read an address. Invalid lengths, exhausted
-regions and unknown consumed values use the existing rollback behavior.
+existing rules for when to read an address.
+
+For v35 ControlLogix 5580 BSL and BSR, a positive LEN that exceeds the bits
+remaining at a valid standalone DINT array start also raises Type 4 Code 20.
+The emulator preserves the array and the prior CONTROL state, then sets ER
+before entering the handler. A cleared fault leaves the edge available for
+the next scan. Member overruns, queue region limits, the shift work limit and
+unknown consumed values use scan rollback.
 
 [Rockwell general instructions reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm003_-en-p.pdf)
 [Rockwell FFU reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-00/contents-ditamap/instruction-set/array--file--shift-instructions/fifo-unload--ffu-.html)
