@@ -26,7 +26,10 @@ FIELDS = {
 ELEMENT_BYTES = {'SINT': 1, 'INT': 2, 'DINT': 4, 'LINT': 8, 'REAL': 4}
 NAME = r'[A-Za-z_][A-Za-z_0-9]{0,39}'
 INDICES = r'[0-9]{1,6}(?:[ \t]*,[ \t]*[0-9]{1,6}){0,2}'
-ADDRESS = re.compile(rf'((?:Program:{NAME}\.)?{NAME})(?:\[({INDICES}|\*)\])?', re.ASCII | re.I)
+SELECTOR = rf'\[({INDICES}|\*)\]'
+ADDRESS = re.compile(rf'((?:Program:{NAME}\.)?{NAME})(?:{SELECTOR})?(\..*)?', re.ASCII | re.I)
+MEMBER = re.compile(rf'({NAME})(?:{SELECTOR})?', re.ASCII | re.I)
+MAX_MEMBER_DEPTH = 8
 
 
 @dataclass(frozen=True)
@@ -35,6 +38,7 @@ class Endpoint:
     coordinates: tuple[int, ...]
     offset: int
     variable: bool
+    member_path: tuple[str | int, ...] = ()
 
     def start(self, parameter):
         if self.variable:
@@ -105,11 +109,23 @@ def _parse_endpoint(text, offset):
     match = ADDRESS.fullmatch(text)
     if match is None:
         return None
-    name, selector = match.groups()
+    name, selector, suffix = match.groups()
+    segments = suffix[1:].split('.', MAX_MEMBER_DEPTH) if suffix else ()
+    if len(segments) > MAX_MEMBER_DEPTH:
+        return None
+    member_path = []
+    for segment in segments:
+        member = MEMBER.fullmatch(segment)
+        if member is None or selector == '*':
+            return None
+        if selector:
+            member_path.extend(map(int, selector.split(',')))
+        field, selector = member.groups()
+        member_path.append(field.casefold())
     coordinates = tuple(map(int, selector.split(','))) if selector not in (None, '*') else ()
     if len(coordinates) > 1 and offset:
         return None
-    return Endpoint(name.casefold(), coordinates, offset, selector == '*')
+    return Endpoint(name.casefold(), coordinates, offset, selector == '*', tuple(member_path))
 
 
 def _endpoint(attributes, side):
@@ -141,7 +157,7 @@ def _identity_read(project, attributes):
     if attributes.get('LocalElement', '').strip() or attributes.get('RemoteElement', '').strip():
         raise ModelError('CIP Generic Identity reads require an empty source and no request payload')
     destination = _parse_endpoint(attributes.get('DestinationTag', '').strip(), 0)
-    if destination is None or destination.variable or len(destination.coordinates) > 1:
+    if destination is None or destination.member_path or destination.variable or len(destination.coordinates) > 1:
         raise ModelError('CIP Generic Identity requires a DestinationTag with a fixed array start')
     identity = Identity.from_project('logix-v35-l85e', project)
     # Preserve the 16-bit pattern of an optional Get Attributes All placeholder.
@@ -228,7 +244,7 @@ def initialize(project):
     for key, configuration in project.message_configs.items():
         tag = project.tags[key]
         configuration = _bind_local(project, configuration, tag.scope)
-        if isinstance(configuration, Configuration):
+        if isinstance(configuration, Configuration) and not configuration.local.member_path:
             local = project.tags.get(configuration.local.name)
             if local and not local.problem and (local.dtype.upper() == 'STRING' or local.dtype.casefold() in project.udts):
                 dtype = local.dtype.upper()
@@ -270,7 +286,14 @@ def initial(project, configuration):
         record.update(Class=configuration.class_id, Instance=configuration.instance, Attribute=configuration.attribute)
         return record
     local = project.tags.get(configuration.local.name)
-    requested = _words(local.dtype.upper(), configuration.count, configuration.record) if local and not local.problem else 0
+    requested = 0
+    if local and not local.problem:
+        try:
+            dtype, _, _ = _member_base(project, local.dtype.upper(), local.value, configuration.local.member_path)
+        except TransferError:
+            pass
+        else:
+            requested = _words(dtype, configuration.count, configuration.record)
     record.update(REQ_LEN=requested if requested <= MAX_BYTES // 2 else 0,
                   LocalIndex=configuration.local.offset, RemoteIndex=configuration.remote.offset)
     # Preserve long authored addresses that predate the writable STRING field.
@@ -305,6 +328,36 @@ def _array_paths(value, start, count):
     return tuple(paths)
 
 
+def _member_base(project, dtype, value, member_path, *, remote=False, write=False):
+    path = []
+    for part in member_path:
+        if isinstance(part, int):
+            if not isinstance(value, list) or part >= len(value):
+                raise TransferError(0x05)
+        else:
+            schema = project.udts.get(dtype.casefold())
+            if (not isinstance(value, dict) or schema is None or schema.get('Class', 'User') != 'User'
+                    or schema.get('Family', 'NoFamily') != 'NoFamily'):
+                raise TransferError(0x05)
+            member = next((item for item in schema.findall('./Members/Member')
+                           if item.get('Name', '').casefold() == part), None)
+            if member is None or member.get('AliasFor') or member.get('Target') or member.get('BitNumber'):
+                raise TransferError(0x05)
+            if (member.get('Hidden', 'false').lower() not in ('false', '0')
+                    or member.get('AOILocal', 'false').lower() not in ('false', '0')):
+                raise TransferError(0x0F)
+            access = member.get('ExternalAccess', 'Read/Write')
+            if remote and access != 'Read/Write' and (write or access != 'Read Only'):
+                raise TransferError(0x0F)
+            part = member.get('Name')
+            if part not in value:
+                raise TransferError(0x05)
+            dtype = member.get('DataType', '').upper()
+        value = value[part]
+        path.append(part)
+    return dtype, tuple(path), value
+
+
 def _region(memory, endpoint, start, count, *, remote, write, record=None):
     tag = memory.project.tags.get(endpoint.name)
     if tag is None or tag.problem or tag.alias or tag.tag_class != 'Standard':
@@ -313,16 +366,19 @@ def _region(memory, endpoint, start, count, *, remote, write, record=None):
     if tag.scope and not project.program_configuration.type_attributes(tag.scope, source_sha256=project.sha256):
         raise TransferError(0x05)
     dtype = tag.dtype.upper()
-    if dtype not in ELEMENT_BYTES and (record is None or dtype != record.dtype):
+    if not endpoint.member_path and dtype not in ELEMENT_BYTES and (record is None or dtype != record.dtype):
         raise TransferError(0xFC)
     if ((write and tag.constant) or (remote and tag.external_access != 'Read/Write'
                                     and (write or tag.external_access != 'Read Only'))):
         raise TransferError(0x0F)
-    value = memory.values[endpoint.name]
+    dtype, base, value = _member_base(project, dtype, memory.values[endpoint.name], endpoint.member_path,
+                                     remote=remote, write=write)
+    if base and dtype not in ELEMENT_BYTES:
+        raise TransferError(0xFC)
     if isinstance(value, list):
-        return endpoint.name, _array_paths(value, start, count), dtype
+        return endpoint.name, tuple(base + path for path in _array_paths(value, start, count)), dtype
     if not start and count == 1:
-        return endpoint.name, ((),), dtype
+        return endpoint.name, (base,), dtype
     raise TransferError(0x05)
 
 

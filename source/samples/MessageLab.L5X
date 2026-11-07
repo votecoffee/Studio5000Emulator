@@ -132,6 +132,10 @@
       <Tag Name="TextWriteControl" DataType="MESSAGE" TagType="Base" ExternalAccess="None">
         <Data Format="Message"><MessageParameters MessageType="CIP Data Table Write" LocalElement="TextSource" RemoteElement="TextEcho" RequestedLength="1" ConnectedFlag="0" ConnectionPath="THIS" CommTypeCode="0" /></Data>
       </Tag>
+      <Tag Name="SendMembers" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="MemberWriteControl" DataType="MESSAGE" TagType="Base" ExternalAccess="None">
+        <Data Format="Message"><MessageParameters MessageType="CIP Data Table Write" LocalElement="RecordSource.Quality.Value" RemoteElement="RecordEcho.Quality.Value" RequestedLength="1" ConnectedFlag="0" ConnectionPath="THIS" CommTypeCode="0" /></Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="Main" Disabled="false" Class="Standard">
@@ -183,6 +187,9 @@
           <Tag Name="TextReadControl" DataType="MESSAGE" TagType="Base" Usage="Local" ExternalAccess="None">
             <Data Format="Message"><MessageParameters MessageType="CIP Data Table Read" LocalElement="TextInbox" RemoteElement="TextSource" RequestedLength="1" ConnectedFlag="0" ConnectionPath="THIS" CommTypeCode="0" /></Data>
           </Tag>
+          <Tag Name="MemberReadControl" DataType="MESSAGE" TagType="Base" Usage="Local" ExternalAccess="None">
+            <Data Format="Message"><MessageParameters MessageType="CIP Data Table Read" LocalElement="RecordInbox.Samples[*]" RemoteElement="RecordSource.Samples[*]" RequestedLength="2" ConnectedFlag="0" ConnectionPath="THIS" CommTypeCode="0" /></Data>
+          </Tag>
         </Tags>
         <Routines>
           <Routine Name="Main" Type="RLL">
@@ -206,6 +213,8 @@
               <Rung Number="16" Type="N"><Text>XIC(SendRecord)MSG(RecordWriteControl);</Text></Rung>
               <Rung Number="17" Type="N"><Text>XIC(SendText)MSG(TextReadControl);</Text></Rung>
               <Rung Number="18" Type="N"><Text>XIC(SendText)MSG(TextWriteControl);</Text></Rung>
+              <Rung Number="19" Type="N"><Text>XIC(SendMembers)MSG(MemberReadControl);</Text></Rung>
+              <Rung Number="20" Type="N"><Text>XIC(SendMembers)MSG(MemberWriteControl);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

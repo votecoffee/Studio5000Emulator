@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1106.193831` [ladder MSG](ladder-message.md#supported-configuration-and-timing)
+addresses selected numeric UDT members and member arrays. Message lab
+exercises nested member writes, scoped array reads and runtime retargeting.
+
 Available in `26.1106.192844` [ladder MSG](ladder-message.md#supported-configuration-and-timing)
 copies standard STRING and matching explicit StringFamily tags. Message lab
 loads scalar L5X String data and transfers complete LEN/DATA records.

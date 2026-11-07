@@ -33,7 +33,7 @@ def add_message_burst(root):
                       MessageType='CIP Data Table Read', LocalElement=f'BurstValues[{index}]',
                       RemoteElement='VirtualValue', RequestedLength='1', ConnectedFlag='0',
                       ConnectionPath='THIS', CommTypeCode='0')
-        rung = ET.SubElement(content, 'Rung', Number=str(19 + index), Type='N')
+        rung = ET.SubElement(content, 'Rung', Number=str(21 + index), Type='N')
         ET.SubElement(rung, 'Text').text = f'XIC(SendBurst)MSG({name});'
 
 
@@ -157,7 +157,7 @@ class MessageTests(unittest.TestCase):
 
     def test_copy_into_flags_keeps_the_in_progress_status(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='19', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='21', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CaptureReadFlags)COP(IdentityAttribute,ReadControl.FLAGS,1);'
 
         engine = self.engine(configure)
@@ -275,7 +275,7 @@ class MessageTests(unittest.TestCase):
 
     def test_message_timeout_ssv_and_readback_roll_back_with_later_fault(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='19', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='21', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         engine = self.engine(configure)
@@ -455,7 +455,7 @@ class MessageTests(unittest.TestCase):
 
     def test_generic_identity_all_rolls_back_response_and_queue_after_later_fault(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='19', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='21', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         engine = self.engine(configure)
@@ -665,7 +665,9 @@ class MessageTests(unittest.TestCase):
         field = 'ReadControl.RemoteElement'
         for ref, value, error in [(field, '', 0x05), (field, '2,192.0.2.20', 0x05),
                                   (field, 'VirtualValue\u00a0', 0x05), (field, 'Missing', 0x05),
-                                  (field + '.LEN', 83, 0x05), (field, 'SendRead', 0xFC)]:
+                                  (field + '.LEN', 83, 0x05), (field, 'SendRead', 0xFC),
+                                  (field, 'RecordSource.Missing', 0x05), (field, 'RecordSource[*].Batch', 0x05),
+                                  (field, 'RecordSource.Quality.Value', 0xFC)]:
             with self.subTest(ref=ref, value=value):
                 engine = self.engine()
                 engine.memory.write(ref, value)
@@ -829,7 +831,7 @@ class MessageTests(unittest.TestCase):
     def test_completion_and_queue_roll_back_with_later_fault(self):
         def configure(root):
             content = root.find('.//RLLContent')
-            rung = ET.SubElement(content, 'Rung', Number='19', Type='N')
+            rung = ET.SubElement(content, 'Rung', Number='21', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         for timeout in (30_000_000, 10_000):
@@ -1006,6 +1008,8 @@ class MessageTests(unittest.TestCase):
                         ET.SubElement(array, 'Element', Index=f'[{index}]').append(record)
                     config = root.find('.//Tag[@Name="RecordWriteControl"]//MessageParameters')
                     config.attrib.update(LocalElement='RecordSource[0]', RemoteElement='RecordSource[1]', RequestedLength='2')
+                    member = root.find('.//Tag[@Name="MemberWriteControl"]//MessageParameters')
+                    member.set('LocalElement', 'RecordSource[0].Quality.Value')
 
                 engine = self.engine(configure)
                 self.assertEqual(engine.blockers, [])
@@ -1056,6 +1060,89 @@ class MessageTests(unittest.TestCase):
         engine = self.engine(configure)
         self.assertTrue(any('record transfer exceeds 32768' in item for item in engine.blockers))
         self.assert_flags(engine, 'RecordWriteControl', REQ_LEN=0)
+
+    def test_member_messages_capture_addresses_and_change_only_selected_fields(self):
+        engine = self.engine()
+        self.assertEqual(engine.blockers, [])
+        memory = engine.memory
+        prefix = 'Program:MainProgram.'
+        control = prefix + 'MemberReadControl'
+        memory.write('SendMembers', True)
+        engine.step()
+        self.assert_flags(engine, control, EW=True, REQ_LEN=2)
+        self.assert_flags(engine, 'MemberWriteControl', EW=True, REQ_LEN=2)
+        memory.write(control + '.LocalIndex', 1)
+        memory.write(control + '.RemoteElement', 'RecordEcho.Samples[0]')
+        memory.write('RecordSource.Quality.Value', 3.25)
+        engine.step()
+        engine.step()
+        self.assertEqual(memory.read(prefix + 'RecordInbox.Samples'), [12, -3])
+        self.assertEqual(memory.read(prefix + 'RecordInbox.Batch'), 0)
+        self.assertEqual(memory.read('RecordEcho.Quality'), {'Value': 3.25, 'Code': 0})
+        self.assert_flags(engine, control, DN=True, ER=False, DN_LEN=2)
+        self.assert_flags(engine, 'MemberWriteControl', DN=True, ER=False, DN_LEN=2)
+
+        memory.write('SendMembers', False)
+        memory.write(control + '.LocalIndex', 0)
+        engine.step()
+        memory.write('SendMembers', True)
+        for _ in range(3):
+            engine.step()
+        self.assertEqual(memory.read(prefix + 'RecordInbox.Samples'), [0, 0])
+        self.assert_flags(engine, control, DN=True, ER=False)
+
+    def test_member_span_stays_inside_selected_record_array_element(self):
+        def configure(root):
+            tag = root.find('.//Tag[@Name="RecordSource"]')
+            tag.set('Dimensions', '2')
+            data = tag.find('Data')
+            example = data[0]
+            data.remove(example)
+            array = ET.SubElement(data, 'Array', DataType='MessageRecord', Dimensions='2')
+            for index in range(2):
+                record = copy.deepcopy(example)
+                record.find('StructureMember/DataValueMember[@Name="Value"]').set('Value', str(2.5 + index))
+                ET.SubElement(array, 'Element', Index=f'[{index}]').append(record)
+            write = root.find('.//Tag[@Name="MemberWriteControl"]//MessageParameters')
+            write.set('LocalElement', 'RecordSource[1].Quality.Value')
+            read = root.find('.//Tag[@Name="MemberReadControl"]//MessageParameters')
+            read.set('RemoteElement', 'RecordSource[1].Samples[1]')
+
+        engine = self.engine(configure)
+        self.assertEqual(engine.blockers, [])
+        memory = engine.memory
+        memory.write('SendMembers', True)
+        for _ in range(3):
+            engine.step()
+        self.assertEqual(memory.read('RecordEcho.Quality.Value'), 3.5)
+        self.assertEqual(memory.read('Program:MainProgram.RecordInbox.Samples'), [0, 0])
+        self.assert_flags(engine, 'Program:MainProgram.MemberReadControl', DN=False, ER=True, ERR=5, DN_LEN=0)
+
+    def test_remote_member_access_applies_to_selected_members_and_ancestors(self):
+        for access in ('Read Only', 'None'):
+            with self.subTest(access=access):
+                def configure(root):
+                    quality = root.find('.//DataType[@Name="MessageRecord"]//Member[@Name="Quality"]')
+                    quality.set('ExternalAccess', access)
+                    read = root.find('.//Tag[@Name="MemberReadControl"]//MessageParameters')
+                    read.attrib.update(LocalElement='RecordInbox.Quality.Value',
+                                       RemoteElement='RecordSource.Quality.Value', RequestedLength='1')
+                    content = root.find('.//RLLContent')
+                    for number in ('15', '16'):
+                        content.remove(content.find(f'Rung[@Number="{number}"]'))
+
+                engine = self.engine(configure)
+                self.assertEqual(engine.blockers, [])
+                memory = engine.memory
+                memory.write('SendMembers', True)
+                for _ in range(3):
+                    engine.step()
+                readable = access == 'Read Only'
+                self.assertEqual(memory.read('Program:MainProgram.RecordInbox.Quality.Value'), 2.5 if readable else 0.0)
+                self.assertEqual(memory.read('RecordEcho.Quality.Value'), 0.0)
+                self.assert_flags(engine, 'Program:MainProgram.MemberReadControl',
+                                  DN=readable, ERR=0 if readable else 0x0F)
+                self.assert_flags(engine, 'MemberWriteControl', DN=False, ER=True, ERR=0x0F)
 
     def test_string_format_and_msg_preserve_escaped_bytes_and_report_full_length(self):
         def configure(root):

@@ -53,6 +53,11 @@ Set SendText to 1 and step three scans. TextSource starts at READY.
 The two messages copy it to the program-local TextInbox and to TextEcho.
 Each control reports 44 words for the full standard STRING record.
 
+Set SendMembers to 1 and step three scans. The read copies
+RecordSource.Samples into the program-local RecordInbox.Samples array.
+The write copies RecordSource.Quality.Value into RecordEcho.Quality.Value.
+Other record members retain their values.
+
 For a runtime index change, scan SendTyped false, then set SetReadIndices
 to 1, ReadLocalIndex to 1, and ReadRemoteIndex to 0. Set SendTyped to 1 and
 step three times. Ladder MOV writes the MESSAGE index fields before MSG
@@ -137,6 +142,13 @@ two SINT elements. Those bytes encode product code 168.
   the initial value. A literal subscript keeps its authored start and offset.
   Runtime writes to the index members affect only `[*]` selectors. A new
   fully indexed multidimensional RemoteElement is captured when queued.
+- Numeric endpoints can select members of explicit UDTs, including paths
+  such as `Records[2].Quality.Value` and `Record.Samples[*]`. Every
+  array before the final member requires literal coordinates. The final
+  numeric array uses the same start and span rules as a direct tag. A
+  transfer stays inside that array. Remote access checks the root and
+  each member on the selected path, so an unrelated restricted sibling
+  does not block access to an allowed member.
 - Data Table endpoints can also use the same explicit UDT type. The
   emulator uses its [structured tag layout](connectivity.md#structured-transfers) to size complete
   records and qualify nested numeric members, member arrays, and explicitly
