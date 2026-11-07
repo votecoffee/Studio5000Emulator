@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1107.105750` [aliased ladder pseudo-operand initialization](ladder-timers.md#literal-presets-on-import)
+seeds TIMER, COUNTER and CONTROL fields through static aliases on import.
+The initializer detects conflicting values against the shared backing record.
+
 Available in `26.1107.104900` [ladder Ethernet self-addressing](ladder-message.md#supported-configuration-and-timing)
 accepts a port 2 IPv4 route to the active emulator endpoint. MSG executes
 in-process and checks the address before each new admission.

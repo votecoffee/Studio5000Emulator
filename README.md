@@ -44,8 +44,8 @@ demonstrates a bit shift and FIFO with values supplied by the rung.
 [CONTROL initialization](docs/control-operations.md#literal-len-and-pos-on-import)
 
 **Literal ladder timer and counter presets** seed PRE/ACC when loading an L5X
-project. In **Timer lab**, enable `LiteralPresets` to exercise the saved
-starting values. See [literal presets on import](docs/ladder-timers.md#literal-presets-on-import).
+project. Literal presets also resolve through static aliases. In **Timer
+lab**, enable `LiteralPresets` to exercise the initialized timer and counter. See [literal presets on import](docs/ladder-timers.md#literal-presets-on-import).
 
 **Wide integer SQR and XPY** preserve exact input values through calculation.
 In **Integer lab**, enable `ExactRootPowerEnabled` and step. See

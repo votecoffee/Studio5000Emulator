@@ -178,6 +178,33 @@ class LadderTimerTests(unittest.TestCase):
         self.assertEqual([row['PRE'] for row in engine.project.initial['timercells'][:2]], [20, 20])
         self.assertEqual([row['ACC'] for row in engine.project.initial['timercells'][:2]], [7, 0])
 
+    def test_literal_timer_alias_chain_merges_with_direct_initializers(self):
+        def aliases(root):
+            tags = root.find('./Controller/Tags')
+            E.SubElement(tags, 'Tag', Name='TimerArray', TagType='Alias', DataType='TIMER', AliasFor='TimerCells')
+            E.SubElement(tags, 'Tag', Name='ActiveTimer', TagType='Alias', DataType='TIMER', AliasFor='TimerArray[1]')
+
+        engine = self.checked(['AFI()RTO(TimerCells[1],45,?);', 'AFI()RTO(ActiveTimer,45,11);'], aliases)
+        self.assertEqual((engine.memory.read('ActiveTimer.PRE'), engine.memory.read('ActiveTimer.ACC')), (45, 11))
+        self.assertEqual(engine.project.initial['timercells'][0]['PRE'], 20)
+
+        conflict = self.engine(['AFI()RTO(TimerCells[1],45,?);', 'AFI()RTO(ActiveTimer,46,11);'], aliases)
+        self.assertTrue(any('Conflicting PRE initializers' in item for item in conflict.blockers))
+        self.assertEqual(conflict.project.initial['timercells'][1]['PRE'], 20)
+        self.assertEqual(conflict.project.initial['timercells'][1]['ACC'], 0)
+
+    def test_dynamic_and_cyclic_literal_aliases_leave_the_saved_image_intact(self):
+        for target in ('TimerCells[Index]', 'Selected'):
+            with self.subTest(target=target):
+                def alias(root):
+                    E.SubElement(root.find('./Controller/Tags'), 'Tag', Name='Selected',
+                                 TagType='Alias', DataType='TIMER', AliasFor=target)
+
+                engine = self.engine(['AFI()RTO(TimerCells[0],35,11);', 'AFI()RTO(Selected,45,12);'], alias)
+                self.assertTrue(any('static backing tag' in item for item in engine.blockers))
+                self.assertEqual(engine.project.initial['timercells'][0]['PRE'], 20)
+                self.assertEqual(engine.project.initial['timercells'][0]['ACC'], 7)
+
     def test_invalid_literal_initializers_and_runtime_edit_candidates_are_rejected(self):
         from logixlab.routine_source import RoutineSource, SourceError, SourceRung, validate_plan
 

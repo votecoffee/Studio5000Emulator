@@ -50,8 +50,8 @@ def initialize_ladder_operands(project):
             program = project.programs[routine.program]
             if program['class'] != 'Standard' or program['use_as_folder']:
                 raise ModelError('Explicit pseudo-operands require a Standard program routine')
-            if not static_reference(memory, reference, routine.program):
-                raise ModelError('Explicit pseudo-operands require a direct static backing tag')
+            if not static_reference(memory, reference, routine.program, follow_aliases=True):
+                raise ModelError('Explicit pseudo-operands require a static backing tag')
             key, parts, dtype = memory.check_writable(reference, routine.program)
             if dtype != expected or not isinstance(memory.at(key, parts), dict):
                 raise ModelError(f'{op.name} requires one writable {expected} record per backing tag')

@@ -19,10 +19,11 @@ See [runtime.py](../source/logixlab/runtime.py) and
 The v35 5580 profile accepts decimal DINT PRE and ACC initializers on TON, TOF,
 RTO, CTU and CTD in imported Standard ladder routines. Each `?` keeps its
 corresponding saved member. TIMER initializers must be nonnegative and COUNTER
-initializers can be signed. The target must resolve to one directly addressed
-writable record, such as a base tag, a statically selected array element or a
-UDT member. AOI bodies, aliases, computed indices and live routine edits still
-use the existing neutral-text profile.
+initializers can be signed. The target must resolve to one writable record,
+such as a base tag, a statically selected array element or a UDT member.
+Static aliases can select those records through up to eight hops. Every
+subscript must be literal, including subscripts inside AliasFor. AOI bodies,
+computed indices and live routine edits use the neutral-text profile.
 
 A fresh emulator image applies the literals once. Scans and Run transitions use
 the live members. Ordinary prescan still clears TON/TOF ACC and preserves RTO
@@ -102,7 +103,9 @@ DN true to pause. Disabling LadderTimers skips its routine and retains fields.
 Enabling the initially retained timer without establishing DN reports an
 explicit unknown-history fault and rolls back the scan; initialize it and retry.
 For explicit initializers, enable LiteralPresets and step with LiteralInput
-false. Set LiteralInput true and step twice at 10 ms. LiteralRetained starts
+false. The ladder rungs use LiteralTimerAlias and LiteralCounterAlias to
+initialize the backing records. Set LiteralInput true and step twice at
+10 ms. LiteralRetained starts
 at PRE=50 and ACC=10, then reaches ACC=20. LiteralCount starts at PRE=4 and
 ACC=-1, increments to zero on the rising edge and holds. Changing either live
 PRE persists across steps. Reset restores the imported values.

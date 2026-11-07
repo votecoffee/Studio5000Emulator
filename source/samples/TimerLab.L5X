@@ -149,6 +149,8 @@
           </Structure>
         </Data>
       </Tag>
+      <Tag Name="LiteralTimerAlias" TagType="Alias" DataType="TIMER" AliasFor="LiteralRetained" />
+      <Tag Name="LiteralCounterAlias" TagType="Alias" DataType="COUNTER" AliasFor="LiteralCount" />
       <Tag Name="LiteralCount" TagType="Base" DataType="COUNTER">
         <Data Format="Decorated">
           <Structure DataType="COUNTER">
@@ -217,10 +219,10 @@
           <Routine Name="LiteralPresetDemo" Type="RLL">
             <RLLContent>
               <Rung Number="0" Type="N">
-                <Text>XIC(LiteralInput)RTO(LiteralRetained,50,10);</Text>
+                <Text>XIC(LiteralInput)RTO(LiteralTimerAlias,50,10);</Text>
               </Rung>
               <Rung Number="1" Type="N">
-                <Text>XIC(LiteralInput)CTU(LiteralCount,4,-1);</Text>
+                <Text>XIC(LiteralInput)CTU(LiteralCounterAlias,4,-1);</Text>
               </Rung>
             </RLLContent>
           </Routine>

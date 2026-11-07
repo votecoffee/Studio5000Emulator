@@ -250,10 +250,14 @@ class ControlOperationTests(unittest.TestCase):
                 self.assertEqual(rung['nodes'][0].args.count('?'), replacements)
 
     def test_literal_queue_state_initializes_once_and_resets_with_a_fresh_image(self):
+        def alias(root):
+            E.SubElement(root.find('./Controller/Tags'), 'Tag', Name='QueueControl',
+                         DataType='CONTROL', TagType='Alias', AliasFor='Ctl')
+
         e = self.checked([
-            'XIC(StartPB)FFL(Incoming,Queue[0],Ctl,+3,1);',
+            'XIC(StartPB)FFL(Incoming,Queue[0],QueueControl,+3,1);',
             'XIC(PartSensor)FFU(Queue[0],Outgoing,CTL,3,?);',
-        ], length=19, queue=(7, 0, 0, 999))
+        ], length=19, queue=(7, 0, 0, 999), mutate=alias)
         self.assertEqual((e.memory.read('Ctl.LEN'), e.memory.read('Ctl.POS')), (3, 1))
         e.memory.write('Ctl.LEN', 2)
         e.enter_run()
@@ -269,7 +273,7 @@ class ControlOperationTests(unittest.TestCase):
     def test_conflict_or_invalid_second_control_preserves_all_saved_members(self):
         for rungs, error in (
             (['FFL(Incoming,Queue[0],Ctl,3,1);', 'FFU(Queue[0],Outgoing,CTL,?,2);'], 'Conflicting POS'),
-            (['FBC(Words[0],Queue[0],DiagResults[0],Ctl,40,0,Missing,3,0);'], 'direct static backing tag'),
+            (['FBC(Words[0],Queue[0],DiagResults[0],Ctl,40,0,Missing,3,0);'], 'static backing tag'),
         ):
             with self.subTest(rungs=rungs):
                 e = self.engine(rungs, length=19, position=2)

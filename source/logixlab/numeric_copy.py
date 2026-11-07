@@ -9,15 +9,29 @@ FORMATS={'SINT':'b','INT':'h','DINT':'i','LINT':'q','USINT':'B','UINT':'H','UDIN
 SIZES={name:struct.calcsize('<'+fmt) for name,fmt in FORMATS.items()}
 MAX_BYTES=32768
 MAX_VISITS=100000
+MAX_STATIC_ALIAS_HOPS = 8
 
 
-def static_reference(memory,ref,scope):
-    if scope in memory.frames:return False
-    match=re.fullmatch(r'(?:Program:(\w+)\.)?([A-Za-z_]\w*)(?:\[\s*\d+(?:\s*,\s*\d+)*\s*\]|\.\w+)*',ref)
-    if not match:return False
-    owner,name=match.groups();key=f'Program:{owner or scope}.{name}'.lower()
-    tag=memory.project.tags.get(key) or memory.project.tags.get(name.lower())
-    return tag is not None and not tag.alias
+def static_reference(memory, ref, scope, *, follow_aliases=False):
+    if scope in memory.frames:
+        return False
+    seen = set()
+    while True:
+        match = re.fullmatch(r'(?:Program:(\w+)\.)?([A-Za-z_]\w*)(?:\[\s*\d+(?:\s*,\s*\d+)*\s*\]|\.\w+)*', ref)
+        if not match:
+            return False
+        owner, name = match.groups()
+        key = f'Program:{owner or scope}.{name}'.lower()
+        tag = memory.project.tags.get(key) or memory.project.tags.get(name.lower())
+        if tag is None:
+            return False
+        if not tag.alias:
+            return True
+        if not follow_aliases or tag.key in seen or len(seen) >= MAX_STATIC_ALIAS_HOPS:
+            return False
+        seen.add(tag.key)
+        # AliasFor is evaluated in the alias declaration's scope.
+        ref, scope = tag.alias.strip(), tag.scope
 
 
 def preflight(engine,op,scope):

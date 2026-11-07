@@ -25,12 +25,13 @@ CONTROL.LEN/POS in the imported image. BSL and BSR initialize LEN only. FFL,
 FFU, LFL, LFU, SQI, SQO, SQL, AVE, STD, SRT, FAL and FSC can initialize both
 members. FBC and DDT have separate compare and result pairs.
 
-Each literal needs a directly addressed writable CONTROL record. Keep `?`
-for fields that should retain their saved values. Identical repeated literals
-are accepted. Conflicting literals block execution and leave the saved image
-intact because routine order does not identify the last native edit. AOI
-bodies, aliases, computed backing indices and live routine edits still use
-the existing neutral-text profile.
+Each literal needs a writable CONTROL record addressed directly or through a
+static alias. All indices must be literal. Keep `?` for fields that should
+retain their saved values. Identical literals through different references
+can initialize the same record. Conflicts block execution and leave the
+saved image intact because routine order does not identify the last native
+edit. AOI bodies, computed backing indices and live routine edits use the
+neutral-text profile.
 
 The regular prescan and execution paths may write POS after import. Reset
 recreates the imported image. Resource, data and state checks still apply

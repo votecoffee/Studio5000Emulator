@@ -150,16 +150,24 @@ class LadderCounterTests(unittest.TestCase):
         self.assertEqual(engine.memory.read('CounterCells[0].ACC'), -2147483648)
         self.assertFalse(engine.memory.read('CounterCells[0].DN'))
 
-    def test_counter_literal_target_requires_a_direct_writable_record(self):
+    def test_counter_literal_initializes_fixed_alias_and_uses_normal_count_edge(self):
         def alias(root):
             E.SubElement(root.find('./Controller/Tags'), 'Tag', Name='Selected', TagType='Alias',
                          AliasFor='CounterCells[0]', DataType='COUNTER')
+
+        engine = self.checked(['XIC(StartPB)CTU(Selected,4,-1);'], alias)
+        self.assertEqual((engine.memory.read('CounterCells[0].PRE'), engine.memory.read('CounterCells[0].ACC')), (4, -1))
+        engine.step()
+        engine.memory.write('StartPB', True)
+        engine.step()
+        self.assertEqual(engine.memory.read('CounterCells[0].ACC'), 0)
+
+    def test_counter_literal_target_requires_a_static_writable_record(self):
         def constant(root):
             root.find('./Controller/Tags/Tag[@Name="CounterCells"]').set('Constant', 'true')
         def older(root):
             root.find('Controller').set('ProcessorType', '1756-L75')
         for text, change in (
-            ('AFI()CTU(Selected,1,0);', alias),
             ('AFI()CTU(CounterCells[0],1,0);', constant),
             ('AFI()CTU(CounterCells[0],1,0);', older),
             ('AFI()CTD(CounterCells[99],1,0);', None),
