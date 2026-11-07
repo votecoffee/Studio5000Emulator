@@ -36,7 +36,7 @@ def add_message_burst(root):
                       MessageType='CIP Data Table Read', LocalElement=f'BurstValues[{index}]',
                       RemoteElement='VirtualValue', RequestedLength='1', ConnectedFlag='0',
                       ConnectionPath='THIS', CommTypeCode='0')
-        rung = ET.SubElement(content, 'Rung', Number=str(34 + index), Type='N')
+        rung = ET.SubElement(content, 'Rung', Number=str(36 + index), Type='N')
         ET.SubElement(rung, 'Text').text = f'XIC(SendBurst)MSG({name});'
 
 
@@ -922,6 +922,72 @@ class MessageTests(unittest.TestCase):
         self.assert_flags(engine, 'LinkReadControl', ER=True, ERR=0x0C, DN_LEN=0)
         self.assert_flags(engine, 'IdentityAllControl', DN=True, ERR=0, DN_LEN=6)
         self.assertEqual(engine.memory.read('LinkReply')[:8], [-9, 1, 0, 1, 0, 1, 0, None])
+
+    def test_generic_controller_reads_live_audit_and_exact_signed_lint_mask(self):
+        def configure(root):
+            root.find('./Controller/Security').set('ChangesToDetect', '16#8000_0000_0000_2000')
+
+        with patch('logixlab.change_detection.secrets.randbits', return_value=0xAABBCCDDEEFF0000):
+            engine = self.engine(configure)
+        self.assertEqual(engine.blockers, [])
+        memory = engine.memory
+        memory.write('SendChangeRead', True)
+        engine.step()
+        self.assert_flags(engine, 'ChangeAuditControl', EW=True)
+        self.assertTrue(engine.change_detection.record('remote_mode'))
+        engine.step()
+        engine.step()
+
+        self.assertEqual(struct.pack('<ii', *memory.read('ChangeAuditReply')),
+                         struct.pack('<Q', 0xAABBCCDDEEFF0001))
+        self.assertEqual(memory.read('ChangeMaskReply'), -(1 << 63) + 0x2000)
+        for control in ('ChangeAuditControl', 'ChangeMaskControl'):
+            self.assert_flags(engine, control, DN=True, ERR=0, DN_LEN=8)
+        self.assertEqual(engine.change_detection.description()['updates'], 1)
+
+    def test_generic_controller_unavailable_audit_preserves_destination(self):
+        def remove_mask(root):
+            root.find('./Controller').remove(root.find('./Controller/Security'))
+
+        for configure in (None, remove_mask):
+            with self.subTest(configure=configure):
+                engine = self.engine(configure)
+                memory = engine.memory
+                memory.write('ChangeAuditReply[0]', 12)
+                memory.write('ChangeAuditReply[1]', 34)
+                memory.write('SendChangeRead', True)
+                engine.step()
+                if configure is None:
+                    engine.change_detection.invalidate()
+                engine.step()
+                engine.step()
+                self.assertEqual(memory.read('ChangeAuditReply'), [12, 34])
+                self.assert_flags(engine, 'ChangeAuditControl', ER=True, ERR=0x14, DN_LEN=0)
+                if configure is None:
+                    self.assertEqual(memory.read('ChangeMaskReply'), 0x2000)
+                    self.assert_flags(engine, 'ChangeMaskControl', DN=True, ERR=0, DN_LEN=8)
+                else:
+                    self.assertEqual(memory.read('ChangeMaskReply'), -9)
+                    self.assert_flags(engine, 'ChangeMaskControl', ER=True, ERR=0x14, DN_LEN=0)
+
+    def test_generic_controller_list_only_exposes_change_detection_fields(self):
+        def configure(root):
+            control = root.find('.//Tag[@Name="IdentityListControl"]//MessageParameters')
+            control.set('ObjectType', '16#8E')
+            control.set('DestinationTag', 'IdentityAllReply[1]')
+            array = root.find('.//Tag[@Name="IdentityListRequest"]//Array')
+            array.find('Element[@Index="[1]"]').set('Value', '13')
+            array.find('Element[@Index="[2]"]').set('Value', '28')
+
+        engine = self.engine(configure)
+        self.assertEqual(engine.blockers, [])
+        engine.memory.write('SendIdentityList', True)
+        for _ in range(3):
+            engine.step()
+        reply = engine.memory.read('IdentityAllReply')
+        self.assertEqual(bytes(reply[1:19]), struct.pack('<5HQ', 2, 13, 0x14, 28, 0, 0x2000))
+        self.assertEqual(reply[0], -9)
+        self.assert_flags(engine, 'IdentityListControl', ER=True, ERR=0x0A, DN_LEN=18)
 
     def test_generic_identity_attribute_written_by_ladder_applies_to_next_request(self):
         engine = self.engine()

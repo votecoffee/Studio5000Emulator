@@ -25,10 +25,13 @@ DEFAULT_CONNECTION_RATE_US = 7_500_000
 MAX_TIMEOUT_MULTIPLIER = 7
 PATH_BUFFER_SIZE = 82
 IDENTITY_ATTRIBUTES = frozenset(range(1, 8))
+CONTROLLER_CLASS_ID = 0x8E
+CONTROLLER_CHANGE_ATTRIBUTES = (27, 28)
 GENERIC_SERVICES = {
     1: {1: (0x01, 0x03, 0x0E)},
     wall_clock.CLASS_ID: {1: (0x03, 0x0E)},
     time_sync.CLASS_ID: {1: (0x03, 0x0E)},
+    CONTROLLER_CLASS_ID: {1: (0x03, 0x0E)},
     PORT_CLASS_ID: dict.fromkeys((0, 1, 2), (0x01, 0x03, 0x0E)),
     TCPIP_CLASS_ID: {0: (0x01, 0x03, 0x0E), 1: (0x03, 0x0E)},
     ETHERNET_LINK_CLASS_ID: {0: (0x01, 0x03, 0x0E), 1: (0x03, 0x0E)},
@@ -37,6 +40,7 @@ GENERIC_SINGLE_ATTRIBUTES = {
     1: IDENTITY_ATTRIBUTES,
     wall_clock.CLASS_ID: range(1, 12),
     time_sync.CLASS_ID: time_sync.INSTANCE_ATTRIBUTES,
+    CONTROLLER_CLASS_ID: CONTROLLER_CHANGE_ATTRIBUTES,
     PORT_CLASS_ID: (1, 2, 3, 4, 5, 7, 8, 9),
     TCPIP_CLASS_ID: (1, 2, 3, 4, 5, 6, 101, 102),
     ETHERNET_LINK_CLASS_ID: ETHERNET_LINK_ATTRIBUTES,
@@ -523,7 +527,7 @@ def _control_key(engine, name, scope, instruction):
 def _generic_span(memory, endpoint, size, *, write, scope=None):
     start = endpoint.start(0)
     key, paths, dtype = _region(memory, endpoint, start, 1, remote=False, write=write, scope=scope)
-    if dtype not in GENERIC_BUFFER_TYPES:
+    if dtype not in GENERIC_BUFFER_TYPES and not (write and dtype == 'LINT'):
         raise TransferError(0xFC)
     width = ELEMENT_BYTES[dtype]
     count = (size + width - 1) // width
@@ -583,7 +587,7 @@ def validate(engine, op, scope, kind='RLL'):
         try:
             _generic_span(engine.memory, configuration.destination, 1, write=True, scope=scope)
         except TransferError as error:
-            raise ModelError(f'CIP Generic requires a writable SINT, INT or DINT destination (16#{error.code:04X})') from error
+            raise ModelError(f'CIP Generic requires a writable SINT, INT, DINT or LINT destination (16#{error.code:04X})') from error
         if configuration.source is not None:
             try:
                 _generic_span(engine.memory, configuration.source, configuration.source_size, write=False, scope=scope)
@@ -865,6 +869,11 @@ def _generic_reply(engine, request, numbers, status_word):
             return 0, identity.all_attributes(status_word=status_word)
         attributes = identity.attributes(status_word=status_word)
         values = {number: attributes[number] for number in IDENTITY_ATTRIBUTES}
+    elif request.class_id == CONTROLLER_CLASS_ID:
+        values = engine.change_detection.attributes(project.sha256)
+        mask = project.controller_configuration.attributes().get(28)
+        if mask is not None:
+            values[28] = mask
     elif request.class_id == PORT_CLASS_ID:
         binding = engine.network_binding() if request.instance == 2 and engine.network_binding else None
         values = port_attributes(request.instance, binding.address if binding else None)

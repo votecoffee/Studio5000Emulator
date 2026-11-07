@@ -2,6 +2,7 @@
 <RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="MessageLab" TargetType="Controller" ContainsContext="false">
   <Controller Name="MessageLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
     <Description>LogixLab sample for unconnected THIS data-table messaging and typed spans.</Description>
+    <Security Code="0" ChangesToDetect="16#0000_0000_0000_2000" />
     <TimeSynchronize PTPEnable="false" Priority1="128" Priority2="128" />
     <DataTypes>
       <DataType Name="MessageQuality" Family="NoFamily" Class="User">
@@ -29,6 +30,19 @@
     <AddOnInstructionDefinitions />
     <Tags>
       <Tag Name="UseAlternateRead" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="SendChangeRead" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="ChangeAuditReply" DataType="DINT" TagType="Base" Dimensions="2">
+        <Data Format="Decorated"><Array DataType="DINT" Dimensions="2"><Element Index="[0]" Value="0" /><Element Index="[1]" Value="0" /></Array></Data>
+      </Tag>
+      <Tag Name="ChangeMaskReply" DataType="LINT" TagType="Base">
+        <Data Format="Decorated"><DataValue DataType="LINT" Value="-9" /></Data>
+      </Tag>
+      <Tag Name="ChangeAuditControl" DataType="MESSAGE" TagType="Base" ExternalAccess="None">
+        <Data Format="Message"><MessageParameters MessageType="CIP Generic" ServiceCode="16#0E" ObjectType="16#8E" TargetObject="1" AttributeNumber="16#1B" RequestedLength="0" DestinationTag="ChangeAuditReply[0]" ConnectedFlag="0" ConnectionPath="THIS" CommTypeCode="0" /></Data>
+      </Tag>
+      <Tag Name="ChangeMaskControl" DataType="MESSAGE" TagType="Base" ExternalAccess="None">
+        <Data Format="Message"><MessageParameters MessageType="CIP Generic" ServiceCode="16#0E" ObjectType="16#8E" TargetObject="1" AttributeNumber="16#1C" RequestedLength="0" DestinationTag="ChangeMaskReply" ConnectedFlag="0" ConnectionPath="THIS" CommTypeCode="0" /></Data>
+      </Tag>
       <Tag Name="SendLinkRead" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="LinkReply" DataType="SINT" TagType="Base" Dimensions="68">
         <Data Format="Decorated"><Array DataType="SINT" Dimensions="68"><Element Index="[0]" Value="-9" /></Array></Data>
@@ -318,6 +332,8 @@
               <Rung Number="31" Type="N"><Text>XIC(SendPortRead)MSG(PortReadControl);</Text></Rung>
               <Rung Number="32" Type="N"><Text>XIC(SendTcpIpRead)MSG(TcpIpReadControl);</Text></Rung>
               <Rung Number="33" Type="N"><Text>XIC(SendLinkRead)MSG(LinkReadControl);</Text></Rung>
+              <Rung Number="34" Type="N"><Text>XIC(SendChangeRead)MSG(ChangeAuditControl);</Text></Rung>
+              <Rung Number="35" Type="N"><Text>XIC(SendChangeRead)MSG(ChangeMaskControl);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

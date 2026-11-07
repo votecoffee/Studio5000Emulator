@@ -2,10 +2,10 @@
 
 LogixLab models CIP Data Table Read and Write for numeric tags, matching
 strings and user-defined records, plus bounded CIP Generic reads of Identity,
-Wall Clock Time, Time Sync, the Port Object, the TCP/IP Interface Object
-and the Ethernet Link Object in whole-project v35 ControlLogix 5580
-ladder execution. It transfers
-values between tags in the current project. The `MSG` faceplate shows the
+Wall Clock Time, Time Sync, Controller change detection, the Port Object,
+the TCP/IP Interface Object and the Ethernet Link Object in whole-project
+v35 ControlLogix 5580 ladder execution. It transfers values between tags
+in the current project. The `MSG` faceplate shows the
 message control and its `EN`, `DN` and `ER` bits.
 
 ## Try it
@@ -129,7 +129,7 @@ the reply. The modeled Program and Run values are 16#3070 and 16#3060.
 Configure MessageType as CIP Generic with ServiceCode, ObjectType and
 TargetObject. Get Attribute Single also requires AttributeNumber. Get
 Attributes All ignores a valid hexadecimal placeholder in that field.
-Use zero RequestedLength and a writable local SINT, INT or DINT
+Use zero RequestedLength and a writable local SINT, INT, DINT or LINT
 DestinationTag. A buffer can be a scalar, array, numeric UDT member or
 static alias to one of these. Use all coordinates for a multidimensional
 start. The reply starts in the low byte of the selected element and fills
@@ -286,6 +286,28 @@ preserves the reply buffer. An unavailable field in a list reports
 per-entry status 16#0014 and a list status of 16#000A. Driver counters
 are outside the ladder snapshot. See the
 [Ethernet Link field layout](connectivity.md#port-and-tcpip-interface-metadata).
+
+## CIP Generic Controller change detection
+
+Controller class 16#8E, instance 1, exposes AuditValue (attribute 16#1B)
+and ChangesToDetect (attribute 16#1C) through Get Attribute Single and
+Get Attribute List. Each value occupies eight little-endian bytes.
+Use a LINT destination for a single value or read the bytes into a
+buffer such as two contiguous DINTs.
+
+In Message Lab, set SendChangeRead and step three times. Rungs 34 and
+35 write the current simulator Audit Value to ChangeAuditReply and
+the source mask to ChangeMaskReply. The sample's mask is 16#2000,
+which selects requested controller mode transitions. The audit read
+samples the [simulator epoch](simulator-audit-value.md) at completion.
+Reading either attribute does not change the epoch or mask.
+
+An unavailable single attribute reports ERR 16#0014 and preserves the
+destination. Lists report individual unavailable statuses and retain
+the available results. The same two change-detection fields are
+available through [GSV](controller-gsv.md). See the
+[Rockwell change detection guide](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm015_-en-p.pdf)
+for native Audit Value and Changes to Detect behavior.
 
 ## Supported configuration and timing
 
