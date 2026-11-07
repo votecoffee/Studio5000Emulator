@@ -685,6 +685,9 @@ class Engine:
                 elif n in ('ONS','OSR','OSF'):
                     w('',n!='OSF')
                     if n!='ONS':self.memory.write(a[1],False,scope)
+                elif n=='TOF' and bit_logic.available(self.project):
+                    timer = self._counter_record(a[0], scope, 'TIMER')
+                    timer.update(EN=False, TT=False, DN=False, ACC=timer['PRE'])
                 elif n in ('TON','TOF','RTO'):
                     w('.EN',False);w('.TT',False)
                     if n!='RTO':w('.DN',False);w('.ACC',0)
@@ -1217,7 +1220,7 @@ class Engine:
                     selection='True TON/RTO and false TOF consume known EN/DN; other paths establish outputs or retain unread fields',
                     clock='Deterministic millisecond elapsed-time recurrence, canonical record identity and first-enable behavior',
                     overflow='Elapsed accumulation saturates ACC at the positive DINT limit and completes the timing interval',
-                    lifecycle='Prescan needs actual indices; TON/TOF clear ACC/DN, RTO retains them; completed prescan is separate from scan rollback',
+                    lifecycle='Prescan needs actual indices; TON clears ACC/DN, TOF copies PRE to ACC and clears DN, RTO retains ACC/DN',
                     array_recovery='A cleared Type 4 Code 20 skips a whole-project timer call and preserves its last execution time',
                     value_recovery='A cleared Type 4 Code 34 skips true TON/RTO or false TOF with a negative PRE/ACC and preserves its last execution time',
                     faults='Unknown fields, unrecovered faults, out-of-range values and later faults roll back values and timer history',

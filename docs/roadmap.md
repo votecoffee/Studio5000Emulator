@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1107.121030` [ladder TOF prescan](ladder-timers.md#consumed-values)
+copies the current PRE to ACC while clearing EN, TT and DN. Program-mode
+preview preserves the loaded accumulator until prescan commits.
+
 Available in `26.1107.120203` [ladder timer saturation](ladder-timers.md#existing-clock-policy)
 clamps TON, TOF and RTO accumulators at the DINT maximum on elapsed overflow
 and completes the timing interval with the instruction's normal status bits.

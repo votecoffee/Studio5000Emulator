@@ -32,8 +32,10 @@ ladder logic. The opcode and operands must match. Live values carry over, and
 new or changed initializers must use neutral pseudo-operands.
 
 A fresh emulator image applies the literals once. Scans and Run transitions use
-the live members. Ordinary prescan still clears TON/TOF ACC and preserves RTO
-ACC. Recreating the initial image reapplies the initializers. Identical values
+the live members. Prescan clears TON ACC, copies TOF PRE to ACC and
+preserves RTO ACC. Recreating the initial image reapplies the initializers.
+A deferred prescan preview leaves the loaded values available in Program mode.
+Identical values
 for the same member can share a backing record. Conflicting values block the
 project and preserve the saved image, since L5X routine order does not establish
 which value was last edited in Studio.
@@ -65,9 +67,13 @@ such as through [TIMER RES](ladder-counters.md#reset-selection).
 
 Structural preflight checks shape, type, permissions, index grammar and neutral
 operands without consuming saved fields. Prescan still needs actual timer
-addresses. It clears EN/TT; TON/TOF also clear ACC/DN, while RTO retains them.
-An unknown or invalid selected index at prescan remains a blocker even for a
-false rung. Actual execution also requires a valid timer address.
+addresses and clears EN/TT for all three. TON clears ACC and DN. TOF clears
+DN and copies the selected record's current PRE to ACC. If PRE is unknown,
+ACC becomes unknown and runtime validation reports the missing preset when
+the instruction executes. RTO retains ACC and DN. An unknown or invalid
+selected index at prescan remains a blocker even for a false rung. Actual
+execution also requires a valid timer address.
+[Rockwell TOF prescan reference](https://www.rockwellautomation.com/en-ca/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/timer-and-counter-instructions/timer-off-delay--tof-.html)
 
 ## Existing clock policy
 

@@ -61,7 +61,57 @@ class LadderTimerTests(unittest.TestCase):
         with self.assertRaisesRegex(ModelError,'TIMER.EN.*unknown'):e.step()
         self.assertEqual(self.snapshot(e),before);e.memory.write('TimerCells[1].EN',False);before=self.snapshot(e)
         with self.assertRaisesRegex(ModelError,'TIMER.DN.*unknown'):e.step()
-        self.assertEqual(self.snapshot(e),before);e.memory.write('TimerCells[1].DN',True);e.step();self.assertEqual(e.memory.read('TimerCells[1].ACC'),0);e.step();self.assertEqual(e.memory.read('TimerCells[1].ACC'),10);e.step();self.assertEqual(e.memory.read('TimerCells[1].ACC'),20);self.assertFalse(e.memory.read('TimerCells[1].DN'));self.assertFalse(e.memory.read('TimerCells[1].TT'))
+        self.assertEqual(self.snapshot(e),before)
+        e.memory.write('StartPB',True);e.step();e.memory.write('StartPB',False);e.step();self.assertEqual(e.memory.read('TimerCells[1].ACC'),0);e.step();self.assertEqual(e.memory.read('TimerCells[1].ACC'),10);e.step();self.assertEqual(e.memory.read('TimerCells[1].ACC'),20);self.assertFalse(e.memory.read('TimerCells[1].DN'));self.assertFalse(e.memory.read('TimerCells[1].TT'))
+
+    def test_tof_prescan_uses_live_preset_of_the_selected_alias_element(self):
+        def alias(root):
+            E.SubElement(root.find('./Controller/Tags'), 'Tag', Name='OffDelay',
+                         DataType='TIMER', TagType='Alias', AliasFor='TimerCells')
+
+        engine = self.checked(['AFI()TOF(OffDelay[Index],?,?);'], alias)
+        first = engine.memory.read('TimerCells')[0].copy()
+        self.assertEqual(first, dict(PRE=20, ACC=20, EN=False, TT=False, DN=False))
+        self.assertEqual(engine.memory.read('TimerCells[1].ACC'), 0)
+        engine.memory.write('Index', 1)
+        engine.memory.write('TimerCells[1].PRE', 37)
+        engine.memory.write('TimerCells[1].ACC', 5)
+        for flag in ('EN', 'TT', 'DN'):
+            engine.memory.write(f'TimerCells[1].{flag}', True)
+        engine.enter_run()
+
+        self.assertEqual(engine.memory.read('TimerCells')[0], first)
+        self.assertEqual(engine.memory.read('TimerCells')[1],
+                         dict(PRE=37, ACC=37, EN=False, TT=False, DN=False))
+        self.assertEqual(engine.scan_count, 0)
+        self.assertFalse(engine.last_timer)
+        engine.step()
+        self.assertEqual(engine.memory.read('TimerCells[1].ACC'), 37)
+
+    def test_tof_preview_preserves_imported_accumulator_until_prescan_commits(self):
+        engine = self.checked(['AFI()TOF(TimerCells[1],45,9);'])
+        self.assertEqual(engine.memory.read('TimerCells[1].ACC'), 45)
+        preview = Engine(engine.project, defer_prescan=True)
+        self.assertEqual(preview.blockers, [])
+        self.assertEqual(preview.prescan_count, 0)
+        self.assertEqual(preview.memory.read('TimerCells[1].ACC'), 9)
+        preview.memory.write('TimerCells[1].PRE', 60)
+        preview.step()
+        self.assertEqual(preview.memory.read('TimerCells[1].ACC'), 60)
+        self.assertEqual(engine.project.initial['timercells'][1]['ACC'], 9)
+
+    def test_tof_prescan_copies_unknown_preset_without_inventing_an_accumulator(self):
+        def omit_preset(root):
+            record = root.find('./Controller/Tags/Tag[@Name="TimerCells"]/Data/Array/Element[@Index="[1]"]/Structure')
+            record.remove(record.find('DataValueMember[@Name="PRE"]'))
+
+        engine = self.checked(['AFI()TOF(TimerCells[1],?,?);'], omit_preset)
+        self.assertEqual(engine.memory.read('TimerCells')[1],
+                         dict(PRE=None, ACC=None, EN=False, TT=False, DN=False))
+        before = self.snapshot(engine)
+        with self.assertRaisesRegex(ModelError, 'TIMER.PRE.*unknown'):
+            engine.step()
+        self.assertEqual(self.snapshot(engine), before)
 
     def test_all_paths_require_known_nonnegative_dint_preset_and_accumulator(self):
         for op in ('TON','TOF','RTO'):

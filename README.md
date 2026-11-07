@@ -389,6 +389,8 @@ guarded record, timer, counter and string fill examples.
 TON/TOF/RTO path consumes. **Timer lab** adds ladder delay, retention and pause
 examples with clock-history rollback and
 [DINT accumulator saturation](docs/ladder-timers.md#existing-clock-policy).
+[TOF prescan](docs/ladder-timers.md#consumed-values) copies the current
+preset to the accumulator and clears the status bits.
 A handler can clear
 [negative timing values](docs/controller-handlers.md#recover-negative-timing-values)
 in whole-project ladder as Type 4 Code 34.
