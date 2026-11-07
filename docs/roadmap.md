@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+[Ladder counter rollover](ladder-counters.md#counting-and-unknown-values) retains
+DN while OV or UN is set as of `26.1107.133343`. A wrap in the opposite
+direction clears both flags and resumes the preset comparison.
+
 [PID prescan](ladder-pid.md) skips an out-of-bounds PID record as of
 `26.1107.132214`. Normal false and true ladder calls still check the live record.
 

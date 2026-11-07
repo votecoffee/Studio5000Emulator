@@ -647,12 +647,21 @@ class Engine:
         edge='CU' if op.name=='CTU' else 'CD'
         if power and type(obj[edge]) is not bool:
             raise ModelError('COUNTER.'+edge+' is unknown or not BOOL')
-        value=obj['ACC'];updates={edge:power}
+        value = obj['ACC']
+        updates = {edge: power}
         if power and not obj[edge]:
-            value+=1 if op.name=='CTU' else -1
-            if value>2147483647:value=-2147483648;updates['OV']=True
-            if value< -2147483648:value=2147483647;updates['UN']=True
-        updates.update(ACC=value,DN=value>=obj['PRE']);obj.update(updates)
+            delta = 1 if op.name == 'CTU' else -1
+            value += delta
+            if not -2147483648 <= value <= 2147483647:
+                value, latch, opposite = (-2147483648, 'OV', 'UN') if delta > 0 else (2147483647, 'UN', 'OV')
+                if obj[opposite] is True:
+                    updates.update(OV=False, UN=False)
+                else:
+                    updates[latch] = True
+        updates['ACC'] = value
+        if all(updates.get(flag, obj[flag]) is not True for flag in ('OV', 'UN')):
+            updates['DN'] = value >= obj['PRE']
+        obj.update(updates)
         return power
 
     def _prescan_timer_counter(self, name, ref, scope):
@@ -1249,8 +1258,8 @@ class Engine:
                     faults='Unknown fields, unrecovered faults, out-of-range values and later faults roll back values and timer history',
                     native_runtime_parity=False),
                 'ladder_counters':dict(available=bit_logic.available(self.project),language='RLL',instructions=['CTU','CTD','RES'],
-                    counting='Known DINT PRE/ACC and required BOOL edge history; signed wrap, DN comparison and latched OV/UN',
-                    unknowns='False CTU/CTD establish their edge flag without old history; unread opposite-edge/overflow flags are retained',
+                    counting='Known DINT PRE/ACC and required BOOL edge history; signed wrap, retain DN during OV/UN, clear both on opposite wrap',
+                    unknowns='False CTU/CTD establish their edge flag without old history; omitted OV/UN are retained and only a known true flag inhibits DN',
                     reset='TIMER/COUNTER RES preserves PRE, establishes zero ACC and false status bits without old field values',
                     selection='Structural preflight; false RES skips live indices; CTU/CTD prescan skips out-of-bounds selections; normal execution resolves live addresses',
                     array_recovery='A cleared Type 4 Code 20 skips a whole-project count or reset and preserves the addressed records',

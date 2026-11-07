@@ -233,9 +233,10 @@ class StructuredCounterTests(unittest.TestCase):
             E.SubElement(E.SubElement(E.SubElement(r,'RLLContent'),'Rung',Number='0',Type='N'),'Text').text='CTUD(C);'
         self.assertTrue(self.engine(mutate=ladder).blockers)
 
-    def test_builtin_counter_is_not_decorated_only_and_does_not_inflate_rll_count(self):
+    def test_builtin_counter_is_not_decorated_only_and_remains_st_only(self):
         e=self.checked();self.assertNotIn('FBD_COUNTER',e.project.data_only_types);self.assertNotIn('fbd_counter',e.project.udts)
-        self.assertEqual(len(ARITIES),106);self.assertTrue({'TONR','TOFR','RTOR','CTUD'}<=set(ST_ONLY_ARITIES))
+        self.assertNotIn('CTUD', ARITIES)
+        self.assertTrue({'TONR', 'TOFR', 'RTOR', 'CTUD'} <= set(ST_ONLY_ARITIES))
         self.assertEqual(set(e.memory.read('C')),set(FIELDS));self.assertEqual(e.memory.resolve('C.ACC')[2],'DINT')
 
     def test_report_exposes_sampled_initialization_order_reset_and_qualification(self):

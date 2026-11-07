@@ -70,11 +70,54 @@ class LadderCounterTests(unittest.TestCase):
         with self.assertRaisesRegex(ModelError,'Unknown'):e.step()
         self.assertEqual(self.snapshot(e),before);e.memory.write('Positions[0]',0);e.memory.write('CounterCells[0].PRE',-7);e.step();self.assertEqual(e.memory.read('CounterCells[0].PRE'),-7);self.assertFalse(e.memory.read('CounterCells[0].DN'))
 
-    def test_signed_wrap_establishes_only_its_latched_overflow_flag(self):
-        for op,start,wanted,flag,untouched in [('CTU',2147483647,-2147483648,'OV','UN'),('CTD',-2147483648,2147483647,'UN','OV')]:
-            e=self.checked([f'XIC(StartPB){op}(CounterCells[0],?,?);']);e.memory.write('CounterCells[0].ACC',start);e.step();e.memory.write('StartPB',True);e.step();obj=e.memory.read('CounterCells')[0]
-            self.assertEqual(obj['ACC'],wanted);self.assertTrue(obj[flag]);self.assertIsNone(obj[untouched]);self.assertEqual(obj['DN'],wanted>=3)
-            e.memory.write('StartPB',False);e.step();self.assertTrue(e.memory.read('CounterCells[0].'+flag))
+    def test_signed_wrap_latches_its_flag_and_retains_done_through_held_and_false_scans(self):
+        for op, start, wrapped, flag, opposite in (
+            ('CTU', 2147483647, -2147483648, 'OV', 'UN'),
+            ('CTD', -2147483648, 2147483647, 'UN', 'OV'),
+        ):
+            with self.subTest(op=op):
+                e = self.checked([f'XIC(StartPB){op}(CounterCells[0],?,?);'])
+                e.memory.write('CounterCells[0].ACC', start)
+                e.step()
+                done = start >= 3
+                for power in (True, True, False):
+                    e.memory.write('StartPB', power)
+                    e.step()
+                    obj = e.memory.read('CounterCells')[0]
+                    self.assertEqual((obj['ACC'], obj[flag], obj[opposite], obj['DN']),
+                                     (wrapped, True, None, done))
+
+    def test_opposite_wrap_clears_both_flags_and_resumes_done_comparison_immediately(self):
+        for op, start, opposite in (
+            ('CTU', 2147483647, 'UN'),
+            ('CTD', -2147483648, 'OV'),
+        ):
+            with self.subTest(op=op):
+                e = self.checked([f'XIC(StartPB){op}(CounterCells[0],?,?);'])
+                memory = e.memory
+                memory.write('CounterCells[0].ACC', start)
+                memory.write('CounterCells[0].' + opposite, True)
+                saved_done = start >= 3
+                memory.write('CounterCells[0].DN', saved_done)
+                e.step()
+                self.assertIs(memory.read('CounterCells[0].DN'), saved_done)
+
+                memory.write('StartPB', True)
+                e.step()
+                obj = memory.read('CounterCells')[0]
+                self.assertEqual((obj['ACC'], obj['OV'], obj['UN'], obj['DN']),
+                                 (-start - 1, False, False, not saved_done))
+
+    def test_non_wrapping_edge_retains_latched_flags_and_unknown_done(self):
+        e = self.checked(['XIC(StartPB)CTU(CounterCells[0],?,?);'])
+        memory = e.memory
+        memory.write('CounterCells[0].ACC', 2)
+        memory.write('CounterCells[0].OV', True)
+        e.step()
+        memory.write('StartPB', True)
+        e.step()
+        obj = memory.read('CounterCells')[0]
+        self.assertEqual((obj['ACC'], obj['OV'], obj['UN'], obj['DN']), (3, True, None, None))
 
     def test_shared_counter_up_down_edges_done_and_res_order(self):
         e=self.checked(['XIC(ResetPB)RES(CounterCells[0]);','XIC(StartPB)CTU(CounterCells[0],?,?);','XIC(PartSensor)CTD(CounterCells[0],?,?);']);e.memory.write('ResetPB',True);e.step();e.memory.write('ResetPB',False);e.memory.write('CounterCells[0].PRE',1)

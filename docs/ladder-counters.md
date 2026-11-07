@@ -22,16 +22,20 @@ Counting uses the live members after initialization.
 ## Counting and unknown values
 
 Each reached CTU/CTD requires known signed DINT PRE and ACC, including a false
-rung, because it computes DN from ACC >= PRE. Negative presets and counts are
-valid. A true rung requires a known BOOL CU/CD history bit; unknown history
-cannot be treated as false to create a count. A false rung establishes that
-instruction's edge bit as false without consuming its prior value.
+rung. Negative presets and counts are valid. A true rung requires a known BOOL
+CU/CD history bit. A false rung establishes that instruction's edge bit as
+false without consuming its prior value.
 
 A false-to-true edge increments or decrements once. Held true does not repeat.
-Signed DINT wrap retains the existing model: CTU wraps maximum to minimum and
-sets OV; CTD wraps minimum to maximum and sets UN. Unread opposite-edge and
-overflow/underflow flags retain their values, including unknowns. DN and the
-executed instruction's edge flag are complete BOOL writes.
+CTU wraps maximum to minimum and sets OV. CTD wraps minimum to maximum and
+sets UN. While either flag is set, false rungs, held true rungs and ordinary
+count edges retain DN. If the opposite flag is already set at a wrap, the
+instruction clears both flags and immediately sets DN from ACC >= PRE.
+With neither flag set, each reached call compares ACC with PRE.
+
+The emulator keeps its existing treatment of omitted OV/UN values. An unknown
+flag alone does not inhibit the DN comparison or cancel a new wrap latch.
+Untouched fields retain their saved values, including unknowns.
 
 Structural preflight checks record shape, declared type, reference grammar,
 permissions and neutral operands without requiring saved field values. Counter
@@ -85,6 +89,6 @@ for counter prescan and execution. Disabling LadderCounter skips its routine
 and retains its count/output. See [CounterLab.L5X](../source/samples/CounterLab.L5X).
 
 The reference basis is installed Logix Designer v35 help 14736 (CTU), 14730
-(CTD) and 14733 (RES): edge counting, prescan initialization, signed boundaries
-and reset effects. Unknown-value handling and transactional rollback are
+(CTD) and 14733 (RES), and the [published CTU and CTD flowcharts](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm003_-en-p.pdf).
+Unknown-value handling and transactional rollback are
 explicit software-model policies; tests do not establish native equivalence.
