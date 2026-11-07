@@ -147,7 +147,9 @@ def interface_snapshot(address):
 
 PORT_CLASS_ID = 0xF4
 TCPIP_CLASS_ID = 0xF5
+ETHERNET_LINK_CLASS_ID = 0xF6
 TCPIP_INTERFACE_ATTRIBUTES = frozenset(range(1, 6))
+ETHERNET_LINK_ATTRIBUTES = frozenset((1, 2, 3, 6, 7, 8, 9, 10))
 
 
 @dataclass(frozen=True)
@@ -171,6 +173,22 @@ def tcpip_interface_attributes(snapshot, hostname, *, include_interface):
             values[5] = snapshot.configuration()
             if snapshot.tcpip is not None:
                 values.update(snapshot.tcpip.attributes())
+    return values
+
+
+def ethernet_link_class_attributes():
+    return {1: b'\1\0', 2: b'\1\0', 3: b'\1\0'}
+
+
+def ethernet_link_attributes(snapshot):
+    if snapshot is None:
+        return {}
+    values = snapshot.link.attributes() if snapshot.link is not None else {}
+    if snapshot.mac is not None:
+        values[3] = snapshot.mac
+    label = snapshot.interface_label()
+    if label is not None:
+        values[10] = label
     return values
 
 

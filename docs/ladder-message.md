@@ -2,8 +2,9 @@
 
 LogixLab models CIP Data Table Read and Write for numeric tags, matching
 strings and user-defined records, plus bounded CIP Generic reads of Identity,
-Wall Clock Time, Time Sync, the Port Object and the TCP/IP Interface Object
-in whole-project v35 ControlLogix 5580 ladder execution. It transfers
+Wall Clock Time, Time Sync, the Port Object, the TCP/IP Interface Object
+and the Ethernet Link Object in whole-project v35 ControlLogix 5580
+ladder execution. It transfers
 values between tags in the current project. The `MSG` faceplate shows the
 message control and its `EN`, `DN` and `ER` bits.
 
@@ -262,6 +263,25 @@ without verified physical-link data returns an empty path.
 Ladder uses the snapshot captured during endpoint startup and refreshed on
 endpoint restart. The same field encoders serve inbound EtherNet/IP requests.
 See the [TCP/IP object layout](connectivity.md#port-and-tcpip-interface-metadata).
+
+## CIP Generic Ethernet Link Object
+
+With EtherNet/IP enabled, set SendLinkRead in Message Lab and step three
+times. Rung 33 reads class 16#F6, instance 1, attribute 3 into LinkReply.
+The six reply bytes contain the bound adapter's MAC address in octet order.
+
+Class instance 0 supports Get Attribute Single, Get Attribute List and
+Get Attributes All. Instance 1 supports single and list reads of the MAC
+address and interface label, plus speed, flags, control, interface type,
+state and administration state when the endpoint captured those fields.
+The label is a length byte followed by ASCII characters. Readings come
+from the startup snapshot and refresh on endpoint restart.
+
+A missing modeled field on a single read reports ERR 16#000C and
+preserves the reply buffer. An unavailable field in a list reports
+per-entry status 16#0014 and a list status of 16#000A. Driver counters
+are outside the ladder snapshot. See the
+[Ethernet Link field layout](connectivity.md#port-and-tcpip-interface-metadata).
 
 ## Supported configuration and timing
 

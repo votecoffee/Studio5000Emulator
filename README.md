@@ -169,7 +169,8 @@ requests at a time and retries waiting messages. The lab exercises program-local
 message controls, matching strings and UDT records, and selected numeric UDT
 members through direct addresses or aliases. It also demonstrates CIP Generic
 reads of virtual controller identity, mode, UTC clock, Time Sync, port
-diagnostics and the active endpoint's TCP/IP configuration. It supports
+diagnostics, TCP/IP configuration and the active endpoint's Ethernet Link
+metadata. It supports
 runtime attribute selection, ordered lists and SINT,
 INT or DINT reply buffers.
 [Simulated loss of a required Running module](docs/gsv-configuration.md#required-module-loss-during-run)

@@ -36,7 +36,7 @@ def add_message_burst(root):
                       MessageType='CIP Data Table Read', LocalElement=f'BurstValues[{index}]',
                       RemoteElement='VirtualValue', RequestedLength='1', ConnectedFlag='0',
                       ConnectionPath='THIS', CommTypeCode='0')
-        rung = ET.SubElement(content, 'Rung', Number=str(33 + index), Type='N')
+        rung = ET.SubElement(content, 'Rung', Number=str(34 + index), Type='N')
         ET.SubElement(rung, 'Text').text = f'XIC(SendBurst)MSG({name});'
 
 
@@ -804,6 +804,47 @@ class MessageTests(unittest.TestCase):
         reply = memory.read('TcpIpReply')
         self.assertEqual(bytes(reply[1:1 + len(expected)]), expected)
         self.assertEqual((reply[0], reply[1 + len(expected)]), (-9, None))
+
+    def test_generic_ethernet_link_list_reports_label_and_omits_driver_counters(self):
+        def configure(root):
+            control = root.find('.//Tag[@Name="IdentityListControl"]//MessageParameters')
+            control.set('ObjectType', '16#F6')
+            control.set('DestinationTag', 'LinkReply[1]')
+            array = root.find('.//Tag[@Name="IdentityListRequest"]//Array')
+            array.find('Element[@Index="[1]"]').set('Value', '10')
+            array.find('Element[@Index="[2]"]').set('Value', '4')
+
+        snapshot = InterfaceSnapshot('192.0.2.10', '255.255.255.0', name='eth0')
+        binding = NetworkBinding(snapshot.address, snapshot)
+        engine = self.engine(configure, network_binding=lambda: binding)
+        self.assertEqual(engine.blockers, [])
+        engine.memory.write('SendIdentityList', True)
+        for _ in range(3):
+            engine.step()
+
+        expected = struct.pack('<3H', 2, 10, 0) + b'\x04eth0' + struct.pack('<2H', 4, 0x14)
+        self.assert_flags(engine, 'IdentityListControl', ER=True, ERR=0x0A, DN_LEN=len(expected))
+        reply = engine.memory.read('LinkReply')
+        self.assertEqual(bytes(reply[1:1 + len(expected)]), expected)
+        self.assertEqual((reply[0], reply[1 + len(expected)]), (-9, None))
+
+    def test_generic_ethernet_link_class_inventory_remains_available_offline(self):
+        def configure(root):
+            control = root.find('.//Tag[@Name="IdentityAllControl"]//MessageParameters')
+            control.set('ObjectType', '16#F6')
+            control.set('TargetObject', '0')
+            control.set('DestinationTag', 'LinkReply[1]')
+
+        engine = self.engine(configure)
+        self.assertEqual(engine.blockers, [])
+        engine.memory.write('SendIdentityAll', True)
+        engine.memory.write('SendLinkRead', True)
+        for _ in range(3):
+            engine.step()
+
+        self.assert_flags(engine, 'LinkReadControl', ER=True, ERR=0x0C, DN_LEN=0)
+        self.assert_flags(engine, 'IdentityAllControl', DN=True, ERR=0, DN_LEN=6)
+        self.assertEqual(engine.memory.read('LinkReply')[:8], [-9, 1, 0, 1, 0, 1, 0, None])
 
     def test_generic_identity_attribute_written_by_ladder_applies_to_next_request(self):
         engine = self.engine()

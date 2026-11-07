@@ -9,7 +9,8 @@ from .identity import Identity
 from .integer_math import CONTROLLERS
 from .model import ModelError, coerce
 from .network_objects import (
-    PORT_CLASS_ID, TCPIP_CLASS_ID, TCPIP_INTERFACE_ATTRIBUTES,
+    ETHERNET_LINK_ATTRIBUTES, ETHERNET_LINK_CLASS_ID, PORT_CLASS_ID, TCPIP_CLASS_ID,
+    TCPIP_INTERFACE_ATTRIBUTES, ethernet_link_attributes, ethernet_link_class_attributes,
     port_attributes, tcpip_class_attributes, tcpip_interface_attributes,
 )
 from .numeric_copy import decode, encode, location
@@ -30,6 +31,7 @@ GENERIC_SERVICES = {
     time_sync.CLASS_ID: {1: (0x03, 0x0E)},
     PORT_CLASS_ID: dict.fromkeys((0, 1, 2), (0x01, 0x03, 0x0E)),
     TCPIP_CLASS_ID: {0: (0x01, 0x03, 0x0E), 1: (0x03, 0x0E)},
+    ETHERNET_LINK_CLASS_ID: {0: (0x01, 0x03, 0x0E), 1: (0x03, 0x0E)},
 }
 GENERIC_SINGLE_ATTRIBUTES = {
     1: IDENTITY_ATTRIBUTES,
@@ -37,6 +39,7 @@ GENERIC_SINGLE_ATTRIBUTES = {
     time_sync.CLASS_ID: time_sync.INSTANCE_ATTRIBUTES,
     PORT_CLASS_ID: (1, 2, 3, 4, 5, 7, 8, 9),
     TCPIP_CLASS_ID: (1, 2, 3, 4, 5, 6, 101, 102),
+    ETHERNET_LINK_CLASS_ID: ETHERNET_LINK_ATTRIBUTES,
 }
 GENERIC_BUFFER_TYPES = frozenset(('SINT', 'INT', 'DINT'))
 MAX_ATTRIBUTE_LIST = 32
@@ -885,6 +888,17 @@ def _generic_reply(engine, request, numbers, status_word):
             if include_interface and binding.interface is None and request.service == 0x03:
                 raise TransferError(0x0C)
             if include_interface and request.service == 0x0E and request.attribute not in values:
+                raise TransferError(0x0C)
+    elif request.class_id == ETHERNET_LINK_CLASS_ID:
+        if request.instance == 0:
+            values = ethernet_link_class_attributes()
+            if request.service == 0x01:
+                return 0, b''.join(values.values())
+        else:
+            binding = engine.network_binding() if engine.network_binding else None
+            values = ethernet_link_attributes(binding.interface if binding else None)
+            if (request.service == 0x0E and request.attribute in ETHERNET_LINK_ATTRIBUTES
+                    and request.attribute not in values):
                 raise TransferError(0x0C)
     else:
         requested = numbers if request.service == 0x03 else (request.attribute,)

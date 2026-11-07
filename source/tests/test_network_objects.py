@@ -147,7 +147,8 @@ class NetworkObjectTests(unittest.TestCase):
         self.client.close()
         self.app.command('connectivity-stop', {})
         self.app.command('demo', {'sample': 'MessageLab'})
-        snapshot = replace(SNAPSHOT, address='127.0.0.1', netmask='255.0.0.0')
+        snapshot = replace(SNAPSHOT, address='127.0.0.1', netmask='255.0.0.0',
+                           mac=bytes.fromhex('020000000080'))
         with patch('logixlab.ethernetip.interface_snapshot', return_value=(snapshot, None)) as reader:
             self.app.command('connectivity-start', {'port': 0})
             self.endpoint = self.app.endpoint
@@ -156,25 +157,36 @@ class NetworkObjectTests(unittest.TestCase):
             self.assertFalse(self.app.connectivity()['network_interface']['captured_on_first_query'])
             payload = self.send(0xF5, 1, 5)[4:]
             self.assertEqual(payload, bytes.fromhex('0100007f000000ff010200c0350200c0360200c003006c616200'))
+            link_payload = self.send(0xF6, 1, 3)[4:]
+            self.assertEqual(link_payload, snapshot.mac)
 
             self.app.command('configure', {'mode': 'project'})
             memory = self.app.engine.memory
             memory.write('SendTcpIpRead', True)
+            memory.write('SendLinkRead', True)
             for _ in range(3):
                 self.app.command('step', {})
             self.assertTrue(memory.read('TcpIpReadControl.DN'))
             self.assertEqual(memory.read('TcpIpReadControl.DN_LEN'), len(payload))
             self.assertEqual(bytes(v & 255 for v in memory.read('TcpIpReply')[:len(payload)]), payload)
+            self.assertTrue(memory.read('LinkReadControl.DN'))
+            self.assertEqual(memory.read('LinkReadControl.DN_LEN'), len(link_payload))
+            self.assertEqual(bytes(v & 255 for v in memory.read('LinkReply')[:len(link_payload)]), link_payload)
 
             self.client.close()
             self.app.command('connectivity-stop', {})
             memory.write('SendTcpIpRead', False)
+            memory.write('SendLinkRead', False)
             self.app.command('step', {})
             memory.write('SendTcpIpRead', True)
+            memory.write('SendLinkRead', True)
             for _ in range(3):
                 self.app.command('step', {})
             self.assertEqual(memory.read('TcpIpReadControl.ERR'), 0x0C)
             self.assertEqual(bytes(v & 255 for v in memory.read('TcpIpReply')[:len(payload)]), payload)
+            self.assertEqual(memory.read('LinkReadControl.ERR'), 0x0C)
+            self.assertEqual(memory.read('LinkReadControl.DN_LEN'), 0)
+            self.assertEqual(bytes(v & 255 for v in memory.read('LinkReply')[:len(link_payload)]), link_payload)
             reader.assert_called_once_with('127.0.0.1')
 
     def test_metadata_query_is_lazy_and_hostname_uses_current_host(self):

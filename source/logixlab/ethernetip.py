@@ -23,7 +23,8 @@ from .identity import Identity, controller_status_word
 from .templates import Catalog, MAX_BYTES
 from .catalog_revision import CatalogRevision
 from .network_objects import (
-    NetworkBinding, TCPIP_INTERFACE_ATTRIBUTES, cip_string, interface_snapshot,
+    ETHERNET_LINK_ATTRIBUTES, NetworkBinding, TCPIP_INTERFACE_ATTRIBUTES, cip_string,
+    ethernet_link_attributes, ethernet_link_class_attributes, interface_snapshot,
     port_attributes, tcpip_class_attributes, tcpip_interface_attributes,
 )
 from .broadcast_discovery import prepare_broadcasts
@@ -2127,7 +2128,7 @@ class Router:
                 if service==1 and path.attribute is None:
                     exact(data,0);return 0,b''.join(attributes.values())
             elif instance==0:
-                attributes=tcpip_class_attributes() if path.class_id==0xF5 else {1:b'\1\0',2:b'\1\0',3:b'\1\0'}
+                attributes=tcpip_class_attributes() if path.class_id==0xF5 else ethernet_link_class_attributes()
                 if service==1 and path.attribute is None:
                     exact(data,0);return 0,b''.join(attributes[n] for n in (1,2,3))
             elif instance==1 and path.class_id==0xF6:
@@ -2141,15 +2142,11 @@ class Router:
                     need(data,2);count=struct.unpack_from('<H',data)[0];exact(data,2+2*count)
                     if not 1<=count<=32:raise CIPError(3,'Attribute count must be 1..32')
                     selected=set(struct.unpack_from('<'+'H'*count,data,2))
-                if {1,2,3,4,5,6,7,8,9,10}.intersection(selected):
+                if (ETHERNET_LINK_ATTRIBUTES | {4,5}).intersection(selected):
                     snapshot=self.endpoint.capture_interface()
-                    if snapshot is not None:
-                        if snapshot.mac is not None:attributes[3]=snapshot.mac
-                        label=snapshot.interface_label()
-                        if label is not None:attributes[10]=label
-                        if snapshot.link is not None:attributes.update(snapshot.link.attributes())
-                        if {4,5}.intersection(selected):
-                            attributes.update(self.endpoint.ethernet_counters.read(snapshot.name))
+                    attributes=ethernet_link_attributes(snapshot)
+                    if snapshot is not None and {4,5}.intersection(selected):
+                        attributes.update(self.endpoint.ethernet_counters.read(snapshot.name))
                     if service==0x0E and path.attribute not in attributes and path.attribute not in (4,5):
                         raise CIPError(0x0C,'Ethernet link attribute is unavailable on this interface')
             elif instance==1:
