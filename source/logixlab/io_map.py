@@ -52,6 +52,31 @@ def _decimal_field(node, attribute):
     return int(value) if 1 <= len(value) <= 2 and value.isascii() and value.isdecimal() else None
 
 
+def local_backplane_route(controller):
+    """Read the controller's own route independently of the native I/O inventory."""
+    sections = controller.findall('Modules')
+    if len(sections) != 1:
+        return None
+    candidates = [module for module in sections[0].findall('Module')
+                  if module.get('Name', '').casefold() == 'local']
+    if len(candidates) != 1:
+        return None
+    local = candidates[0]
+    if (local.get('ParentModule', '').casefold() != 'local'
+            or local.get('CatalogNumber') != controller.get('ProcessorType')
+            or local.get('Vendor') != '1' or local.get('ProductType') != '14'):
+        return None
+    port = _backplane_port(local, upstream=False)
+    if port is None:
+        return None
+    buses = port.findall('Bus')
+    size = _decimal_field(buses[0], 'Size') if len(buses) == 1 else None
+    slot = _decimal_field(port, 'Address')
+    if size is not None and slot is not None and 0 <= slot < size <= 17:
+        return bytes((1, slot))
+    return None
+
+
 def _backplane_slots(parent_port, children):
     if parent_port is None:
         return {}

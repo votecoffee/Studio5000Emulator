@@ -1,4 +1,4 @@
-"""Bounded, in-process ladder MSG transfers on the simulated THIS route."""
+"""Bounded, in-process ladder MSG transfers to the simulated controller."""
 import math
 import re
 from dataclasses import dataclass, replace
@@ -23,7 +23,7 @@ TO_MASK = 1 << STATUS_BITS['TO']
 CACHE_MASK = 1 << STATUS_BITS['EN_CC']
 FIELDS = {
     'FLAGS': 'INT', 'ERR': 'INT', 'EXERR': 'DINT', 'REQ_LEN': 'INT', 'DN_LEN': 'INT',
-    'LocalIndex': 'DINT', 'RemoteIndex': 'DINT', 'RemoteElement': 'STRING',
+    'LocalIndex': 'DINT', 'RemoteIndex': 'DINT', 'RemoteElement': 'STRING', 'Path': 'STRING',
     'UnconnectedTimeout': 'DINT',
     'ConnectionRate': 'DINT', 'TimeoutMultiplier': 'SINT',
     'Class': 'INT', 'Instance': 'DINT', 'Attribute': 'INT',
@@ -78,6 +78,7 @@ class Configuration:
     record: RecordLayout | None = None
     connected: bool = False
     cache: bool = False
+    path: bytes = b''
 
 
 @dataclass(frozen=True)
@@ -90,6 +91,7 @@ class IdentityRead:
     instance: int = 1
     connected: bool = False
     cache: bool = False
+    path: bytes = b''
 
 
 @dataclass(frozen=True)
@@ -104,6 +106,7 @@ class DataTableTransfer:
 class Pending:
     request: DataTableTransfer | IdentityRead
     deadline_us: int | None
+    path: bytes | None
     enabled: bool = True
     started: bool = False
     opening: bool = False
@@ -204,17 +207,23 @@ def from_tag(project, tag, element, dims):
     kind = attributes.get('MessageType', '').casefold()
     connected = _flag(attributes, 'ConnectedFlag')
     cache = _flag(attributes, 'CacheConnections')
-    if (attributes.get('ConnectionPath', '').strip().casefold() != 'this'
-            or attributes.get('CommTypeCode', '0') != '0'
+    if (attributes.get('CommTypeCode', '0') != '0'
             or _flag(attributes, 'LargePacketUsage') or (cache and not connected)):
-        raise ModelError('MESSAGE requires standard CIP transfers on THIS and a connected request to cache')
+        raise ModelError('MESSAGE requires standard CIP transfers and a connected request to cache')
+    path_text = attributes.get('ConnectionPath', '').strip()
+    path = b''
+    if path_text.casefold() != 'this':
+        local = re.fullmatch(r'1[ 	]*,[ 	]*([0-9]{1,2})', path_text)
+        if local is None or bytes((1, int(local[1]))) != project.local_message_route:
+            raise ModelError('MESSAGE path requires THIS or the declared local controller slot')
+        path = project.local_message_route
     if kind == 'cip generic':
-        return replace(_identity_read(project, attributes), connected=connected, cache=cache)
+        return replace(_identity_read(project, attributes), connected=connected, cache=cache, path=path)
     if kind not in ('cip data table read', 'cip data table write'):
         raise ModelError('MESSAGE supports CIP Data Table Read, Write and bounded CIP Generic Identity reads')
     return Configuration(kind.endswith('read'), _endpoint(attributes, 'Local'),
                          _endpoint(attributes, 'Remote'), attributes['RemoteElement'].strip(),
-                         _number(attributes, 'RequestedLength', 1, MAX_ELEMENTS), connected=connected, cache=cache)
+                         _number(attributes, 'RequestedLength', 1, MAX_ELEMENTS), connected=connected, cache=cache, path=path)
 
 
 def _scope_endpoint(project, endpoint, scope):
@@ -310,7 +319,10 @@ def initial(project, configuration):
     record = {
         'FLAGS': CACHE_MASK if configuration.cache else 0, 'ERR': 0, 'EXERR': 0, 'REQ_LEN': 0, 'DN_LEN': 0,
         'UnconnectedTimeout': DEFAULT_TIMEOUT_US,
+        'Path': project.default('STRING'),
     }
+    record['Path']['LEN'] = len(configuration.path)
+    record['Path']['DATA'][:len(configuration.path)] = configuration.path
     if configuration.connected:
         record.update(ConnectionRate=DEFAULT_CONNECTION_RATE_US, TimeoutMultiplier=0)
     if isinstance(configuration, IdentityRead):
@@ -546,13 +558,13 @@ def prescan(engine, op, scope):
     key = validate(engine, op, scope)
     record = engine.memory.values[key]
     defaults = initial(engine.project, engine.project.message_configs[key])
-    for name in ('LocalIndex', 'RemoteIndex', 'RemoteElement', 'UnconnectedTimeout',
+    for name in ('LocalIndex', 'RemoteIndex', 'RemoteElement', 'Path', 'UnconnectedTimeout',
                  'ConnectionRate', 'TimeoutMultiplier', 'Class', 'Instance', 'Attribute'):
         if name in record:
             defaults[name] = record[name]
     defaults['FLAGS'] = record['FLAGS'] & CACHE_MASK
     engine.memory.values[key] = defaults
-    engine.memory.message_cache.discard(key)
+    engine.memory.message_cache.pop(key, None)
     if engine._message_advance is not None:
         engine._message_advance.pop(key, None)
 
@@ -572,6 +584,14 @@ def _capture_remote(memory, key, configuration, record):
     return _parse_endpoint(text, 0)
 
 
+def _capture_path(memory, key):
+    try:
+        path = memory.string(key + '.Path').encode('latin-1')
+    except ModelError:
+        return None
+    return path if path in (b'', memory.project.local_message_route) else None
+
+
 def _admit(engine, key, power):
     record = engine.memory.values[key]
     queue = engine._message_advance
@@ -579,7 +599,10 @@ def _admit(engine, key, power):
         return
     configuration = engine.project.message_configs[key]
     cache = engine.memory.message_cache
-    reused = configuration.connected and key in cache
+    path = _capture_path(engine.memory, key)
+    reused = configuration.connected and path is not None and cache.get(key) == path
+    if not reused:
+        cache.pop(key, None)
     timeout_us = record['UnconnectedTimeout']
     response_us = None
     if configuration.connected:
@@ -588,7 +611,7 @@ def _admit(engine, key, power):
     if (not reused and timeout_us <= 0) or response_us == 0:
         _set_flags(record, EN=power, ER=True)
         record['ERR'] = 0x03
-        cache.discard(key)
+        cache.pop(key, None)
         return
     request = configuration
     if isinstance(request, IdentityRead):
@@ -599,7 +622,7 @@ def _admit(engine, key, power):
         request = DataTableTransfer(request, request.local.start(record['LocalIndex']), remote,
                                     remote.start(record['RemoteIndex']) if remote is not None else ())
     deadline = None if reused else engine.time_ms * 1000 + timeout_us
-    queue[key] = Pending(request, deadline, enabled=power, opening=configuration.connected and not reused,
+    queue[key] = Pending(request, deadline, path, enabled=power, opening=configuration.connected and not reused,
                          response_timeout_us=response_us)
     _set_flags(record, EW=True)
 
@@ -617,7 +640,7 @@ def execute(engine, op, power, scope):
             # An enabled control with no queue entry or result is waiting for admission.
             if record['FLAGS'] & TO_MASK:
                 _finish(record, power, 0xFE)
-                engine.memory.message_cache.discard(key)
+                engine.memory.message_cache.pop(key, None)
             else:
                 _admit(engine, key, power)
         elif not power:
@@ -729,6 +752,8 @@ def service(memory, queue, now_ms, status_word):
             continue
         else:
             try:
+                if pending.path is None:
+                    raise TransferError(0x05)
                 transferred = _transfer(memory, pending.request, status_word)
             except TransferError as failure:
                 error = failure.code
@@ -736,7 +761,7 @@ def service(memory, queue, now_ms, status_word):
                 error = 0
         _finish(record, pending.enabled, error, transferred)
         if error:
-            cache.discard(key)
+            cache.pop(key, None)
         elif record['FLAGS'] & CACHE_MASK and len(cache) < MAX_CACHED:
-            cache.add(key)
+            cache[key] = pending.path
         del queue[key]

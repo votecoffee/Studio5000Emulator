@@ -2,7 +2,7 @@
 
 LogixLab models CIP Data Table Read and Write for numeric tags, matching
 strings and user-defined records, plus a bounded CIP Generic Identity read
-over the simulated `THIS` path in whole-project v35 ControlLogix 5580 ladder
+to the simulated controller in whole-project v35 ControlLogix 5580 ladder
 execution. It transfers
 values between tags in the current project. The `MSG` faceplate shows the
 message control and its `EN`, `DN` and `ER` bits.
@@ -43,6 +43,13 @@ read and step four times at the default 10 ms. The response expires with
 ERR 16#00FE. To let the next request finish, clear SendConnectedRead, set
 ConnectedMultiplier to 1, apply the settings for one scan and trigger again.
 A request that was already queued retains the settings it captured.
+
+On a fresh Message Lab, enable ApplyMessageRoute for one scan. Rung 25
+copies LocalMessageRoute into CachedReadControl.Path. Its two bytes select
+port 1 and the project controller's slot 0. Clear ApplyMessageRoute and
+trigger a read to use this route. Set LocalMessageRoute.DATA[1] to 1 and
+apply the route again to select an unsupported slot. The next request
+returns ERR 16#0005 and keeps the previous destination value.
 
 Set `CaptureReadFlags` and `SendRead` on a fresh Message Lab and step three
 times. The ladder MOV copies the current `ReadControl.FLAGS` into
@@ -152,9 +159,18 @@ two SINT elements. Those bytes encode product code 168.
   looking in controller scope. The model reads
   `MessageType`, `ConnectionPath`, `RequestedLength`, `LocalElement`,
   `RemoteElement`, and optional decimal `LocalIndex` and `RemoteIndex`. Use
-  CIP communications on THIS. The connected and cache options are supported
-  for the simulated path. Cache requires ConnectedFlag and large packets
-  remain outside this profile.
+  standard CIP communications on THIS or a one-hop backplane route to the
+  declared local controller, such as `1,0`. An explicit route requires a
+  unique matching Local module with an ICP port 1, a valid slot and a
+  chassis size. Connected THIS is supported by the emulator. Cache requires
+  ConnectedFlag. Large packets remain outside this profile.
+- MESSAGE.Path is a writable STRING containing raw path bytes. An empty
+  string represents THIS in the emulator. Two bytes such as the ladder
+  literal `'$01$00'` represent port 1 and slot 0. Writes through MOV or
+  the LEN and DATA members affect the next admitted request. A request
+  with invalid bytes, invalid LEN, unknown active DATA or an unsupported
+  route reports ERR 16#0005 and leaves its destination untouched. Prescan
+  retains the live path and Reset restores the authored path.
 - Numeric Data Table endpoints must use matching SINT, INT, DINT, LINT, or finite REAL types.
   They can name scalar tags or spans of 1 to 64 elements in arrays of up to
   three dimensions. A two- or three-dimensional start must specify every
@@ -256,8 +272,10 @@ two SINT elements. Those bytes encode product code 168.
   accepted values back. Prescan keeps the values and Reset restores the
   defaults. Changes to a setting and its readback roll back with the scan.
 - The emulator retains up to 32 successful cached connections, one per
-  control tag. A cached request skips setup. Clearing EN_CC releases its
-  cache entry immediately. A queued or started request can still finish.
+  control tag. A cached request skips setup when it captures the same raw
+  path bytes. Admission with a different path discards the old entry and
+  requires a new setup, including a switch between THIS and the explicit
+  self route. Clearing EN_CC releases its cache entry immediately. A queued or started request can still finish.
   The bit at successful completion determines whether to retain the
   connection. Setting EN_CC after an idle release still requires a new open.
   Errors and cancellation discard that control's entry. Prescan clears
@@ -280,8 +298,8 @@ two SINT elements. Those bytes encode product code 168.
   alignment padding from the emulator's layout.
 
 This profile is an in-process simulation. External routing, network packet
-timing, native MESSAGE layouts, runtime path changes, and Studio 5000
-runtime qualification remain open. Decorated-only MESSAGE fields remain readable as
+timing, native MESSAGE layouts, the Message object ConnectionPath
+GSV/SSV buffer, and Studio 5000 runtime qualification remain open. Decorated-only MESSAGE fields remain readable as
 saved data. The native Message object inventory is separate.
 
 - [ODVA Identity object reference](https://www.odva.org/wp-content/uploads/2020/06/PUB00123R1_Common-Industrial_Protocol_and_Family_of_CIP_Networks.pdf)

@@ -26,7 +26,7 @@ from .program_diagnostics import ProgramDiagnostics
 from .task_configuration import TaskConfiguration
 from .task_timing import TaskTiming
 from .executable_configuration import ExecutableConfiguration
-from .io_map import IOMap
+from .io_map import IOMap, local_backplane_route
 from . import time_values
 
 
@@ -360,6 +360,7 @@ class Project:
         self.task_timing = TaskTiming.from_source(root, c, self.sha256, self.task_configuration)
         self.executable_configuration = ExecutableConfiguration.from_source(root, c, self.sha256)
         self.io_map = IOMap.from_source(root, c)
+        self.local_message_route = local_backplane_route(c)
         self.program_diagnostics = ProgramDiagnostics.from_source(root,c,self.sha256,
             self.program_configuration,self.executable_configuration,self.io_map)
         self.controller_configuration = ControllerConfiguration.from_controller(c, root)
@@ -808,7 +809,7 @@ class Memory:
     def __init__(self, project):
         self.project = project
         self.values = copy.deepcopy(project.initial)
-        self.message_cache = set()
+        self.message_cache = {}
         self.first_scan = True
         self._resolved = {}
         self.frames = {}
@@ -1151,7 +1152,7 @@ class Memory:
                 writable |= CACHE_MASK
             value = (parent['FLAGS'] & ~writable) | (coerce(value, 'INT') & writable)
             if not value & CACHE_MASK:
-                self.message_cache.discard(key)
+                self.message_cache.pop(key, None)
         parent[parts[-1]]=copy.deepcopy(value)
 
     def region(self,ref,count,scope=''):
