@@ -28,6 +28,15 @@ a modeled connection and reads 17 into ConnectedValue. Scan the trigger
 false, then set it true again. The repeated request takes three scans
 because it reuses the cached connection.
 
+On a fresh Message Lab, set ApplyConnectedTiming and step once. Rung 22
+writes a ConnectionRate of 2,500 microseconds and a TimeoutMultiplier of
+zero, then reads both settings back into ConnectedRateEcho and
+ConnectedMultiplierEcho. Clear ApplyConnectedTiming, trigger the connected
+read and step four times at the default 10 ms. The response expires with
+ERR 16#00FE. To let the next request finish, clear SendConnectedRead, set
+ConnectedMultiplier to 1, apply the settings for one scan and trigger again.
+A request that was already queued retains the settings it captured.
+
 Set `CaptureReadFlags` and `SendRead` on a fresh Message Lab and step three
 times. The ladder MOV copies the current `ReadControl.FLAGS` into
 `ReadFlagsSnapshot` each scan. The INT word is 132 (EN and EW), then 192
@@ -231,6 +240,12 @@ two SINT elements. Those bytes encode product code 168.
   7,500,000. The SINT multiplier ranges from 0 through 7 and defaults to
   zero. The request captures both settings at admission. Expiry and
   cancellation use ERR 16#00FE and preserve the destination.
+- Ladder GSV and SSV can read and change ConnectionRate (DINT or TIME32
+  in microseconds) and TimeoutMultiplier (SINT) on named connected MESSAGE
+  controls. The emulator accepts the modeled multiplier range of 0 through
+  7. An invalid or unknown source faults the scan. The same scan can read
+  accepted values back. Prescan keeps the values and Reset restores the
+  defaults. Changes to a setting and its readback roll back with the scan.
 - The emulator retains up to 32 successful cached connections, one per
   control tag. A cached request skips setup. Errors and cancellation
   discard that control's cache entry. Prescan and Reset clear the cache.
@@ -260,7 +275,7 @@ saved data. The native Message object inventory is separate.
 - [Rockwell message instruction](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/input-output-instructions/message--msg-.html)
 - [Rockwell connected message timeout formula and units](https://www.rockwellautomation.com/content/dam/rockwell-automation/sites/downloads/pdf/developerguide.pdf)
 - [Rockwell MESSAGE tag scope](https://www.rockwellautomation.com/en-ro/docs/studio-5000-logix-designer/37-02/contents-ditamap/studio-5000-logix-designer/tag-editor-and-data-monitor/work-with-tags/enter-an-msg-tag.html)
-- [Rockwell unconnected timeout units](https://www.rockwellautomation.com/en-pl/docs/studio-5000-logix-designer/38-01/contents-ditamap/instruction-set/input-output-instructions/access-the-message-object.html)
+- [Rockwell Message timing attributes](https://www.rockwellautomation.com/en-pl/docs/studio-5000-logix-designer/38-01/contents-ditamap/instruction-set/input-output-instructions/access-the-message-object.html)
 - [Rockwell communication paths](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/input-output-instructions/specify-the-communication-details.html)
 - [Rockwell message configuration and program-scoped addressing](https://www.rockwellautomation.com/en-ua/docs/studio-5000-logix-designer/38-00/contents-ditamap/studio-5000-logix-designer/configuring-message-instructions.html)
 - [Rockwell CIP data table types](https://literature.rockwellautomation.com/idc/groups/literature/documents/um/2080-um002_-en-e.pdf)

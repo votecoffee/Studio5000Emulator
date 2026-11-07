@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1106.200829` ladder [Message timing attributes](ladder-message.md#supported-configuration-and-timing)
+let a program set and read back ConnectionRate and TimeoutMultiplier on
+connected MSG controls. Message Lab shows the next request using the new
+response deadline while an in-flight request keeps its captured settings.
+
 Available in `26.1106.195821` [ladder MSG](ladder-message.md#supported-configuration-and-timing)
 models connected THIS transfers, separate setup and response deadlines, and
 per-control cache reuse. Message lab shows cold and repeated reads.

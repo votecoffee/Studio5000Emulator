@@ -159,8 +159,9 @@ The Device I/O tab sets the simulated input and displays the effective state.
 writes on the simulated THIS path, including connected requests with optional
 per-control caching. **Message lab** shows message status in
 the ladder viewer, runtime target and index changes, exact LINT writes,
-multidimensional array transfers and simulated timeouts with ladder-controlled retries. Ladder GSV and SSV
-can read and set the message timeout. Ladder can copy the packed FLAGS word
+multidimensional array transfers and simulated timeouts with ladder-controlled retries.
+Ladder GSV and SSV can read and set the setup timeout, connected packet rate
+and response timeout multiplier. Ladder can copy the packed FLAGS word
 and use its TO bit to cancel a request. The simulated throttle admits 16
 requests at a time and retries waiting messages. The lab exercises program-local
 message controls, matching strings and UDT records, and selected numeric UDT

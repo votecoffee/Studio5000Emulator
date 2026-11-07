@@ -33,7 +33,7 @@ def add_message_burst(root):
                       MessageType='CIP Data Table Read', LocalElement=f'BurstValues[{index}]',
                       RemoteElement='VirtualValue', RequestedLength='1', ConnectedFlag='0',
                       ConnectionPath='THIS', CommTypeCode='0')
-        rung = ET.SubElement(content, 'Rung', Number=str(22 + index), Type='N')
+        rung = ET.SubElement(content, 'Rung', Number=str(23 + index), Type='N')
         ET.SubElement(rung, 'Text').text = f'XIC(SendBurst)MSG({name});'
 
 
@@ -157,7 +157,7 @@ class MessageTests(unittest.TestCase):
 
     def test_copy_into_flags_keeps_the_in_progress_status(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='22', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='23', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CaptureReadFlags)COP(IdentityAttribute,ReadControl.FLAGS,1);'
 
         engine = self.engine(configure)
@@ -275,7 +275,7 @@ class MessageTests(unittest.TestCase):
 
     def test_message_timeout_ssv_and_readback_roll_back_with_later_fault(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='22', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='23', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         engine = self.engine(configure)
@@ -291,7 +291,10 @@ class MessageTests(unittest.TestCase):
                      'GSV(Message,ReadValue,UnconnectedTimeout,ReadTimeoutEcho)',
                      'GSV(Message,ReadControl,UnconnectedTimeout,SendRead)',
                      'SSV(Message,ReadControl,UnconnectedTimeout,10000)',
-                     'SSV(Message,ReadControl,ConnectionRate,ReadTimeoutUs)'):
+                     'SSV(Message,ReadControl,ConnectionRate,ReadTimeoutUs)',
+                     'GSV(Message,ReadControl,TimeoutMultiplier,ConnectedMultiplierEcho)',
+                     'GSV(Message,CachedReadControl,TimeoutMultiplier,ReadTimeoutEcho)',
+                     'SSV(Message,CachedReadControl,ConnectionRate,ConnectedMultiplier)'):
             with self.subTest(call=call):
                 def configure(root):
                     root.find('.//Rung[@Number="7"]/Text').text = f'XIC(ApplyReadTimeout){call};'
@@ -455,7 +458,7 @@ class MessageTests(unittest.TestCase):
 
     def test_generic_identity_all_rolls_back_response_and_queue_after_later_fault(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='22', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='23', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         engine = self.engine(configure)
@@ -831,7 +834,7 @@ class MessageTests(unittest.TestCase):
     def test_completion_and_queue_roll_back_with_later_fault(self):
         def configure(root):
             content = root.find('.//RLLContent')
-            rung = ET.SubElement(content, 'Rung', Number='22', Type='N')
+            rung = ET.SubElement(content, 'Rung', Number='23', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         for timeout in (30_000_000, 10_000):
@@ -1388,6 +1391,68 @@ class MessageTests(unittest.TestCase):
         self.assert_flags(engine, control, DN=True, ER=False, DN_LEN=2)
         self.assertEqual(memory.read('ConnectedValue'), 17)
 
+    def test_ladder_connected_timing_changes_only_the_next_request(self):
+        engine = self.engine()
+        self.assertEqual(engine.blockers, [])
+        memory = engine.memory
+        control = 'CachedReadControl'
+
+        memory.write('ApplyConnectedTiming', True)
+        engine.step()
+        self.assert_flags(engine, control, ConnectionRate=2_500, TimeoutMultiplier=0)
+        self.assertEqual(memory.read('ConnectedRateEcho'), 2_500)
+        self.assertEqual(memory.read('ConnectedMultiplierEcho'), 0)
+
+        memory.write('ApplyConnectedTiming', False)
+        memory.write('SendConnectedRead', True)
+        engine.step()
+        memory.write('ApplyConnectedTiming', True)
+        memory.write('ConnectedMultiplier', 1)
+        engine.step()
+        self.assertEqual(memory.read('ConnectedMultiplierEcho'), 1)
+        self.assert_flags(engine, control, EW=True, TimeoutMultiplier=1)
+        memory.write('ApplyConnectedTiming', False)
+        engine.step()
+        self.assert_flags(engine, control, ST=True, ER=False)
+        engine.step()
+        self.assert_flags(engine, control, ER=True, ERR=0xFE)
+        self.assertEqual(memory.read('ConnectedValue'), 0)
+
+        memory.write('SendConnectedRead', False)
+        engine.step()
+        memory.write('SendConnectedRead', True)
+        for _ in range(4):
+            engine.step()
+        self.assert_flags(engine, control, DN=True, ER=False, DN_LEN=2)
+        self.assertEqual(memory.read('ConnectedValue'), 17)
+        engine.enter_run()
+        self.assert_flags(engine, control, ConnectionRate=2_500, TimeoutMultiplier=1)
+        self.assert_flags(Engine(engine.project), control, ConnectionRate=7_500_000, TimeoutMultiplier=0)
+
+    def test_ladder_connected_timing_rejects_bad_settings_and_rolls_back(self):
+        def configure(root):
+            content = root.find('.//RLLContent')
+            rung = ET.SubElement(content, 'Rung', Number='23', Type='N')
+            ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
+
+        cases = (
+            ('ConnectedRateUs', 0, 'ConnectionRate requires a known positive value'),
+            ('ConnectedMultiplier', -1, 'TimeoutMultiplier requires a known value'),
+            ('ConnectedMultiplier', 8, 'TimeoutMultiplier requires a known value'),
+            ('CancelRead', True, 'Scan rolled back'),
+        )
+        for tag, value, error in cases:
+            with self.subTest(tag=tag, value=value):
+                engine = self.engine(configure)
+                memory = engine.memory
+                memory.write('ApplyConnectedTiming', True)
+                memory.write(tag, value)
+                with self.assertRaisesRegex(ModelError, error):
+                    engine.step()
+                self.assert_flags(engine, 'CachedReadControl', ConnectionRate=7_500_000, TimeoutMultiplier=0)
+                self.assertEqual(memory.read('ConnectedRateEcho'), 0)
+                self.assertEqual(memory.read('ConnectedMultiplierEcho'), 0)
+
     def test_connected_generic_without_cache_opens_again_and_rejects_bad_rate(self):
         def configure(root):
             config = root.find('.//Tag[@Name="IdentityControl"]//MessageParameters')
@@ -1420,7 +1485,7 @@ class MessageTests(unittest.TestCase):
 
     def test_connected_completion_and_cache_roll_back_with_later_rung_fault(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='22', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='23', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         engine = self.engine(configure)

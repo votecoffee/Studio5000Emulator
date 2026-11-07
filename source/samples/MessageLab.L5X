@@ -140,6 +140,11 @@
       </Tag>
       <Tag Name="SendConnectedRead" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="ConnectedValue" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="ApplyConnectedTiming" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="ConnectedRateUs" DataType="TIME32" TagType="Base"><Data Format="Decorated"><DataValue DataType="TIME32" Value="2500" /></Data></Tag>
+      <Tag Name="ConnectedRateEcho" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="ConnectedMultiplier" DataType="SINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="SINT" Value="0" /></Data></Tag>
+      <Tag Name="ConnectedMultiplierEcho" DataType="SINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="SINT" Value="0" /></Data></Tag>
       <Tag Name="CachedReadControl" DataType="MESSAGE" TagType="Base" ExternalAccess="None">
         <Data Format="Message"><MessageParameters MessageType="CIP Data Table Read" LocalElement="ConnectedValue" RemoteElement="VirtualValue" RequestedLength="1" ConnectedFlag="1" CacheConnections="1" ConnectionPath="THIS" CommTypeCode="0" /></Data>
       </Tag>
@@ -223,6 +228,7 @@
               <Rung Number="19" Type="N"><Text>XIC(SendMembers)MSG(MemberReadControl);</Text></Rung>
               <Rung Number="20" Type="N"><Text>XIC(SendMembers)MSG(MemberWriteControl);</Text></Rung>
               <Rung Number="21" Type="N"><Text>XIC(SendConnectedRead)MSG(CachedReadControl);</Text></Rung>
+              <Rung Number="22" Type="N"><Text>XIC(ApplyConnectedTiming)SSV(Message,CachedReadControl,ConnectionRate,ConnectedRateUs)SSV(Message,CachedReadControl,TimeoutMultiplier,ConnectedMultiplier)GSV(Message,CachedReadControl,ConnectionRate,ConnectedRateEcho)GSV(Message,CachedReadControl,TimeoutMultiplier,ConnectedMultiplierEcho);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

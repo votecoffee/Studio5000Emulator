@@ -44,6 +44,8 @@ See [GSV and SSV array recovery](controller-handlers.md#recover-gsv-and-ssv-arra
 | Module | FaultCode | INT or DINT low word | Effective simulated connection |
 | Module | FaultInfo | DINT | Effective simulated connection |
 | Message | UnconnectedTimeout | DINT or TIME32 | [Named configured MESSAGE tag in whole-project ladder](ladder-message.md#supported-configuration-and-timing) |
+| Message | ConnectionRate | DINT or TIME32 | [Named connected MESSAGE tag in whole-project ladder](ladder-message.md#supported-configuration-and-timing) |
+| Message | TimeoutMultiplier | SINT | [Named connected MESSAGE tag in whole-project ladder](ladder-message.md#supported-configuration-and-timing) |
 | Module | Path | SINT window in a one-dimensional array | Source-proven local backplane, IPv4 Ethernet, or remote ControlLogix backplane route |
 | Controller | TimeSlice | INT | Explicit source setting, 10..90 |
 | Controller | ShareUnusedTimeSlice | INT | Explicit source setting, 0/1 |

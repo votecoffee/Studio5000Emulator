@@ -14,6 +14,7 @@ MAX_PENDING = 48
 MAX_CACHED = 32
 DEFAULT_TIMEOUT_US = 30_000_000
 DEFAULT_CONNECTION_RATE_US = 7_500_000
+MAX_TIMEOUT_MULTIPLIER = 7
 IDENTITY_ATTRIBUTES = frozenset(range(1, 8))
 STATUS_BITS = {'EW': 2, 'ER': 4, 'DN': 5, 'ST': 6, 'EN': 7, 'TO': 8, 'EN_CC': 9}
 EN_MASK = 1 << STATUS_BITS['EN']
@@ -26,6 +27,11 @@ FIELDS = {
     'UnconnectedTimeout': 'DINT',
     'ConnectionRate': 'DINT', 'TimeoutMultiplier': 'SINT',
     'Class': 'INT', 'Instance': 'DINT', 'Attribute': 'INT',
+}
+TIMING_ATTRIBUTES = {
+    'unconnectedtimeout': ('UnconnectedTimeout', ('DINT', 'TIME32')),
+    'connectionrate': ('ConnectionRate', ('DINT', 'TIME32')),
+    'timeoutmultiplier': ('TimeoutMultiplier', ('SINT',)),
 }
 ELEMENT_BYTES = {'SINT': 1, 'INT': 2, 'DINT': 4, 'LINT': 8, 'REAL': 4}
 NAME = r'[A-Za-z_][A-Za-z_0-9]{0,39}'
@@ -486,45 +492,54 @@ def validate(engine, op, scope, kind='RLL'):
     return key
 
 
-def matches_timeout_attribute(op):
+def matches_timing_attribute(op):
     return (len(op.args) == 4 and all(isinstance(arg, str) for arg in op.args)
             and op.args[0].casefold() == 'message'
-            and op.args[2].casefold() == 'unconnectedtimeout')
+            and op.args[2].casefold() in TIMING_ATTRIBUTES)
 
 
-def _timeout_operand(memory, ref, scope, instruction):
-    resolve = memory.resolve if instruction == 'SSV' else memory.check_writable
-    key, parts, dtype = resolve(ref, scope)
-    if dtype not in ('DINT', 'TIME32') or isinstance(memory.at(key, parts), (list, dict)):
-        raise ModelError(f'{instruction} Message UnconnectedTimeout requires one scalar DINT or TIME32 tag')
+def _timing_operand(memory, op, scope, member, types):
+    resolve = memory.resolve if op.name == 'SSV' else memory.check_writable
+    key, parts, dtype = resolve(op.args[3], scope)
+    if dtype not in types or isinstance(memory.at(key, parts), (list, dict)):
+        expected = ' or '.join(types)
+        raise ModelError(f'{op.name} Message {member} requires one scalar {expected} tag')
     return key, parts, dtype
 
 
-def validate_timeout_attribute(engine, op, scope, kind):
+def validate_timing_attribute(engine, op, scope, kind):
+    member, types = TIMING_ATTRIBUTES[op.args[2].casefold()]
     memory = engine.memory
     if kind != 'RLL' or engine.mode != 'project' or scope in memory.frames:
-        raise ModelError('Message UnconnectedTimeout requires a whole-project ladder scan outside AOIs')
-    _control_key(engine, op.args[1], scope, op.name)
+        raise ModelError(f'Message {member} requires a whole-project ladder scan outside AOIs')
+    control = _control_key(engine, op.args[1], scope, op.name)
+    if member != 'UnconnectedTimeout' and not engine.project.message_configs[control].connected:
+        raise ModelError(f'{op.name} Message {member} requires a configured connected MESSAGE')
     previous = memory.structural
     memory.structural = True
     try:
-        _timeout_operand(memory, op.args[3], scope, op.name)
+        _timing_operand(memory, op, scope, member, types)
     finally:
         memory.structural = previous
 
 
-def execute_timeout_attribute(engine, op, scope):
+def execute_timing_attribute(engine, op, scope):
+    member, types = TIMING_ATTRIBUTES[op.args[2].casefold()]
     memory = engine.memory
     control = _control_key(engine, op.args[1], scope, op.name)
-    key, parts, dtype = _timeout_operand(memory, op.args[3], scope, op.name)
+    key, parts, dtype = _timing_operand(memory, op, scope, member, types)
     record = memory.values[control]
-    if op.name == 'SSV':
-        value = memory.at(key, parts)
-        if type(value) is not int or value <= 0:
-            raise ModelError('SSV Message UnconnectedTimeout requires a known positive value')
-        record['UnconnectedTimeout'] = value
-    else:
-        memory.store(key, parts, coerce(record['UnconnectedTimeout'], dtype))
+    if op.name == 'GSV':
+        memory.store(key, parts, coerce(record[member], dtype))
+        return
+
+    value = memory.at(key, parts)
+    if member == 'TimeoutMultiplier':
+        if type(value) is not int or not 0 <= value <= MAX_TIMEOUT_MULTIPLIER:
+            raise ModelError(f'SSV Message {member} requires a known value in 0..{MAX_TIMEOUT_MULTIPLIER}')
+    elif type(value) is not int or value <= 0:
+        raise ModelError(f'SSV Message {member} requires a known positive value')
+    record[member] = value
 
 
 def prescan(engine, op, scope):
@@ -568,7 +583,7 @@ def _admit(engine, key, power):
     response_us = None
     if configuration.connected:
         rate, multiplier = record['ConnectionRate'], record['TimeoutMultiplier']
-        response_us = rate << (multiplier + 2) if rate > 0 and 0 <= multiplier <= 7 else 0
+        response_us = rate << (multiplier + 2) if rate > 0 and 0 <= multiplier <= MAX_TIMEOUT_MULTIPLIER else 0
     if (not reused and timeout_us <= 0) or response_us == 0:
         _set_flags(record, EN=power, ER=True)
         record['ERR'] = 0x03

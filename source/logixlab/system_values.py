@@ -36,7 +36,7 @@ def legacy(op):
 
 
 def validate(engine,op,scope,*,kind='RLL'):
-    if ladder_message.matches_timeout_attribute(op):return ladder_message.validate_timeout_attribute(engine,op,scope,kind)
+    if ladder_message.matches_timing_attribute(op):return ladder_message.validate_timing_attribute(engine,op,scope,kind)
     if program_control.matches(op):return program_control.validate(engine,op,scope)
     if event_status.matches(op):return event_status.validate(engine,op,scope)
     if gsv_timing.matches(op):return gsv_timing.validate(engine,op,scope)
@@ -47,7 +47,7 @@ def validate(engine,op,scope,*,kind='RLL'):
 
 
 def execute(engine,op,scope):
-    if ladder_message.matches_timeout_attribute(op):return ladder_message.execute_timeout_attribute(engine,op,scope)
+    if ladder_message.matches_timing_attribute(op):return ladder_message.execute_timing_attribute(engine,op,scope)
     if program_control.matches(op):return program_control.execute(engine,op,scope)
     if event_status.matches(op):
         event_status.execute(engine,op,True,scope);return
@@ -80,7 +80,7 @@ def write_effects(engine,op,scope):
 
 
 def validate_set(engine, op, scope, *, kind='RLL'):
-    if ladder_message.matches_timeout_attribute(op):return ladder_message.validate_timeout_attribute(engine,op,scope,kind)
+    if ladder_message.matches_timing_attribute(op):return ladder_message.validate_timing_attribute(engine,op,scope,kind)
     if gsv_configuration.matches_major_fault_record(op):
         return gsv_configuration.write_major_fault_record(engine, op, scope, executing=False)
     if program_control.matches(op):return program_control.validate(engine,op,scope)
@@ -92,8 +92,8 @@ def validate_set(engine, op, scope, *, kind='RLL'):
 
 def execute_set(engine, op, power, scope):
     if not power:return power
-    if ladder_message.matches_timeout_attribute(op):
-        ladder_message.execute_timeout_attribute(engine,op,scope)
+    if ladder_message.matches_timing_attribute(op):
+        ladder_message.execute_timing_attribute(engine,op,scope)
         return power
     if gsv_configuration.matches_major_fault_record(op):
         gsv_configuration.write_major_fault_record(engine, op, scope, executing=True)
@@ -115,7 +115,7 @@ def description():
     return dict(legacy='Controller AuditValue/ChangesToDetect into LINT or two DINT elements',
                 configuration=gsv_configuration.description(), wall_clock=gsv_wall_clock.description(),
                 timing=gsv_timing.description(), event_status=event_status.description(),
-                message_timeout='Ladder Message UnconnectedTimeout reads/writes one DINT or TIME32 in microseconds',
+                message_timeout='Ladder Message UnconnectedTimeout and connected ConnectionRate use DINT or TIME32 microseconds; connected TimeoutMultiplier uses SINT',
                 array_recovery='A cleared Type 4 Code 20 in a whole-project ladder scan skips the GSV write or SSV update',
                 ssv=True, task_inhibition=task_inhibit.description(), task_rate=task_inhibit.rate_description(),
                 task_priority=task_inhibit.priority_description(),
