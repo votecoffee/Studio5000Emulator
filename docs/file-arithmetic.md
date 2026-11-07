@@ -35,9 +35,11 @@ v35 prose and flowcharts present the final cursor differently; native final-POS
 parity remains unverified. A handler can
 [clear a reached array subscript fault](controller-handlers.md#recover-file-arithmetic-and-search-array-faults)
 in a whole-project scan after the emulator restores the CONTROL and every
-destination from the current call. Unrecovered faults, invalid LEN/POS
-and other errors roll back the advance. Native fault records, ER overflow
-classification and native partial effects remain unqualified.
+destination from the current call. A reached negative LEN or POS can be
+[cleared as Type 4 Code 21](controller-handlers.md#recover-a-negative-file-cursor).
+Unrecovered faults, other cursor errors and arithmetic errors roll back
+the advance. Native fault records, ER overflow classification and native
+partial effects remain unqualified.
 
 ## Expressions and destinations
 

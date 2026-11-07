@@ -452,6 +452,9 @@ checked REAL and integer results.
 state and resumable searches using the existing comparison grammar. **Stats lab**
 shows ALL/numeric searches and one comparison per enable edge in INC mode,
 including [binary64 searches with LREAL](docs/file-search.md#binary64-searches).
+Program and Controller fault handlers can clear a reached
+[negative FAL/FSC cursor](docs/controller-handlers.md#recover-a-negative-file-cursor)
+as Type 4 Code 21.
 
 [File sorting](docs/array-sort.md) adds SRT in ladder and Structured Text, with
 exact integer ordering and selected array dimensions. **Stats lab** demonstrates

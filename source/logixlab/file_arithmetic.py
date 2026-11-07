@@ -98,9 +98,7 @@ def _execute(engine, power, obj, count, write_element):
     if not power and (count is None or not enabled):
         if count is None:obj['EN'] = False
         return False
-    length, position = controls.integer(obj, 'LEN'), controls.integer(obj, 'POS')
-    if length < 0 or position < 0 or position > length:
-        raise ModelError('FAL requires nonnegative LEN/POS with POS no greater than LEN')
+    length, position = controls.file_cursor(obj, 'FAL')
     if length > controls.MAX_ELEMENTS:
         raise ModelError('FAL exceeds the 4096-element software limit')
     start = position + int(enabled)

@@ -222,8 +222,23 @@ When a handler clears the fault, the next instruction receives the
 incoming rung power. An active numeric call can still run on a false
 rung. A failed INC iteration leaves its position, pending edge and
 private progress as they were before the call. The next valid call
-can retry that element. Arithmetic overflow, invalid LEN/POS and
-other errors retain their existing scan rollback behavior.
+can retry that element.
+
+### Recover a negative file cursor
+
+When a FAL or FSC call reaches iteration with negative CONTROL.LEN or
+CONTROL.POS, the emulator raises Type 4 Code 21 before processing any
+element. The Program fault routine can capture and selectively clear
+that record, or the Controller Fault Handler can clear it when the
+Program routine leaves it uncleared. For the flat DINT record,
+`FaultWords[2]` contains `1376260` (`16#0015_0004`).
+
+A clear skips the faulting call, preserves incoming rung power and
+allows the next scan to use any cursor correction written by the
+handler. A missing clear rolls back the scan. Unknown fields, a
+nonnegative POS beyond LEN and arithmetic overflow use the existing
+scan rollback path. Native Studio and controller behavior remain
+unverified.
 
 [Rockwell FAL reference](https://www.rockwellautomation.com/en-mde/docs/studio-5000-logix-designer/37-02/contents-ditamap/instruction-set/array-file-misc-instructions/file-arithmetic_logic-fal.html)
 [Rockwell FSC reference](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/array-file-misc-instructions/file-search-and-compare-fsc.html)

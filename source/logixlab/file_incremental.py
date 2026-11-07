@@ -29,9 +29,7 @@ def execute(engine,op,power,scope,obj,operation,*,search=False):
     if not power:
         obj['EN']=False
         return False
-    length,position=controls.integer(obj,'LEN'),controls.integer(obj,'POS')
-    if length<0 or position<0 or position>length:
-        raise ModelError(op.name+' INC requires nonnegative LEN/POS with POS no greater than LEN')
+    length,position=controls.file_cursor(obj,op.name+' INC')
     if length>controls.MAX_ELEMENTS:raise ModelError(op.name+' INC exceeds the 4096-element software limit')
     if enabled:return True
     start=position+int(key in engine._file_incremental)

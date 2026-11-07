@@ -38,9 +38,11 @@ FD/IN/POS in logic to act on a result. Zero LEN completes without reading data.
 A handler can
 [clear a reached array subscript fault](controller-handlers.md#recover-file-arithmetic-and-search-array-faults)
 in a whole-project scan after the emulator restores the search CONTROL.
-Unrecovered faults, invalid LEN/POS and other errors roll back the advance,
-including other writes and scheduler state. Native major/minor fault records
-and partial effects remain unqualified.
+A reached negative LEN or POS can be
+[cleared as Type 4 Code 21](controller-handlers.md#recover-a-negative-file-cursor).
+Unrecovered faults and other errors roll back the advance, including other
+writes and scheduler state. Native major/minor fault records and partial
+effects remain unqualified.
 
 ## Expressions and limits
 

@@ -62,9 +62,7 @@ def _execute(engine, power, scope, obj, count, expression):
     if not power and (count is None or not enabled):
         if count is None:obj['EN'] = False
         return False
-    length, position = controls.integer(obj, 'LEN'), controls.integer(obj, 'POS')
-    if length < 0 or position < 0 or position > length:
-        raise ModelError('FSC requires nonnegative LEN/POS with POS no greater than LEN')
+    length, position = controls.file_cursor(obj, 'FSC')
     if length > controls.MAX_ELEMENTS:
         raise ModelError('FSC exceeds the 4096-element software limit')
     if length == 0:

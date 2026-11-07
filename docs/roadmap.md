@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1107.113220` [FAL/FSC cursor recovery](controller-handlers.md#recover-a-negative-file-cursor)
+routes reached negative LEN or POS to the modeled Type 4 Code 21 handler.
+A clear skips the file operation and preserves incoming rung power.
+
 Available in `26.1107.112339` [Program-mode routine replacement](supported-routine-edits.md#transaction-and-activation)
 carries forward existing preset instructions when the surrounding ladder changes.
 The replacement preserves live TIMER, COUNTER and CONTROL values.

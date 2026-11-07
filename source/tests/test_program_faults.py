@@ -17,7 +17,8 @@ def add_fault_dint_array(tags, name, values):
         ET.SubElement(array,'Element',Index=f'[{index}]',Value=str(value))
 
 
-def ladder_fault_fixture(root, *, clear=True, handler_tail=None, main_tail=None, destination=False, copy_op=None):
+def ladder_fault_fixture(root, *, clear=True, handler_tail=None, main_tail=None, destination=False, copy_op=None,
+                         fault_code=20):
     controller = root.find('Controller')
     program = controller.find('./Programs/Program')
     program.set('FaultRoutineName','RecoverMove')
@@ -53,16 +54,16 @@ def ladder_fault_fixture(root, *, clear=True, handler_tail=None, main_tail=None,
     handler = ['OTE(FaultWitness);', 'GSV(Program,THIS,MajorFaultRecord,FaultWords[0]);',
                'MOV(FaultWords[2],CapturedFault);']
     if clear:
-        handler.append('EQU(CapturedFault,1310724)CLR(FaultWords[2])'
+        handler.append(f'EQU(CapturedFault,{(fault_code << 16) | 4})CLR(FaultWords[2])'
                        'SSV(Program,MainProgram,MajorFaultRecord,FaultWords[0]);')
     rungs(ET.SubElement(recovery,'RLLContent'),handler+([handler_tail] if handler_tail else []))
 
 
 def controller_fault_fallback_fixture(root, *, clear_at_program=False, clear_at_controller=True,
                                       program_tail=None, controller_tail=None, main_tail=None,
-                                      copy_op=None, destination=False):
+                                      copy_op=None, destination=False, fault_code=20):
     ladder_fault_fixture(root, clear=clear_at_program, handler_tail=program_tail, main_tail=main_tail,
-                         copy_op=copy_op, destination=destination)
+                         copy_op=copy_op, destination=destination, fault_code=fault_code)
     controller = root.find('Controller')
     program = controller.find('./Programs/Program')
     if clear_at_program is None:
@@ -85,7 +86,7 @@ def controller_fault_fallback_fixture(root, *, clear_at_program=False, clear_at_
             rung = ET.SubElement(content,'Rung',Number=str(index),Type='N')
             ET.SubElement(rung,'Text').text = line
 
-    add('Capture',['JSR(Report,1,1310724,SeenCode);'])
+    add('Capture',[f'JSR(Report,1,{(fault_code << 16) | 4},SeenCode);'])
     lines = ['SBR(InputCode);','GSV(Program,THIS,MajorFaultRecord,FaultWords[0]);',
              'MOV(FaultWords[2],ReturnCode);']
     if clear_at_controller:
@@ -1354,6 +1355,99 @@ class ProgramFaultTests(unittest.TestCase):
                     self.assertEqual(engine.memory.read('LabValues'),[12,13])
                     self.assertFalse(any('recovery_source' in row for row in engine.trace))
                 self.assertIs(engine.last_cleared_program_fault,fault)
+
+    def test_negative_file_cursor_reaches_program_handler_in_all_modes(self):
+        from logixlab.control_operations import default
+
+        for name in ('FAL', 'FSC'):
+            for mode, member in (('ALL', 'LEN'), ('2', 'POS'), ('INC', 'POS')):
+                with self.subTest(instruction=name, mode=mode):
+                    self.setUp()
+
+                    def configure(root):
+                        handler = (f'MOV(LabRecords[0].{member},FaultWords[3])'
+                                   f'MOV({2 if member == "LEN" else 0},LabRecords[0].{member});')
+                        ladder_fault_fixture(root, handler_tail=handler, fault_code=21)
+                        add_fault_record_array(root, 'CONTROL', **(default() | dict(LEN=2)))
+                        args = 'LabValues[0],99' if name == 'FAL' else 'LabValues[0]=12'
+                        set_fault_instruction(root, f'{name}(LabRecords[0],?,?,{mode},{args})')
+
+                    engine = self.engine(mutate=configure)
+                    self.assertEqual(engine.blockers, [])
+                    engine.memory.write(f'LabRecords[0].{member}', -1)
+                    engine.memory.write('SpeedCommand', 50)
+                    engine.step()
+                    self.assertIsNone(engine.last_cleared_program_fault)
+                    engine.memory.write('StartPB', True)
+                    engine.step()
+
+                    fault = engine.last_cleared_program_fault
+                    self.assertEqual((fault['type'], fault['code'], fault['instruction']), (4, 21, name))
+                    self.assertEqual(fault['handler']['routine'], 'MainProgram/RecoverMove')
+                    self.assertEqual(engine.memory.read('CapturedFault'), 1376260)
+                    self.assertEqual(engine.memory.read('FaultWords[3]'), -1)
+                    self.assertEqual(engine.memory.read('LabRecords')[0], default() | dict(LEN=2))
+                    self.assertEqual(engine.memory.read('LabValues'), [12, 13])
+                    self.assertEqual(engine.memory.read('SpeedCommand'), 51)
+                    self.assertFalse(engine._file_incremental)
+                    event = next(event for row in engine.trace for event in row['events'] if 'recovered_fault' in event)
+                    self.assertEqual((event['in'], event['out'], event['recovered_fault']),
+                                     (True, True, {'type': 4, 'code': 21}))
+                    engine.step()
+                    self.assertEqual(engine.memory.read('LabValues'), [99, 13] if name == 'FAL' else [12, 13])
+                    self.assertEqual(engine.memory.read('LabRecords[0].FD'), name == 'FSC')
+
+    def test_negative_file_cursor_reaches_controller_handler_on_active_false_numeric_rung(self):
+        from logixlab.control_operations import default
+
+        def configure(root):
+            controller_fault_fallback_fixture(root, fault_code=21, controller_tail='MOV(3,LabRecords[0].LEN);')
+            add_fault_record_array(root, 'CONTROL', **(default() | dict(LEN=3)))
+            set_fault_instruction(root, 'FSC(LabRecords[0],?,?,1,LabRecords[0].POS=2)')
+
+        engine = self.engine(mutate=configure)
+        self.assertEqual(engine.blockers, [])
+        engine.memory.write('StartPB', True)
+        engine.memory.write('SpeedCommand', 50)
+        engine.step()
+        self.assertEqual(engine.memory.read('LabRecords')[0], default() | dict(LEN=3, EN=True))
+        engine.memory.write('StartPB', False)
+        engine.memory.write('LabRecords[0].LEN', -1)
+        engine.step()
+
+        fault = engine.last_cleared_program_fault
+        self.assertEqual((fault['type'], fault['code'], fault['handler']['routine']), (4, 21, 'FaultHandler/Capture'))
+        self.assertEqual(engine.memory.read('Program:FaultHandler.SeenCode'), 1376260)
+        self.assertEqual(engine.memory.read('CapturedFault'), 1376260)
+        self.assertEqual(engine.memory.read('LabRecords')[0], default() | dict(LEN=3, EN=True))
+        self.assertEqual(engine.memory.read('SpeedCommand'), 51)
+        event = next(event for row in engine.trace for event in row['events'] if 'recovered_fault' in event)
+        self.assertEqual((event['in'], event['out']), (False, False))
+        engine.step()
+        self.assertEqual(engine.memory.read('LabRecords[0].POS'), 1)
+
+    def test_uncleared_negative_cursor_and_positive_position_past_length_roll_back(self):
+        from logixlab.control_operations import default
+
+        for position, detail in ((-1, 'Program fault 4/21.*without clearing'), (3, 'POS no greater than LEN')):
+            with self.subTest(position=position):
+                self.setUp()
+
+                def configure(root):
+                    ladder_fault_fixture(root, fault_code=20)
+                    add_fault_record_array(root, 'CONTROL', **(default() | dict(LEN=2)))
+                    set_fault_instruction(root, 'FAL(LabRecords[0],?,?,ALL,LabValues[0],99)')
+
+                engine = self.engine(mutate=configure)
+                self.assertEqual(engine.blockers, [])
+                engine.memory.write('StartPB', True)
+                engine.memory.write('LabRecords[0].POS', position)
+                before = copy.deepcopy(engine.memory.values)
+                with self.assertRaisesRegex(ModelError, detail):
+                    engine.step()
+                self.assertEqual(engine.memory.values, before)
+                self.assertEqual((engine.scan_count, engine.time_ms), (0, 0))
+                self.assertIsNone(engine.last_cleared_program_fault)
 
     def test_fal_all_restores_repeated_and_indirect_writes_before_handler(self):
         from logixlab.control_operations import default

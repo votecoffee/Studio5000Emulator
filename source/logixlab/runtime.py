@@ -816,22 +816,27 @@ class Engine:
             self._message_advance=None
         return self._record_tag_changes(before)
 
-    def _recover_ladder_array_fault(self, op, scope, error):
+    def _recover_ladder_fault(self, op, scope, error):
         program_handler = self.project.program_fault_routines.get(scope)
         controller_handler = self.project.fault_handler_routine
         if (op.name in self.project.aois or self.mode != 'project'
                 or self._program_advance is None or self._program_fault is not None):
-            return False
-        if isinstance(error, CallOperandBoundsError):
+            return None
+        code = 20
+        if isinstance(error, control_operations.NegativeFileCursorError):
+            if op.name not in ('FAL', 'FSC'):
+                return None
+            code = 21
+        elif isinstance(error, CallOperandBoundsError):
             if op.name not in ('JSR', 'FOR') or error.call is not op:
-                return False
+                return None
         elif op.name not in ARRAY_FAULT_RECOVERY_OPS:
-            return False
+            return None
         if not program_handler and (not controller_handler or not self.project.program_hierarchy.has_no_fault_routine(
                 scope, source_sha256=self.project.sha256)):
-            return False
+            return None
         routine = self._executing_routine.key
-        fault = {'type':4, 'code':20, 'program':scope, 'routine':routine,
+        fault = {'type':4, 'code':code, 'program':scope, 'routine':routine,
                  'instruction':op.name, 'detail':str(error), 'timestamp_us':current_value_microseconds()}
         self._program_fault = fault
         handler = program_handler
@@ -852,15 +857,15 @@ class Engine:
                     self.calls.stack, self.memory.first_scan = stack, first_scan
             cleared = self._handler_clear_requested
         except ModelError as failure:
-            raise ModelError(f"Program fault 4/20 in {routine}: {error}. {profile}: {failure}") from failure
+            raise ModelError(f"Program fault 4/{code} in {routine}: {error}. {profile}: {failure}") from failure
         finally:
             self._program_fault = None
             self._handler_clear_requested = False
         if not cleared:
-            raise ModelError(f"Program fault 4/20 in {routine}: {error}. {profile} completed without clearing the fault")
+            raise ModelError(f"Program fault 4/{code} in {routine}: {error}. {profile} completed without clearing the fault")
         fault['handler'] = {'routine':self.project.routines[handler].key, 'status':'cleared'}
         self.last_cleared_program_fault = fault
-        return True
+        return code
 
     def run_module_fault_handler(self):
         key = self.project.fault_handler_routine
@@ -967,11 +972,12 @@ class Engine:
                 try:
                     result=self._op(node,incoming,scope,depth,event=event)
                     power=False if force_false else result
-                except ArrayBoundsError as error:
-                    if not self._recover_ladder_array_fault(node, scope, error):
+                except (ArrayBoundsError, control_operations.NegativeFileCursorError) as error:
+                    code = self._recover_ladder_fault(node, scope, error)
+                    if code is None:
                         raise
                     power = incoming
-                    event['recovered_fault'] = {'type':4,'code':20}
+                    event['recovered_fault'] = {'type':4,'code':code}
                 except (JumpRoutine,ReturnRoutine,BreakLoop):
                     event.update(out=incoming,transfer=True)
                     events.append(event)
