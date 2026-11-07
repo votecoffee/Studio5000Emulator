@@ -28,6 +28,18 @@
     <AddOnInstructionDefinitions />
     <Tags>
       <Tag Name="UseAlternateRead" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="SendIdentityList" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="IdentityListRequest" DataType="INT" TagType="Base" Dimensions="3">
+        <Data Format="Decorated"><Array DataType="INT" Dimensions="3">
+          <Element Index="[0]" Value="2" /><Element Index="[1]" Value="4" /><Element Index="[2]" Value="6" />
+        </Array></Data>
+      </Tag>
+      <Tag Name="IdentityListReply" DataType="INT" TagType="Base" Dimensions="9">
+        <Data Format="Decorated"><Array DataType="INT" Dimensions="9"><Element Index="[8]" Value="91" /></Array></Data>
+      </Tag>
+      <Tag Name="IdentityListControl" DataType="MESSAGE" TagType="Base" ExternalAccess="None">
+        <Data Format="Message"><MessageParameters MessageType="CIP Generic" ServiceCode="16#03" ObjectType="16#01" TargetObject="1" AttributeNumber="16#00" LocalElement="IdentityListRequest[0]" RequestedLength="6" DestinationTag="IdentityListReply[0]" ConnectedFlag="0" ConnectionPath="THIS" CommTypeCode="0" /></Data>
+      </Tag>
       <Tag Name="SendIdentityWord" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="IdentityWordReply" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="287454020" /></Data></Tag>
       <Tag Name="IdentityWordControl" DataType="MESSAGE" TagType="Base" ExternalAccess="None">
@@ -255,6 +267,7 @@
               <Rung Number="25" Type="N"><Text>XIC(ApplyMessageRoute)MOV(LocalMessageRoute,CachedReadControl.Path);</Text></Rung>
               <Rung Number="26" Type="N"><Text>XIC(ApplyPathBuffer)SSV(Message,CachedReadControl,ConnectionPath,MessagePathBuffer[0])GSV(Message,CachedReadControl,ConnectionPath,MessagePathEcho[0]);</Text></Rung>
               <Rung Number="27" Type="N"><Text>XIC(SendIdentityWord)MSG(IdentityWordControl);</Text></Rung>
+              <Rung Number="28" Type="N"><Text>XIC(SendIdentityList)MSG(IdentityListControl);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

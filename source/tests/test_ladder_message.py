@@ -33,7 +33,7 @@ def add_message_burst(root):
                       MessageType='CIP Data Table Read', LocalElement=f'BurstValues[{index}]',
                       RemoteElement='VirtualValue', RequestedLength='1', ConnectedFlag='0',
                       ConnectionPath='THIS', CommTypeCode='0')
-        rung = ET.SubElement(content, 'Rung', Number=str(28 + index), Type='N')
+        rung = ET.SubElement(content, 'Rung', Number=str(29 + index), Type='N')
         ET.SubElement(rung, 'Text').text = f'XIC(SendBurst)MSG({name});'
 
 
@@ -157,7 +157,7 @@ class MessageTests(unittest.TestCase):
 
     def test_copy_into_flags_keeps_the_in_progress_status(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='28', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='29', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CaptureReadFlags)COP(IdentityAttribute,ReadControl.FLAGS,1);'
 
         engine = self.engine(configure)
@@ -275,7 +275,7 @@ class MessageTests(unittest.TestCase):
 
     def test_message_timeout_ssv_and_readback_roll_back_with_later_fault(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='28', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='29', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         engine = self.engine(configure)
@@ -412,6 +412,71 @@ class MessageTests(unittest.TestCase):
                 self.assertEqual(memory.read('PackedReply'), before)
                 self.assert_flags(engine, 'IdentityAllControl', DN=False, ER=True, ERR=error, DN_LEN=0)
 
+    def test_generic_identity_list_captures_order_and_repeated_ids_at_admission(self):
+        engine = self.engine()
+        memory = engine.memory
+        self.assertEqual(engine.blockers, [])
+        memory.write('SendIdentityList', True)
+        engine.step()
+        self.assert_flags(engine, 'IdentityListControl', EW=True, REQ_LEN=6, DN_LEN=0)
+        memory.write('IdentityListRequest[1]', 5)
+        memory.write('IdentityListRequest[2]', 5)
+        engine.step()
+        engine.step()
+        self.assertEqual(memory.read('IdentityListReply'), [2, 4, 0, 0x0B23, 6, 0, 1, 0x4C4C, 91])
+        self.assert_flags(engine, 'IdentityListControl', DN=True, ER=False, DN_LEN=16)
+
+        memory.write('SendIdentityList', False)
+        engine.step()
+        memory.write('SendIdentityList', True)
+        for _ in range(3):
+            engine.step(running=True)
+        self.assertEqual(memory.read('IdentityListReply'), [2, 5, 0, 0x3060, 5, 0, 0x3060, 0x4C4C, 91])
+        self.assert_flags(engine, 'IdentityListControl', DN=True, ER=False, DN_LEN=14)
+
+    def test_generic_identity_list_preserves_error_entries_and_valid_results(self):
+        engine = self.engine()
+        memory = engine.memory
+        memory.write('IdentityListRequest[1]', -1)
+        memory.write('IdentityListRequest[2]', 4)
+        memory.write('SendIdentityList', True)
+        for _ in range(3):
+            engine.step()
+        self.assertEqual(memory.read('IdentityListReply'), [2, -1, 0x14, 4, 0, 0x0B23, None, None, 91])
+        self.assert_flags(engine, 'IdentityListControl', DN=False, ER=True, ERR=0x0A, REQ_LEN=6, DN_LEN=12)
+
+    def test_generic_identity_list_rejects_malformed_requests_and_small_replies(self):
+        for case, error in (('count', 0x03), ('unknown', 0x03), ('destination', 0x11)):
+            with self.subTest(case=case):
+                def configure(root):
+                    if case == 'destination':
+                        root.find('.//Tag[@Name="IdentityListControl"]//MessageParameters').set('DestinationTag', 'IdentityReply')
+                    else:
+                        array = root.find('.//Tag[@Name="IdentityListRequest"]//Array')
+                        if case == 'count':
+                            array.find('Element[@Index="[0]"]').set('Value', '1')
+                        else:
+                            array.remove(array.find('Element[@Index="[2]"]'))
+
+                engine = self.engine(configure)
+                self.assertEqual(engine.blockers, [])
+                memory = engine.memory
+                memory.write('SendIdentityList', True)
+                for _ in range(3):
+                    engine.step()
+                self.assertEqual(memory.read('IdentityListReply'), [None] * 8 + [91])
+                self.assertEqual(memory.read('IdentityReply'), [-9, 0, 0, -9])
+                self.assert_flags(engine, 'IdentityListControl', DN=False, ER=True, ERR=error, DN_LEN=0)
+
+    def test_generic_identity_list_requires_a_qualified_source_span(self):
+        for name, value in (('LocalElement', 'VirtualValue'), ('LocalElement', 'IdentityListRequest[*]'),
+                            ('RequestedLength', '5'), ('RequestedLength', '68')):
+            with self.subTest(name=name, value=value):
+                def configure(root):
+                    root.find('.//Tag[@Name="IdentityListControl"]//MessageParameters').set(name, value)
+
+                self.assertTrue(any('MSG:' in problem for problem in self.engine(configure).blockers))
+
     def test_generic_identity_attribute_written_by_ladder_applies_to_next_request(self):
         engine = self.engine()
         memory = engine.memory
@@ -522,7 +587,7 @@ class MessageTests(unittest.TestCase):
 
     def test_generic_identity_all_rolls_back_response_and_queue_after_later_fault(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='28', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='29', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         engine = self.engine(configure)
@@ -898,7 +963,7 @@ class MessageTests(unittest.TestCase):
     def test_completion_and_queue_roll_back_with_later_fault(self):
         def configure(root):
             content = root.find('.//RLLContent')
-            rung = ET.SubElement(content, 'Rung', Number='28', Type='N')
+            rung = ET.SubElement(content, 'Rung', Number='29', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         for timeout in (30_000_000, 10_000):
@@ -1501,7 +1566,7 @@ class MessageTests(unittest.TestCase):
     def test_ladder_cache_release_rolls_back_if_a_later_rung_faults(self):
         def configure(root):
             content = root.find('.//RLLContent')
-            rung = ET.SubElement(content, 'Rung', Number='28', Type='N')
+            rung = ET.SubElement(content, 'Rung', Number='29', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         engine = self.engine(configure)
@@ -1639,7 +1704,7 @@ class MessageTests(unittest.TestCase):
 
     def test_connectionpath_bad_count_unknown_active_data_and_late_fault_roll_back(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='28', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='29', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         for tag, value, error in (
@@ -1758,7 +1823,7 @@ class MessageTests(unittest.TestCase):
     def test_ladder_connected_timing_rejects_bad_settings_and_rolls_back(self):
         def configure(root):
             content = root.find('.//RLLContent')
-            rung = ET.SubElement(content, 'Rung', Number='28', Type='N')
+            rung = ET.SubElement(content, 'Rung', Number='29', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         cases = (
@@ -1811,7 +1876,7 @@ class MessageTests(unittest.TestCase):
 
     def test_connected_completion_and_cache_roll_back_with_later_rung_fault(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='28', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='29', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         engine = self.engine(configure)

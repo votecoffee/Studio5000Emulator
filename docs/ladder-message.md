@@ -138,12 +138,24 @@ reports 16#0011. An unknown partial element reports 16#0003. Both errors
 preserve the entire destination. The usual queue, cancel and simulated
 timeout rules apply.
 
+Get Attribute List (service 16#03) uses LocalElement as a direct SINT,
+INT or DINT source or fixed one-dimensional array start. RequestedLength
+is 4 through 66 bytes and must match the request. The request consists of
+a little-endian 16-bit count followed by 1 through 32 unsigned 16-bit
+attribute IDs. The instruction captures the list at admission. REQ_LEN
+reports bytes. The reply contains a 16-bit count and, in request order,
+each 16-bit ID, its 16-bit status and the value when supported. An
+unsupported ID returns item status 16#0014. The emulator stores the reply
+and sets ER with ERR 16#000A and the returned DN_LEN in this case. A
+malformed request reports 16#0003 and leaves the destination untouched.
+
 The Generic control exposes Class (INT), Instance (DINT) and Attribute
 (INT) as writable members. A queued request keeps the values captured at
 trigger time. Later writes affect the next request. Class and Instance must
 resolve to Identity instance 1. An unsupported class or instance completes
 with 16#0005. An unsupported single attribute completes with 16#0014.
-Neither error changes the reply buffer. Get Attributes All ignores Attribute.
+Neither error changes the reply buffer. Get Attributes All and Get
+Attribute List ignore Attribute.
 Prescan preserves the live members and Reset reloads the authored values.
 
 In Message Lab, set SendIdentityRead to 1 and step three times. IdentityReply
@@ -153,7 +165,11 @@ attributes. After three steps IdentityAllReply contains the 26-byte reply,
 including the two Program status bytes at indices 9 and 10 when stepping
 from Program mode. Enable SendIdentityWord to read the revision into a
 DINT. IdentityWordReply changes from 16#11223344 to 16#11220B23 and
-IdentityWordControl.DN_LEN reports 2.
+IdentityWordControl.DN_LEN reports 2. Enable SendIdentityList to request
+Revision and Serial Number together. IdentityListReply begins with
+`[2, 4, 0, 16#0B23, 6, 0, 1, 16#4C4C]` and keeps its last element at 91.
+To exercise the item error, rearm the rung and put 65535 in the request
+as the signed INT value -1.
 
 To change the selected attribute while a request is queued, start with a
 fresh Message Lab, set SendIdentityRead to 1 and step once. Set
@@ -320,6 +336,7 @@ timing, native MESSAGE layouts and Studio 5000 runtime qualification
 remain open. Decorated-only MESSAGE fields remain readable as
 saved data. The native Message object inventory is separate.
 
+- [Rockwell Get Attribute List request and response example](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm020_-en-p.pdf)
 - [Rockwell CIP Generic DINT destination example](https://literature.rockwellautomation.com/idc/groups/literature/documents/um/dnet-um004_-en-p.pdf)
 - [ODVA Identity object reference](https://www.odva.org/wp-content/uploads/2020/06/PUB00123R1_Common-Industrial_Protocol_and_Family_of_CIP_Networks.pdf)
 - [Rockwell message instruction](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/input-output-instructions/message--msg-.html)

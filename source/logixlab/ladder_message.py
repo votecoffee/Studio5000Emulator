@@ -1,6 +1,7 @@
 """Bounded, in-process ladder MSG transfers to the simulated controller."""
 import math
 import re
+import struct
 from dataclasses import dataclass, replace
 
 from .identity import Identity
@@ -18,7 +19,8 @@ DEFAULT_CONNECTION_RATE_US = 7_500_000
 MAX_TIMEOUT_MULTIPLIER = 7
 PATH_BUFFER_SIZE = 82
 IDENTITY_ATTRIBUTES = frozenset(range(1, 8))
-IDENTITY_DESTINATIONS = frozenset(('SINT', 'INT', 'DINT'))
+IDENTITY_BUFFER_TYPES = frozenset(('SINT', 'INT', 'DINT'))
+MAX_IDENTITY_LIST = 32
 STATUS_BITS = {'EW': 2, 'ER': 4, 'DN': 5, 'ST': 6, 'EN': 7, 'TO': 8, 'EN_CC': 9}
 EN_MASK = 1 << STATUS_BITS['EN']
 COMPLETE_MASK = (1 << STATUS_BITS['ER']) | (1 << STATUS_BITS['DN'])
@@ -88,8 +90,10 @@ class Configuration:
 class IdentityRead:
     destination: Endpoint
     identity: Identity
-    read_all: bool
+    service: int
     attribute: int
+    source: Endpoint | None = None
+    source_size: int = 0
     class_id: int = 1
     instance: int = 1
     connected: bool = False
@@ -114,6 +118,7 @@ class Pending:
     started: bool = False
     opening: bool = False
     response_timeout_us: int | None = None
+    attribute_numbers: tuple[int, ...] | None = None
 
 
 class TransferError(Exception):
@@ -173,26 +178,41 @@ def _hex_number(attributes, name):
     return int(match[1], 16)
 
 
+def _identity_endpoint(attributes, name):
+    endpoint = _parse_endpoint(attributes.get(name, '').strip(), 0)
+    if endpoint is None or endpoint.member_path or endpoint.variable or len(endpoint.coordinates) > 1:
+        raise ModelError(f'CIP Generic Identity requires a direct {name} or fixed array start')
+    return endpoint
+
+
 def _identity_read(project, attributes):
     service = _hex_number(attributes, 'ServiceCode')
     cls = _hex_number(attributes, 'ObjectType')
     instance = _number(attributes, 'TargetObject', 0, 65535)
-    if (cls, instance) != (1, 1) or service not in (0x01, 0x0E):
-        raise ModelError('CIP Generic supports Get Attributes All and Get Attribute Single on Identity instance 1')
-    read_all = service == 0x01
-    attribute = _hex_number(attributes, 'AttributeNumber') if not read_all or attributes.get('AttributeNumber') else 0
-    if not read_all and attribute not in IDENTITY_ATTRIBUTES:
+    if (cls, instance) != (1, 1) or service not in (0x01, 0x03, 0x0E):
+        raise ModelError('CIP Generic supports Get Attributes All, Get Attribute List and Get Attribute Single on Identity instance 1')
+    single = service == 0x0E
+    attribute = _hex_number(attributes, 'AttributeNumber') if single or attributes.get('AttributeNumber') else 0
+    if single and attribute not in IDENTITY_ATTRIBUTES:
         raise ModelError('CIP Generic Identity supports attributes 1..7')
-    _number(attributes, 'RequestedLength', 0, 0, '0')
-    if attributes.get('LocalElement', '').strip() or attributes.get('RemoteElement', '').strip():
-        raise ModelError('CIP Generic Identity reads require an empty source and no request payload')
-    destination = _parse_endpoint(attributes.get('DestinationTag', '').strip(), 0)
-    if destination is None or destination.member_path or destination.variable or len(destination.coordinates) > 1:
-        raise ModelError('CIP Generic Identity requires a direct DestinationTag or fixed array start')
+    source = None
+    source_size = 0
+    if service == 0x03:
+        source = _identity_endpoint(attributes, 'LocalElement')
+        source_size = _number(attributes, 'RequestedLength', 4, 2 + 2 * MAX_IDENTITY_LIST)
+        if source_size % 2:
+            raise ModelError('CIP Generic Identity attribute list requires an even byte length')
+    else:
+        _number(attributes, 'RequestedLength', 0, 0, '0')
+        if attributes.get('LocalElement', '').strip():
+            raise ModelError('CIP Generic Identity single and all reads require an empty source')
+    if attributes.get('RemoteElement', '').strip():
+        raise ModelError('CIP Generic Identity requires an empty RemoteElement')
+    destination = _identity_endpoint(attributes, 'DestinationTag')
     identity = Identity.from_project('logix-v35-l85e', project)
-    # Preserve the 16-bit pattern of an optional Get Attributes All placeholder.
+    # Preserve the 16-bit pattern of an optional attribute placeholder.
     signed_attribute = attribute if attribute < 0x8000 else attribute - 0x10000
-    return IdentityRead(destination, identity, read_all, signed_attribute)
+    return IdentityRead(destination, identity, service, signed_attribute, source, source_size)
 
 
 def from_tag(project, tag, element, dims):
@@ -239,8 +259,11 @@ def _scope_endpoint(project, endpoint, scope):
 
 def _bind_local(project, configuration, scope):
     """Resolve the saved local element after all controller and program tags are loaded."""
-    field = 'destination' if isinstance(configuration, IdentityRead) else 'local'
-    return replace(configuration, **{field: _scope_endpoint(project, getattr(configuration, field), scope)})
+    if isinstance(configuration, IdentityRead):
+        source = configuration.source
+        return replace(configuration, destination=_scope_endpoint(project, configuration.destination, scope),
+                       source=_scope_endpoint(project, source, scope) if source is not None else None)
+    return replace(configuration, local=_scope_endpoint(project, configuration.local, scope))
 
 
 def _record_layout(catalog, dtype):
@@ -329,7 +352,8 @@ def initial(project, configuration):
     if configuration.connected:
         record.update(ConnectionRate=DEFAULT_CONNECTION_RATE_US, TimeoutMultiplier=0)
     if isinstance(configuration, IdentityRead):
-        record.update(Class=configuration.class_id, Instance=configuration.instance, Attribute=configuration.attribute)
+        record.update(Class=configuration.class_id, Instance=configuration.instance,
+                      Attribute=configuration.attribute, REQ_LEN=configuration.source_size)
         return record
     requested = 0
     try:
@@ -474,27 +498,38 @@ def _control_key(engine, name, scope, instruction):
     return key
 
 
-def _identity_destination(memory, destination):
-    key, paths, dtype = _region(memory, destination, destination.start(0), 1, remote=False, write=True, allow_alias=False)
-    if dtype not in IDENTITY_DESTINATIONS or len(paths[0]) > 1:
+def _identity_span(memory, endpoint, size, *, write):
+    key, paths, dtype = _region(memory, endpoint, endpoint.start(0), 1, remote=False, write=write, allow_alias=False)
+    if dtype not in IDENTITY_BUFFER_TYPES or len(paths[0]) > 1:
         raise TransferError(0xFC)
-    return key, paths[0], dtype
+    first = paths[0]
+    width = ELEMENT_BYTES[dtype]
+    count = (size + width - 1) // width
+    if not first:
+        if count > 1:
+            raise TransferError(0x11)
+        return key, ((),), dtype
+    start = first[0]
+    if count > len(memory.values[key]) - start:
+        raise TransferError(0x11)
+    return key, tuple((index,) for index in range(start, start + count)), dtype
+
+
+def _capture_identity_numbers(memory, request):
+    try:
+        key, paths, dtype = _identity_span(memory, request.source, request.source_size, write=False)
+        raw = b''.join(encode(memory.at(key, path), dtype) for path in paths)[:request.source_size]
+    except (ModelError, TransferError):
+        return None
+    count = int.from_bytes(raw[:2], 'little')
+    if not 1 <= count <= MAX_IDENTITY_LIST or len(raw) != 2 + 2 * count:
+        return None
+    return struct.unpack_from(f'<{count}H', raw, 2)
 
 
 def _write_identity_reply(memory, destination, payload):
-    key, first, dtype = _identity_destination(memory, destination)
+    key, paths, dtype = _identity_span(memory, destination, len(payload), write=True)
     width = ELEMENT_BYTES[dtype]
-    count = (len(payload) + width - 1) // width
-    if first:
-        start = first[0]
-        if count > len(memory.values[key]) - start:
-            raise TransferError(0x11)
-        paths = [(index,) for index in range(start, start + count)]
-    else:
-        if count > 1:
-            raise TransferError(0x11)
-        paths = [()]
-
     writes = []
     for index, path in enumerate(paths):
         chunk = payload[index * width:(index + 1) * width]
@@ -514,14 +549,23 @@ def validate(engine, op, scope, kind='RLL'):
         raise ModelError('MSG requires a whole-project ladder scan outside AOIs')
     key = _control_key(engine, op.args[0], scope, op.name)
     configuration = engine.project.message_configs[key]
-    endpoint = configuration.destination if isinstance(configuration, IdentityRead) else configuration.local
-    if ':' in endpoint.name and endpoint.name.partition('.')[0] != f'program:{scope.casefold()}':
-        raise ModelError('MSG local data must belong to the program executing the instruction')
+    if isinstance(configuration, IdentityRead):
+        endpoints = (configuration.destination, configuration.source)
+    else:
+        endpoints = (configuration.local,)
+    for endpoint in endpoints:
+        if endpoint is not None and ':' in endpoint.name and endpoint.name.partition('.')[0] != f'program:{scope.casefold()}':
+            raise ModelError('MSG local data must belong to the program executing the instruction')
     if isinstance(configuration, IdentityRead):
         try:
-            _identity_destination(engine.memory, configuration.destination)
+            _identity_span(engine.memory, configuration.destination, 1, write=True)
         except TransferError as error:
             raise ModelError(f'CIP Generic Identity requires a writable SINT, INT or DINT scalar or one-dimensional array destination (16#{error.code:04X})') from error
+        if configuration.source is not None:
+            try:
+                _identity_span(engine.memory, configuration.source, configuration.source_size, write=False)
+            except TransferError as error:
+                raise ModelError(f'CIP Generic Identity attribute list requires a SINT, INT or DINT source with room for the configured byte count (16#{error.code:04X})') from error
         return key
     record = configuration.record
     if record and configuration.count * record.size > MAX_BYTES:
@@ -690,16 +734,19 @@ def _admit(engine, key, power):
         cache.pop(key, None)
         return
     request = configuration
+    numbers = None
     if isinstance(request, IdentityRead):
         request = replace(request, class_id=record['Class'], instance=record['Instance'],
                           attribute=record['Attribute'])
+        if request.source is not None:
+            numbers = _capture_identity_numbers(engine.memory, request)
     else:
         remote = _capture_remote(engine.memory, key, request, record)
         request = DataTableTransfer(request, request.local.start(record['LocalIndex']), remote,
                                     remote.start(record['RemoteIndex']) if remote is not None else ())
     deadline = None if reused else engine.time_ms * 1000 + timeout_us
     queue[key] = Pending(request, deadline, path, enabled=power, opening=configuration.connected and not reused,
-                         response_timeout_us=response_us)
+                         response_timeout_us=response_us, attribute_numbers=numbers)
     _set_flags(record, EW=True)
 
 
@@ -761,18 +808,36 @@ def _check_record(value, record):
         raise TransferError(0x03) from error
 
 
-def _transfer(memory, request, status_word):
+def _identity_list_reply(request, numbers, status_word):
+    if numbers is None:
+        raise TransferError(0x03)
+    values = request.identity.attributes(status_word=status_word)
+    result = bytearray(struct.pack('<H', len(numbers)))
+    failed = False
+    for number in numbers:
+        if number in IDENTITY_ATTRIBUTES:
+            result += struct.pack('<HH', number, 0) + values[number]
+        else:
+            result += struct.pack('<HH', number, 0x14)
+            failed = True
+    return (0x0A if failed else 0), result
+
+
+def _transfer(memory, request, status_word, attribute_numbers):
     if isinstance(request, IdentityRead):
         if (request.class_id, request.instance) != (1, 1):
             raise TransferError(0x05)
-        if request.read_all:
+        error = 0
+        if request.service == 0x01:
             payload = request.identity.all_attributes(status_word=status_word)
+        elif request.service == 0x03:
+            error, payload = _identity_list_reply(request, attribute_numbers, status_word)
         else:
             if request.attribute not in IDENTITY_ATTRIBUTES:
                 raise TransferError(0x14)
             payload = request.identity.attributes(status_word=status_word)[request.attribute]
         _write_identity_reply(memory, request.destination, payload)
-        return len(payload)
+        return error, len(payload)
     configuration = request.configuration
     record = configuration.record
     if request.remote is None:
@@ -796,7 +861,7 @@ def _transfer(memory, request, status_word):
         raise TransferError(0x03)
     for path, value in zip(destination[1], values):
         memory.store(destination[0], path, value)
-    return _words(dtype, configuration.count, record)
+    return 0, _words(dtype, configuration.count, record)
 
 
 def _finish(record, enabled, error, transferred=0):
@@ -826,11 +891,9 @@ def service(memory, queue, now_ms, status_word):
             try:
                 if pending.path is None:
                     raise TransferError(0x05)
-                transferred = _transfer(memory, pending.request, status_word)
+                error, transferred = _transfer(memory, pending.request, status_word, pending.attribute_numbers)
             except TransferError as failure:
                 error = failure.code
-            else:
-                error = 0
         _finish(record, pending.enabled, error, transferred)
         if error:
             cache.pop(key, None)
