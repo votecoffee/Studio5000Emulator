@@ -55,8 +55,9 @@ Each control reports 44 words for the full standard STRING record.
 
 Set SendMembers to 1 and step three scans. The read copies
 RecordSource.Samples into the program-local RecordInbox.Samples array.
-The write copies RecordSource.Quality.Value into RecordEcho.Quality.Value.
-Other record members retain their values.
+The write uses QualitySource and QualityTarget aliases to copy
+RecordSource.Quality.Value into RecordEcho.Quality.Value. Other record
+members retain their values.
 
 For a runtime index change, scan SendTyped false, then set SetReadIndices
 to 1, ReadLocalIndex to 1, and ReadRemoteIndex to 0. Set SendTyped to 1 and
@@ -149,6 +150,13 @@ two SINT elements. Those bytes encode product code 168.
   transfer stays inside that array. Remote access checks the root and
   each member on the selected path, so an unrelated restricted sibling
   does not block access to an allowed member.
+- A numeric endpoint can use a static alias to a scalar, an array, or a
+  numeric UDT member. An alias to a whole array accepts a final subscript
+  or `[*]`. An alias to a fixed array element selects just that element.
+  Alias targets resolve in the alias declaration's scope. Remote access
+  checks each alias, the base tag and the selected member path. Cycles,
+  chains longer than eight aliases, and wildcard targets in AliasFor
+  report an invalid path. Specify any UDT member in AliasFor itself.
 - Data Table endpoints can also use the same explicit UDT type. The
   emulator uses its [structured tag layout](connectivity.md#structured-transfers) to size complete
   records and qualify nested numeric members, member arrays, and explicitly

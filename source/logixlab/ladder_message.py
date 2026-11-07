@@ -30,6 +30,7 @@ SELECTOR = rf'\[({INDICES}|\*)\]'
 ADDRESS = re.compile(rf'((?:Program:{NAME}\.)?{NAME})(?:{SELECTOR})?(\..*)?', re.ASCII | re.I)
 MEMBER = re.compile(rf'({NAME})(?:{SELECTOR})?', re.ASCII | re.I)
 MAX_MEMBER_DEPTH = 8
+MAX_ALIAS_HOPS = 8
 
 
 @dataclass(frozen=True)
@@ -192,15 +193,18 @@ def from_tag(project, tag, element, dims):
                          _number(attributes, 'RequestedLength', 1, MAX_ELEMENTS))
 
 
-def _bind_local(project, configuration, scope):
-    """Resolve the saved local element after all controller and program tags are loaded."""
-    field = 'destination' if isinstance(configuration, IdentityRead) else 'local'
-    endpoint = getattr(configuration, field)
+def _scope_endpoint(project, endpoint, scope):
     if scope and ':' not in endpoint.name:
         local_name = f'program:{scope.casefold()}.{endpoint.name}'
         if local_name in project.tags:
-            return replace(configuration, **{field: replace(endpoint, name=local_name)})
-    return configuration
+            return replace(endpoint, name=local_name)
+    return endpoint
+
+
+def _bind_local(project, configuration, scope):
+    """Resolve the saved local element after all controller and program tags are loaded."""
+    field = 'destination' if isinstance(configuration, IdentityRead) else 'local'
+    return replace(configuration, **{field: _scope_endpoint(project, getattr(configuration, field), scope)})
 
 
 def _record_layout(catalog, dtype):
@@ -246,7 +250,8 @@ def initialize(project):
         configuration = _bind_local(project, configuration, tag.scope)
         if isinstance(configuration, Configuration) and not configuration.local.member_path:
             local = project.tags.get(configuration.local.name)
-            if local and not local.problem and (local.dtype.upper() == 'STRING' or local.dtype.casefold() in project.udts):
+            if (local and not local.problem and not local.alias
+                    and (local.dtype.upper() == 'STRING' or local.dtype.casefold() in project.udts)):
                 dtype = local.dtype.upper()
                 if dtype not in records:
                     layout = _string_layout(project, dtype)
@@ -285,15 +290,15 @@ def initial(project, configuration):
     if isinstance(configuration, IdentityRead):
         record.update(Class=configuration.class_id, Instance=configuration.instance, Attribute=configuration.attribute)
         return record
-    local = project.tags.get(configuration.local.name)
     requested = 0
-    if local and not local.problem:
-        try:
-            dtype, _, _ = _member_base(project, local.dtype.upper(), local.value, configuration.local.member_path)
-        except TransferError:
-            pass
-        else:
-            requested = _words(dtype, configuration.count, configuration.record)
+    try:
+        endpoint = configuration.local
+        local, endpoint, _ = _follow_aliases(project, endpoint, endpoint.start(0), configuration.count)
+        dtype, _, _ = _member_base(project, local.dtype.upper(), local.value, endpoint.member_path)
+    except TransferError:
+        pass
+    else:
+        requested = _words(dtype, configuration.count, configuration.record)
     record.update(REQ_LEN=requested if requested <= MAX_BYTES // 2 else 0,
                   LocalIndex=configuration.local.offset, RemoteIndex=configuration.remote.offset)
     # Preserve long authored addresses that predate the writable STRING field.
@@ -358,19 +363,52 @@ def _member_base(project, dtype, value, member_path, *, remote=False, write=Fals
     return dtype, tuple(path), value
 
 
-def _region(memory, endpoint, start, count, *, remote, write, record=None):
-    tag = memory.project.tags.get(endpoint.name)
-    if tag is None or tag.problem or tag.alias or tag.tag_class != 'Standard':
+def _endpoint_tag(project, endpoint, scope):
+    tag = project.tags.get(endpoint.name)
+    if tag is None or tag.problem or tag.tag_class != 'Standard':
         raise TransferError(0x05)
-    project = memory.project
-    if tag.scope and not project.program_configuration.type_attributes(tag.scope, source_sha256=project.sha256):
-        raise TransferError(0x05)
-    dtype = tag.dtype.upper()
-    if not endpoint.member_path and dtype not in ELEMENT_BYTES and (record is None or dtype != record.dtype):
-        raise TransferError(0xFC)
+    if tag.scope:
+        if scope is not None and tag.scope.casefold() != scope.casefold():
+            raise TransferError(0x05)
+        if not project.program_configuration.type_attributes(tag.scope, source_sha256=project.sha256):
+            raise TransferError(0x05)
+    return tag
+
+
+def _check_tag_access(tag, remote, write):
     if ((write and tag.constant) or (remote and tag.external_access != 'Read/Write'
                                     and (write or tag.external_access != 'Read Only'))):
         raise TransferError(0x0F)
+
+
+def _follow_aliases(project, endpoint, start, count, *, remote=False, write=False, scope=None, allow_alias=True):
+    seen = set()
+    tag = _endpoint_tag(project, endpoint, scope)
+    while tag.alias:
+        if (not allow_alias or endpoint.member_path or endpoint.name in seen
+                or len(seen) >= MAX_ALIAS_HOPS):
+            raise TransferError(0x05)
+        seen.add(endpoint.name)
+        _check_tag_access(tag, remote, write)
+        target = _parse_endpoint(tag.alias.strip(), 0)
+        if (target is None or target.variable or (target.coordinates and (start or count != 1))):
+            raise TransferError(0x05)
+        start = start or target.coordinates
+        endpoint = _scope_endpoint(project, target, tag.scope)
+        tag = _endpoint_tag(project, endpoint, scope)
+    return tag, endpoint, start
+
+
+def _region(memory, endpoint, start, count, *, remote, write, record=None, scope=None, allow_alias=True):
+    project = memory.project
+    original = endpoint.name
+    tag, endpoint, start = _follow_aliases(project, endpoint, start, count, remote=remote,
+                                          write=write, scope=scope, allow_alias=allow_alias)
+    dtype = tag.dtype.upper()
+    if not endpoint.member_path and dtype not in ELEMENT_BYTES and (
+            endpoint.name != original or record is None or dtype != record.dtype):
+        raise TransferError(0xFC)
+    _check_tag_access(tag, remote, write)
     dtype, base, value = _member_base(project, dtype, memory.values[endpoint.name], endpoint.member_path,
                                      remote=remote, write=write)
     if base and dtype not in ELEMENT_BYTES:
@@ -396,7 +434,7 @@ def _control_key(engine, name, scope, instruction):
 
 
 def _identity_destination(memory, destination):
-    key, paths, dtype = _region(memory, destination, destination.start(0), 1, remote=False, write=True)
+    key, paths, dtype = _region(memory, destination, destination.start(0), 1, remote=False, write=True, allow_alias=False)
     if dtype != 'SINT' or len(paths[0]) != 1:
         raise TransferError(0xFC)
     return key, paths[0][0]
@@ -422,7 +460,7 @@ def validate(engine, op, scope, kind='RLL'):
     try:
         # A variable start needs a valid array shape, independent of its saved index.
         _region(engine.memory, configuration.local, configuration.local.start(0), configuration.count,
-                remote=False, write=configuration.read, record=record)
+                remote=False, write=configuration.read, record=record, scope=scope)
     except TransferError as error:
         raise ModelError(f'MSG local element cannot address the requested span (16#{error.code:04X})') from error
     return key

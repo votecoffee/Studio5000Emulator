@@ -1144,6 +1144,73 @@ class MessageTests(unittest.TestCase):
                                   DN=readable, ERR=0 if readable else 0x0F)
                 self.assert_flags(engine, 'MemberWriteControl', DN=False, ER=True, ERR=0x0F)
 
+    def test_alias_chain_to_member_array_uses_program_scope_and_captured_indices(self):
+        def configure(root):
+            tags = root.find('./Controller/Tags')
+            ET.SubElement(tags, 'Tag', Name='SampleAlias', TagType='Alias', DataType='INT',
+                          Dimensions='2', AliasFor='RecordSource.Samples')
+            ET.SubElement(tags, 'Tag', Name='SampleChain', TagType='Alias', DataType='INT',
+                          Dimensions='2', AliasFor='SampleAlias')
+            local = root.find('./Controller/Programs/Program/Tags')
+            ET.SubElement(local, 'Tag', Name='SampleInbox', TagType='Alias', DataType='INT',
+                          Dimensions='2', AliasFor='RecordInbox.Samples')
+            config = local.find('Tag[@Name="MemberReadControl"]//MessageParameters')
+            config.attrib.update(LocalElement='SampleInbox[*]', RemoteElement='SampleChain[*]',
+                                 RequestedLength='1', LocalIndex='1', RemoteIndex='1')
+
+        engine = self.engine(configure)
+        self.assertEqual(engine.blockers, [])
+        memory = engine.memory
+        control = 'Program:MainProgram.MemberReadControl'
+        memory.write('SendMembers', True)
+        engine.step()
+        self.assert_flags(engine, control, EW=True, REQ_LEN=1)
+        memory.write(control + '.LocalIndex', 0)
+        memory.write(control + '.RemoteIndex', 0)
+        engine.step()
+        engine.step()
+        self.assertEqual(memory.read('Program:MainProgram.RecordInbox.Samples'), [0, -3])
+        self.assert_flags(engine, control, DN=True, ER=False, DN_LEN=1)
+
+    def test_alias_does_not_bypass_permissions_on_alias_or_target(self):
+        for target, field, value in (('QualityTarget', 'ExternalAccess', 'Read Only'),
+                                     ('RecordEcho', 'ExternalAccess', 'None'),
+                                     ('RecordEcho', 'Constant', 'true')):
+            with self.subTest(target=target, field=field, value=value):
+                def configure(root):
+                    root.find(f'.//Tag[@Name="{target}"]').set(field, value)
+
+                engine = self.engine(configure)
+                self.assertEqual(engine.blockers, [])
+                engine.memory.write('SendMembers', True)
+                for _ in range(3):
+                    engine.step()
+                self.assertEqual(engine.memory.read('RecordEcho.Quality.Value'), 0.0)
+                self.assert_flags(engine, 'MemberWriteControl', DN=False, ER=True, ERR=0x0F, DN_LEN=0)
+
+    def test_remote_alias_rejects_cycles_and_bounds_fixed_targets(self):
+        for symbol, count, expected in (('SamplePoint', 1, 0), ('SamplePoint', 2, 5),
+                                        ('SamplePoint[0]', 1, 5), ('AliasCycle', 1, 5)):
+            with self.subTest(symbol=symbol, count=count):
+                def configure(root):
+                    tags = root.find('./Controller/Tags')
+                    ET.SubElement(tags, 'Tag', Name='SamplePoint', TagType='Alias', DataType='INT',
+                                  AliasFor='RecordSource.Samples[1]')
+                    ET.SubElement(tags, 'Tag', Name='AliasCycle', TagType='Alias', DataType='INT', AliasFor='CycleBack')
+                    ET.SubElement(tags, 'Tag', Name='CycleBack', TagType='Alias', DataType='INT', AliasFor='AliasCycle')
+                    config = root.find('.//Tag[@Name="MemberReadControl"]//MessageParameters')
+                    config.attrib.update(RemoteElement=symbol, RequestedLength=str(count))
+
+                engine = self.engine(configure)
+                self.assertEqual(engine.blockers, [])
+                engine.memory.write('SendMembers', True)
+                for _ in range(3):
+                    engine.step()
+                self.assertEqual(engine.memory.read('Program:MainProgram.RecordInbox.Samples'),
+                                 [0 if expected else -3, 0])
+                self.assert_flags(engine, 'Program:MainProgram.MemberReadControl',
+                                  DN=not expected, ER=bool(expected), ERR=expected)
+
     def test_string_format_and_msg_preserve_escaped_bytes_and_report_full_length(self):
         def configure(root):
             root.find('.//Tag[@Name="TextSource"]/Data').text = "'GO$FF$00!'"
