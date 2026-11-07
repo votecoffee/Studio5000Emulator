@@ -33,7 +33,7 @@ def add_message_burst(root):
                       MessageType='CIP Data Table Read', LocalElement=f'BurstValues[{index}]',
                       RemoteElement='VirtualValue', RequestedLength='1', ConnectedFlag='0',
                       ConnectionPath='THIS', CommTypeCode='0')
-        rung = ET.SubElement(content, 'Rung', Number=str(23 + index), Type='N')
+        rung = ET.SubElement(content, 'Rung', Number=str(25 + index), Type='N')
         ET.SubElement(rung, 'Text').text = f'XIC(SendBurst)MSG({name});'
 
 
@@ -157,7 +157,7 @@ class MessageTests(unittest.TestCase):
 
     def test_copy_into_flags_keeps_the_in_progress_status(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='23', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='25', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CaptureReadFlags)COP(IdentityAttribute,ReadControl.FLAGS,1);'
 
         engine = self.engine(configure)
@@ -275,7 +275,7 @@ class MessageTests(unittest.TestCase):
 
     def test_message_timeout_ssv_and_readback_roll_back_with_later_fault(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='23', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='25', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         engine = self.engine(configure)
@@ -458,7 +458,7 @@ class MessageTests(unittest.TestCase):
 
     def test_generic_identity_all_rolls_back_response_and_queue_after_later_fault(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='23', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='25', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         engine = self.engine(configure)
@@ -834,7 +834,7 @@ class MessageTests(unittest.TestCase):
     def test_completion_and_queue_roll_back_with_later_fault(self):
         def configure(root):
             content = root.find('.//RLLContent')
-            rung = ET.SubElement(content, 'Rung', Number='23', Type='N')
+            rung = ET.SubElement(content, 'Rung', Number='25', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         for timeout in (30_000_000, 10_000):
@@ -1348,7 +1348,7 @@ class MessageTests(unittest.TestCase):
         engine.step()
         self.assert_flags(engine, control, FLAGS=0x2A0, DN_LEN=2)
         self.assertEqual(memory.read('ConnectedValue'), 17)
-        self.assertEqual(engine._message_cache, {'cachedreadcontrol'})
+        self.assertEqual(engine.memory.message_cache, {'cachedreadcontrol'})
 
         memory.write('SendConnectedRead', False)
         memory.write(control + '.UnconnectedTimeout', 1)
@@ -1360,12 +1360,99 @@ class MessageTests(unittest.TestCase):
             self.assert_flags(engine, control, FLAGS=flags)
         self.assertEqual(memory.read('ConnectedValue'), 71)
         engine.enter_run()
-        self.assertEqual(engine._message_cache, set())
+        self.assertEqual(engine.memory.message_cache, set())
         self.assert_flags(engine, control, FLAGS=0x200, UnconnectedTimeout=1)
         for _ in range(3):
             engine.step()
         self.assert_flags(engine, control, ER=True, ERR=0xFE, DN_LEN=0)
         self.assertEqual(memory.read('ConnectedValue'), 71)
+
+    def test_ladder_clear_and_set_does_not_restore_an_idle_connection(self):
+        engine = self.engine()
+        memory = engine.memory
+        control = 'CachedReadControl'
+        memory.write('SendConnectedRead', True)
+        for _ in range(4):
+            engine.step()
+        self.assertEqual(memory.message_cache, {'cachedreadcontrol'})
+
+        memory.write('SendConnectedRead', False)
+        memory.write('ReleaseConnectedCache', True)
+        memory.write('EnableConnectedCache', True)
+        engine.step()
+        self.assert_flags(engine, control, EN_CC=True, DN=True, EN=False)
+        self.assertEqual(memory.message_cache, set())
+
+        memory.write('ReleaseConnectedCache', False)
+        memory.write('EnableConnectedCache', False)
+        memory.write('SendConnectedRead', True)
+        for flags in (0x284, 0x284, 0x2C0, 0x2A0):
+            engine.step()
+            self.assert_flags(engine, control, FLAGS=flags)
+        self.assertEqual(memory.message_cache, {'cachedreadcontrol'})
+
+    def test_ladder_cache_disable_lets_the_active_read_finish_without_retaining_it(self):
+        engine = self.engine()
+        memory = engine.memory
+        control = 'CachedReadControl'
+        memory.write('SendConnectedRead', True)
+        for _ in range(4):
+            engine.step()
+        memory.write('SendConnectedRead', False)
+        engine.step()
+
+        memory.write('VirtualValue', 71)
+        memory.write('SendConnectedRead', True)
+        engine.step()
+        memory.write('ReleaseConnectedCache', True)
+        engine.step()
+        self.assert_flags(engine, control, FLAGS=0xC0)
+        self.assertEqual(memory.message_cache, set())
+        engine.step()
+        self.assert_flags(engine, control, FLAGS=0xA0, DN_LEN=2)
+        self.assertEqual(memory.read('ConnectedValue'), 71)
+        self.assertEqual(memory.message_cache, set())
+
+        engine.enter_run()
+        self.assert_flags(engine, control, FLAGS=0)
+        self.assert_flags(Engine(engine.project), control, FLAGS=0x200)
+
+    def test_connected_flag_writes_share_en_cc_without_overwriting_status(self):
+        engine = self.engine()
+        memory = engine.memory
+        control = 'CachedReadControl'
+        memory.write('SendConnectedRead', True)
+        for _ in range(4):
+            engine.step()
+
+        memory.write(f'{control}.FLAGS', 0)
+        self.assert_flags(engine, control, FLAGS=0xA0, DN=True, EN=True, EN_CC=False)
+        self.assertEqual(memory.message_cache, set())
+        memory.write(f'{control}.FLAGS.9', True)
+        self.assert_flags(engine, control, FLAGS=0x2A0, EN_CC=True)
+        self.assertEqual(memory.message_cache, set())
+        memory.write(f'{control}.FLAGS', 0x218)
+        self.assert_flags(engine, control, FLAGS=0x2A0, ER=False, DN=True, EN_CC=True)
+
+    def test_ladder_cache_release_rolls_back_if_a_later_rung_faults(self):
+        def configure(root):
+            content = root.find('.//RLLContent')
+            rung = ET.SubElement(content, 'Rung', Number='25', Type='N')
+            ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
+
+        engine = self.engine(configure)
+        memory = engine.memory
+        memory.write('SendConnectedRead', True)
+        for _ in range(4):
+            engine.step()
+
+        memory.write('ReleaseConnectedCache', True)
+        memory.write('CancelRead', True)
+        with self.assertRaisesRegex(ModelError, 'Scan rolled back'):
+            engine.step()
+        self.assert_flags(engine, 'CachedReadControl', FLAGS=0x2A0)
+        self.assertEqual(memory.message_cache, {'cachedreadcontrol'})
+        self.assertEqual(engine.scan_count, 4)
 
     def test_connected_response_timeout_is_captured_and_distinct_from_setup(self):
         engine = self.engine()
@@ -1382,7 +1469,7 @@ class MessageTests(unittest.TestCase):
         engine.step()
         self.assert_flags(engine, control, ER=True, ERR=0xFE, DN_LEN=0)
         self.assertEqual(memory.read('ConnectedValue'), 0)
-        self.assertEqual(engine._message_cache, set())
+        self.assertEqual(engine.memory.message_cache, set())
         memory.write('SendConnectedRead', False)
         engine.step()
         memory.write('SendConnectedRead', True)
@@ -1432,7 +1519,7 @@ class MessageTests(unittest.TestCase):
     def test_ladder_connected_timing_rejects_bad_settings_and_rolls_back(self):
         def configure(root):
             content = root.find('.//RLLContent')
-            rung = ET.SubElement(content, 'Rung', Number='23', Type='N')
+            rung = ET.SubElement(content, 'Rung', Number='25', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         cases = (
@@ -1467,14 +1554,14 @@ class MessageTests(unittest.TestCase):
             engine.step()
             self.assert_flags(engine, control, FLAGS=flags, EN_CC=False)
         self.assertEqual(memory.read('IdentityReply'), [-9, 35, 11, -9])
-        self.assertEqual(engine._message_cache, set())
+        self.assertEqual(engine.memory.message_cache, set())
         memory.write('SendIdentityRead', False)
         engine.step()
         memory.write('SendIdentityRead', True)
         for flags in (0x84, 0x84, 0xC0, 0xA0):
             engine.step()
             self.assert_flags(engine, control, FLAGS=flags)
-        self.assertEqual(engine._message_cache, set())
+        self.assertEqual(engine.memory.message_cache, set())
         memory.write('SendIdentityRead', False)
         engine.step()
         memory.write('SendIdentityRead', True)
@@ -1485,7 +1572,7 @@ class MessageTests(unittest.TestCase):
 
     def test_connected_completion_and_cache_roll_back_with_later_rung_fault(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='23', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='25', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         engine = self.engine(configure)
@@ -1499,7 +1586,7 @@ class MessageTests(unittest.TestCase):
             engine.step()
         self.assertEqual(memory.read('ConnectedValue'), 0)
         self.assertEqual(engine._messages['cachedreadcontrol'], pending)
-        self.assertEqual(engine._message_cache, set())
+        self.assertEqual(engine.memory.message_cache, set())
         self.assert_flags(engine, 'CachedReadControl', FLAGS=0x2C0, DN_LEN=0)
 
     def test_seventeenth_message_waits_and_captures_settings_at_admission(self):

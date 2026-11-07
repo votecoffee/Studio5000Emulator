@@ -28,6 +28,13 @@ a modeled connection and reads 17 into ConnectedValue. Scan the trigger
 false, then set it true again. The repeated request takes three scans
 because it reuses the cached connection.
 
+After that read completes, clear SendConnectedRead and set
+ReleaseConnectedCache for one scan. Rung 23 unlatches
+CachedReadControl.EN_CC and releases the retained connection. Clear
+ReleaseConnectedCache and set EnableConnectedCache for one scan. Rung 24
+latches the bit again. The next read opens a new connection in four scans
+and retains it for subsequent reads.
+
 On a fresh Message Lab, set ApplyConnectedTiming and step once. Rung 22
 writes a ConnectionRate of 2,500 microseconds and a TimeoutMultiplier of
 zero, then reads both settings back into ConnectedRateEcho and
@@ -218,9 +225,11 @@ two SINT elements. Those bytes encode product code 168.
   and status while preserving live index values. Reset restores authored indices.
 - The INT `FLAGS` word and the named status members share one value. Its
   bit positions are EW (2), ER (4), DN (5), ST (6), EN (7), TO (8) and
-  EN_CC (9). EN_CC reflects the saved CacheConnections setting. Writes through the
-  word or a named or numbered bit can change TO. The emulator preserves
-  managed status and reserved bits. A cancellation clears TO on completion.
+  EN_CC (9). EN_CC starts from the saved CacheConnections setting. A write
+  through the named bit, FLAGS.9 or the whole word can change EN_CC on a
+  connected control. Writes to an unconnected control leave EN_CC clear.
+  TO remains writable. The emulator preserves managed status and reserved
+  bits. A cancellation clears TO on completion.
 - UnconnectedTimeout is a positive DINT in microseconds. Its default is
   30,000,000. The request captures a deadline when queued. Service checks
   the deadline at the beginning of each advance using committed simulated
@@ -247,11 +256,15 @@ two SINT elements. Those bytes encode product code 168.
   accepted values back. Prescan keeps the values and Reset restores the
   defaults. Changes to a setting and its readback roll back with the scan.
 - The emulator retains up to 32 successful cached connections, one per
-  control tag. A cached request skips setup. Errors and cancellation
-  discard that control's cache entry. Prescan and Reset clear the cache.
-  A full cache leaves newly completed requests uncached. Cache and transfer
-  changes commit together with the scan. This models local scheduling and
-  timeouts. Physical connection establishment and network sharing remain open.
+  control tag. A cached request skips setup. Clearing EN_CC releases its
+  cache entry immediately. A queued or started request can still finish.
+  The bit at successful completion determines whether to retain the
+  connection. Setting EN_CC after an idle release still requires a new open.
+  Errors and cancellation discard that control's entry. Prescan clears
+  retained connections and preserves the live setting. Reset also restores
+  the saved setting. A full cache leaves newly completed requests uncached.
+  Cache, bit and transfer changes commit together with the scan. Physical
+  connection establishment and network sharing remain open.
 - The simulated throttle admits up to 16 requests per controller advance,
   with a ceiling of 48 admitted requests. A message that cannot enter
   stays enabled with EW, ST and ER clear. It retries on its next instruction

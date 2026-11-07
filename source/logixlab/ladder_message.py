@@ -550,10 +550,11 @@ def prescan(engine, op, scope):
                  'ConnectionRate', 'TimeoutMultiplier', 'Class', 'Instance', 'Attribute'):
         if name in record:
             defaults[name] = record[name]
+    defaults['FLAGS'] = record['FLAGS'] & CACHE_MASK
     engine.memory.values[key] = defaults
+    engine.memory.message_cache.discard(key)
     if engine._message_advance is not None:
         engine._message_advance.pop(key, None)
-        engine._message_cache_advance.discard(key)
 
 
 def _capture_remote(memory, key, configuration, record):
@@ -577,7 +578,7 @@ def _admit(engine, key, power):
     if len(queue) >= MAX_PENDING or sum(not request.started for request in queue.values()) >= THROTTLE_POSITIONS:
         return
     configuration = engine.project.message_configs[key]
-    cache = engine._message_cache_advance
+    cache = engine.memory.message_cache
     reused = configuration.connected and key in cache
     timeout_us = record['UnconnectedTimeout']
     response_us = None
@@ -616,7 +617,7 @@ def execute(engine, op, power, scope):
             # An enabled control with no queue entry or result is waiting for admission.
             if record['FLAGS'] & TO_MASK:
                 _finish(record, power, 0xFE)
-                engine._message_cache_advance.discard(key)
+                engine.memory.message_cache.discard(key)
             else:
                 _admit(engine, key, power)
         elif not power:
@@ -708,7 +709,8 @@ def _finish(record, enabled, error, transferred=0):
     record.update(ERR=error, DN_LEN=transferred)
 
 
-def service(memory, queue, cache, now_ms, status_word):
+def service(memory, queue, now_ms, status_word):
+    cache = memory.message_cache
     now_us = now_ms * 1000
     for key, pending in tuple(queue.items()):
         record = memory.values[key]

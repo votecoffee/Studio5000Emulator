@@ -138,6 +138,8 @@
       <Tag Name="MemberWriteControl" DataType="MESSAGE" TagType="Base" ExternalAccess="None">
         <Data Format="Message"><MessageParameters MessageType="CIP Data Table Write" LocalElement="QualitySource" RemoteElement="QualityTarget" RequestedLength="1" ConnectedFlag="0" ConnectionPath="THIS" CommTypeCode="0" /></Data>
       </Tag>
+      <Tag Name="ReleaseConnectedCache" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="EnableConnectedCache" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="SendConnectedRead" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="ConnectedValue" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
       <Tag Name="ApplyConnectedTiming" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
@@ -229,6 +231,8 @@
               <Rung Number="20" Type="N"><Text>XIC(SendMembers)MSG(MemberWriteControl);</Text></Rung>
               <Rung Number="21" Type="N"><Text>XIC(SendConnectedRead)MSG(CachedReadControl);</Text></Rung>
               <Rung Number="22" Type="N"><Text>XIC(ApplyConnectedTiming)SSV(Message,CachedReadControl,ConnectionRate,ConnectedRateUs)SSV(Message,CachedReadControl,TimeoutMultiplier,ConnectedMultiplier)GSV(Message,CachedReadControl,ConnectionRate,ConnectedRateEcho)GSV(Message,CachedReadControl,TimeoutMultiplier,ConnectedMultiplierEcho);</Text></Rung>
+              <Rung Number="23" Type="N"><Text>XIC(ReleaseConnectedCache)OTU(CachedReadControl.EN_CC);</Text></Rung>
+              <Rung Number="24" Type="N"><Text>XIC(EnableConnectedCache)OTL(CachedReadControl.EN_CC);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

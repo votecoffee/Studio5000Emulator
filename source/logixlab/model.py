@@ -808,6 +808,7 @@ class Memory:
     def __init__(self, project):
         self.project = project
         self.values = copy.deepcopy(project.initial)
+        self.message_cache = set()
         self.first_scan = True
         self._resolved = {}
         self.frames = {}
@@ -1144,8 +1145,13 @@ class Memory:
         if not parts:self.values[key]=copy.deepcopy(value);return
         parent=self.at(key,parts[:-1])
         if len(parts) == 1 and parts[0] == 'FLAGS' and key in self.project.message_configs:
-            from .ladder_message import TO_MASK
-            value = (parent['FLAGS'] & ~TO_MASK) | (coerce(value, 'INT') & TO_MASK)
+            from .ladder_message import CACHE_MASK, TO_MASK
+            writable = TO_MASK
+            if self.project.message_configs[key].connected:
+                writable |= CACHE_MASK
+            value = (parent['FLAGS'] & ~writable) | (coerce(value, 'INT') & writable)
+            if not value & CACHE_MASK:
+                self.message_cache.discard(key)
         parent[parts[-1]]=copy.deepcopy(value)
 
     def region(self,ref,count,scope=''):

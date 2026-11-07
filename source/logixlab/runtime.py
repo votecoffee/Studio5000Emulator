@@ -105,8 +105,6 @@ class Engine:
         self._immediate_output_advance = None
         self._messages = {}
         self._message_advance = None
-        self._message_cache = set()
-        self._message_cache_advance = None
         self._program_scanned = set()
         self._disabled_programs = set()
         self._program_activation = {}
@@ -282,10 +280,12 @@ class Engine:
         # Preserve bindings and execution context as well as values on failure.
         before=copy.deepcopy((self.memory.values,self.memory.frames,self.memory._resolved,
                               self.addons.instances,self.calls.stack,self.last_timer,
-                              self.memory.first_scan,self.trace,self.budget,self._file_incremental,self._st_counter_edges,self._st_oneshot_edges))
+                              self.memory.first_scan,self.trace,self.budget,self._file_incremental,self._st_counter_edges,self._st_oneshot_edges,
+                              self.memory.message_cache))
         def restore():
             (self.memory.values,self.memory.frames,self.memory._resolved,self.addons.instances,
-             self.calls.stack,self.last_timer,self.memory.first_scan,self.trace,self.budget,self._file_incremental,self._st_counter_edges,self._st_oneshot_edges)=before
+             self.calls.stack,self.last_timer,self.memory.first_scan,self.trace,self.budget,self._file_incremental,self._st_counter_edges,self._st_oneshot_edges,
+             self.memory.message_cache)=before
         self.budget=self.instruction_limit
         self.last_timer={}
         self._st_counter_edges={}
@@ -301,7 +301,7 @@ class Engine:
         if preview:restore()
         else:
             self._messages.clear()
-            self._message_cache.clear()
+            self.memory.message_cache.clear()
             self.prescan_count+=1
             self._initial_prescan_pending=False
             self._program_scanned=set()
@@ -700,6 +700,7 @@ class Engine:
     def step(self, dt=10, *, running=False):
         self.prepare_step(dt)
         before = copy.deepcopy(self.memory.values)
+        message_cache = self.memory.message_cache.copy()
         module_modes = self._module_modes.copy()
         bindings = copy.deepcopy((self.memory.frames,self.memory._resolved,self.addons.instances)) if self.project.aois else None
         previous = (self.time_ms, copy.deepcopy(self.last_timer), self.memory.first_scan, self.trace, set(self._file_incremental), dict(self._st_counter_edges), dict(self._st_oneshot_edges))
@@ -721,11 +722,10 @@ class Engine:
                                                        set(self._activation_prescan_pending))
         self._immediate_output_advance = {}
         self._message_advance = self._messages.copy()
-        self._message_cache_advance = self._message_cache.copy()
         try:
             self._scan_controller_status = controller_status_word(self.controller_mode(running=running))
             # Service at the committed boundary, before any task release in this advance.
-            ladder_message.service(self.memory,self._message_advance,self._message_cache_advance,
+            ladder_message.service(self.memory,self._message_advance,
                                    self.time_ms,self._scan_controller_status)
             task_wall_time=current_value_microseconds() if single_timing else None
             task_start=task_runtime.perf_counter_ns() if single_timing else None
@@ -788,11 +788,11 @@ class Engine:
             self._task_scan_timings=task_timings
             if self._event_dispatch is not None:self._task_event_status=self._event_dispatch.status
             self._messages = self._message_advance
-            self._message_cache = self._message_cache_advance
             if self._immediate_output_advance:
                 self.immediate_outputs = self.immediate_outputs | self._immediate_output_advance
         except (ModelError, ArithmeticError, ValueError, TypeError, KeyError, IndexError, OverflowError) as e:
             self.memory.values = before
+            self.memory.message_cache = message_cache
             self._module_modes = module_modes
             if bindings is not None:self.memory.frames,self.memory._resolved,self.addons.instances = bindings
             if batch:
@@ -812,7 +812,6 @@ class Engine:
             self._scan_controller_status=None
             self._immediate_output_advance=None
             self._message_advance=None
-            self._message_cache_advance=None
         return self._record_tag_changes(before)
 
     def _recover_ladder_array_fault(self, op, scope, error):
@@ -870,6 +869,7 @@ class Engine:
         fault['timestamp_us'] = current_value_microseconds()
         fault['handler'] = result
         before = copy.deepcopy(self.memory.values)
+        message_cache = self.memory.message_cache.copy()
         previous_budget, previous_first, previous_trace = self.budget, self.memory.first_scan, self.trace
         self.budget = self.instruction_limit
         self.memory.first_scan = False
@@ -880,6 +880,7 @@ class Engine:
             self._record_tag_changes(before)
         except Exception as error:
             self.memory.values = before
+            self.memory.message_cache = message_cache
             self.trace = previous_trace
             result.update(status='rolled_back', error=str(error) or type(error).__name__)
         else:

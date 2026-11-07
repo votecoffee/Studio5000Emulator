@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1106.201737` [ladder MSG](ladder-message.md#supported-configuration-and-timing)
+lets ladder logic write EN_CC on connected controls. Clearing the bit releases
+the retained connection. An active request still completes, and a fault rolls
+back the cache release and flag change together.
+
 Available in `26.1106.200829` ladder [Message timing attributes](ladder-message.md#supported-configuration-and-timing)
 let a program set and read back ConnectionRate and TimeoutMultiplier on
 connected MSG controls. Message Lab shows the next request using the new

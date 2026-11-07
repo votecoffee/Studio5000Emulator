@@ -162,7 +162,8 @@ the ladder viewer, runtime target and index changes, exact LINT writes,
 multidimensional array transfers and simulated timeouts with ladder-controlled retries.
 Ladder GSV and SSV can read and set the setup timeout, connected packet rate
 and response timeout multiplier. Ladder can copy the packed FLAGS word
-and use its TO bit to cancel a request. The simulated throttle admits 16
+and use its TO bit to cancel a request or EN_CC to control connection reuse.
+The simulated throttle admits 16
 requests at a time and retries waiting messages. The lab exercises program-local
 message controls, matching strings and UDT records, and selected numeric UDT
 members through direct addresses or aliases. It also demonstrates CIP Generic
