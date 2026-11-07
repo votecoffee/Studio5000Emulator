@@ -142,10 +142,27 @@ When a handler clears the fault, the next instruction sees the incoming
 rung power. A later valid execution can still emit the pending edge pulse
 if the rung input differs from the retained storage in the required
 direction. Valid executions still select the output after the storage
-write. Prescan bounds faults use their separate startup behavior.
+write. During prescan, an out-of-bounds destination uses the rule below.
 
 [Rockwell OSR reference](https://www.rockwellautomation.com/en-il/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/bit-instructions1/one-shot-rising--osr-1.html)
 [Rockwell OSF reference](https://www.rockwellautomation.com/en-za/docs/studio-5000-logix-designer/38-00/contents-ditamap/instruction-set/bit-instructions1/one-shot-falling--osf-1.html)
+
+### Skip coil and one-shot array faults during prescan
+
+The v35 ControlLogix 5580 ladder profile skips OTE, ONS, OSR or OSF
+when a prescan write encounters an out-of-bounds array selection.
+Prescan continues with the next instruction without invoking a Program
+or Controller fault handler. For OSR and OSF, the pulse destination
+is evaluated after the storage write. If that destination is out of bounds,
+the emulator restores the original storage, including unknown scalar
+values and adjacent bits in packed integers.
+
+Unknown indices, unknown packed backing values and errors caught by
+structural validation still block initialization. If normal execution
+reaches the same bad index, the existing Type 4 Code 20 path applies.
+Native partial-write behavior remains unverified.
+
+[Rockwell prescan fault reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm014_-en-p.pdf)
 
 ## Recover timer, counter and reset array faults
 

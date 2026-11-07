@@ -14,9 +14,12 @@ bit references are supported. Other controller profiles keep their legacy path.
 | ONS / OSR | False clears storage without reading its previous value. A true rung requires known storage to determine the rising edge. |
 | OSF | True establishes storage and clears the pulse without reading history. A false rung requires known storage to determine the falling edge. |
 
-Existing prescan clears OTE outputs, initializes ONS/OSR storage true and OSF
+Prescan clears OTE outputs, initializes ONS/OSR storage true and OSF
 storage false, and clears OSR/OSF pulse outputs. OTL/OTU values are retained.
-Import preview preserves saved values; Run applies the actual initialization.
+Import preview preserves saved values. Run applies the actual initialization.
+[Out-of-bounds array selections](controller-handlers.md#skip-coil-and-one-shot-array-faults-during-prescan)
+skip the affected instruction. If the pulse output faults after the storage
+write, the emulator restores the original storage before continuing.
 One-shot storage still has to be known whenever its prior state determines a
 pulse. Unknown history is not inferred from a desired output.
 

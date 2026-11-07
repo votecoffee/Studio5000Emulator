@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1107.122729` [coil and one-shot prescan recovery](controller-handlers.md#skip-coil-and-one-shot-array-faults-during-prescan)
+skips out-of-bounds OTE, ONS, OSR and OSF destinations. OSR and OSF restore
+their storage when the pulse destination is out of bounds.
+
 Available in `26.1107.121903` [timer and counter prescan recovery](controller-handlers.md#skip-timer-and-counter-array-faults-during-prescan)
 skips an out-of-bounds selection in ladder TON, TOF, RTO, CTU or CTD.
 Prescan continues initializing subsequent instructions.

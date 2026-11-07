@@ -86,6 +86,56 @@ class BitLogicTests(unittest.TestCase):
             self.assertEqual(e.memory.read('State.Storage'), name != 'OSF');self.assertFalse(e.memory.read('State.Pulse'))
             self.assertEqual(e.memory.read('State.Guard'), 42)
 
+    def test_prescan_skips_out_of_bounds_bit_destinations_and_continues(self):
+        def out_of_bounds(root):
+            root.find('./Controller/Tags/Tag[@Name="Index"]/Data/DataValue').set('Value', '32')
+
+        for text in ('OTE(Flags[Index])', 'ONS(Flags[Index])',
+                     'OSR(Flags[Index],State.Pulse)', 'OSF(Flags[Index],State.Pulse)'):
+            with self.subTest(instruction=text):
+                engine = self.checked([text + ';', 'OTE(State.Output);'], mutate=out_of_bounds, deferred=True)
+                self.assertIsNone(engine.memory.read('State')['Output'])
+                engine.enter_run()
+                self.assertFalse(engine.memory.read('State.Output'))
+                self.assertIsNone(engine.memory.read('State')['Pulse'])
+                self.assertEqual(engine.memory.read('Flags'), engine.project.initial['flags'])
+                self.assertEqual(engine.memory.read('Index'), 32)
+                self.assertIsNone(engine.last_cleared_program_fault)
+                before = self.snapshot(engine)
+                with self.assertRaisesRegex(ModelError, 'outside bounds'):
+                    engine.step()
+                self.assertEqual(self.snapshot(engine), before)
+
+        unknown = self.engine(['OTE(Flags[Words[0]]);'])
+        self.assertTrue(any('Prescan' in b and 'Unknown' in b for b in unknown.blockers))
+
+    def test_prescan_restores_scalar_and_packed_storage_when_pulse_address_faults(self):
+        scalar = self.checked(['OSR(State.Storage,Flags[Index]);', 'OTE(State.Output);'], deferred=True)
+        scalar.memory.write('Index', 32)
+        scalar.enter_run()
+        self.assertIsNone(scalar.memory.read('State')['Storage'])
+        self.assertFalse(scalar.memory.read('State.Output'))
+
+        for text, word in (('OSR(Source.5,Flags[Source]);', 5), ('OSF(Source.0,Flags[Source]);', 33)):
+            with self.subTest(instruction=text):
+                engine = self.checked([text, 'OTE(State.Output);'], deferred=True)
+                engine.memory.write('Source', word)
+                flags = engine.memory.read('Flags').copy()
+                engine.enter_run()
+                self.assertEqual(engine.memory.read('Source'), word)
+                self.assertEqual(engine.memory.read('Flags'), flags)
+                self.assertFalse(engine.memory.read('State.Output'))
+
+    def test_prescan_keeps_successful_pulse_selection_after_storage_write(self):
+        engine = self.checked(['OSR(Source.0,Flags[Source]);'], deferred=True)
+        engine.memory.write('Source', 4)
+        engine.memory.write('Flags[4]', True)
+        engine.memory.write('Flags[5]', True)
+        engine.enter_run()
+        self.assertEqual(engine.memory.read('Source'), 5)
+        self.assertTrue(engine.memory.read('Flags[4]'))
+        self.assertFalse(engine.memory.read('Flags[5]'))
+
     def test_ons_osr_false_establish_new_unknown_storage_without_history(self):
         for name in ('ONS', 'OSR'):
             text = 'ONS(Flags[Index])OTE(State.Pulse)' if name == 'ONS' else 'OSR(Flags[Index],State.Pulse)'

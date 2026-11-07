@@ -530,7 +530,9 @@ destinations. Enable `MoveNumeric` in **Data lab** to try the examples.
 
 [Ladder contacts and coils](docs/bit-logic.md) allow unknown BOOL values during
 validation, establish complete coil values and read one-shot history only when
-needed. **Bit lab** adds contact, latch and rising/falling pulse examples.
+needed. [Bit-instruction prescan](docs/controller-handlers.md#skip-coil-and-one-shot-array-faults-during-prescan)
+can skip an out-of-bounds destination and continue initialization.
+**Bit lab** adds contact, latch and rising/falling pulse examples.
 
 [Numeric ladder comparisons](docs/numeric-comparisons.md) validate unknown values
 without consuming them on false rungs, including MEQ and LIM dynamic indices.

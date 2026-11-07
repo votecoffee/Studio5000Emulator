@@ -695,6 +695,8 @@ class Engine:
                 elif n in array_statistics.INSTRUCTIONS:array_statistics.prescan(self.memory,op,scope)
                 elif n=='DTR':data_transition.execute(self.memory,op,False,scope)
                 elif n in file_bit_compare.INSTRUCTIONS:file_bit_compare.prescan(self.memory,op,scope)
+                elif n in bit_logic.PRESCAN_WRITES and bit_logic.available(self.project):
+                    bit_logic.prescan(self.memory, op, scope)
                 elif n=='OTE':w('',False)
                 elif n in ('ONS','OSR','OSF'):
                     w('',n!='OSF')

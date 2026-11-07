@@ -4,6 +4,7 @@ from .model import ArrayBoundsError, ModelError
 
 INSTRUCTIONS = frozenset(('XIC', 'XIO', 'OTE', 'OTL', 'OTU', 'ONS', 'OSR', 'OSF'))
 WRITES = {'OTE': (0,), 'OTL': (0,), 'OTU': (0,), 'ONS': (0,), 'OSR': (0, 1), 'OSF': (0, 1)}
+PRESCAN_WRITES = frozenset(('OTE', 'ONS', 'OSR', 'OSF'))
 
 
 def available(project):
@@ -25,6 +26,33 @@ def validate(engine, op, scope):
     return True
 
 
+def _write_pulse(memory, args, storage, pulse, scope):
+    # The output index can depend on the storage write. Save the original
+    # scalar or packed word at its resolved address for bounds recovery.
+    key, parts, _ = memory.check_writable(args[0], scope)
+    if parts and isinstance(parts[-1], tuple):
+        parts = parts[:-1]
+    previous = memory.at(key, parts)
+    memory.write(args[0], storage, scope)
+    try:
+        memory.write(args[1], pulse, scope)
+    except ArrayBoundsError:
+        memory.store(key, parts, previous)
+        raise
+
+
+def prescan(memory, op, scope):
+    name, args = op.name, op.args
+    try:
+        if name in ('OSR', 'OSF'):
+            _write_pulse(memory, args, name == 'OSR', False, scope)
+        else:
+            memory.write(args[0], name == 'ONS', scope)
+    except ArrayBoundsError:
+        # Prescan continues after the instruction, with any storage write undone.
+        pass
+
+
 def execute(memory, op, power, scope):
     name, args = op.name, op.args
     if name in ('XIC', 'XIO'):
@@ -43,18 +71,7 @@ def execute(memory, op, power, scope):
             memory.write(args[0], power, scope)
             return pulse
 
-        # The output index can depend on the storage write. Save the original
-        # scalar or packed word at its resolved address for bounds recovery.
-        key, parts, _ = memory.check_writable(args[0], scope)
-        if parts and isinstance(parts[-1], tuple):
-            parts = parts[:-1]
-        previous = memory.at(key, parts)
-        memory.write(args[0], power, scope)
-        try:
-            memory.write(args[1], pulse, scope)
-        except ArrayBoundsError:
-            memory.store(key, parts, previous)
-            raise
+        _write_pulse(memory, args, power, pulse, scope)
     return power
 
 
@@ -66,7 +83,7 @@ def description(project):
                 contacts='False rung skips XIC/XIO values and indices; true rung requires a known value',
                 coils='OTE establishes full BOOL values; false OTL/OTU retain values and skip live references',
                 one_shots='ONS/OSR false and OSF true skip prior storage reads; other transitions require known history',
-                prescan='Existing OTE clear, ONS/OSR storage set, OSF storage clear and pulse-output clear; latches retained',
+                prescan='OTE clears; ONS/OSR set storage; OSF clears storage; OSR/OSF clear pulse output; out-of-bounds selections skip the instruction',
                 packed_bits='Partial writes require known backing integers to preserve neighboring bits',
                 array_recovery='Whole-project ladder handlers can clear Type 4 Code 20 and skip any of these bit instructions',
                 pulse_recovery='OSR/OSF restore the original storage value before handling an out-of-bounds output index',
