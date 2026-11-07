@@ -4,7 +4,7 @@ import re
 import struct
 from dataclasses import dataclass, replace
 
-from . import wall_clock
+from . import software_clock, time_sync, wall_clock
 from .identity import Identity
 from .integer_math import CONTROLLERS
 from .model import ModelError, coerce
@@ -20,7 +20,16 @@ DEFAULT_CONNECTION_RATE_US = 7_500_000
 MAX_TIMEOUT_MULTIPLIER = 7
 PATH_BUFFER_SIZE = 82
 IDENTITY_ATTRIBUTES = frozenset(range(1, 8))
-GENERIC_SERVICES = {1: (0x01, 0x03, 0x0E), wall_clock.CLASS_ID: (0x03, 0x0E)}
+GENERIC_SERVICES = {
+    1: (0x01, 0x03, 0x0E),
+    wall_clock.CLASS_ID: (0x03, 0x0E),
+    time_sync.CLASS_ID: (0x03, 0x0E),
+}
+GENERIC_SINGLE_ATTRIBUTES = {
+    1: IDENTITY_ATTRIBUTES,
+    wall_clock.CLASS_ID: range(1, 12),
+    time_sync.CLASS_ID: time_sync.INSTANCE_ATTRIBUTES,
+}
 GENERIC_BUFFER_TYPES = frozenset(('SINT', 'INT', 'DINT'))
 MAX_ATTRIBUTE_LIST = 32
 STATUS_BITS = {'EW': 2, 'ER': 4, 'DN': 5, 'ST': 6, 'EN': 7, 'TO': 8, 'EN_CC': 9}
@@ -192,11 +201,10 @@ def _generic_read(project, attributes):
     cls = _hex_number(attributes, 'ObjectType')
     instance = _number(attributes, 'TargetObject', 0, 65535)
     if instance != 1 or service not in GENERIC_SERVICES.get(cls, ()):
-        raise ModelError('CIP Generic supports single and list reads on Identity and Wall Clock Time instance 1, plus Identity Get Attributes All')
+        raise ModelError('CIP Generic supports single and list reads on Identity, Wall Clock Time and Time Sync instance 1, plus Identity Get Attributes All')
     single = service == 0x0E
     attribute = _hex_number(attributes, 'AttributeNumber') if single or attributes.get('AttributeNumber') else 0
-    supported = IDENTITY_ATTRIBUTES if cls == 1 else range(1, 12)
-    if single and attribute not in supported:
+    if single and attribute not in GENERIC_SINGLE_ATTRIBUTES[cls]:
         raise ModelError('CIP Generic single-read attribute is outside the modeled object range')
     source = None
     source_size = 0
@@ -824,7 +832,8 @@ def _attribute_list_reply(numbers, values):
     return (0x0A if failed else 0), result
 
 
-def _generic_reply(project, request, numbers, status_word, coordinated_clock):
+def _generic_reply(engine, request, numbers, status_word):
+    project = engine.project
     if request.instance != 1 or request.class_id not in GENERIC_SERVICES:
         raise TransferError(0x05)
     if request.service not in GENERIC_SERVICES[request.class_id]:
@@ -845,10 +854,16 @@ def _generic_reply(project, request, numbers, status_word, coordinated_clock):
         values = {number: attributes[number] for number in IDENTITY_ATTRIBUTES}
     else:
         requested = numbers if request.service == 0x03 else (request.attribute,)
-        values = project.wall_clock.attributes(
-            read_time=any(number in wall_clock.TIME_ATTRIBUTES for number in requested),
-            coordinated_clock=coordinated_clock,
-        )
+        if request.class_id == wall_clock.CLASS_ID:
+            values = project.wall_clock.attributes(
+                read_time=any(number in wall_clock.TIME_ATTRIBUTES for number in requested),
+                coordinated_clock=engine.coordinated_clock,
+            )
+        else:
+            values = project.time_sync.cip_attributes(
+                read_time=any(number in software_clock.TIME_ATTRIBUTES for number in requested),
+                instance_id=engine.application_instance_id,
+            )
     if request.service == 0x03:
         return _attribute_list_reply(numbers, values)
     value = values.get(request.attribute)
@@ -857,9 +872,10 @@ def _generic_reply(project, request, numbers, status_word, coordinated_clock):
     return 0, value
 
 
-def _transfer(memory, request, status_word, attribute_numbers, coordinated_clock):
+def _transfer(engine, request, status_word, attribute_numbers):
+    memory = engine.memory
     if isinstance(request, GenericRead):
-        error, payload = _generic_reply(memory.project, request, attribute_numbers, status_word, coordinated_clock)
+        error, payload = _generic_reply(engine, request, attribute_numbers, status_word)
         _write_generic_reply(memory, request.destination, payload)
         return error, len(payload)
     configuration = request.configuration
@@ -893,9 +909,11 @@ def _finish(record, enabled, error, transferred=0):
     record.update(ERR=error, DN_LEN=transferred)
 
 
-def service(memory, queue, now_ms, status_word, *, coordinated_clock):
+def service(engine, status_word):
+    memory = engine.memory
+    queue = engine._message_advance
     cache = memory.message_cache
-    now_us = now_ms * 1000
+    now_us = engine.time_ms * 1000
     for key, pending in tuple(queue.items()):
         record = memory.values[key]
         transferred = 0
@@ -915,7 +933,7 @@ def service(memory, queue, now_ms, status_word, *, coordinated_clock):
             try:
                 if pending.path is None:
                     raise TransferError(0x05)
-                error, transferred = _transfer(memory, pending.request, status_word, pending.attribute_numbers, coordinated_clock)
+                error, transferred = _transfer(engine, pending.request, status_word, pending.attribute_numbers)
             except TransferError as failure:
                 error = failure.code
         _finish(record, pending.enabled, error, transferred)

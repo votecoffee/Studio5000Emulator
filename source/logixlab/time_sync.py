@@ -5,6 +5,11 @@ from .tag_catalog import complete_tag_source
 from . import controller_schemas, software_clock
 
 
+CLASS_ID = 0x43
+INSTANCE_ATTRIBUTES = frozenset((1, 16, 17, *software_clock.STATIC_ATTRIBUTES, *software_clock.TIME_ATTRIBUTES,
+                                 *software_clock.IDENTITY_ATTRIBUTES, *software_clock.INACTIVE_ATTRIBUTES))
+
+
 @dataclass(frozen=True)
 class TimeSync:
     ptp_enabled: bool | None = None
@@ -40,9 +45,13 @@ class TimeSync:
         values = ((1, self.ptp_enabled), (16, self.priority1), (17, self.priority2))
         return {number: bytes((value,)) for number, value in values if value is not None}
 
+    def cip_attributes(self, *, read_time=False, instance_id=None):
+        return {**self.attributes(), **software_clock.attributes(read_time=read_time, instance_id=instance_id,
+                                                                 ptp_enabled=self.ptp_enabled)}
+
     def description(self, *, instance_id=None, native_compatibility=False):
         clock = software_clock.description(instance_id=instance_id, ptp_enabled=self.ptp_enabled)
-        return {'object_revision': controller_schemas.object_revision(0x43,native_compatibility=native_compatibility),
+        return {'object_revision': controller_schemas.object_revision(CLASS_ID,native_compatibility=native_compatibility),
                 'ptp_enabled': self.ptp_enabled,
                 'priority1': self.priority1, 'priority2': self.priority2,
                 'source': 'Controller/TimeSynchronize PTPEnable/Priority1/Priority2',

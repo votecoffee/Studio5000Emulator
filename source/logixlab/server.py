@@ -506,7 +506,8 @@ class Application:
                 if native_reference_symbols:provenance['native_reference_symbols']=native_reference_symbols.description()
                 native_routine_reference_symbols=RoutineReferenceSymbols.from_source(project,native_identity,native_symbols,native_routines,native_auxiliary_symbols)
                 if native_routine_reference_symbols:provenance['native_routine_reference_symbols']=native_routine_reference_symbols.description()
-                engine = Engine(project,defer_prescan=True,coordinated_clock=self.coordinated_clock)
+                engine = Engine(project,defer_prescan=True,coordinated_clock=self.coordinated_clock,
+                                application_instance_id=self.instance_id)
                 with self.lock:
                     if self.endpoint and self.endpoint.enabled:
                         from .identity import Identity
@@ -600,7 +601,7 @@ class Application:
                 self._io_dirty = True
             elif action == "configure":
                 engine = Engine(e.project, data.get("mode", "project"), data.get("routine", ""),defer_prescan=True,
-                                coordinated_clock=self.coordinated_clock)
+                                coordinated_clock=self.coordinated_clock,application_instance_id=self.instance_id)
                 self.set_controller_mode('Program')
                 self.engine = engine
                 self.scan_interval_ms = self.default_scan_interval()
@@ -633,7 +634,8 @@ class Application:
                 self._io_dirty = True
             elif action == "reset":
                 self.set_controller_mode('Program')
-                self.engine = Engine(e.project, e.mode, e.selected,defer_prescan=True,coordinated_clock=self.coordinated_clock)
+                self.engine = Engine(e.project, e.mode, e.selected,defer_prescan=True,coordinated_clock=self.coordinated_clock,
+                                     application_instance_id=self.instance_id)
                 self.scan_interval_ms = self.engine.fixed_scan_interval() or self.scan_interval_ms
                 self.generation += 1
                 self.device_io.bind(self.generation); self._io_dirty = True

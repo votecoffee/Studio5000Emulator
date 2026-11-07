@@ -2,6 +2,7 @@
 <RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="MessageLab" TargetType="Controller" ContainsContext="false">
   <Controller Name="MessageLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
     <Description>LogixLab sample for unconnected THIS data-table messaging and typed spans.</Description>
+    <TimeSynchronize PTPEnable="false" Priority1="128" Priority2="128" />
     <DataTypes>
       <DataType Name="MessageQuality" Family="NoFamily" Class="User">
         <Members>
@@ -28,6 +29,16 @@
     <AddOnInstructionDefinitions />
     <Tags>
       <Tag Name="UseAlternateRead" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="SendTimeSyncRead" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="TimeSyncReply" DataType="DINT" TagType="Base" Dimensions="4">
+        <Data Format="Decorated"><Array DataType="DINT" Dimensions="4">
+          <Element Index="[0]" Value="287454020" /><Element Index="[1]" Value="0" />
+          <Element Index="[2]" Value="0" /><Element Index="[3]" Value="0" />
+        </Array></Data>
+      </Tag>
+      <Tag Name="TimeSyncReadControl" DataType="MESSAGE" TagType="Base" ExternalAccess="None">
+        <Data Format="Message"><MessageParameters MessageType="CIP Generic" ServiceCode="16#0E" ObjectType="16#43" TargetObject="1" AttributeNumber="16#1C" RequestedLength="0" DestinationTag="TimeSyncReply[0]" ConnectedFlag="0" ConnectionPath="THIS" CommTypeCode="0" /></Data>
+      </Tag>
       <Tag Name="SendClockRead" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="ClockReply" DataType="DINT" TagType="Base" Dimensions="7">
         <Data Format="Decorated"><Array DataType="DINT" Dimensions="7">
@@ -280,6 +291,7 @@
               <Rung Number="27" Type="N"><Text>XIC(SendIdentityWord)MSG(IdentityWordControl);</Text></Rung>
               <Rung Number="28" Type="N"><Text>XIC(SendIdentityList)MSG(IdentityListControl);</Text></Rung>
               <Rung Number="29" Type="N"><Text>XIC(SendClockRead)MSG(ClockReadControl);</Text></Rung>
+              <Rung Number="30" Type="N"><Text>XIC(SendTimeSyncRead)MSG(TimeSyncReadControl);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

@@ -53,8 +53,10 @@ class JumpRoutine(Exception):
 
 class Engine:
     """Deterministic model; a failed scan rolls back all simulator state."""
-    def __init__(self, project, mode="project", routine="", *, defer_prescan=False, coordinated_clock=None):
+    def __init__(self, project, mode="project", routine="", *, defer_prescan=False, coordinated_clock=None,
+                 application_instance_id=None):
         self.project = project
+        self.application_instance_id = application_instance_id
         self.coordinated_clock = coordinated_clock if coordinated_clock is not None else CoordinatedClock.start()
         self.change_detection=ChangeDetection(project.sha256,project.controller_configuration.changes_to_detect)
         self.runtime_references = RuntimeReferences(project)
@@ -725,9 +727,7 @@ class Engine:
         try:
             self._scan_controller_status = controller_status_word(self.controller_mode(running=running))
             # Service at the committed boundary, before any task release in this advance.
-            ladder_message.service(self.memory,self._message_advance,
-                                   self.time_ms,self._scan_controller_status,
-                                   coordinated_clock=self.coordinated_clock)
+            ladder_message.service(self, self._scan_controller_status)
             task_wall_time=current_value_microseconds() if single_timing else None
             task_start=task_runtime.perf_counter_ns() if single_timing else None
             programs=self._program_advance

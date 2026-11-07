@@ -11,6 +11,7 @@ from xml.etree import ElementTree as ET
 
 from logixlab.model import ModelError, Project
 from logixlab.runtime import Engine
+from logixlab.software_clock import clock_identity
 
 SAMPLE = Path(__file__).resolve().parents[1] / 'samples/MessageLab.L5X'
 
@@ -34,7 +35,7 @@ def add_message_burst(root):
                       MessageType='CIP Data Table Read', LocalElement=f'BurstValues[{index}]',
                       RemoteElement='VirtualValue', RequestedLength='1', ConnectedFlag='0',
                       ConnectionPath='THIS', CommTypeCode='0')
-        rung = ET.SubElement(content, 'Rung', Number=str(30 + index), Type='N')
+        rung = ET.SubElement(content, 'Rung', Number=str(31 + index), Type='N')
         ET.SubElement(rung, 'Text').text = f'XIC(SendBurst)MSG({name});'
 
 
@@ -158,7 +159,7 @@ class MessageTests(unittest.TestCase):
 
     def test_copy_into_flags_keeps_the_in_progress_status(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='30', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='31', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CaptureReadFlags)COP(IdentityAttribute,ReadControl.FLAGS,1);'
 
         engine = self.engine(configure)
@@ -276,7 +277,7 @@ class MessageTests(unittest.TestCase):
 
     def test_message_timeout_ssv_and_readback_roll_back_with_later_fault(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='30', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='31', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         engine = self.engine(configure)
@@ -575,6 +576,92 @@ class MessageTests(unittest.TestCase):
         self.assertEqual(memory.read('IdentityAllReply'), before)
         self.assert_flags(engine, 'IdentityAllControl', DN=False, ER=True, ERR=8, DN_LEN=0)
 
+    def test_generic_time_sync_samples_at_completion_and_matches_clock_payload(self):
+        engine = self.engine()
+        memory = engine.memory
+        self.assertEqual(engine.blockers, [])
+        timestamp = 1_706_933_106_789_123_456
+        with patch('logixlab.software_clock.time') as clock:
+            clock.time_ns.return_value = timestamp
+            memory.write('SendTimeSyncRead', True)
+            engine.step()
+            memory.write('TimeSyncReadControl.Attribute', 1)
+            engine.step()
+            clock.time_ns.assert_not_called()
+            engine.step()
+            clock.time_ns.assert_called_once_with()
+        self.assertEqual(memory.read('TimeSyncReply'), list(struct.unpack('<4i', struct.pack('<qq', 0, timestamp // 1000))))
+        self.assert_flags(engine, 'TimeSyncReadControl', DN=True, ERR=0, DN_LEN=16)
+
+    def test_generic_time_sync_list_samples_microseconds_and_nanoseconds_once(self):
+        def configure(root):
+            control = root.find('.//Tag[@Name="IdentityListControl"]//MessageParameters')
+            control.set('ObjectType', '16#43')
+            control.set('DestinationTag', 'IdentityAllReply[1]')
+            array = root.find('.//Tag[@Name="IdentityListRequest"]//Array')
+            array.find('Element[@Index="[1]"]').set('Value', '4')
+            array.find('Element[@Index="[2]"]').set('Value', '3')
+
+        engine = self.engine(configure)
+        timestamp = 1_706_933_106_789_123_456
+        with patch('logixlab.software_clock.time') as clock:
+            clock.time_ns.return_value = timestamp
+            engine.memory.write('SendIdentityList', True)
+            for _ in range(3):
+                engine.step()
+            clock.time_ns.assert_called_once_with()
+        reply = engine.memory.read('IdentityAllReply')
+        self.assertEqual((reply[0], reply[-1]), (-9, -9))
+        self.assertEqual(bytes(value & 255 for value in reply[1:-1]),
+                         struct.pack('<HHHqHHq', 2, 4, 0, timestamp, 3, 0, timestamp // 1000))
+        self.assert_flags(engine, 'IdentityListControl', DN=True, ERR=0, DN_LEN=26)
+
+    def test_generic_time_sync_respects_disabled_and_unavailable_ptp_source(self):
+        for enabled, attribute, expected in (
+            ('false', 18, 0), ('true', 18, None), (None, 18, None),
+            ('true', 1, 1), ('false', 1, 0), (None, 1, None),
+        ):
+            with self.subTest(enabled=enabled, attribute=attribute):
+                def configure(root):
+                    controller = root.find('Controller')
+                    node = controller.find('TimeSynchronize')
+                    if enabled is None:
+                        controller.remove(node)
+                    else:
+                        node.set('PTPEnable', enabled)
+
+                engine = self.engine(configure)
+                memory = engine.memory
+                memory.write('TimeSyncReadControl.Attribute', attribute)
+                memory.write('SendTimeSyncRead', True)
+                with patch('logixlab.software_clock.time') as clock:
+                    for _ in range(3):
+                        engine.step()
+                    clock.time_ns.assert_not_called()
+                if expected is None:
+                    self.assertEqual(memory.read('TimeSyncReply[0]'), 0x11223344)
+                    self.assert_flags(engine, 'TimeSyncReadControl', ER=True, ERR=0x14, DN_LEN=0)
+                else:
+                    self.assertEqual(memory.read('TimeSyncReply[0]'), 0x11223300 | expected)
+                    self.assert_flags(engine, 'TimeSyncReadControl', DN=True, ERR=0, DN_LEN=1)
+
+    def test_generic_time_sync_uses_the_application_clock_identity_when_available(self):
+        app_id = '0123456789abcdef0123456789abcdef'
+        for instance_id in (app_id, None):
+            with self.subTest(instance_id=instance_id):
+                engine = self.engine(application_instance_id=instance_id)
+                memory = engine.memory
+                memory.write('TimeSyncReadControl.Attribute', 105)
+                memory.write('SendTimeSyncRead', True)
+                for _ in range(3):
+                    engine.step()
+                if instance_id is None:
+                    self.assertEqual(memory.read('TimeSyncReply'), [0x11223344, 0, 0, 0])
+                    self.assert_flags(engine, 'TimeSyncReadControl', ER=True, ERR=0x14, DN_LEN=0)
+                else:
+                    self.assertEqual(struct.pack('<4i', *memory.read('TimeSyncReply')), clock_identity(app_id) + bytes(8))
+                    self.assert_flags(engine, 'TimeSyncReadControl', DN=True, ERR=0, DN_LEN=10)
+
     def test_generic_identity_attribute_written_by_ladder_applies_to_next_request(self):
         engine = self.engine()
         memory = engine.memory
@@ -685,7 +772,7 @@ class MessageTests(unittest.TestCase):
 
     def test_generic_identity_all_rolls_back_response_and_queue_after_later_fault(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='30', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='31', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         engine = self.engine(configure)
@@ -1061,7 +1148,7 @@ class MessageTests(unittest.TestCase):
     def test_completion_and_queue_roll_back_with_later_fault(self):
         def configure(root):
             content = root.find('.//RLLContent')
-            rung = ET.SubElement(content, 'Rung', Number='30', Type='N')
+            rung = ET.SubElement(content, 'Rung', Number='31', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         for timeout in (30_000_000, 10_000):
@@ -1664,7 +1751,7 @@ class MessageTests(unittest.TestCase):
     def test_ladder_cache_release_rolls_back_if_a_later_rung_faults(self):
         def configure(root):
             content = root.find('.//RLLContent')
-            rung = ET.SubElement(content, 'Rung', Number='30', Type='N')
+            rung = ET.SubElement(content, 'Rung', Number='31', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         engine = self.engine(configure)
@@ -1802,7 +1889,7 @@ class MessageTests(unittest.TestCase):
 
     def test_connectionpath_bad_count_unknown_active_data_and_late_fault_roll_back(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='30', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='31', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         for tag, value, error in (
@@ -1921,7 +2008,7 @@ class MessageTests(unittest.TestCase):
     def test_ladder_connected_timing_rejects_bad_settings_and_rolls_back(self):
         def configure(root):
             content = root.find('.//RLLContent')
-            rung = ET.SubElement(content, 'Rung', Number='30', Type='N')
+            rung = ET.SubElement(content, 'Rung', Number='31', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         cases = (
@@ -1974,7 +2061,7 @@ class MessageTests(unittest.TestCase):
 
     def test_connected_completion_and_cache_roll_back_with_later_rung_fault(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='30', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='31', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         engine = self.engine(configure)

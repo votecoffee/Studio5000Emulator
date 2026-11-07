@@ -1,8 +1,8 @@
 # Ladder MSG
 
 LogixLab models CIP Data Table Read and Write for numeric tags, matching
-strings and user-defined records, plus bounded CIP Generic Identity and
-Wall Clock Time reads to the simulated controller in whole-project v35 ControlLogix 5580 ladder
+strings and user-defined records, plus bounded CIP Generic Identity,
+Wall Clock Time and Time Sync reads to the simulated controller in whole-project v35 ControlLogix 5580 ladder
 execution. It transfers
 values between tags in the current project. The `MSG` faceplate shows the
 message control and its `EN`, `DN` and `ER` bits.
@@ -197,10 +197,30 @@ preserves the destination. A list records the error per item.
 
 Class and Instance are captured at admission along with the single
 attribute or list payload. Ladder can retarget a supported single or list
-read between Identity and Wall Clock Time on qualified projects.
+read among Identity, Wall Clock Time and Time Sync on qualified projects.
 Get Attributes All remains specific to Identity. Changing its Class to
 16#8B reports ERR 16#0008. The clock is read-only and reflects the emulator
 host's UTC time.
+
+## CIP Generic Time Sync
+
+Set SendTimeSyncRead in Message Lab and step three times. Rung 30 reads
+class 16#43, instance 1, attribute 28 into TimeSyncReply. The first two
+DINTs hold a zero local-to-system offset. The last two hold the host UTC
+microsecond counter. DN_LEN reports 16 bytes.
+
+Get Attribute Single and Get Attribute List use the same
+[Time Sync object data](connectivity.md#time-sync-configuration) as the
+emulator's EtherNet/IP endpoint. Attributes 3 and 4 report UTC
+microseconds and nanoseconds from one sample when read together. Saved
+PTP enable and priorities are available when declared in source. The
+disabled-clock fields require an explicit disabled setting. The software
+identity is shared across reads for one application session. A standalone
+engine without an application identity reports those fields unavailable.
+
+The clock model reports no synchronized master or PTP ports. MSG can read
+the modeled settings and clock data. PTP synchronization and clock writes
+remain outside this profile.
 
 ## Supported configuration and timing
 
@@ -360,6 +380,7 @@ timing, native MESSAGE layouts and Studio 5000 runtime qualification
 remain open. Decorated-only MESSAGE fields remain readable as
 saved data. The native Message object inventory is separate.
 
+- [ODVA CIP Time Sync object](https://www.odva.org/wp-content/uploads/2020/06/PUB00123R1_Common-Industrial_Protocol_and_Family_of_CIP_Networks.pdf)
 - [Rockwell Wall Clock Time attributes](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm003_-en-p.pdf)
 - [Rockwell Get Attribute List request and response example](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm020_-en-p.pdf)
 - [Rockwell CIP Generic DINT destination example](https://literature.rockwellautomation.com/idc/groups/literature/documents/um/dnet-um004_-en-p.pdf)
