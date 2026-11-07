@@ -640,27 +640,32 @@ class Engine:
             obj=self._counter_record(op.args[0],scope)
             obj.update({name:0 if name=='ACC' else False for name in obj if name!='PRE'})
             return True
-        obj=self._counter_record(op.args[0],scope,'COUNTER')
-        for member in ('PRE','ACC'):
-            if type(obj[member]) is not int or not -2147483648<=obj[member]<=2147483647:
-                raise ModelError('COUNTER.'+member+' is unknown or outside DINT')
-        edge='CU' if op.name=='CTU' else 'CD'
+        obj = self._counter_record(op.args[0], scope, 'COUNTER')
+
+        def dint(member):
+            value = obj[member]
+            if type(value) is not int or not -2147483648 <= value <= 2147483647:
+                raise ModelError(f'COUNTER.{member} is unknown or outside DINT')
+            return value
+
+        edge = 'CU' if op.name == 'CTU' else 'CD'
         if power and type(obj[edge]) is not bool:
-            raise ModelError('COUNTER.'+edge+' is unknown or not BOOL')
-        value = obj['ACC']
+            raise ModelError(f'COUNTER.{edge} is unknown or not BOOL')
         updates = {edge: power}
+        value = None
         if power and not obj[edge]:
             delta = 1 if op.name == 'CTU' else -1
-            value += delta
+            value = dint('ACC') + delta
             if not -2147483648 <= value <= 2147483647:
                 value, latch, opposite = (-2147483648, 'OV', 'UN') if delta > 0 else (2147483647, 'UN', 'OV')
                 if obj[opposite] is True:
                     updates.update(OV=False, UN=False)
                 else:
                     updates[latch] = True
-        updates['ACC'] = value
+            updates['ACC'] = value
         if all(updates.get(flag, obj[flag]) is not True for flag in ('OV', 'UN')):
-            updates['DN'] = value >= obj['PRE']
+            preset = dint('PRE')
+            updates['DN'] = (dint('ACC') if value is None else value) >= preset
         obj.update(updates)
         return power
 
@@ -1258,7 +1263,7 @@ class Engine:
                     faults='Unknown fields, unrecovered faults, out-of-range values and later faults roll back values and timer history',
                     native_runtime_parity=False),
                 'ladder_counters':dict(available=bit_logic.available(self.project),language='RLL',instructions=['CTU','CTD','RES'],
-                    counting='Known DINT PRE/ACC and required BOOL edge history; signed wrap, retain DN during OV/UN, clear both on opposite wrap',
+                    counting='A count edge requires DINT ACC; updating DN requires DINT PRE and ACC; retain DN during OV/UN and clear both on opposite wrap',
                     unknowns='False CTU/CTD establish their edge flag without old history; omitted OV/UN are retained and only a known true flag inhibits DN',
                     reset='TIMER/COUNTER RES preserves PRE, establishes zero ACC and false status bits without old field values',
                     selection='Structural preflight; false RES skips live indices; CTU/CTD prescan skips out-of-bounds selections; normal execution resolves live addresses',

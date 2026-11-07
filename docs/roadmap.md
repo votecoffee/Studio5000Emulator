@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+[Ladder counter operand reads](ladder-counters.md#counting-and-unknown-values)
+follow the count and DN comparison paths as of `26.1107.134254`. A latched
+counter can retain DN without reading unused preset or accumulator values.
+
 [Ladder counter rollover](ladder-counters.md#counting-and-unknown-values) retains
 DN while OV or UN is set as of `26.1107.133343`. A wrap in the opposite
 direction clears both flags and resumes the preset comparison.

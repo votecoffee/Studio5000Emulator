@@ -21,17 +21,19 @@ Counting uses the live members after initialization.
 
 ## Counting and unknown values
 
-Each reached CTU/CTD requires known signed DINT PRE and ACC, including a false
-rung. Negative presets and counts are valid. A true rung requires a known BOOL
-CU/CD history bit. A false rung establishes that instruction's edge bit as
-false without consuming its prior value.
+A true rung requires a known BOOL CU/CD history bit. A false rung establishes
+that instruction's edge bit as false. A new count edge requires a known DINT
+ACC. Recomputing DN requires known DINT PRE and the current ACC. Negative
+presets and counts are valid.
 
 A false-to-true edge increments or decrements once. Held true does not repeat.
 CTU wraps maximum to minimum and sets OV. CTD wraps minimum to maximum and
 sets UN. While either flag is set, false rungs, held true rungs and ordinary
 count edges retain DN. If the opposite flag is already set at a wrap, the
 instruction clears both flags and immediately sets DN from ACC >= PRE.
-With neither flag set, each reached call compares ACC with PRE.
+With neither flag set, each reached call compares ACC with PRE. While a latch
+holds DN, an ordinary count or first wrap can proceed with an unknown PRE.
+A false or held true rung can also preserve an unknown ACC on that path.
 
 The emulator keeps its existing treatment of omitted OV/UN values. An unknown
 flag alone does not inhibit the DN comparison or cancel a new wrap latch.
@@ -56,8 +58,8 @@ an invalid or unknown index faults. Static literal-index/type/permission errors
 remain blockers regardless of rung power.
 
 A reset can initialize an unknown counter accumulator and edge/status fields.
-Counting still requires its preset to be known. RES does not operate on
-FBD_COUNTER; [ST CTUD](st-counter.md) uses that type's Reset input instead.
+The next call that compares ACC and PRE still requires a known preset.
+For FBD_COUNTER, [ST CTUD](st-counter.md) uses the Reset input.
 [CONTROL RES](control-operands.md#control-reset) has its own field rules.
 
 A [cleared Type 4 Code 20](controller-handlers.md#recover-timer-counter-and-reset-array-faults)

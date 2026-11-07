@@ -403,7 +403,8 @@ in whole-project ladder as Type 4 Code 34.
 
 [Ladder counters and resets](docs/ladder-counters.md) retain DN during overflow
 or underflow until a wrap in the opposite direction clears both flags.
-**Counter lab** adds ladder counting and resets
+A latched counter can preserve unknown values on paths that skip the preset
+comparison. **Counter lab** adds ladder counting and resets
 that initialize unknown timer/counter fields while preserving PRE. v35 5580
 [ladder prescan](docs/controller-handlers.md#skip-timer-and-counter-array-faults-during-prescan)
 skips out-of-bounds timer and counter selections and continues initialization.

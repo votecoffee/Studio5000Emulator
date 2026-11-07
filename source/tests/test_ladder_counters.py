@@ -80,14 +80,15 @@ class LadderCounterTests(unittest.TestCase):
                 e.memory.write('CounterCells[0].ACC', start)
                 e.step()
                 done = start >= 3
+                e.memory.values['countercells'][0]['PRE'] = None
                 for power in (True, True, False):
                     e.memory.write('StartPB', power)
                     e.step()
                     obj = e.memory.read('CounterCells')[0]
-                    self.assertEqual((obj['ACC'], obj[flag], obj[opposite], obj['DN']),
-                                     (wrapped, True, None, done))
+                    self.assertEqual((obj['ACC'], obj['PRE'], obj[flag], obj[opposite], obj['DN']),
+                                     (wrapped, None, True, None, done))
 
-    def test_opposite_wrap_clears_both_flags_and_resumes_done_comparison_immediately(self):
+    def test_opposite_wrap_requires_preset_before_clearing_flags_and_resuming_comparison(self):
         for op, start, opposite in (
             ('CTU', 2147483647, 'UN'),
             ('CTD', -2147483648, 'OV'),
@@ -99,20 +100,51 @@ class LadderCounterTests(unittest.TestCase):
                 memory.write('CounterCells[0].' + opposite, True)
                 saved_done = start >= 3
                 memory.write('CounterCells[0].DN', saved_done)
+                memory.values['countercells'][0]['PRE'] = None
                 e.step()
                 self.assertIs(memory.read('CounterCells[0].DN'), saved_done)
 
                 memory.write('StartPB', True)
+                before = self.snapshot(e)
+                with self.assertRaisesRegex(ModelError, 'COUNTER.PRE.*unknown'):
+                    e.step()
+                self.assertEqual(self.snapshot(e), before)
+
+                memory.write('CounterCells[0].PRE', 3)
                 e.step()
                 obj = memory.read('CounterCells')[0]
                 self.assertEqual((obj['ACC'], obj['OV'], obj['UN'], obj['DN']),
                                  (-start - 1, False, False, not saved_done))
+
+    def test_latched_counter_skips_unknown_accumulator_until_a_new_edge(self):
+        for op, edge, flag in (('CTU', 'CU', 'OV'), ('CTD', 'CD', 'UN')):
+            with self.subTest(op=op):
+                e = self.checked([f'XIC(StartPB){op}(CounterCells[1],?,?);'])
+                memory = e.memory
+                memory.write(f'CounterCells[1].{flag}', True)
+                memory.write('CounterCells[1].DN', True)
+                memory.write('StartPB', True)
+                e.step()
+                self.assertTrue(memory.read(f'CounterCells[1].{edge}'))
+
+                memory.write('StartPB', False)
+                e.step()
+                self.assertFalse(memory.read(f'CounterCells[1].{edge}'))
+                obj = memory.read('CounterCells')[1]
+                self.assertEqual((obj['ACC'], obj['PRE'], obj['DN']), (None, None, True))
+
+                memory.write('StartPB', True)
+                before = self.snapshot(e)
+                with self.assertRaisesRegex(ModelError, 'COUNTER.ACC.*unknown'):
+                    e.step()
+                self.assertEqual(self.snapshot(e), before)
 
     def test_non_wrapping_edge_retains_latched_flags_and_unknown_done(self):
         e = self.checked(['XIC(StartPB)CTU(CounterCells[0],?,?);'])
         memory = e.memory
         memory.write('CounterCells[0].ACC', 2)
         memory.write('CounterCells[0].OV', True)
+        memory.values['countercells'][0]['PRE'] = None
         e.step()
         memory.write('StartPB', True)
         e.step()
