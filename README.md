@@ -372,7 +372,9 @@ and payload indices while preserving held output/teach updates and table checks.
 
 [CONTROL prescan recovery](docs/controller-handlers.md#skip-out-of-bounds-control-records-during-prescan)
 skips out-of-bounds selections in shifts, queues, sequencers, statistics, and
-bit diagnostics. [CONTROL operand selection](docs/control-operands.md) defers shift and FIFO/LIFO
+bit diagnostics. FBC and DDT can load with a saved out-of-bounds indirect
+control index and skip that instruction in prescan.
+[CONTROL operand selection](docs/control-operands.md) defers shift and FIFO/LIFO
 payload indices until needed and lets false CONTROL resets skip live addresses.
 
 [Clipped record operations](docs/clipped-aggregates.md) stop COP/CPS and zero

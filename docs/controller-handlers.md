@@ -266,9 +266,10 @@ In the v35 ControlLogix 5580 ladder profile, prescan skips an out-of-bounds
 CONTROL selection in BSL, BSR, FFL, FFU, LFL, LFU, SQL, SQO, AVE, STD,
 FBC or DDT. The instruction leaves its records intact, and prescan
 continues without running a Program or Controller fault handler.
-FBC and DDT resolve both records before updating either one. Their load-time
-validation still requires valid control addresses. The prescan skip applies
-if a control index becomes invalid after load.
+FBC and DDT can load with a saved out-of-bounds indirect CONTROL index.
+Load validation still checks writable CONTROL structure and known storage
+roles. Prescan resolves both actual records and checks that they are distinct
+before updating either one.
 
 Unknown indices and missing control fields still fail when required.
 Normal scans still resolve the live index and use the existing

@@ -95,6 +95,50 @@ class BitDiagnosticReferenceTests(unittest.TestCase):
             e=self.checked([self.instruction(name,source='Packet1.Source[0]',reference='Packet1.Reference[0]',result='Packet1.Result[0]',compare='Packet1.Compare',output='Packet1.Output')+';'],mutate=self.packet);e.step()
             self.assertEqual(e.memory.read('Packet1.Result'),[32,39,31,999]);self.assertEqual(e.memory.read('Packet1.Reference[0]'),-2147483615 if name=='DDT' else 0)
 
+    def test_out_of_bounds_control_alias_loads_but_prescan_rejects_actual_overlap(self):
+        def setup(root):
+            self.packet(root, array=True)
+            tags = root.find('./Controller/Tags')
+            tags.find('./Tag[@Name="ResultIndex"]/Data/DataValue').set('Value', '2')
+            E.SubElement(tags, 'Tag', Name='OutputView', DataType='CONTROL', TagType='Alias',
+                         AliasFor='Packets[ResultIndex].Compare')
+
+        for name in ('FBC', 'DDT'):
+            with self.subTest(instruction=name):
+                instruction = self.instruction(name, compare='Packets[0].Compare', output='OutputView')
+                engine = self.checked([instruction + ';'], mutate=setup, flags={'EN': True, 'DN': True, 'FD': True})
+                self.assertEqual(engine.memory.read('Packets'), engine.project.initial['packets'])
+                self.assertIsNone(engine.last_cleared_program_fault)
+                engine.memory.write('ResultIndex', 0)
+                before = self.snapshot(engine)
+                with self.assertRaisesRegex(ModelError, 'Prescan rolled back.*distinct storage'):
+                    engine.enter_run()
+                self.assertEqual(self.snapshot(engine), before)
+
+    def test_deferred_control_address_still_checks_shape_permissions_and_data_roles(self):
+        def setup(root):
+            self.packet(root, array=True)
+            tags = root.find('./Controller/Tags')
+            tags.find('./Tag[@Name="ResultIndex"]/Data/DataValue').set('Value', '2')
+
+        for arguments, message in (
+            (dict(output='Packets[2].Output'), 'outside bounds'),
+            (dict(output='Packets[-1].Output'), 'outside bounds'),
+            (dict(output='Packets[1 + 1].Output'), 'outside bounds'),
+            (dict(output='Packets[ResultIndex].Source[0]'), 'writable CONTROL'),
+            (dict(output='Packets[ResultIndex].Output', result='Source[2]'), 'distinct array/member'),
+        ):
+            with self.subTest(arguments=arguments):
+                engine = self.engine([self.instruction(**arguments) + ';'], mutate=setup)
+                self.assertTrue(any(message in blocker for blocker in engine.blockers), engine.blockers)
+
+        def read_only(root):
+            setup(root)
+            root.find('./Controller/Tags/Tag[@Name="Packets"]').set('Constant', 'true')
+
+        engine = self.engine([self.instruction(output='Packets[ResultIndex].Output') + ';'], mutate=read_only)
+        self.assertTrue(any('Read-only destination' in blocker for blocker in engine.blockers))
+
     def test_actual_source_reference_overlap_is_checked_after_parent_selection(self):
         e=self.checked([self.instruction('DDT',source='Packets[Index].Source[0]',reference='Packets[1].Source[0]')+';'],mutate=lambda root:self.packet(root,True));e.memory.write('Index',1);before=self.snapshot(e)
         with self.assertRaisesRegex(ModelError,'distinct array/member'):e.step()

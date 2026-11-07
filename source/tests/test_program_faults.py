@@ -6,7 +6,6 @@ from xml.etree import ElementTree as ET
 from unittest.mock import patch
 import test_runtime as fixtures
 from logixlab.model import ModelError
-from logixlab.runtime import Engine
 
 
 def add_fault_dint_array(tags, name, values):
@@ -1234,8 +1233,7 @@ class ProgramFaultTests(unittest.TestCase):
                     add_array_calculation_tags(root)
                     tags = root.find('./Controller/Tags')
                     add_fault_dint_array(tags, 'LabResults', [-1, -1, 88])
-                    saved_index = '0' if instruction.startswith(('FBC', 'DDT')) else '2'
-                    tags.find('./Tag[@Name="LabIndex"]/Data/DataValue').set('Value', saved_index)
+                    tags.find('./Tag[@Name="LabIndex"]/Data/DataValue').set('Value', '2')
                     compare = tags.find('./Tag[@Name="LabRecords"]/Data/Array/Element[@Index="[1]"]/Structure')
                     for member in ('EN', 'DN', 'FD', 'POS'):
                         compare.find(f'DataValueMember[@Name="{member}"]').set('Value', '1')
@@ -1245,10 +1243,6 @@ class ProgramFaultTests(unittest.TestCase):
 
                 engine = self.engine(mutate=configure)
                 self.assertEqual(engine.blockers, [])
-                if instruction.startswith(('FBC', 'DDT')):
-                    engine = Engine(engine.project, defer_prescan=True)
-                    self.assertEqual(engine.blockers, [])
-                    engine.memory.write('LabIndex', 2)
                 engine.enter_run()
                 self.assertEqual(engine.memory.read('LabRecords'), engine.project.initial['labrecords'])
                 self.assertFalse(engine.memory.read('FaultWitness'))

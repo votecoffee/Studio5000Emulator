@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+[FBC/DDT load and prescan](bit-diagnostic-references.md#when-addresses-are-sampled)
+accepts a saved out-of-bounds indirect CONTROL index as of `26.1107.130839`. Live address and
+overlap checks still apply when the records are selected.
+
 Available in `26.1107.125224` [CONTROL prescan recovery](controller-handlers.md#skip-out-of-bounds-control-records-during-prescan)
 skips out-of-bounds control records in ladder shifts, queues, sequencers,
 statistics and bit diagnostics. Later instructions still initialize.

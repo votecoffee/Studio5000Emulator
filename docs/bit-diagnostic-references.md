@@ -28,9 +28,15 @@ for FBC read-only use. CONTROL.POS-dependent starts are rejected in every role.
 
 ## When addresses are sampled
 
-Preflight checks reference structure, type and permissions without consuming
-dynamic array indices. False, held-EN, saved-done and invalid compare-state paths
-skip live array indices. A fresh valid operation selects complete source and
+Preflight checks data array structure, type and permissions without consuming
+their dynamic starts. It checks live CONTROL addresses when available. A saved
+out-of-bounds indirect CONTROL index can load after the declared writable
+record and the other operands pass validation. Constant out-of-bounds CONTROL
+subscripts are rejected during load.
+[Prescan skips the unresolved selection](controller-handlers.md#skip-out-of-bounds-control-records-during-prescan)
+and checks for distinct storage whenever both records are available.
+False, held-EN, saved-done and invalid compare-state paths skip live data
+array indices. Normal execution still selects both CONTROL records. A fresh valid operation selects complete source and
 reference word windows once, using `ceil(Compare.LEN / 32)` words. This window
 must fit even when the saved bit position is at the end; unvisited word values
 are not read. The limits remain 4096 compared bits and 4096 result entries.

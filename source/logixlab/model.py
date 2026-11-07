@@ -815,6 +815,7 @@ class Memory:
         self.frames = {}
         self.validating = False
         self.structural = False
+        self.structural_constant_indices = False
 
     def index(self,expr,scope):
         from .expressions import Expression
@@ -831,7 +832,8 @@ class Memory:
                 if type(value) is not int:raise ModelError('Array index tag requires a known integer')
                 return coerce(value,dtype)
         if self.structural and not re.fullmatch(r'\d+',expr.strip()):
-            parsed.validate(self,scope,index=True);return 0
+            if not self.structural_constant_indices or parsed.refs:
+                parsed.validate(self,scope,index=True);return 0
         return parsed.evaluate(self,scope,index=True)
 
     def bound_suffix(self,suffix,scope):

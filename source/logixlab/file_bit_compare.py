@@ -41,28 +41,53 @@ def control_addresses(memory, op, scope):
 
 
 def check_roles(op, arrays, control_paths):
-    if overlaps(*control_paths) or any(overlaps(control, array) for control in control_paths for array in arrays.values()):
+    shared_controls = len(control_paths) == 2 and overlaps(*control_paths)
+    if shared_controls or any(overlaps(control, array) for control in control_paths for array in arrays.values()):
         raise ModelError('FBC/DDT controls require distinct storage disjoint from data arrays')
     if ('result' in arrays and any(overlaps(arrays['result'],arrays[name]) for name in ('source','reference')) or
             op.name=='DDT' and overlaps(arrays['source'],arrays['reference'])):
         raise ModelError('FBC/DDT writable array roles require distinct array/member storage')
 
 
-def validate(memory, op, scope):
+def _validate_controls(memory, op, scope, *, preflight):
+    addresses = []
+    for ref in (op.args[3], op.args[6]):
+        try:
+            controls.control(memory, ref, scope)
+        except ArrayBoundsError:
+            if not preflight:
+                raise
+            # Check the declared writable CONTROL without treating the structural
+            # index placeholder as its real address for the overlap checks.
+            previous = memory.structural, memory.structural_constant_indices
+            try:
+                memory.structural = memory.structural_constant_indices = True
+                controls.control(memory, ref, scope)
+            finally:
+                memory.structural, memory.structural_constant_indices = previous
+        else:
+            key, parts, _ = memory.resolve(ref, scope)
+            addresses.append((key, parts))
+    return addresses
+
+
+def validate(memory, op, scope, *, preflight=False):
     if memory.project.version != '35' or memory.project.processor.upper() not in CONTROLLERS:
         raise ModelError('FBC/DDT require the v35 ControlLogix 5580 software profile')
     a = op.args
     if a[4:6] != ['?', '?'] or a[7:] != ['?', '?']:
         raise ModelError('FBC/DDT LEN/POS use neutral-text ?,? and saved CONTROL values')
-    controls.control(memory, a[3], scope);controls.control(memory, a[6], scope)
+    control_paths = _validate_controls(memory, op, scope, preflight=preflight)
     arrays={name:region(memory,a[i],0,scope,writable=writable,structural=True)[2]
             for name,i,writable in (('source',0,False),('reference',1,op.name=='DDT'),('result',2,True))}
-    check_roles(op,arrays,control_addresses(memory,op,scope))
+    check_roles(op, arrays, control_paths)
 
 
 def prescan(memory, op, scope):
     compare = controls.control(memory, op.args[3], scope)
     result = controls.control(memory, op.args[6], scope)
+    if compare is result:
+        raise ModelError('FBC/DDT controls require distinct storage disjoint from data arrays')
     compare.update(EN=False, FD=False)
     if controls.flag(compare, 'DN'):
         compare.update(DN=False, POS=0);result.update(DN=False, POS=0)

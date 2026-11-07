@@ -500,7 +500,7 @@ class Engine:
             return
         if n=='MCR':mcr.profile(self.project);return
         if n=='DTR':data_transition.validate(self.memory,op,scope);return
-        if n in file_bit_compare.INSTRUCTIONS:file_bit_compare.validate(self.memory,op,scope);return
+        if n in file_bit_compare.INSTRUCTIONS:file_bit_compare.validate(self.memory,op,scope,preflight=True);return
         if n=='SSV':system_values.validate_set(self,op,scope,kind=kind);return
         if n=='IOT':immediate_output.validate(self,op,scope);return
         if n=='MSG':ladder_message.validate(self,op,scope,kind);return
