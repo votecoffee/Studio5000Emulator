@@ -104,7 +104,7 @@ def _parse_endpoint(text, offset):
 def _endpoint(attributes, side):
     offset = _number(attributes, side + 'Index', 0, 999999, '0')
     endpoint = _parse_endpoint(attributes.get(side + 'Element', '').strip(), offset)
-    if endpoint is None or (side == 'Local' and ':' in endpoint.name):
+    if endpoint is None:
         raise ModelError(f'MESSAGE {side}Element requires a supported tag or array element')
     return endpoint
 
@@ -130,9 +130,8 @@ def _identity_read(project, attributes):
     if attributes.get('LocalElement', '').strip() or attributes.get('RemoteElement', '').strip():
         raise ModelError('CIP Generic Identity reads require an empty source and no request payload')
     destination = _parse_endpoint(attributes.get('DestinationTag', '').strip(), 0)
-    if (destination is None or destination.variable or len(destination.coordinates) > 1
-            or ':' in destination.name):
-        raise ModelError('CIP Generic Identity requires a controller DestinationTag with a fixed array start')
+    if destination is None or destination.variable or len(destination.coordinates) > 1:
+        raise ModelError('CIP Generic Identity requires a DestinationTag with a fixed array start')
     identity = Identity.from_project('logix-v35-l85e', project)
     # Preserve the 16-bit pattern of an optional Get Attributes All placeholder.
     signed_attribute = attribute if attribute < 0x8000 else attribute - 0x10000
@@ -141,8 +140,11 @@ def _identity_read(project, attributes):
 
 def from_tag(project, tag, element, dims):
     if (project.version != '35' or project.processor.upper() not in CONTROLLERS
-            or tag.scope or tag.constant or tag.tag_class != 'Standard' or dims):
-        raise ModelError('MESSAGE requires a writable scalar Standard controller tag in the v35 5580 profile')
+            or tag.constant or tag.tag_class != 'Standard' or dims):
+        raise ModelError('MESSAGE requires a writable scalar Standard tag in the v35 5580 profile')
+    if tag.scope and (element.get('Usage', 'Local').casefold() != 'local' or
+                      not project.program_configuration.type_attributes(tag.scope, source_sha256=project.sha256)):
+        raise ModelError('MESSAGE program tags must be Local tags in an ordinary Standard program')
     data = element.findall("./Data[@Format='Message']")
     if (len(data) != 1 or len(data[0]) != 1 or data[0][0].tag != 'MessageParameters'
             or len(data[0][0]) or element.find("./Data[@Format='Decorated']") is not None):
@@ -161,6 +163,17 @@ def from_tag(project, tag, element, dims):
     return Configuration(kind.endswith('read'), _endpoint(attributes, 'Local'),
                          _endpoint(attributes, 'Remote'), attributes['RemoteElement'].strip(),
                          _number(attributes, 'RequestedLength', 1, MAX_ELEMENTS))
+
+
+def bind_local(project, configuration, scope):
+    """Resolve the saved local element after all controller and program tags are loaded."""
+    field = 'destination' if isinstance(configuration, IdentityRead) else 'local'
+    endpoint = getattr(configuration, field)
+    if scope and ':' not in endpoint.name:
+        local_name = f'program:{scope.casefold()}.{endpoint.name}'
+        if local_name in project.tags:
+            return replace(configuration, **{field: replace(endpoint, name=local_name)})
+    return configuration
 
 
 def _words(dtype, count):
@@ -245,12 +258,14 @@ def _region(memory, endpoint, start, count, *, remote, write):
 
 def _control_key(engine, name, scope, instruction):
     key = name.casefold()
-    if key not in engine.project.message_configs:
-        tag = engine.project.tags.get(key)
+    project = engine.project
+    program_key = f'program:{scope.casefold()}.{key}'
+    if program_key in project.tags:
+        key = program_key
+    if ':' in name or key not in project.message_configs:
+        tag = project.tags.get(key)
         detail = f': {tag.problem}' if tag and tag.dtype.upper() == 'MESSAGE' and tag.problem else ''
-        raise ModelError(f'{instruction} requires a directly named controller MESSAGE with supported configuration' + detail)
-    if f'program:{scope.casefold()}.{key}' in engine.project.tags:
-        raise ModelError(f'{instruction} controller MESSAGE is shadowed by a program tag')
+        raise ModelError(f'{instruction} requires a directly named controller or program-local MESSAGE with supported configuration' + detail)
     return key
 
 
@@ -266,6 +281,9 @@ def validate(engine, op, scope, kind='RLL'):
         raise ModelError('MSG requires a whole-project ladder scan outside AOIs')
     key = _control_key(engine, op.args[0], scope, op.name)
     configuration = engine.project.message_configs[key]
+    endpoint = configuration.destination if isinstance(configuration, IdentityRead) else configuration.local
+    if ':' in endpoint.name and endpoint.name.partition('.')[0] != f'program:{scope.casefold()}':
+        raise ModelError('MSG local data must belong to the program executing the instruction')
     if isinstance(configuration, IdentityRead):
         try:
             _identity_destination(engine.memory, configuration.destination)
@@ -371,8 +389,8 @@ def _admit(engine, key, power):
     _set_flags(record, EW=True)
 
 
-def execute(engine, op, power):
-    key = op.args[0].casefold()
+def execute(engine, op, power, scope):
+    key = _control_key(engine, op.args[0], scope, op.name)
     record = engine.memory.values[key]
     queue = engine._message_advance
     pending = queue.get(key)

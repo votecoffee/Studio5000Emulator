@@ -37,6 +37,12 @@ row boundary. GridReadback[0,2], GridReadback[1,0] and GridReadback[1,1]
 receive 30, 40 and 50 from the program-scoped Grid. The adjacent -1
 sentinels stay in place and GridReadControl.DN_LEN reports six words.
 
+Set SendLocalMessages to 1 in a fresh Message Lab and step three scans.
+The program-local LocalReadControl reads VirtualValue into
+Program:MainProgram.LocalInbox[1]. LocalWriteControl sends the program's
+LocalOutbox value of 73 to the controller tag LocalEcho. Both local
+buffers have External Access set to None.
+
 For a runtime index change, scan SendTyped false, then set SetReadIndices
 to 1, ReadLocalIndex to 1, and ReadRemoteIndex to 0. Set SendTyped to 1 and
 step three times. Ladder MOV writes the MESSAGE index fields before MSG
@@ -73,7 +79,7 @@ Configure MessageType as CIP Generic with ServiceCode, ObjectType and
 TargetObject. Get Attribute Single also requires AttributeNumber. Get
 Attributes All ignores a valid hexadecimal placeholder in that field.
 Use zero RequestedLength and a direct,
-writable controller SINT array DestinationTag, optionally with a literal
+writable local SINT array DestinationTag, optionally with a literal
 start such as IdentityReply[1]. The reply writes its bytes in CIP order and
 preserves surrounding elements. DN_LEN reports bytes for this Generic form.
 A short destination reports 16#0011 without changing the array. The usual
@@ -103,8 +109,10 @@ two SINT elements. Those bytes encode product code 168.
 
 ## Supported configuration and timing
 
-- Use a scalar Standard controller base tag with `DataType="MESSAGE"` and
-  `Data Format="Message"` containing `MessageParameters`. The model reads
+- Use a scalar Standard controller or Program Local base tag with
+  `DataType="MESSAGE"` and `Data Format="Message"` containing
+  `MessageParameters`. Each program resolves its own named control before
+  looking in controller scope. The model reads
   `MessageType`, `ConnectionPath`, `RequestedLength`, `LocalElement`,
   `RemoteElement`, and optional decimal `LocalIndex` and `RemoteIndex`. Use
   CIP communications, with the connected, cache and large packet options off.
@@ -119,8 +127,13 @@ two SINT elements. Those bytes encode product code 168.
   the initial value. A literal subscript keeps its authored start and offset.
   Runtime writes to the index members affect only `[*]` selectors. A new
   fully indexed multidimensional RemoteElement is captured when queued.
-- Local endpoints name direct Standard controller tags. Remote endpoints can
-  also name direct tags in ordinary Standard Programs using
+- Local endpoints name direct Standard controller tags or data in the
+  calling Standard program. For a Program Local control, a bare local data
+  name resolves in its own program before looking in controller scope.
+  For a controller control, a bare name keeps its controller binding.
+  Use `Program:<program>.<tag>` in the emulator to explicitly select data
+  in the calling program. The same rules apply to the Generic DestinationTag.
+  Remote endpoints can also name direct tags in ordinary Standard Programs using
   `Program:<program>.<tag>`. Local writes require a writable tag. Remote reads
   and writes respect External Access. Type mismatches and unknown source
   values set an error before the destination is changed.
@@ -176,6 +189,7 @@ saved data. The native Message object inventory is separate.
 
 - [ODVA Identity object reference](https://www.odva.org/wp-content/uploads/2020/06/PUB00123R1_Common-Industrial_Protocol_and_Family_of_CIP_Networks.pdf)
 - [Rockwell message instruction](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/input-output-instructions/message--msg-.html)
+- [Rockwell MESSAGE tag scope](https://www.rockwellautomation.com/en-ro/docs/studio-5000-logix-designer/37-02/contents-ditamap/studio-5000-logix-designer/tag-editor-and-data-monitor/work-with-tags/enter-an-msg-tag.html)
 - [Rockwell unconnected timeout units](https://www.rockwellautomation.com/en-pl/docs/studio-5000-logix-designer/38-01/contents-ditamap/instruction-set/input-output-instructions/access-the-message-object.html)
 - [Rockwell communication paths](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/input-output-instructions/specify-the-communication-details.html)
 - [Rockwell message configuration and program-scoped addressing](https://www.rockwellautomation.com/en-ua/docs/studio-5000-logix-designer/38-00/contents-ditamap/studio-5000-logix-designer/configuring-message-instructions.html)

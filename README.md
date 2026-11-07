@@ -161,8 +161,9 @@ the ladder viewer, runtime target and index changes, exact LINT writes,
 multidimensional array transfers and simulated timeouts with ladder-controlled retries. Ladder GSV and SSV
 can read and set the message timeout. Ladder can copy the packed FLAGS word
 and use its TO bit to cancel a request. The simulated throttle admits 16
-requests at a time and retries waiting messages. The lab also reads virtual controller
-identity and mode bytes through CIP Generic, with runtime selection of the
+requests at a time and retries waiting messages. The lab exercises program-local
+message controls and data, and reads virtual controller identity and mode bytes
+through CIP Generic, with runtime selection of the
 Identity attribute.
 [Simulated loss of a required Running module](docs/gsv-configuration.md#required-module-loss-during-run)
 trips a latched I/O major fault during whole-project Run, including when a

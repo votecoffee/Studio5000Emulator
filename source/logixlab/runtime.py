@@ -980,7 +980,7 @@ class Engine:
         if n=='DTR':return data_transition.execute(self.memory,op,p,scope)
         if n in file_bit_compare.INSTRUCTIONS:return file_bit_compare.execute(self,op,p,scope)
         if n=='SSV':return system_values.execute_set(self,op,p,scope)
-        if n=='MSG':return ladder_message.execute(self,op,p)
+        if n=='MSG':return ladder_message.execute(self,op,p,scope)
         if n=='IOT':
             if p:immediate_output.execute(self,op,scope)
             return p

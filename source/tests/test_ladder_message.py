@@ -1,4 +1,5 @@
 """Bounded THIS message lifecycle, simulated transfers and scan rollback."""
+import copy
 import math
 import tempfile
 import unittest
@@ -32,7 +33,7 @@ def add_message_burst(root):
                       MessageType='CIP Data Table Read', LocalElement=f'BurstValues[{index}]',
                       RemoteElement='VirtualValue', RequestedLength='1', ConnectedFlag='0',
                       ConnectionPath='THIS', CommTypeCode='0')
-        rung = ET.SubElement(content, 'Rung', Number=str(13 + index), Type='N')
+        rung = ET.SubElement(content, 'Rung', Number=str(15 + index), Type='N')
         ET.SubElement(rung, 'Text').text = f'XIC(SendBurst)MSG({name});'
 
 
@@ -156,7 +157,7 @@ class MessageTests(unittest.TestCase):
 
     def test_copy_into_flags_keeps_the_in_progress_status(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='13', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='15', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CaptureReadFlags)COP(IdentityAttribute,ReadControl.FLAGS,1);'
 
         engine = self.engine(configure)
@@ -274,7 +275,7 @@ class MessageTests(unittest.TestCase):
 
     def test_message_timeout_ssv_and_readback_roll_back_with_later_fault(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='13', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='15', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         engine = self.engine(configure)
@@ -454,7 +455,7 @@ class MessageTests(unittest.TestCase):
 
     def test_generic_identity_all_rolls_back_response_and_queue_after_later_fault(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='13', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='15', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         engine = self.engine(configure)
@@ -828,7 +829,7 @@ class MessageTests(unittest.TestCase):
     def test_completion_and_queue_roll_back_with_later_fault(self):
         def configure(root):
             content = root.find('.//RLLContent')
-            rung = ET.SubElement(content, 'Rung', Number='13', Type='N')
+            rung = ET.SubElement(content, 'Rung', Number='15', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         for timeout in (30_000_000, 10_000):
@@ -865,8 +866,104 @@ class MessageTests(unittest.TestCase):
             configure(root)
             root.find('.//Rung[@Number="1"]/Text').text = 'XIC(SendRead)MSG(SavedMessage);'
 
-        self.assertTrue(any('directly named controller MESSAGE' in item
+        self.assertTrue(any('directly named controller or program-local MESSAGE' in item
                             for item in self.engine(use_as_control).blockers))
+
+    def test_program_local_controls_read_and_write_private_local_data(self):
+        engine = self.engine()
+        self.assertEqual(engine.blockers, [])
+        memory = engine.memory
+        program = 'Program:MainProgram.'
+        memory.write('SendLocalMessages', True)
+        engine.step()
+        self.assert_flags(engine, program + 'LocalReadControl', FLAGS=0x84, REQ_LEN=2)
+        self.assert_flags(engine, program + 'LocalWriteControl', FLAGS=0x84, REQ_LEN=2)
+        memory.write(program + 'LocalOutbox', 91)
+        engine.step()
+        self.assertEqual(memory.read(program + 'LocalInbox'), [-1, -1])
+        self.assertEqual(memory.read('LocalEcho'), 0)
+        engine.step()
+        self.assertEqual(memory.read(program + 'LocalInbox'), [-1, 17])
+        self.assertEqual(memory.read('LocalEcho'), 91)
+        self.assert_flags(engine, program + 'LocalReadControl', DN=True, DN_LEN=2)
+        self.assert_flags(engine, program + 'LocalWriteControl', DN=True, DN_LEN=2)
+
+    def test_same_named_controls_and_local_data_stay_in_each_program(self):
+        def configure(root):
+            controller_tags = root.find('./Controller/Tags')
+            programs = root.find('./Controller/Programs')
+            main = programs.find('Program')
+            second = ET.SubElement(programs, 'Program', Name='Second', MainRoutineName='Main', Class='Standard')
+            second_tags = ET.SubElement(second, 'Tags')
+            for name in ('ReadValue', 'ReadControl'):
+                tag = controller_tags.find(f'Tag[@Name="{name}"]')
+                main.find('Tags').append(copy.deepcopy(tag))
+                second_tags.append(copy.deepcopy(tag))
+            second_tags.find('Tag[@Name="ReadControl"]//MessageParameters').set('RemoteElement', 'AlternateValue')
+            routines = ET.SubElement(second, 'Routines')
+            routine = ET.SubElement(routines, 'Routine', Name='Main', Type='RLL')
+            ET.SubElement(routine, 'RLLContent').append(copy.deepcopy(main.find('.//Rung[@Number="1"]')))
+            ET.SubElement(root.find('.//ScheduledPrograms'), 'ScheduledProgram', Name='Second')
+
+        engine = self.engine(configure)
+        self.assertEqual(engine.blockers, [])
+        memory = engine.memory
+        memory.write('SendRead', True)
+        engine.step()
+        self.assertEqual(list(engine._messages), ['program:mainprogram.readcontrol', 'program:second.readcontrol'])
+        engine.step()
+        engine.step()
+        self.assertEqual([memory.read(ref) for ref in ('Program:MainProgram.ReadValue',
+                                                       'Program:Second.ReadValue', 'ReadValue')], [17, 64, 0])
+        self.assert_flags(engine, 'ReadControl', FLAGS=0)
+        memory.write('ApplyReadTimeout', True)
+        engine.step()
+        self.assertEqual(memory.read('ReadTimeoutEcho', allow_time=True), 10_000)
+        self.assert_flags(engine, 'Program:MainProgram.ReadControl', UnconnectedTimeout=10_000)
+        self.assert_flags(engine, 'Program:Second.ReadControl', UnconnectedTimeout=30_000_000)
+        self.assert_flags(engine, 'ReadControl', UnconnectedTimeout=30_000_000)
+
+    def test_controller_message_can_explicitly_address_calling_program_data(self):
+        def configure(root):
+            read = root.find('.//Tag[@Name="ReadControl"]//MessageParameters')
+            read.set('LocalElement', 'Program:MainProgram.LocalInbox[0]')
+
+        engine = self.engine(configure)
+        self.assertEqual(engine.blockers, [])
+        engine.memory.write('SendRead', True)
+        for _ in range(3):
+            engine.step()
+        self.assertEqual(engine.memory.read('Program:MainProgram.LocalInbox'), [17, -1])
+        self.assertEqual(engine.memory.read('ReadValue'), 0)
+        self.assert_flags(engine, 'ReadControl', DN=True, REQ_LEN=2, DN_LEN=2)
+
+    def test_local_generic_identity_uses_the_program_reply_buffer(self):
+        def configure(root):
+            controller_tags = root.find('./Controller/Tags')
+            program_tags = root.find('./Controller/Programs/Program/Tags')
+            for name in ('IdentityReply', 'IdentityControl'):
+                tag = controller_tags.find(f'Tag[@Name="{name}"]')
+                controller_tags.remove(tag)
+                program_tags.append(tag)
+
+        engine = self.engine(configure)
+        self.assertEqual(engine.blockers, [])
+        engine.memory.write('SendIdentityRead', True)
+        for _ in range(3):
+            engine.step()
+        self.assertEqual(engine.memory.read('Program:MainProgram.IdentityReply'), [-9, 35, 11, -9])
+        self.assert_flags(engine, 'Program:MainProgram.IdentityControl', DN=True, DN_LEN=2)
+
+    def test_scope_validation_rejects_foreign_data_and_nonlocal_control_usage(self):
+        def foreign(root):
+            read = root.find('.//Tag[@Name="LocalReadControl"]//MessageParameters')
+            read.set('LocalElement', 'Program:Second.LocalInbox[0]')
+
+        def public(root):
+            root.find('.//Tag[@Name="LocalReadControl"]').set('Usage', 'Public')
+
+        self.assertTrue(any('local data must belong to the program' in item for item in self.engine(foreign).blockers))
+        self.assertTrue(any('must be Local tags' in item for item in self.engine(public).blockers))
 
     def test_queue_exhaustion_waits_and_retries_on_a_false_rung(self):
         engine = self.engine()
