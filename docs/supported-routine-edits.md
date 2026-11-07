@@ -55,6 +55,15 @@ bookkeeping, first-scan/prescan state and traces. Preview prescan validates it
 without applying its writes. Only then does the application replace its engine
 under the existing scan lock. Failure leaves the active engine intact.
 
+A replacement may retain unchanged rungs containing import-time
+[TIMER, COUNTER](ladder-timers.md#literal-presets-on-import) or
+[CONTROL](control-operations.md#literal-len-and-pos-on-import) initializers.
+Each exact match in the original rung text retains its compiled member
+references and comment, even when its rung number changes. Each original
+occurrence can match once. The replacement preserves live member values.
+Added or modified rungs must use neutral pseudo-operands. This behavior is
+validated in the emulator's detached replacement path.
+
 The replacement does not run a scan, initialize values or alter scheduling.
 The normal next Run/Step executes it. An exact repeated completion within the
 same transaction returns its existing receipt without another replacement.

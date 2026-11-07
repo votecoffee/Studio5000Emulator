@@ -31,8 +31,10 @@ static alias. All indices must be literal. Keep `?` for fields that should
 retain their saved values. Identical literals through different references
 can initialize the same record. Conflicts block execution and leave the
 saved image intact because routine order does not identify the last native
-edit. AOI bodies, computed backing indices and live routine edits use the
-neutral-text profile.
+edit. AOI bodies and computed backing indices use the neutral-text
+profile. [Routine replacement](supported-routine-edits.md#transaction-and-activation)
+can carry over an unchanged initializer rung and preserve the live CONTROL
+members. Added or modified rungs use neutral pseudo-operands.
 
 The regular prescan and execution paths may write POS after import. Reset
 recreates the imported image. Resource, data and state checks still apply

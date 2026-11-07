@@ -25,8 +25,10 @@ member. TIMER initializers must be nonnegative and COUNTER initializers
 can be signed. The target must resolve to one writable record,
 such as a base tag, a statically selected array element or a UDT member.
 Static aliases can select those records through up to eight hops. Every
-subscript must be literal, including subscripts inside AliasFor. AOI bodies,
-computed indices and live routine edits use the neutral-text profile.
+subscript must be literal, including subscripts inside AliasFor. AOI bodies
+and computed indices use the neutral-text profile. During [routine replacement](supported-routine-edits.md#transaction-and-activation),
+the emulator can retain an unchanged preset rung without reseeding its live
+fields. Added or modified rungs use neutral pseudo-operands.
 
 A fresh emulator image applies the literals once. Scans and Run transitions use
 the live members. Ordinary prescan still clears TON/TOF ACC and preserves RTO

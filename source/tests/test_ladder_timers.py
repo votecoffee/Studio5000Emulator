@@ -213,6 +213,48 @@ class LadderTimerTests(unittest.TestCase):
         self.assertEqual((engine.memory.read('TimerCells[1].PRE'), engine.memory.read('TimerCells[1].ACC')),
                          (65535, 10))
 
+    def test_routine_replacement_retains_unchanged_initializer_without_reseeding(self):
+        from logixlab.routine_edits import prepare
+        from logixlab.routine_source import RoutineSource, SourceRung
+
+        text = 'AFI()RTO(TimerCells[1],16#32,2#1010);'
+        def comment(root):
+            rung = root.find('.//RLLContent/Rung')
+            E.SubElement(rung, 'Comment').text = 'Imported preset'
+
+        engine = self.checked([text, 'MOV(7,SpeedSetpoint);'], comment)
+        engine.memory.write('TimerCells[1].PRE', 80)
+        engine.memory.write('TimerCells[1].ACC', 21)
+        original = engine.project.routines['mainprogram/mainroutine'].rungs[0]
+        # A neutral equivalent must not consume the retained initializer match.
+        replacement = ('AFI()RTO(TimerCells[1],?,?);', 'MOV(55,SpeedSetpoint);', text)
+        source = RoutineSource('MainRoutine', tuple(SourceRung(i, rung) for i, rung in enumerate(replacement)),
+                               0, '', 0, '')
+        candidate, receipt = prepare(engine, source, replacement, 'MainProgram', 0)
+
+        retained = candidate.project.routines['mainprogram/mainroutine'].rungs[2]
+        self.assertEqual((retained['text'], retained['comment']), (text, 'Imported preset'))
+        self.assertIsNot(retained['nodes'], original['nodes'])
+        self.assertEqual(retained['nodes'][-1].args, ['TimerCells[1]', '?', '?'])
+        self.assertEqual(receipt['revision'], 1)
+        self.assertEqual(candidate.memory.read('TimerCells[1].PRE'), 80)
+        self.assertEqual(candidate.memory.read('TimerCells[1].ACC'), 21)
+        candidate.step()
+        self.assertEqual(candidate.memory.read('SpeedSetpoint'), 55)
+        self.assertEqual(candidate.memory.read('TimerCells[1].ACC'), 21)
+        self.assertEqual(engine.memory.read('TimerCells[1].ACC'), 21)
+
+    def test_routine_replacement_cannot_add_another_literal_rung_from_one_existing_match(self):
+        from logixlab.routine_source import RoutineSource, SourceError, SourceRung, validate_plan
+
+        text = 'AFI()RTO(TimerCells[1],30,4);'
+        engine = self.checked([text])
+        before = self.snapshot(engine)
+        source = RoutineSource('MainRoutine', (SourceRung(0, text), SourceRung(1, text)), 0, '', 0, '')
+        with self.assertRaisesRegex(SourceError, 'execution_plan_unsupported'):
+            validate_plan(source, (text, text), engine.project, 'MainProgram')
+        self.assertEqual(self.snapshot(engine), before)
+
     def test_invalid_literal_initializers_and_runtime_edit_candidates_are_rejected(self):
         from logixlab.routine_source import RoutineSource, SourceError, SourceRung, validate_plan
 

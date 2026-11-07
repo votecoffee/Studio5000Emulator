@@ -3,6 +3,7 @@
 The XML contains TextIOI, not neutral text with resolved tag names. Its auxiliary
 data, RegionIds and IOI operands retain their native meaning; no code executes.
 """
+from collections import defaultdict, deque
 from dataclasses import dataclass
 import hashlib
 import re
@@ -291,10 +292,30 @@ def candidate_project(source,neutral,project,program):
     node=ET.Element('Routine',Name=source.name,Type='RLL');content=ET.SubElement(node,'RLLContent')
     for index,text in enumerate(neutral):ET.SubElement(ET.SubElement(content,'Rung',Type='N',Number=str(index)),'Text').text=text
     candidate.routines[key]=candidate._routine(node,program,count=False)
-    old=list(project.routines[key].rungs)
+    old = project.routines[key].rungs
+    by_text = defaultdict(deque)
+    for index, rung in enumerate(old):
+        by_text[rung['text']].append(index)
+    matched = set()
+    changed = []
+    # Pair exact source occurrences before comparing equivalent parsed nodes.
+    # Import may have compiled an authored preset into neutral member use.
     for rung in candidate.routines[key].rungs:
-        match=next((i for i,item in enumerate(old) if item['nodes']==rung['nodes']),None)
-        if match is not None:rung['comment']=old.pop(match)['comment']
+        exact = by_text.get(rung['text'])
+        if not exact:
+            changed.append(rung)
+            continue
+        index = exact.popleft()
+        matched.add(index)
+        previous = old[index]
+        rung['comment'] = previous['comment']
+        if previous['nodes'] != rung['nodes']:
+            rung['nodes'] = copy.deepcopy(previous['nodes'])
+    remaining = [rung for index, rung in enumerate(old) if index not in matched]
+    for rung in changed:
+        match = next((i for i, item in enumerate(remaining) if item['nodes'] == rung['nodes']), None)
+        if match is not None:
+            rung['comment'] = remaining.pop(match)['comment']
     return candidate,key
 
 
