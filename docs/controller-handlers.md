@@ -324,7 +324,11 @@ faults. Recovery applies when a true scan compares the reference and when
 a false scan refreshes it. In each instruction, a cleared fault passes
 the incoming rung power to the next instruction. Other faults, including
 a configured window that runs beyond a valid starting element, use the
-existing scan rollback. Prescan uses its separate startup behavior.
+existing scan rollback.
+
+During prescan, DTR skips an out-of-bounds source, mask or reference
+selection before writing anything. Prescan continues without invoking a user
+fault handler. False and true runtime scans still use the recovery above.
 
 [Rockwell FBC reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/special-instructions/file-bit-comparison--fbc-.html)
 [Rockwell DDT reference](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/special-instructions/diagnostic-detect--ddt-.html)

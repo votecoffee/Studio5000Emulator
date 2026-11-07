@@ -1,7 +1,7 @@
 """DINT ladder DTR, including reference updates on false scans and prescan."""
 from .bit_transfer import operand, unsigned
 from .integer_math import CONTROLLERS, bit_value
-from .model import ModelError
+from .model import ArrayBoundsError, ModelError
 
 
 def validate(memory, op, scope):
@@ -10,6 +10,23 @@ def validate(memory, op, scope):
     for index, ref in enumerate(op.args):
         if operand(memory, ref, scope, destination=index == 2) != 32:
             raise ModelError('DTR requires DINT scalar source, mask and writable reference')
+
+
+def preflight(memory, op, scope):
+    previous = memory.structural, memory.structural_constant_indices
+    try:
+        memory.structural = memory.structural_constant_indices = True
+        validate(memory, op, scope)
+    finally:
+        memory.structural, memory.structural_constant_indices = previous
+
+
+def prescan(memory, op, scope):
+    try:
+        execute(memory, op, False, scope)
+    except ArrayBoundsError:
+        # No operand writes precede live address validation.
+        return
 
 
 def execute(memory, op, power, scope):
@@ -29,7 +46,7 @@ def description():
                 comparison='Masked source compared against the complete prior reference',
                 true_scan='Changed comparison energizes rung-out and replaces reference with masked source',
                 false_scan='Replace reference with masked source; rung-out remains false',
-                prescan='Replace reference with masked source, including lexically prescanned routines',
+                prescan='Replace reference with masked source unless a live array subscript is out of bounds',
                 unknowns='Required unknown source/mask/reference reads fault; false/prescan can establish reference',
                 array_recovery='A cleared Type 4 Code 20 during a whole-project scan skips the reference write',
                 native_runtime_parity=False,

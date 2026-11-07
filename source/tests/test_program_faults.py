@@ -1845,23 +1845,24 @@ class ProgramFaultTests(unittest.TestCase):
                 self.setUp()
 
                 def configure(root):
-                    ladder_fault_fixture(root,handler_tail='MOV(1,LabIndex);')
-                    set_fault_instruction(root,'DTR(7,255,LabValues[LabIndex])')
+                    ladder_fault_fixture(root, handler_tail='MOV(1,LabIndex);')
+                    root.find('./Controller/Tags/Tag[@Name="LabIndex"]/Data/DataValue').set('Value', '2')
+                    set_fault_instruction(root, 'DTR(7,255,LabValues[LabIndex])')
 
                 engine = self.engine(mutate=configure)
-                self.assertEqual(engine.blockers,[])
-                engine.step()
-                engine.memory.write('LabIndex',2)
+                self.assertEqual(engine.blockers, [])
+                self.assertEqual(engine.memory.read('LabValues'), [12, 13])
+                self.assertIsNone(engine.last_cleared_program_fault)
                 engine.memory.write('StartPB',power)
                 engine.memory.write('SpeedCommand',50)
                 engine.step()
                 self.assertEqual(engine.last_cleared_program_fault['instruction'],'DTR')
-                self.assertEqual(engine.memory.read('LabValues'),[7,13])
+                self.assertEqual(engine.memory.read('LabValues'),[12,13])
                 self.assertEqual(engine.memory.read('SpeedCommand'),51 if power else 50)
                 event = next(event for row in engine.trace for event in row['events'] if 'recovered_fault' in event)
                 self.assertEqual((event['in'],event['out']),(power,power))
                 engine.step()
-                self.assertEqual(engine.memory.read('LabValues'),[7,7])
+                self.assertEqual(engine.memory.read('LabValues'),[12,7])
                 self.assertFalse(any('recovery_source' in row for row in engine.trace))
 
     def test_sort_array_fault_preserves_array_until_the_selected_window_is_valid(self):

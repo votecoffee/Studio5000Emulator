@@ -183,6 +183,46 @@ class DataTransitionTests(unittest.TestCase):
         with self.assertRaises(ModelError):e.step()
         self.assertEqual(e.memory.values,before);self.assertEqual(e.scan_count,0)
 
+    def test_saved_out_of_bounds_index_skips_each_prescan_operand(self):
+        def configure(root):
+            self.array_tags(root)
+            tags = root.find('./Controller/Tags')
+            tags.find('Tag[@Name="Index"]/Data/DataValue').set('Value', '3')
+            tags.find('Tag[@Name="RunLatch"]/Data/DataValue').set('Value', '1')
+            tags.find('Tag[@Name="ReferenceAlias"]').set('AliasFor', 'Words[Index]')
+
+        for operands, dest, second_word in (
+            ('Words[Index],Mask,Dest', 0, 88),
+            ('Source,Words[Index],Dest', 8, 88),
+            ('Source,Mask,ReferenceAlias', 37, 7),
+        ):
+            with self.subTest(operands=operands):
+                e = self.checked([f'DTR({operands});', 'OTE(RunLatch);'],
+                                 values=(15, 7, 37), mutate=configure)
+                self.assertEqual(e.memory.read('Dest'), 37)
+                self.assertEqual(e.memory.read('Words'), [77, 88, 999])
+                self.assertFalse(e.memory.read('RunLatch'))
+                self.assertIsNone(e.last_cleared_program_fault)
+                e.memory.write('Index', 1)
+                e.enter_run()
+                self.assertEqual(e.memory.read('Dest'), dest)
+                self.assertEqual(e.memory.read('Words'), [77, second_word, 999])
+
+    def test_structural_preflight_rejects_constant_bounds_and_read_only_indexed_reference(self):
+        for subscript in ('3', '-1', '2 + 1'):
+            with self.subTest(subscript=subscript):
+                e = self.engine([f'DTR(Words[{subscript}],Mask,Dest);'], mutate=self.array_tags)
+                self.assertTrue(any('outside bounds' in blocker for blocker in e.blockers), e.blockers)
+
+        def read_only(root):
+            self.array_tags(root)
+            tags = root.find('./Controller/Tags')
+            tags.find('Tag[@Name="Index"]/Data/DataValue').set('Value', '3')
+            tags.find('Tag[@Name="Words"]').set('Constant', 'true')
+
+        e = self.engine(['DTR(Source,Mask,Words[Index]);'], mutate=read_only)
+        self.assertTrue(any('Read-only destination' in blocker for blocker in e.blockers), e.blockers)
+
     def test_parallel_branches_keep_separate_reference_words(self):
         def mutate(root):scalar(root.find('./Controller/Tags'),'SecondReference','DINT',0)
         e=self.checked(['[DTR(Source,Mask,Dest),DTR(Source,Mask,SecondReference)]OTE(RunLatch);'],mutate=mutate)

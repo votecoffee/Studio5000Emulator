@@ -23,6 +23,11 @@ is false is therefore already recorded when the condition becomes true.
 Run entry primes the reference again without advancing simulated time.
 The model's deferred import preview preserves the saved values until Run entry.
 
+Load checks operand declarations and constant indices without reading saved
+indirect indices. If a live source, mask or reference subscript is out of
+bounds during prescan, DTR keeps the reference and prescan continues. A later
+prescan with a valid index primes the selected reference normally.
+
 A disabled MCR body still calls DTR with false power, so its reference refresh
 still occurs. Skipping the instruction with JMP or an uncalled subroutine has
 different behavior: normal execution never reaches that site. Existing lexical

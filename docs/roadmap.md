@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+[DTR prescan](data-transition.md#prescan-and-false-execution) skips out-of-bounds
+source, mask or reference indices as of `26.1107.131428`. A saved invalid indirect
+index can load and normal scans still use the runtime fault handler.
+
 [FBC/DDT load and prescan](bit-diagnostic-references.md#when-addresses-are-sampled)
 accepts a saved out-of-bounds indirect CONTROL index as of `26.1107.130839`. Live address and
 overlap checks still apply when the records are selected.

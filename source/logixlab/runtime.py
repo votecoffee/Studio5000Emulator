@@ -499,7 +499,7 @@ class Engine:
             if not __import__('re').fullmatch(r'[A-Za-z_][\w]*',a[0]):raise ModelError('Invalid label name')
             return
         if n=='MCR':mcr.profile(self.project);return
-        if n=='DTR':data_transition.validate(self.memory,op,scope);return
+        if n=='DTR':data_transition.preflight(self.memory,op,scope);return
         if n in file_bit_compare.INSTRUCTIONS:file_bit_compare.validate(self.memory,op,scope,preflight=True);return
         if n=='SSV':system_values.validate_set(self,op,scope,kind=kind);return
         if n=='IOT':immediate_output.validate(self,op,scope);return
@@ -702,7 +702,7 @@ class Engine:
                     except ArrayBoundsError:
                         if not bit_logic.available(self.project):
                             raise
-                elif n=='DTR':data_transition.execute(self.memory,op,False,scope)
+                elif n=='DTR':data_transition.prescan(self.memory,op,scope)
                 elif n in bit_logic.PRESCAN_WRITES and bit_logic.available(self.project):
                     bit_logic.prescan(self.memory, op, scope)
                 elif n=='OTE':w('',False)
