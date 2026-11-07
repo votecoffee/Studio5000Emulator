@@ -8,10 +8,13 @@ from .integer_math import CONTROLLERS
 from .model import ModelError, coerce
 
 MAX_ELEMENTS = 64
-MAX_PENDING = 32
+THROTTLE_POSITIONS = 16
+MAX_PENDING = 48
 DEFAULT_TIMEOUT_US = 30_000_000
 IDENTITY_ATTRIBUTES = frozenset(range(1, 8))
 STATUS_BITS = {'EW': 2, 'ER': 4, 'DN': 5, 'ST': 6, 'EN': 7, 'TO': 8, 'EN_CC': 9}
+EN_MASK = 1 << STATUS_BITS['EN']
+COMPLETE_MASK = (1 << STATUS_BITS['ER']) | (1 << STATUS_BITS['DN'])
 TO_MASK = 1 << STATUS_BITS['TO']
 FIELDS = {
     'FLAGS': 'INT', 'ERR': 'INT', 'EXERR': 'DINT', 'REQ_LEN': 'INT', 'DN_LEN': 'INT',
@@ -346,6 +349,28 @@ def _capture_remote(memory, key, configuration, record):
     return _parse_endpoint(text, 0)
 
 
+def _admit(engine, key, power):
+    record = engine.memory.values[key]
+    queue = engine._message_advance
+    if len(queue) >= MAX_PENDING or sum(not request.started for request in queue.values()) >= THROTTLE_POSITIONS:
+        return
+    timeout_us = record['UnconnectedTimeout']
+    if timeout_us <= 0:
+        _set_flags(record, EN=power, ER=True)
+        record['ERR'] = 0x03
+        return
+    request = engine.project.message_configs[key]
+    if isinstance(request, IdentityRead):
+        request = replace(request, class_id=record['Class'], instance=record['Instance'],
+                          attribute=record['Attribute'])
+    else:
+        remote = _capture_remote(engine.memory, key, request, record)
+        request = DataTableTransfer(request, request.local.start(record['LocalIndex']), remote,
+                                    remote.start(record['RemoteIndex']) if remote is not None else ())
+    queue[key] = Pending(request, deadline_us=engine.time_ms * 1000 + timeout_us, enabled=power)
+    _set_flags(record, EW=True)
+
+
 def execute(engine, op, power):
     key = op.args[0].casefold()
     record = engine.memory.values[key]
@@ -354,29 +379,18 @@ def execute(engine, op, power):
     if pending is not None:
         if pending.enabled != power:
             queue[key] = replace(pending, enabled=power)
-    elif not power:
-        _set_flags(record, EN=False)
-    elif not record['FLAGS'] & (1 << STATUS_BITS['EN']):
-        record.update(FLAGS=(record['FLAGS'] & TO_MASK) | (1 << STATUS_BITS['EN']),
-                      ERR=0, EXERR=0, DN_LEN=0)
-        timeout_us = record['UnconnectedTimeout']
-        if timeout_us <= 0:
-            _set_flags(record, ER=True)
-            record['ERR'] = 0x03
-        elif len(queue) >= MAX_PENDING:
-            _set_flags(record, ER=True)
-            record['ERR'] = 0x02
-        else:
-            _set_flags(record, EW=True)
-            request = engine.project.message_configs[key]
-            if isinstance(request, IdentityRead):
-                request = replace(request, class_id=record['Class'], instance=record['Instance'],
-                                  attribute=record['Attribute'])
+    elif record['FLAGS'] & EN_MASK:
+        if not record['FLAGS'] & COMPLETE_MASK:
+            # An enabled control with no queue entry or result is waiting for admission.
+            if record['FLAGS'] & TO_MASK:
+                _finish(record, power, 0xFE)
             else:
-                remote = _capture_remote(engine.memory, key, request, record)
-                request = DataTableTransfer(request, request.local.start(record['LocalIndex']), remote,
-                                            remote.start(record['RemoteIndex']) if remote is not None else ())
-            queue[key] = Pending(request, deadline_us=engine.time_ms * 1000 + timeout_us)
+                _admit(engine, key, power)
+        elif not power:
+            _set_flags(record, EN=False)
+    elif power:
+        record.update(FLAGS=(record['FLAGS'] & TO_MASK) | EN_MASK, ERR=0, EXERR=0, DN_LEN=0)
+        _admit(engine, key, power)
     return power
 
 
@@ -419,6 +433,11 @@ def _transfer(memory, request, status_word):
     return _words(dtype, configuration.count)
 
 
+def _finish(record, enabled, error, transferred=0):
+    _set_flags(record, EN=enabled, EW=False, ST=False, TO=False, DN=not error, ER=bool(error))
+    record.update(ERR=error, DN_LEN=transferred)
+
+
 def service(memory, queue, now_ms, status_word):
     now_us = now_ms * 1000
     for key, pending in tuple(queue.items()):
@@ -437,6 +456,5 @@ def service(memory, queue, now_ms, status_word):
                 error = failure.code
             else:
                 error = 0
-        _set_flags(record, EN=pending.enabled, EW=False, ST=False, TO=False, DN=not error, ER=bool(error))
-        record.update(ERR=error, DN_LEN=transferred)
+        _finish(record, pending.enabled, error, transferred)
         del queue[key]

@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1106.185754` [ladder MSG](ladder-message.md#supported-configuration-and-timing)
+models the 16-position admission throttle. An enabled request waits and
+retries on later instruction scans when admission is full.
+
 Available in `26.1106.184830` [ladder MSG status](ladder-message.md#supported-configuration-and-timing)
 includes the packed INT FLAGS word. Message lab snapshots its queued,
 started and completed values and cancels a request through FLAGS.8.

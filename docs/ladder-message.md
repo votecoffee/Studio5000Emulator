@@ -156,9 +156,16 @@ two SINT elements. Those bytes encode product code 168.
   value. A later GSV in the same scan reads the setting immediately. A
   pending MSG keeps its captured deadline. A later scan fault rolls back
   the SSV setting and GSV destination together.
-- Up to 32 requests may be pending. Completion uses submission order and
-  snapshots the source span before changing the destination. Status and data
-  roll back together if a later rung faults in the same controller advance.
+- The simulated throttle admits up to 16 requests per controller advance,
+  with a ceiling of 48 admitted requests. A message that cannot enter
+  stays enabled with EW, ST and ER clear. It retries on its next instruction
+  scan even if the rung is now false. The advance that starts queued
+  requests frees their throttle positions. Waiting requests capture their
+  address and start their timeout on admission. TO cancels a waiting
+  request on its next instruction scan, and prescan clears the wait.
+- Completion uses submission order and snapshots the source span before
+  changing the destination. Status and data roll back together if a later
+  rung faults in the same controller advance.
   Data Table `REQ_LEN` and `DN_LEN` report 16-bit words. Odd byte counts
   round up to a whole word. A LINT uses four words.
 

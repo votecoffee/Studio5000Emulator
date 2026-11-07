@@ -13,6 +13,29 @@ from logixlab.runtime import Engine
 SAMPLE = Path(__file__).resolve().parents[1] / 'samples/MessageLab.L5X'
 
 
+def add_message_burst(root):
+    root.getroot().set('TargetName', 'MessageBurstLab')
+    controller = root.find('./Controller')
+    controller.set('Name', 'MessageBurstLab')
+    tags = controller.find('Tags')
+    trigger = ET.SubElement(tags, 'Tag', Name='SendBurst', TagType='Base', DataType='BOOL')
+    ET.SubElement(ET.SubElement(trigger, 'Data', Format='Decorated'), 'DataValue', DataType='BOOL', Value='0')
+    destination = ET.SubElement(tags, 'Tag', Name='BurstValues', TagType='Base', DataType='DINT', Dimensions='17')
+    values = ET.SubElement(ET.SubElement(destination, 'Data', Format='Decorated'), 'Array',
+                           DataType='DINT', Dimensions='17')
+    content = controller.find('.//RLLContent')
+    for index in range(17):
+        name = f'BurstControl{index + 1}'
+        ET.SubElement(values, 'Element', Index=f'[{index}]', Value='0')
+        tag = ET.SubElement(tags, 'Tag', Name=name, TagType='Base', DataType='MESSAGE', ExternalAccess='None')
+        ET.SubElement(ET.SubElement(tag, 'Data', Format='Message'), 'MessageParameters',
+                      MessageType='CIP Data Table Read', LocalElement=f'BurstValues[{index}]',
+                      RemoteElement='VirtualValue', RequestedLength='1', ConnectedFlag='0',
+                      ConnectionPath='THIS', CommTypeCode='0')
+        rung = ET.SubElement(content, 'Rung', Number=str(13 + index), Type='N')
+        ET.SubElement(rung, 'Text').text = f'XIC(SendBurst)MSG({name});'
+
+
 class MessageTests(unittest.TestCase):
     def engine(self, mutate=None, **options):
         path = SAMPLE
@@ -845,14 +868,78 @@ class MessageTests(unittest.TestCase):
         self.assertTrue(any('directly named controller MESSAGE' in item
                             for item in self.engine(use_as_control).blockers))
 
-    def test_queue_exhaustion_and_unqualified_forms(self):
+    def test_queue_exhaustion_waits_and_retries_on_a_false_rung(self):
         engine = self.engine()
-        engine.memory.write('SendRead', True)
-        engine.memory.write('SendWrite', True)
+        memory = engine.memory
+        memory.write('SendRead', True)
+        memory.write('SendWrite', True)
         with patch('logixlab.ladder_message.MAX_PENDING', 1):
             engine.step()
-        self.assert_flags(engine, 'ReadControl', EW=True, ER=False)
-        self.assert_flags(engine, 'WriteControl', EW=False, EN=True, ER=True, ERR=0x02)
+            self.assert_flags(engine, 'ReadControl', EW=True, ER=False)
+            self.assert_flags(engine, 'WriteControl', FLAGS=0x80, ERR=0)
+            memory.write('SendWrite', False)
+            engine.step()
+            self.assert_flags(engine, 'WriteControl', FLAGS=0x80, ERR=0)
+            engine.step()
+            self.assert_flags(engine, 'ReadControl', DN=True)
+            self.assert_flags(engine, 'WriteControl', FLAGS=0x84, ERR=0)
+            self.assertEqual(memory.read('VirtualValue'), 17)
+            engine.step()
+            self.assert_flags(engine, 'WriteControl', FLAGS=0xC0, ERR=0)
+            engine.step()
+            self.assert_flags(engine, 'WriteControl', FLAGS=0x20, ERR=0)
+            self.assertEqual(memory.read('VirtualValue'), 42)
+
+    def test_seventeenth_message_waits_and_captures_settings_at_admission(self):
+        engine = self.engine(add_message_burst)
+        self.assertEqual(engine.blockers, [])
+        memory = engine.memory
+        control = 'BurstControl17'
+        memory.write('SendBurst', True)
+        memory.write(f'{control}.UnconnectedTimeout', 1)
+        engine.step()
+        self.assertEqual(len(engine._messages), 16)
+        for number in range(1, 17):
+            self.assert_flags(engine, f'BurstControl{number}', FLAGS=0x84)
+        self.assert_flags(engine, control, FLAGS=0x80, ERR=0)
+        memory.write('SendBurst', False)
+        memory.write(f'{control}.RemoteElement', 'AlternateValue')
+        memory.write(f'{control}.UnconnectedTimeout', 30_000_000)
+        engine.step()
+        self.assert_flags(engine, control, FLAGS=0x84, ERR=0)
+        memory.write(f'{control}.RemoteElement', 'VirtualValue')
+        memory.write(f'{control}.UnconnectedTimeout', 1)
+        engine.step()
+        self.assert_flags(engine, control, FLAGS=0xC0)
+        self.assertEqual(memory.read('BurstValues'), [17] * 16 + [0])
+        engine.step()
+        self.assert_flags(engine, control, FLAGS=0x20)
+        self.assertEqual(memory.read('BurstValues'), [17] * 16 + [64])
+        engine.step()
+        self.assertEqual(engine._messages, {})
+
+    def test_throttled_message_can_be_cancelled_or_cleared_by_prescan(self):
+        for prescan in (False, True):
+            with self.subTest(prescan=prescan):
+                engine = self.engine(add_message_burst)
+                memory = engine.memory
+                control = 'BurstControl17'
+                memory.write('SendBurst', True)
+                engine.step()
+                self.assert_flags(engine, control, FLAGS=0x80)
+                memory.write('SendBurst', False)
+                if prescan:
+                    engine.enter_run()
+                else:
+                    memory.write(f'{control}.FLAGS.8', True)
+                for _ in range(3):
+                    engine.step()
+                self.assert_flags(engine, control, FLAGS=0 if prescan else 0x10,
+                                  ERR=0 if prescan else 0xFE, DN_LEN=0)
+                self.assertEqual(memory.read('BurstValues[16]'), 0)
+                self.assertEqual(engine._messages, {})
+
+    def test_unqualified_message_forms(self):
         self.assertTrue(self.engine(mode='routine', routine='MainProgram/Main').blockers)
         for name, value in [('ConnectionPath', '2,192.0.2.20'), ('ConnectedFlag', '1'),
                             ('RequestedLength', '65'), ('LocalElement', 'ReadValue[1]')]:
