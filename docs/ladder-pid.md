@@ -82,7 +82,9 @@ integral increment at transfer with unchanged inputs. Full native bumpless and
 manual-limit behavior remains unqualified.
 
 Prescan and reached false calls select only the PID record to clear EN.
-They retain the control output and solver history. A cleared array fault
+A saved out-of-bounds indirect record can load. Prescan skips the call if
+the record index is out of bounds and continues initializing later instructions.
+The control output and PID record remain intact. A cleared runtime array fault
 [skips the entire PID call](controller-handlers.md#recover-pid-and-alarm-array-faults).
 Skipped routines retain everything. A first
 true call, or clearing INI, establishes zero I before the update; saved DATA

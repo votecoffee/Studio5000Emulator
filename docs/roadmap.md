@@ -4,6 +4,9 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+[PID prescan](ladder-pid.md) skips an out-of-bounds PID record as of
+`26.1107.132214`. Normal false and true ladder calls still check the live record.
+
 [DTR prescan](data-transition.md#prescan-and-false-execution) skips out-of-bounds
 source, mask or reference indices as of `26.1107.131428`. A saved invalid indirect
 index can load and normal scans still use the runtime fault handler.

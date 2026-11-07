@@ -1,6 +1,6 @@
 """Bounded ladder PID solver; native coefficients, filtering and layout unqualified."""
 from .integer_math import CONTROLLERS, bit_value
-from .model import ModelError, coerce, literal
+from .model import ArrayBoundsError, ModelError, coerce, literal
 from .numeric_copy import static_reference
 from .real_math import real
 
@@ -36,14 +36,14 @@ def source(memory, ref, scope, *, immediate=False, role='PV'):
 
 def validate(engine, op, scope):
     memory = engine.memory
-    previous = memory.structural
+    previous = memory.structural, memory.structural_constant_indices
     # AOI validation already resolves bindings against its representative frame.
     if scope not in memory.frames:
-        memory.structural = True
+        memory.structural = memory.structural_constant_indices = True
     try:
         _operands(engine, op, scope)
     finally:
-        memory.structural = previous
+        memory.structural, memory.structural_constant_indices = previous
 
 
 def _record(memory, ref, scope):
@@ -115,7 +115,10 @@ def _clear_enable(memory, ref, scope):
 
 
 def prescan(engine, op, scope):
-    _clear_enable(engine.memory, op.args[0], scope)
+    try:
+        _clear_enable(engine.memory, op.args[0], scope)
+    except ArrayBoundsError:
+        return
 
 
 def execute(engine, op, power, scope):
@@ -304,7 +307,7 @@ def description():
         inhold='True BOOL overrides manual/deadband; readback copied into CV after conversion, must fit MINCV..MAXCV; inverse OUT seeds I or BIAS regardless NOBC; release primes auto; external module/acknowledgement/timing not modeled',
         cascade='CL/CT master uses own SP; CL/non-CT automatic slave samples a distinct CL/CT master OUT into MINS..MAXS; manual/inhold skip sampling; one-way, sampled in authored order, no upstream feedback',
         aoi='RLL bodies with exact InOut PID/atomic bindings or represented saved locals; canonical record history; existing copied-parameter/Prescan/EnableInFalse/rollback rules apply',
-        lifecycle='Prescan/false address only the PID record and clear EN; first call or INI=false starts zero I; Run resets hidden state; whole-advance rollback',
+        lifecycle='Prescan/false address only the PID record and clear EN; prescan skips an out-of-bounds record; first call or INI=false starts zero I; Run resets hidden state; whole-advance rollback',
         array_recovery='A cleared Type 4 Code 20 skips CV, record and solver history updates in a whole-project ladder scan',
         data='DATA[0,2,3,4,14] mirror I,PV,error,SP,CV; other entries retained, not interpreted as native coefficients',
         native_runtime_parity=False, packed_layout=False,

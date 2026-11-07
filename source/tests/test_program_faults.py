@@ -196,6 +196,19 @@ def add_stateful_recovery_tags(root, mnemonic):
         add_fault_dint_array(tags,'LabOutputs',[77,88])
 
 
+def add_fault_pid_array(root):
+    add_stateful_recovery_tags(root, 'PID')
+    tag = root.find('./Controller/Tags/Tag[@Name="Loop"]')
+    tag.set('Dimensions', '2')
+    data = tag.find('Data')
+    record = data.find('Structure')
+    data.remove(record)
+    array = ET.SubElement(data, 'Array', DataType='PID', Dimensions='2')
+    for index in range(2):
+        ET.SubElement(array, 'Element', Index=f'[{index}]').append(copy.deepcopy(record))
+    return array
+
+
 def configure_for_recovery(root, *lines):
     tags = root.find('./Controller/Tags')
     add_fault_dint_array(tags,'LoopIndex',[77,88])
@@ -2366,18 +2379,57 @@ class ProgramFaultTests(unittest.TestCase):
         self.assertEqual(engine.memory.read('LabIndex'),2)
         self.assertIsNone(engine.last_cleared_program_fault)
 
+    def test_pid_prescan_skips_saved_out_of_bounds_record_but_false_scan_faults(self):
+        def configure(root):
+            ladder_fault_fixture(root, main_tail='OTE(FaultWitness);', handler_tail='MOV(1,LabIndex);')
+            records = add_fault_pid_array(root)
+            for ctl in records.findall('./Element/Structure/DataValueMember[@Name="CTL"]'):
+                ctl.set('Value', '-2147483648')
+            tags = root.find('./Controller/Tags')
+            tags.find('Tag[@Name="LabIndex"]/Data/DataValue').set('Value', '2')
+            ET.SubElement(tags, 'Tag', Name='LoopView', DataType='PID', TagType='Alias', AliasFor='Loop[LabIndex]')
+            set_fault_instruction(root, 'PID(LoopView,LabValues[0],0,LabOutputs[LabIndex],0,0,0)')
+
+        engine = self.engine(mutate=configure)
+        self.assertEqual(engine.blockers, [])
+        memory = engine.memory
+        saved = copy.deepcopy(memory.read('Loop'))
+        self.assertEqual(saved, engine.project.initial['loop'])
+        self.assertFalse(memory.read('FaultWitness'))
+        self.assertIsNone(engine.last_cleared_program_fault)
+        self.assertEqual(engine.prescan_count, 1)
+
+        engine.step()
+        fault = engine.last_cleared_program_fault
+        self.assertEqual((fault['type'], fault['code'], fault['instruction']), (4, 20, 'PID'))
+        self.assertEqual(memory.read('Loop'), saved)
+        self.assertEqual(memory.read('LabIndex'), 1)
+        self.assertEqual(memory.read('LabOutputs'), [77, 88])
+        self.assertEqual(engine.last_timer, {})
+
+        engine.enter_run()
+        self.assertTrue(memory.read('Loop[0].EN'))
+        self.assertFalse(memory.read('Loop[1].EN'))
+        self.assertEqual(memory.read('LabOutputs'), [77, 88])
+
+    def test_pid_load_rejects_out_of_bounds_constant_record_subscripts(self):
+        source = self.root
+        for subscript in ('2', '-1', '1 + 1'):
+            with self.subTest(subscript=subscript):
+                self.root = copy.deepcopy(source)
+
+                def configure(root):
+                    ladder_fault_fixture(root)
+                    add_fault_pid_array(root)
+                    set_fault_instruction(root, f'PID(Loop[{subscript}],LabValues[0],0,LabOutputs[0],0,0,0)')
+
+                engine = self.engine(mutate=configure)
+                self.assertTrue(any('outside bounds' in blocker for blocker in engine.blockers), engine.blockers)
+
     def test_pid_checks_overlap_at_the_live_index(self):
         def configure(root):
             ladder_fault_fixture(root)
-            add_stateful_recovery_tags(root,'PID')
-            tag = root.find('./Controller/Tags/Tag[@Name="Loop"]')
-            tag.set('Dimensions','2')
-            data = tag.find('Data')
-            record = data.find('Structure')
-            data.remove(record)
-            array = ET.SubElement(data,'Array',DataType='PID',Dimensions='2')
-            for index in range(2):
-                ET.SubElement(array,'Element',Index=f'[{index}]').append(copy.deepcopy(record))
+            add_fault_pid_array(root)
             set_fault_instruction(root,'PID(Loop[0],LabValues[0],0,Loop[LabIndex].OUT,0,0,0)')
 
         engine = self.engine(mutate=configure)

@@ -443,8 +443,10 @@ commands, and timing or edge history. The rest of the rung receives the
 incoming rung power. On a later scan, the instruction uses the current
 operands with its last committed history.
 
-PID prescan and false rungs select only the PID record to clear .EN. ALMD
-still processes command operands on a false rung. ALMA skips live input and
+PID prescan and false rungs select only the PID record to clear .EN.
+Prescan skips an out-of-bounds record without invoking a user fault handler.
+A reached false or true runtime call still uses the recovery above.
+ALMD still processes command operands on a false rung. ALMA skips live input and
 command operands there. Invalid gains, invalid alarm configuration that
 raises a model error, and other failures keep the existing scan rollback
 behavior.

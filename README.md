@@ -374,7 +374,8 @@ and payload indices while preserving held output/teach updates and table checks.
 skips out-of-bounds selections in shifts, queues, sequencers, statistics, and
 bit diagnostics. FBC and DDT can load with a saved out-of-bounds indirect
 control index and skip that instruction in prescan. [DTR prescan](docs/data-transition.md#prescan-and-false-execution)
-also skips out-of-bounds source, mask and reference selections.
+also skips out-of-bounds source, mask and reference selections. [PID prescan](docs/ladder-pid.md)
+skips an out-of-bounds PID record.
 [CONTROL operand selection](docs/control-operands.md) defers shift and FIFO/LIFO
 payload indices until needed and lets false CONTROL resets skip live addresses.
 
