@@ -29,6 +29,13 @@
     <AddOnInstructionDefinitions />
     <Tags>
       <Tag Name="UseAlternateRead" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="SendPortRead" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="PortReply" DataType="SINT" TagType="Base" Dimensions="20">
+        <Data Format="Decorated"><Array DataType="SINT" Dimensions="20"><Element Index="[0]" Value="0" /></Array></Data>
+      </Tag>
+      <Tag Name="PortReadControl" DataType="MESSAGE" TagType="Base" ExternalAccess="None">
+        <Data Format="Message"><MessageParameters MessageType="CIP Generic" ServiceCode="16#0E" ObjectType="16#F4" TargetObject="1" AttributeNumber="16#04" RequestedLength="0" DestinationTag="PortReply[0]" ConnectedFlag="0" ConnectionPath="THIS" CommTypeCode="0" /></Data>
+      </Tag>
       <Tag Name="SendTimeSyncRead" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="TimeSyncReply" DataType="DINT" TagType="Base" Dimensions="4">
         <Data Format="Decorated"><Array DataType="DINT" Dimensions="4">
@@ -292,6 +299,7 @@
               <Rung Number="28" Type="N"><Text>XIC(SendIdentityList)MSG(IdentityListControl);</Text></Rung>
               <Rung Number="29" Type="N"><Text>XIC(SendClockRead)MSG(ClockReadControl);</Text></Rung>
               <Rung Number="30" Type="N"><Text>XIC(SendTimeSyncRead)MSG(TimeSyncReadControl);</Text></Rung>
+              <Rung Number="31" Type="N"><Text>XIC(SendPortRead)MSG(PortReadControl);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

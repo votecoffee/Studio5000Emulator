@@ -179,7 +179,8 @@ class PreparedValues:
         self.validate(headers,native_types)
         try:candidate=Engine(headers.engine.project,defer_prescan=True,
                              coordinated_clock=headers.engine.coordinated_clock,
-                             application_instance_id=headers.engine.application_instance_id)
+                             application_instance_id=headers.engine.application_instance_id,
+                             ethernet_address=headers.engine.ethernet_address)
         except ModelError:raise ImageError('download_initial_execution_plan_unavailable') from None
         if candidate.blockers or candidate.fault or candidate.memory.values!=candidate.project.initial:
             raise ImageError('download_initial_execution_plan_unavailable')

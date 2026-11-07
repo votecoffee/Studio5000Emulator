@@ -8,6 +8,7 @@ from . import software_clock, time_sync, wall_clock
 from .identity import Identity
 from .integer_math import CONTROLLERS
 from .model import ModelError, coerce
+from .network_objects import PORT_CLASS_ID, port_attributes
 from .numeric_copy import decode, encode, location
 from .templates import Catalog, MAX_BYTES, aligned
 
@@ -24,12 +25,15 @@ GENERIC_SERVICES = {
     1: (0x01, 0x03, 0x0E),
     wall_clock.CLASS_ID: (0x03, 0x0E),
     time_sync.CLASS_ID: (0x03, 0x0E),
+    PORT_CLASS_ID: (0x01, 0x03, 0x0E),
 }
 GENERIC_SINGLE_ATTRIBUTES = {
     1: IDENTITY_ATTRIBUTES,
     wall_clock.CLASS_ID: range(1, 12),
     time_sync.CLASS_ID: time_sync.INSTANCE_ATTRIBUTES,
+    PORT_CLASS_ID: (1, 2, 3, 4, 5, 7, 8, 9),
 }
+GENERIC_INSTANCES = {PORT_CLASS_ID: (0, 1, 2)}
 GENERIC_BUFFER_TYPES = frozenset(('SINT', 'INT', 'DINT'))
 MAX_ATTRIBUTE_LIST = 32
 STATUS_BITS = {'EW': 2, 'ER': 4, 'DN': 5, 'ST': 6, 'EN': 7, 'TO': 8, 'EN_CC': 9}
@@ -200,8 +204,8 @@ def _generic_read(project, attributes):
     service = _hex_number(attributes, 'ServiceCode')
     cls = _hex_number(attributes, 'ObjectType')
     instance = _number(attributes, 'TargetObject', 0, 65535)
-    if instance != 1 or service not in GENERIC_SERVICES.get(cls, ()):
-        raise ModelError('CIP Generic supports single and list reads on Identity, Wall Clock Time and Time Sync instance 1, plus Identity Get Attributes All')
+    if instance not in GENERIC_INSTANCES.get(cls, (1,)) or service not in GENERIC_SERVICES.get(cls, ()):
+        raise ModelError('CIP Generic requires a supported read service, class and instance')
     single = service == 0x0E
     attribute = _hex_number(attributes, 'AttributeNumber') if single or attributes.get('AttributeNumber') else 0
     if single and attribute not in GENERIC_SINGLE_ATTRIBUTES[cls]:
@@ -223,7 +227,8 @@ def _generic_read(project, attributes):
     identity = Identity.from_project('logix-v35-l85e', project) if cls == 1 else None
     # Preserve the 16-bit pattern of an optional attribute placeholder.
     signed_attribute = attribute if attribute < 0x8000 else attribute - 0x10000
-    return GenericRead(destination, identity, service, signed_attribute, source, source_size, class_id=cls)
+    return GenericRead(destination, identity, service, signed_attribute, source, source_size,
+                       class_id=cls, instance=instance)
 
 
 def from_tag(project, tag, element, dims):
@@ -834,7 +839,8 @@ def _attribute_list_reply(numbers, values):
 
 def _generic_reply(engine, request, numbers, status_word):
     project = engine.project
-    if request.instance != 1 or request.class_id not in GENERIC_SERVICES:
+    if (request.class_id not in GENERIC_SERVICES
+            or request.instance not in GENERIC_INSTANCES.get(request.class_id, (1,))):
         raise TransferError(0x05)
     if request.service not in GENERIC_SERVICES[request.class_id]:
         raise TransferError(0x08)
@@ -852,6 +858,13 @@ def _generic_reply(engine, request, numbers, status_word):
             return 0, identity.all_attributes(status_word=status_word)
         attributes = identity.attributes(status_word=status_word)
         values = {number: attributes[number] for number in IDENTITY_ATTRIBUTES}
+    elif request.class_id == PORT_CLASS_ID:
+        address = engine.ethernet_address() if request.instance == 2 and engine.ethernet_address else None
+        values = port_attributes(request.instance, address)
+        if request.service == 0x01:
+            if request.instance == 2 and address is None:
+                raise TransferError(0x0C)
+            return 0, b''.join(values.values())
     else:
         requested = numbers if request.service == 0x03 else (request.attribute,)
         if request.class_id == wall_clock.CLASS_ID:

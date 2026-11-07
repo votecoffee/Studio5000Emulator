@@ -145,6 +145,9 @@ def interface_snapshot(address):
         return None, str(error)
 
 
+PORT_CLASS_ID = 0xF4
+
+
 def port_attributes(instance, address='127.0.0.1'):
     if instance == 0:
         # Instance zero occupies the first array entry and is reserved as zero.
@@ -155,8 +158,10 @@ def port_attributes(instance, address='127.0.0.1'):
         return {1: b'\1\0', 2: b'\1\0', 3: b'\0\0',
                 4: b'\x09Backplane', 5: b'\x09Backplane', 7: b'\1\0'}
     if instance == 2:
-        text = str(ipaddress.IPv4Address(address)).encode('ascii')
-        node = bytes((0x12, len(text))) + text + b'\0' * (len(text) % 2)
-        return {1: b'\4\0', 2: b'\2\0', 3: b'\2\0\x20\xF5\x24\1',
-                4: b'\x0BEtherNet/IP', 5: b'\x0BEtherNet/IP', 7: node}
+        values = {1: b'\4\0', 2: b'\2\0', 3: b'\2\0\x20\xF5\x24\1',
+                  4: b'\x0BEtherNet/IP', 5: b'\x0BEtherNet/IP'}
+        if address is not None:
+            text = str(ipaddress.IPv4Address(address)).encode('ascii')
+            values[7] = bytes((0x12, len(text))) + text + b'\0' * (len(text) % 2)
+        return values
     raise KeyError(instance)

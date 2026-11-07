@@ -168,7 +168,7 @@ The simulated throttle admits 16
 requests at a time and retries waiting messages. The lab exercises program-local
 message controls, matching strings and UDT records, and selected numeric UDT
 members through direct addresses or aliases. It also demonstrates CIP Generic
-reads of virtual controller identity, mode, UTC clock and Time Sync
+reads of virtual controller identity, mode, UTC clock, Time Sync and port
 diagnostics with runtime attribute selection, ordered lists and SINT,
 INT or DINT reply buffers.
 [Simulated loss of a required Running module](docs/gsv-configuration.md#required-module-loss-during-run)

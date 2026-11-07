@@ -54,9 +54,10 @@ class JumpRoutine(Exception):
 class Engine:
     """Deterministic model; a failed scan rolls back all simulator state."""
     def __init__(self, project, mode="project", routine="", *, defer_prescan=False, coordinated_clock=None,
-                 application_instance_id=None):
+                 application_instance_id=None, ethernet_address=None):
         self.project = project
         self.application_instance_id = application_instance_id
+        self.ethernet_address = ethernet_address
         self.coordinated_clock = coordinated_clock if coordinated_clock is not None else CoordinatedClock.start()
         self.change_detection=ChangeDetection(project.sha256,project.controller_configuration.changes_to_detect)
         self.runtime_references = RuntimeReferences(project)

@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1107.095630` [ladder CIP Generic Port Object](ladder-message.md#cip-generic-port-object)
+adds class, backplane and Ethernet metadata reads. Message Lab shows the
+captured backplane target and the endpoint's bound IPv4 address.
+
 Available in `26.1107.094535` [ladder CIP Generic Time Sync](ladder-message.md#cip-generic-time-sync)
 adds single and list reads of the existing software clock and source PTP
 settings. Ladder and EtherNet/IP share the same application clock identity.

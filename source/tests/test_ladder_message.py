@@ -35,7 +35,7 @@ def add_message_burst(root):
                       MessageType='CIP Data Table Read', LocalElement=f'BurstValues[{index}]',
                       RemoteElement='VirtualValue', RequestedLength='1', ConnectedFlag='0',
                       ConnectionPath='THIS', CommTypeCode='0')
-        rung = ET.SubElement(content, 'Rung', Number=str(31 + index), Type='N')
+        rung = ET.SubElement(content, 'Rung', Number=str(32 + index), Type='N')
         ET.SubElement(rung, 'Text').text = f'XIC(SendBurst)MSG({name});'
 
 
@@ -159,7 +159,7 @@ class MessageTests(unittest.TestCase):
 
     def test_copy_into_flags_keeps_the_in_progress_status(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='31', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='32', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CaptureReadFlags)COP(IdentityAttribute,ReadControl.FLAGS,1);'
 
         engine = self.engine(configure)
@@ -277,7 +277,7 @@ class MessageTests(unittest.TestCase):
 
     def test_message_timeout_ssv_and_readback_roll_back_with_later_fault(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='31', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='32', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         engine = self.engine(configure)
@@ -662,6 +662,97 @@ class MessageTests(unittest.TestCase):
                     self.assertEqual(struct.pack('<4i', *memory.read('TimeSyncReply')), clock_identity(app_id) + bytes(8))
                     self.assert_flags(engine, 'TimeSyncReadControl', DN=True, ERR=0, DN_LEN=10)
 
+    def test_generic_port_captures_instance_and_reads_current_endpoint_address(self):
+        address = '192.0.2.10'
+        engine = self.engine(ethernet_address=lambda: address)
+        memory = engine.memory
+        self.assertEqual(engine.blockers, [])
+        memory.write('SendPortRead', True)
+        engine.step()
+        memory.write('PortReadControl.Instance', 2)
+        memory.write('PortReadControl.Attribute', 7)
+        engine.step()
+        engine.step()
+        self.assertEqual(bytes(memory.read('PortReply')[:10]), bytes((9,)) + b'Backplane')
+        self.assert_flags(engine, 'PortReadControl', DN=True, ERR=0, DN_LEN=10)
+
+        memory.write('SendPortRead', False)
+        engine.step()
+        memory.write('SendPortRead', True)
+        engine.step()
+        address = '192.0.2.1'
+        engine.step()
+        engine.step()
+        self.assertEqual(bytes(memory.read('PortReply')[:12]), bytes((0x12, 9)) + b'192.0.2.1' + bytes(1))
+        self.assert_flags(engine, 'PortReadControl', DN=True, ERR=0, DN_LEN=12)
+
+    def test_generic_port_list_returns_class_instance_inventory_and_preserves_neighbors(self):
+        def configure(root):
+            control = root.find('.//Tag[@Name="IdentityListControl"]//MessageParameters')
+            control.set('ObjectType', '16#F4')
+            control.set('TargetObject', '0')
+            control.set('DestinationTag', 'IdentityAllReply[1]')
+            array = root.find('.//Tag[@Name="IdentityListRequest"]//Array')
+            array.find('Element[@Index="[1]"]').set('Value', '9')
+            array.find('Element[@Index="[2]"]').set('Value', '2')
+
+        engine = self.engine(configure)
+        self.assertEqual(engine.blockers, [])
+        engine.memory.write('SendIdentityList', True)
+        for _ in range(3):
+            engine.step()
+        reply = engine.memory.read('IdentityAllReply')
+        self.assertEqual((reply[0], reply[-1]), (-9, -9))
+        self.assertEqual(bytes(reply[1:25]), struct.pack('<12H', 2, 9, 0, 0, 0, 1, 1, 4, 2, 2, 0, 2))
+        self.assert_flags(engine, 'IdentityListControl', DN=True, ERR=0, DN_LEN=24)
+
+    def test_generic_port_get_all_and_offline_ethernet_error(self):
+        def configure(root):
+            control = root.find('.//Tag[@Name="IdentityAllControl"]//MessageParameters')
+            control.set('ObjectType', '16#F4')
+            control.set('DestinationTag', 'IdentityAllReply[0]')
+
+        engine = self.engine(configure)
+        memory = engine.memory
+        self.assertEqual(engine.blockers, [])
+        memory.write('SendIdentityAll', True)
+        for _ in range(3):
+            engine.step()
+        expected = struct.pack('<HHH', 1, 1, 0) + (bytes((9,)) + b'Backplane') * 2 + bytes((1, 0))
+        self.assertEqual(bytes(memory.read('IdentityAllReply')), expected)
+        self.assert_flags(engine, 'IdentityAllControl', DN=True, ERR=0, DN_LEN=28)
+
+        memory.write('SendIdentityAll', False)
+        engine.step()
+        memory.write('IdentityAllControl.Instance', 2)
+        memory.write('SendIdentityAll', True)
+        for _ in range(3):
+            engine.step()
+        self.assertEqual(bytes(memory.read('IdentityAllReply')), expected)
+        self.assert_flags(engine, 'IdentityAllControl', DN=False, ER=True, ERR=0x0C, DN_LEN=0)
+
+    def test_generic_port_node_address_needs_an_active_binding(self):
+        address = '192.0.2.10'
+        engine = self.engine(ethernet_address=lambda: address)
+        memory = engine.memory
+        memory.write('PortReadControl.Instance', 2)
+        memory.write('PortReadControl.Attribute', 7)
+        memory.write('SendPortRead', True)
+        for _ in range(3):
+            engine.step()
+        previous = list(memory.read('PortReply'))
+        self.assertEqual(bytes(previous[:12]), bytes((0x12, 10)) + b'192.0.2.10')
+        self.assert_flags(engine, 'PortReadControl', DN=True, ERR=0, DN_LEN=12)
+
+        memory.write('SendPortRead', False)
+        engine.step()
+        address = None
+        memory.write('SendPortRead', True)
+        for _ in range(3):
+            engine.step()
+        self.assertEqual(memory.read('PortReply'), previous)
+        self.assert_flags(engine, 'PortReadControl', DN=False, ER=True, ERR=0x14, DN_LEN=0)
+
     def test_generic_identity_attribute_written_by_ladder_applies_to_next_request(self):
         engine = self.engine()
         memory = engine.memory
@@ -772,7 +863,7 @@ class MessageTests(unittest.TestCase):
 
     def test_generic_identity_all_rolls_back_response_and_queue_after_later_fault(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='31', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='32', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         engine = self.engine(configure)
@@ -1148,7 +1239,7 @@ class MessageTests(unittest.TestCase):
     def test_completion_and_queue_roll_back_with_later_fault(self):
         def configure(root):
             content = root.find('.//RLLContent')
-            rung = ET.SubElement(content, 'Rung', Number='31', Type='N')
+            rung = ET.SubElement(content, 'Rung', Number='32', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         for timeout in (30_000_000, 10_000):
@@ -1751,7 +1842,7 @@ class MessageTests(unittest.TestCase):
     def test_ladder_cache_release_rolls_back_if_a_later_rung_faults(self):
         def configure(root):
             content = root.find('.//RLLContent')
-            rung = ET.SubElement(content, 'Rung', Number='31', Type='N')
+            rung = ET.SubElement(content, 'Rung', Number='32', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         engine = self.engine(configure)
@@ -1889,7 +1980,7 @@ class MessageTests(unittest.TestCase):
 
     def test_connectionpath_bad_count_unknown_active_data_and_late_fault_roll_back(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='31', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='32', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         for tag, value, error in (
@@ -2008,7 +2099,7 @@ class MessageTests(unittest.TestCase):
     def test_ladder_connected_timing_rejects_bad_settings_and_rolls_back(self):
         def configure(root):
             content = root.find('.//RLLContent')
-            rung = ET.SubElement(content, 'Rung', Number='31', Type='N')
+            rung = ET.SubElement(content, 'Rung', Number='32', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         cases = (
@@ -2061,7 +2152,7 @@ class MessageTests(unittest.TestCase):
 
     def test_connected_completion_and_cache_roll_back_with_later_rung_fault(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='31', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='32', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         engine = self.engine(configure)

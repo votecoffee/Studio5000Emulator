@@ -1,8 +1,9 @@
 # Ladder MSG
 
 LogixLab models CIP Data Table Read and Write for numeric tags, matching
-strings and user-defined records, plus bounded CIP Generic Identity,
-Wall Clock Time and Time Sync reads to the simulated controller in whole-project v35 ControlLogix 5580 ladder
+strings and user-defined records, plus bounded CIP Generic reads of Identity,
+Wall Clock Time, Time Sync and the Port Object in whole-project v35
+ControlLogix 5580 ladder
 execution. It transfers
 values between tags in the current project. The `MSG` faceplate shows the
 message control and its `EN`, `DN` and `ER` bits.
@@ -197,9 +198,9 @@ preserves the destination. A list records the error per item.
 
 Class and Instance are captured at admission along with the single
 attribute or list payload. Ladder can retarget a supported single or list
-read among Identity, Wall Clock Time and Time Sync on qualified projects.
-Get Attributes All remains specific to Identity. Changing its Class to
-16#8B reports ERR 16#0008. The clock is read-only and reflects the emulator
+read among the modeled objects on qualified projects. Wall Clock Time
+supports single and list reads. Changing a Get Attributes All request
+to class 16#8B reports ERR 16#0008. The clock is read-only and reflects the emulator
 host's UTC time.
 
 ## CIP Generic Time Sync
@@ -221,6 +222,25 @@ engine without an application identity reports those fields unavailable.
 The clock model reports no synchronized master or PTP ports. MSG can read
 the modeled settings and clock data. PTP synchronization and clock writes
 remain outside this profile.
+
+## CIP Generic Port Object
+
+Set SendPortRead in Message Lab and step three times. Rung 31 reads
+class 16#F4, instance 1, attribute 4 into PortReply. The result is a
+length byte followed by the ASCII name Backplane. To read the Ethernet
+node address, rearm the rung and set PortReadControl.Instance to 2 and
+Attribute to 7. The reply is a padded CIP path containing the active
+EtherNet/IP endpoint's bound IPv4 address.
+
+Get Attribute Single, Get Attribute List and Get Attributes All use the
+[existing Port Object replies](connectivity.md#port-and-tcpip-interface-metadata).
+Instance 0 describes the port inventory. Instances 1 and 2 describe the
+modeled backplane and Ethernet port. The emulator reads the current
+endpoint binding at completion without querying an adapter during the
+scan. Without a binding, the Ethernet node address is unavailable and a
+Get Attributes All on that instance reports ERR 16#000C. Backplane and
+Ethernet port metadata remain readable. These replies do not enable
+routing to another device.
 
 ## Supported configuration and timing
 
@@ -380,6 +400,7 @@ timing, native MESSAGE layouts and Studio 5000 runtime qualification
 remain open. Decorated-only MESSAGE fields remain readable as
 saved data. The native Message object inventory is separate.
 
+- [Rockwell CIP Port Object fields](https://literature.rockwellautomation.com/idc/groups/literature/documents/um/193-um014_-en-p.pdf)
 - [ODVA CIP Time Sync object](https://www.odva.org/wp-content/uploads/2020/06/PUB00123R1_Common-Industrial_Protocol_and_Family_of_CIP_Networks.pdf)
 - [Rockwell Wall Clock Time attributes](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm003_-en-p.pdf)
 - [Rockwell Get Attribute List request and response example](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm020_-en-p.pdf)
