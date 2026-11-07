@@ -128,12 +128,15 @@ the reply. The modeled Program and Run values are 16#3070 and 16#3060.
 Configure MessageType as CIP Generic with ServiceCode, ObjectType and
 TargetObject. Get Attribute Single also requires AttributeNumber. Get
 Attributes All ignores a valid hexadecimal placeholder in that field.
-Use zero RequestedLength and a direct,
-writable local SINT array DestinationTag, optionally with a literal
-start such as IdentityReply[1]. The reply writes its bytes in CIP order and
-preserves surrounding elements. DN_LEN reports bytes for this Generic form.
-A short destination reports 16#0011 without changing the array. The usual
-queue, cancel and simulated timeout rules apply.
+Use zero RequestedLength and a direct, writable local SINT, INT or DINT
+DestinationTag. A one-dimensional array can start at a literal index such
+as IdentityReply[1]. The reply starts in the low byte of the selected
+element and fills consecutive elements in little-endian order. A partial
+final element retains its untouched high bytes. A complete element can
+replace an unknown value. DN_LEN reports reply bytes. A short destination
+reports 16#0011. An unknown partial element reports 16#0003. Both errors
+preserve the entire destination. The usual queue, cancel and simulated
+timeout rules apply.
 
 The Generic control exposes Class (INT), Instance (DINT) and Attribute
 (INT) as writable members. A queued request keeps the values captured at
@@ -148,7 +151,9 @@ changes from [-9, 0, 0, -9] to [-9, 35, 11, -9]. The middle bytes are the
 major and minor revision. Enable SendIdentityAll to read all seven
 attributes. After three steps IdentityAllReply contains the 26-byte reply,
 including the two Program status bytes at indices 9 and 10 when stepping
-from Program mode.
+from Program mode. Enable SendIdentityWord to read the revision into a
+DINT. IdentityWordReply changes from 16#11223344 to 16#11220B23 and
+IdentityWordControl.DN_LEN reports 2.
 
 To change the selected attribute while a request is queued, start with a
 fresh Message Lab, set SendIdentityRead to 1 and step once. Set
@@ -315,6 +320,7 @@ timing, native MESSAGE layouts and Studio 5000 runtime qualification
 remain open. Decorated-only MESSAGE fields remain readable as
 saved data. The native Message object inventory is separate.
 
+- [Rockwell CIP Generic DINT destination example](https://literature.rockwellautomation.com/idc/groups/literature/documents/um/dnet-um004_-en-p.pdf)
 - [ODVA Identity object reference](https://www.odva.org/wp-content/uploads/2020/06/PUB00123R1_Common-Industrial_Protocol_and_Family_of_CIP_Networks.pdf)
 - [Rockwell message instruction](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/input-output-instructions/message--msg-.html)
 - [Rockwell connected message timeout formula and units](https://www.rockwellautomation.com/content/dam/rockwell-automation/sites/downloads/pdf/developerguide.pdf)

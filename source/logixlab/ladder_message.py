@@ -6,7 +6,7 @@ from dataclasses import dataclass, replace
 from .identity import Identity
 from .integer_math import CONTROLLERS
 from .model import ModelError, coerce
-from .numeric_copy import location
+from .numeric_copy import decode, encode, location
 from .templates import Catalog, MAX_BYTES, aligned
 
 MAX_ELEMENTS = 64
@@ -18,6 +18,7 @@ DEFAULT_CONNECTION_RATE_US = 7_500_000
 MAX_TIMEOUT_MULTIPLIER = 7
 PATH_BUFFER_SIZE = 82
 IDENTITY_ATTRIBUTES = frozenset(range(1, 8))
+IDENTITY_DESTINATIONS = frozenset(('SINT', 'INT', 'DINT'))
 STATUS_BITS = {'EW': 2, 'ER': 4, 'DN': 5, 'ST': 6, 'EN': 7, 'TO': 8, 'EN_CC': 9}
 EN_MASK = 1 << STATUS_BITS['EN']
 COMPLETE_MASK = (1 << STATUS_BITS['ER']) | (1 << STATUS_BITS['DN'])
@@ -187,7 +188,7 @@ def _identity_read(project, attributes):
         raise ModelError('CIP Generic Identity reads require an empty source and no request payload')
     destination = _parse_endpoint(attributes.get('DestinationTag', '').strip(), 0)
     if destination is None or destination.member_path or destination.variable or len(destination.coordinates) > 1:
-        raise ModelError('CIP Generic Identity requires a DestinationTag with a fixed array start')
+        raise ModelError('CIP Generic Identity requires a direct DestinationTag or fixed array start')
     identity = Identity.from_project('logix-v35-l85e', project)
     # Preserve the 16-bit pattern of an optional Get Attributes All placeholder.
     signed_attribute = attribute if attribute < 0x8000 else attribute - 0x10000
@@ -475,9 +476,37 @@ def _control_key(engine, name, scope, instruction):
 
 def _identity_destination(memory, destination):
     key, paths, dtype = _region(memory, destination, destination.start(0), 1, remote=False, write=True, allow_alias=False)
-    if dtype != 'SINT' or len(paths[0]) != 1:
+    if dtype not in IDENTITY_DESTINATIONS or len(paths[0]) > 1:
         raise TransferError(0xFC)
-    return key, paths[0][0]
+    return key, paths[0], dtype
+
+
+def _write_identity_reply(memory, destination, payload):
+    key, first, dtype = _identity_destination(memory, destination)
+    width = ELEMENT_BYTES[dtype]
+    count = (len(payload) + width - 1) // width
+    if first:
+        start = first[0]
+        if count > len(memory.values[key]) - start:
+            raise TransferError(0x11)
+        paths = [(index,) for index in range(start, start + count)]
+    else:
+        if count > 1:
+            raise TransferError(0x11)
+        paths = [()]
+
+    writes = []
+    for index, path in enumerate(paths):
+        chunk = payload[index * width:(index + 1) * width]
+        if len(chunk) < width:
+            try:
+                previous = encode(memory.at(key, path), dtype)
+            except ModelError as error:
+                raise TransferError(0x03) from error
+            chunk += previous[len(chunk):]
+        writes.append(decode(chunk, dtype))
+    for path, value in zip(paths, writes, strict=True):
+        memory.store(key, path, value)
 
 
 def validate(engine, op, scope, kind='RLL'):
@@ -492,7 +521,7 @@ def validate(engine, op, scope, kind='RLL'):
         try:
             _identity_destination(engine.memory, configuration.destination)
         except TransferError as error:
-            raise ModelError(f'CIP Generic Identity requires a writable SINT array destination (16#{error.code:04X})') from error
+            raise ModelError(f'CIP Generic Identity requires a writable SINT, INT or DINT scalar or one-dimensional array destination (16#{error.code:04X})') from error
         return key
     record = configuration.record
     if record and configuration.count * record.size > MAX_BYTES:
@@ -736,17 +765,13 @@ def _transfer(memory, request, status_word):
     if isinstance(request, IdentityRead):
         if (request.class_id, request.instance) != (1, 1):
             raise TransferError(0x05)
-        key, start = _identity_destination(memory, request.destination)
         if request.read_all:
             payload = request.identity.all_attributes(status_word=status_word)
         else:
             if request.attribute not in IDENTITY_ATTRIBUTES:
                 raise TransferError(0x14)
             payload = request.identity.attributes(status_word=status_word)[request.attribute]
-        if len(payload) > len(memory.values[key]) - start:
-            raise TransferError(0x11)
-        for index, byte in enumerate(payload, start):
-            memory.store(key, (index,), byte if byte < 128 else byte - 256)
+        _write_identity_reply(memory, request.destination, payload)
         return len(payload)
     configuration = request.configuration
     record = configuration.record

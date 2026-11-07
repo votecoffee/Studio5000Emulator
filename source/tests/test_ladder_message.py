@@ -33,7 +33,7 @@ def add_message_burst(root):
                       MessageType='CIP Data Table Read', LocalElement=f'BurstValues[{index}]',
                       RemoteElement='VirtualValue', RequestedLength='1', ConnectedFlag='0',
                       ConnectionPath='THIS', CommTypeCode='0')
-        rung = ET.SubElement(content, 'Rung', Number=str(27 + index), Type='N')
+        rung = ET.SubElement(content, 'Rung', Number=str(28 + index), Type='N')
         ET.SubElement(rung, 'Text').text = f'XIC(SendBurst)MSG({name});'
 
 
@@ -157,7 +157,7 @@ class MessageTests(unittest.TestCase):
 
     def test_copy_into_flags_keeps_the_in_progress_status(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='27', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='28', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CaptureReadFlags)COP(IdentityAttribute,ReadControl.FLAGS,1);'
 
         engine = self.engine(configure)
@@ -275,7 +275,7 @@ class MessageTests(unittest.TestCase):
 
     def test_message_timeout_ssv_and_readback_roll_back_with_later_fault(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='27', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='28', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         engine = self.engine(configure)
@@ -347,6 +347,70 @@ class MessageTests(unittest.TestCase):
                 self.assertEqual(bytes(value & 255 for value in reply[1:1 + len(payload)]), payload)
                 self.assertEqual(reply[0], -9)
                 self.assert_flags(engine, 'IdentityControl', DN=True, DN_LEN=len(payload))
+
+    def test_generic_identity_partial_dint_preserves_high_bytes_and_counts_reply_bytes(self):
+        engine = self.engine()
+        memory = engine.memory
+        self.assertEqual(engine.blockers, [])
+        memory.write('SendIdentityWord', True)
+        for _ in range(3):
+            engine.step()
+        self.assertEqual(memory.read('IdentityWordReply'), 0x11220B23)
+        self.assert_flags(engine, 'IdentityWordControl', DN=True, ER=False, DN_LEN=2)
+
+    def test_generic_identity_all_populates_indexed_int_and_dint_buffers(self):
+        payload = bytes((1, 0, 14, 0, 168, 0, 35, 11, 0x70, 0x30, 1, 0, 0x4C, 0x4C, 11)) + b'1756-L85E/B'
+        for dtype, width in (('INT', 2), ('DINT', 4)):
+            with self.subTest(dtype=dtype):
+                count = (len(payload) + width - 1) // width
+
+                def configure(root):
+                    control = root.find('.//Tag[@Name="IdentityAllControl"]//MessageParameters')
+                    control.set('DestinationTag', 'PackedReply[1]')
+                    size = str(count + 2)
+                    tags = root.find('./Controller/Tags')
+                    tag = ET.SubElement(tags, 'Tag', Name='PackedReply', DataType=dtype, TagType='Base', Dimensions=size)
+                    data = ET.SubElement(ET.SubElement(tag, 'Data', Format='Decorated'), 'Array', DataType=dtype, Dimensions=size)
+                    for index, value in ((0, 91), (count + 1, -91)):
+                        ET.SubElement(data, 'Element', Index=f'[{index}]', Value=str(value))
+                    if width == 4:
+                        ET.SubElement(data, 'Element', Index=f'[{count}]', Value=str(-1430532899))
+
+                engine = self.engine(configure)
+                self.assertEqual(engine.blockers, [])
+                memory = engine.memory
+                memory.write('SendIdentityAll', True)
+                for _ in range(3):
+                    engine.step()
+                words = memory.read('PackedReply')
+                received = b''.join(word.to_bytes(width, 'little', signed=True) for word in words[1:-1])
+                suffix = bytes((0xBB, 0xAA)) if width == 4 else b''
+                self.assertEqual(received, payload + suffix)
+                self.assertEqual((words[0], words[-1]), (91, -91))
+                self.assert_flags(engine, 'IdentityAllControl', DN=True, ER=False, DN_LEN=26)
+
+    def test_generic_identity_typed_reply_requires_capacity_and_known_partial_cell(self):
+        for size, error in ((7, 0x11), (8, 0x03)):
+            with self.subTest(size=size):
+                def configure(root):
+                    control = root.find('.//Tag[@Name="IdentityAllControl"]//MessageParameters')
+                    control.set('DestinationTag', 'PackedReply[1]')
+                    tags = root.find('./Controller/Tags')
+                    tag = ET.SubElement(tags, 'Tag', Name='PackedReply', DataType='DINT',
+                                        TagType='Base', Dimensions=str(size))
+                    data = ET.SubElement(ET.SubElement(tag, 'Data', Format='Decorated'), 'Array',
+                                         DataType='DINT', Dimensions=str(size))
+                    ET.SubElement(data, 'Element', Index='[1]', Value='42')
+
+                engine = self.engine(configure)
+                self.assertEqual(engine.blockers, [])
+                memory = engine.memory
+                before = list(memory.read('PackedReply'))
+                memory.write('SendIdentityAll', True)
+                for _ in range(3):
+                    engine.step()
+                self.assertEqual(memory.read('PackedReply'), before)
+                self.assert_flags(engine, 'IdentityAllControl', DN=False, ER=True, ERR=error, DN_LEN=0)
 
     def test_generic_identity_attribute_written_by_ladder_applies_to_next_request(self):
         engine = self.engine()
@@ -458,7 +522,7 @@ class MessageTests(unittest.TestCase):
 
     def test_generic_identity_all_rolls_back_response_and_queue_after_later_fault(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='27', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='28', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         engine = self.engine(configure)
@@ -477,7 +541,7 @@ class MessageTests(unittest.TestCase):
     def test_generic_identity_rejects_unqualified_services_and_destinations(self):
         for name, value in [('ServiceCode', '16#10'), ('ObjectType', '2'), ('TargetObject', '2'),
                             ('AttributeNumber', '8'), ('RequestedLength', '1'),
-                            ('DestinationTag', 'ReadValue'), ('DestinationTag', 'IdentityReply[*]'),
+                            ('DestinationTag', 'SendRead'), ('DestinationTag', 'IdentityReply[*]'),
                             ('ConnectionPath', '2,192.0.2.20')]:
             with self.subTest(name=name, value=value):
                 def configure(root):
@@ -834,7 +898,7 @@ class MessageTests(unittest.TestCase):
     def test_completion_and_queue_roll_back_with_later_fault(self):
         def configure(root):
             content = root.find('.//RLLContent')
-            rung = ET.SubElement(content, 'Rung', Number='27', Type='N')
+            rung = ET.SubElement(content, 'Rung', Number='28', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         for timeout in (30_000_000, 10_000):
@@ -1437,7 +1501,7 @@ class MessageTests(unittest.TestCase):
     def test_ladder_cache_release_rolls_back_if_a_later_rung_faults(self):
         def configure(root):
             content = root.find('.//RLLContent')
-            rung = ET.SubElement(content, 'Rung', Number='27', Type='N')
+            rung = ET.SubElement(content, 'Rung', Number='28', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         engine = self.engine(configure)
@@ -1575,7 +1639,7 @@ class MessageTests(unittest.TestCase):
 
     def test_connectionpath_bad_count_unknown_active_data_and_late_fault_roll_back(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='27', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='28', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         for tag, value, error in (
@@ -1694,7 +1758,7 @@ class MessageTests(unittest.TestCase):
     def test_ladder_connected_timing_rejects_bad_settings_and_rolls_back(self):
         def configure(root):
             content = root.find('.//RLLContent')
-            rung = ET.SubElement(content, 'Rung', Number='27', Type='N')
+            rung = ET.SubElement(content, 'Rung', Number='28', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         cases = (
@@ -1747,7 +1811,7 @@ class MessageTests(unittest.TestCase):
 
     def test_connected_completion_and_cache_roll_back_with_later_rung_fault(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='27', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='28', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         engine = self.engine(configure)

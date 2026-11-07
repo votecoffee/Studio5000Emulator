@@ -28,6 +28,11 @@
     <AddOnInstructionDefinitions />
     <Tags>
       <Tag Name="UseAlternateRead" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="SendIdentityWord" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="IdentityWordReply" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="287454020" /></Data></Tag>
+      <Tag Name="IdentityWordControl" DataType="MESSAGE" TagType="Base" ExternalAccess="None">
+        <Data Format="Message"><MessageParameters MessageType="CIP Generic" ServiceCode="16#0E" ObjectType="16#01" TargetObject="1" AttributeNumber="16#04" RequestedLength="0" DestinationTag="IdentityWordReply" ConnectedFlag="0" ConnectionPath="THIS" CommTypeCode="0" /></Data>
+      </Tag>
       <Tag Name="ApplyIdentityAttribute" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="IdentityAttribute" DataType="INT" TagType="Base"><Data Format="Decorated"><DataValue DataType="INT" Value="3" /></Data></Tag>
       <Tag Name="SendIdentityRead" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
@@ -249,6 +254,7 @@
               <Rung Number="24" Type="N"><Text>XIC(EnableConnectedCache)OTL(CachedReadControl.EN_CC);</Text></Rung>
               <Rung Number="25" Type="N"><Text>XIC(ApplyMessageRoute)MOV(LocalMessageRoute,CachedReadControl.Path);</Text></Rung>
               <Rung Number="26" Type="N"><Text>XIC(ApplyPathBuffer)SSV(Message,CachedReadControl,ConnectionPath,MessagePathBuffer[0])GSV(Message,CachedReadControl,ConnectionPath,MessagePathEcho[0]);</Text></Rung>
+              <Rung Number="27" Type="N"><Text>XIC(SendIdentityWord)MSG(IdentityWordControl);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1107.091730` [ladder CIP Generic Identity](ladder-message.md#cip-generic-identity-read)
+can write replies to SINT, INT and DINT destinations. A short buffer or an
+unknown partial word leaves the entire reply untouched. Message Lab reads
+two revision bytes into a DINT while preserving its high bytes.
+
 Available in `26.1107.090819` ladder [Message ConnectionPath](ladder-message.md#supported-configuration-and-timing)
 reads and writes the live MSG route through a counted SINT buffer. Message Lab
 shows immediate readback and route capture at request admission.
