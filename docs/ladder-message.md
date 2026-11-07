@@ -58,6 +58,14 @@ writes the live route into MessagePathEcho. The first four bytes are
 `[2, 0, 1, 0]` for slot 0 and the rest of the output buffer is zero.
 Change MessagePathBuffer[0] to 0 to select THIS on the next request.
 
+With EtherNet/IP enabled, Message Lab can also address the emulator by
+its own IPv4 address. Set PortReadControl.Instance to 2 and Attribute to
+7, then trigger SendPortRead and step three times. PortReply contains the
+encoded port 2 route and PortReadControl.DN_LEN gives its byte count.
+Set MessagePathBuffer[0] to that count and MessagePathBuffer[1] to zero,
+then copy the returned bytes into MessagePathBuffer starting at index 2.
+Pulse ApplyPathBuffer for one scan before triggering SendConnectedRead.
+
 Set `CaptureReadFlags` and `SendRead` on a fresh Message Lab and step three
 times. The ladder MOV copies the current `ReadControl.FLAGS` into
 `ReadFlagsSnapshot` each scan. The INT word is 132 (EN and EW), then 192
@@ -328,15 +336,20 @@ for native Audit Value and Changes to Detect behavior.
   looking in controller scope. The model reads
   `MessageType`, `ConnectionPath`, `RequestedLength`, `LocalElement`,
   `RemoteElement`, and optional decimal `LocalIndex` and `RemoteIndex`. Use
-  standard CIP communications on THIS or a one-hop backplane route to the
-  declared local controller, such as `1,0`. An explicit route requires a
-  unique matching Local module with an ICP port 1, a valid slot and a
-  chassis size. Connected THIS is supported by the emulator. Cache requires
-  ConnectedFlag. Large packets remain outside this profile.
+  standard CIP communications on THIS, a one-hop backplane route to the
+  declared local controller, or a single port 2 hop to the emulator's
+  active IPv4 address. A backplane route such as `1,0` requires a unique
+  matching Local module with an ICP port 1, a valid slot and a chassis size.
+  A saved Ethernet route such as `2,192.0.2.1` requires a literal IPv4
+  address, checked against the enabled endpoint when the request queues.
+  These routes all execute in-process. Cache requires ConnectedFlag.
+  Large packets remain outside this profile.
 - MESSAGE.Path is a writable STRING containing raw path bytes. An empty
   string represents THIS in the emulator. Two bytes such as the ladder
-  literal `'$01$00'` represent port 1 and slot 0. Writes through MOV or
-  the LEN and DATA members affect the next admitted request. A request
+  literal `'$01$00'` represent port 1 and slot 0. An Ethernet self route
+  starts with 16#12, then the ASCII address length, the dotted-decimal
+  address bytes, and a zero pad if that length is odd. Writes through MOV
+  or the LEN and DATA members affect the next admitted request. A request
   with invalid bytes, invalid LEN, unknown active DATA or an unsupported
   route reports ERR 16#0005 and leaves its destination untouched. Prescan
   retains the live path and Reset restores the authored path.

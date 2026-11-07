@@ -1183,7 +1183,7 @@ class MessageTests(unittest.TestCase):
         for name, value in [('ServiceCode', '16#10'), ('ObjectType', '2'), ('TargetObject', '2'),
                             ('AttributeNumber', '8'), ('RequestedLength', '1'),
                             ('DestinationTag', 'SendRead'), ('DestinationTag', 'VirtualValue[*]'),
-                            ('ConnectionPath', '2,192.0.2.20')]:
+                            ('ConnectionPath', '2,controller.example')]:
             with self.subTest(name=name, value=value):
                 def configure(root):
                     root.find('.//Tag[@Name="IdentityControl"]//MessageParameters').set(name, value)
@@ -2178,6 +2178,88 @@ class MessageTests(unittest.TestCase):
         self.assertEqual(memory.read('ReadValue'), 17)
         self.assertEqual(memory.read('IdentityReply'), [-9, 35, 11, -9])
 
+    def test_authored_ipv4_self_route_supports_data_table_and_generic_requests(self):
+        def configure(root):
+            for control in ('ReadControl', 'IdentityControl'):
+                root.find(f'.//Tag[@Name="{control}"]//MessageParameters').set('ConnectionPath', '2, 192.0.2.1')
+
+        binding = NetworkBinding('192.0.2.1')
+        engine = self.engine(configure, network_binding=lambda: binding)
+        self.assertEqual(engine.blockers, [])
+        memory = engine.memory
+        route = b'\x12\x09192.0.2.1\0'
+        for control in ('ReadControl', 'IdentityControl'):
+            self.assertEqual(memory.string(control + '.Path').encode('latin-1'), route)
+
+        memory.write('SendRead', True)
+        memory.write('SendIdentityRead', True)
+        with patch('socket.socket', side_effect=AssertionError('Self routes run in-process')) as socket:
+            for _ in range(3):
+                engine.step()
+            socket.assert_not_called()
+        self.assertEqual(memory.read('ReadValue'), 17)
+        self.assertEqual(memory.read('IdentityReply'), [-9, 35, 11, -9])
+        self.assert_flags(engine, 'ReadControl', DN=True, ERR=0)
+        self.assert_flags(engine, 'IdentityControl', DN=True, ERR=0)
+
+    def test_ethernet_self_route_is_captured_and_checked_before_cache_reuse(self):
+        binding = NetworkBinding('192.0.2.1')
+        engine = self.engine(network_binding=lambda: binding)
+        memory = engine.memory
+        control = 'CachedReadControl'
+        route = b'\x12\x09192.0.2.1\0'
+
+        memory.write('SendConnectedRead', True)
+        for _ in range(4):
+            engine.step()
+        self.assertEqual(memory.message_cache, {'cachedreadcontrol': b''})
+
+        memory.write('SendConnectedRead', False)
+        engine.step()
+        memory.write_string(control + '.Path', route.decode('latin-1'))
+        memory.write('SendConnectedRead', True)
+        for flags in (0x284, 0x284, 0x2C0, 0x2A0):
+            engine.step()
+            self.assert_flags(engine, control, FLAGS=flags)
+        self.assertEqual(memory.message_cache, {'cachedreadcontrol': route})
+
+        memory.write('SendConnectedRead', False)
+        engine.step()
+        memory.write('VirtualValue', 61)
+        memory.write('SendConnectedRead', True)
+        engine.step()
+        binding = NetworkBinding('192.0.2.2')
+        engine.step()
+        self.assert_flags(engine, control, ST=True)
+        engine.step()
+        self.assert_flags(engine, control, DN=True, ERR=0)
+        self.assertEqual(memory.read('ConnectedValue'), 61)
+
+        memory.write('SendConnectedRead', False)
+        engine.step()
+        memory.write('VirtualValue', 71)
+        memory.write('SendConnectedRead', True)
+        for _ in range(4):
+            engine.step()
+        self.assert_flags(engine, control, ER=True, ERR=5, DN_LEN=0)
+        self.assertEqual(memory.read('ConnectedValue'), 61)
+        self.assertEqual(memory.message_cache, {})
+
+    def test_ethernet_route_rejects_malformed_segments_and_offline_binding(self):
+        valid = b'\x12\x09192.0.2.1\0'
+        binding = NetworkBinding('192.0.2.1')
+        for address, path in ((None, valid), (binding, valid[:-1]),
+                              (binding, valid[:-1] + b'\1'), (binding, valid + b'\1\0')):
+            with self.subTest(address=address, path=path):
+                engine = self.engine(network_binding=lambda: address)
+                memory = engine.memory
+                memory.write_string('ReadControl.Path', path.decode('latin-1'))
+                memory.write('SendRead', True)
+                for _ in range(3):
+                    engine.step()
+                self.assertEqual(memory.read('ReadValue'), 0)
+                self.assert_flags(engine, 'ReadControl', ER=True, ERR=5, DN_LEN=0)
+
     def test_authored_backplane_path_requires_matching_local_slot_evidence(self):
         for path in ('1,1', '1,0,1,0', '1,0'):
             with self.subTest(path=path):
@@ -2520,7 +2602,7 @@ class MessageTests(unittest.TestCase):
 
     def test_unqualified_message_forms(self):
         self.assertTrue(self.engine(mode='routine', routine='MainProgram/Main').blockers)
-        for name, value in [('ConnectionPath', '2,192.0.2.20'), ('ConnectedFlag', '2'),
+        for name, value in [('ConnectionPath', '2,192.0.2.20,1,0'), ('ConnectedFlag', '2'),
                             ('CacheConnections', '1'), ('LargePacketUsage', '1'),
                             ('RequestedLength', '65'), ('LocalElement', 'ReadValue[1]')]:
             with self.subTest(name=name, value=value):

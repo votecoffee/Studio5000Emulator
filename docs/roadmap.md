@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1107.104900` [ladder Ethernet self-addressing](ladder-message.md#supported-configuration-and-timing)
+accepts a port 2 IPv4 route to the active emulator endpoint. MSG executes
+in-process and checks the address before each new admission.
+
 Available in `26.1107.104203` [ladder CIP Generic indexed buffers](ladder-message.md#cip-generic-identity-read)
 use LocalIndex for `[*]` starts and capture it at request admission. Message
 Lab shows the same reply written at two different offsets.

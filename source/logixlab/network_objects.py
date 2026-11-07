@@ -192,6 +192,11 @@ def ethernet_link_attributes(snapshot):
     return values
 
 
+def ethernet_port_segment(address):
+    text = str(ipaddress.IPv4Address(address)).encode('ascii')
+    return bytes((0x12, len(text))) + text + bytes(len(text) % 2)
+
+
 def port_attributes(instance, address='127.0.0.1'):
     if instance == 0:
         # Instance zero occupies the first array entry and is reserved as zero.
@@ -205,7 +210,6 @@ def port_attributes(instance, address='127.0.0.1'):
         values = {1: b'\4\0', 2: b'\2\0', 3: b'\2\0\x20\xF5\x24\1',
                   4: b'\x0BEtherNet/IP', 5: b'\x0BEtherNet/IP'}
         if address is not None:
-            text = str(ipaddress.IPv4Address(address)).encode('ascii')
-            values[7] = bytes((0x12, len(text))) + text + b'\0' * (len(text) % 2)
+            values[7] = ethernet_port_segment(address)
         return values
     raise KeyError(instance)

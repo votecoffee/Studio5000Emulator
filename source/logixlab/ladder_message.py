@@ -10,7 +10,7 @@ from .integer_math import CONTROLLERS
 from .model import ModelError, coerce
 from .network_objects import (
     ETHERNET_LINK_ATTRIBUTES, ETHERNET_LINK_CLASS_ID, PORT_CLASS_ID, TCPIP_CLASS_ID,
-    TCPIP_INTERFACE_ATTRIBUTES, ethernet_link_attributes, ethernet_link_class_attributes,
+    TCPIP_INTERFACE_ATTRIBUTES, ethernet_link_attributes, ethernet_link_class_attributes, ethernet_port_segment,
     port_attributes, tcpip_class_attributes, tcpip_interface_attributes,
 )
 from .numeric_copy import decode, encode, location
@@ -245,6 +245,24 @@ def _generic_read(project, attributes):
                        class_id=cls, instance=instance, local_index=local_index)
 
 
+def _authored_path(project, text):
+    if text.casefold() == 'this':
+        return b''
+    port, separator, link = text.partition(',')
+    port = port.rstrip(' \t')
+    link = link.lstrip(' \t')
+    if separator and port == '1' and re.fullmatch(r'[0-9]{1,2}', link):
+        path = bytes((1, int(link)))
+        if path == project.local_message_route:
+            return path
+    if separator and port == '2':
+        try:
+            return ethernet_port_segment(link)
+        except ValueError:
+            pass
+    raise ModelError('MESSAGE path requires THIS, the declared local controller slot or port 2 with an IPv4 address')
+
+
 def from_tag(project, tag, element, dims):
     if (project.version != '35' or project.processor.upper() not in CONTROLLERS
             or tag.constant or tag.tag_class != 'Standard' or dims):
@@ -263,13 +281,7 @@ def from_tag(project, tag, element, dims):
     if (attributes.get('CommTypeCode', '0') != '0'
             or _flag(attributes, 'LargePacketUsage') or (cache and not connected)):
         raise ModelError('MESSAGE requires standard CIP transfers and a connected request to cache')
-    path_text = attributes.get('ConnectionPath', '').strip()
-    path = b''
-    if path_text.casefold() != 'this':
-        local = re.fullmatch(r'1[ 	]*,[ 	]*([0-9]{1,2})', path_text)
-        if local is None or bytes((1, int(local[1]))) != project.local_message_route:
-            raise ModelError('MESSAGE path requires THIS or the declared local controller slot')
-        path = project.local_message_route
+    path = _authored_path(project, attributes.get('ConnectionPath', '').strip())
     if kind == 'cip generic':
         return replace(_generic_read(project, attributes), connected=connected, cache=cache, path=path)
     if kind not in ('cip data table read', 'cip data table write'):
@@ -738,12 +750,18 @@ def _capture_remote(memory, key, configuration, record):
     return _parse_endpoint(text, 0)
 
 
-def _capture_path(memory, key):
+def _capture_path(engine, key):
     try:
-        path = memory.string(key + '.Path').encode('latin-1')
+        path = engine.memory.string(key + '.Path').encode('latin-1')
     except ModelError:
         return None
-    return path if path in (b'', memory.project.local_message_route) else None
+    if path in (b'', engine.project.local_message_route):
+        return path
+    if path.startswith(b'\x12') and engine.network_binding:
+        binding = engine.network_binding()
+        if binding is not None and path == ethernet_port_segment(binding.address):
+            return path
+    return None
 
 
 def _admit(engine, key, power):
@@ -753,7 +771,7 @@ def _admit(engine, key, power):
         return
     configuration = engine.project.message_configs[key]
     cache = engine.memory.message_cache
-    path = _capture_path(engine.memory, key)
+    path = _capture_path(engine, key)
     reused = configuration.connected and path is not None and cache.get(key) == path
     if not reused:
         cache.pop(key, None)

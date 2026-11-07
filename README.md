@@ -156,8 +156,9 @@ Use the [simulated connection input](docs/gsv-configuration.md#simulated-module-
 to exercise Running, Faulted, FaultCode and FaultInfo in ladder and ST.
 The Device I/O tab sets the simulated input and displays the effective state.
 [Ladder MSG](docs/ladder-message.md) runs simulated data-table reads and
-writes to the simulated controller over THIS or its declared local backplane
-slot. It supports runtime MESSAGE.Path changes and connected requests with
+writes to the simulated controller over THIS, its declared local backplane
+slot, or the active emulator endpoint's IPv4 address. It supports runtime
+MESSAGE.Path changes and connected requests with
 optional per-control caching. **Message lab** shows message status in
 the ladder viewer, runtime target and index changes, exact LINT writes,
 multidimensional array transfers and simulated timeouts with ladder-controlled retries.
