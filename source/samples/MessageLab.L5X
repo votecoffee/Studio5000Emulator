@@ -113,7 +113,7 @@
         </Array></Data>
       </Tag>
       <Tag Name="IdentityControl" DataType="MESSAGE" TagType="Base" ExternalAccess="None">
-        <Data Format="Message"><MessageParameters MessageType="CIP Generic" ServiceCode="16#0E" ObjectType="16#01" TargetObject="1" AttributeNumber="16#04" RequestedLength="0" DestinationTag="IdentityReply[1]" ConnectedFlag="0" ConnectionPath="THIS" CommTypeCode="0" /></Data>
+        <Data Format="Message"><MessageParameters MessageType="CIP Generic" ServiceCode="16#0E" ObjectType="16#01" TargetObject="1" AttributeNumber="16#04" RequestedLength="0" DestinationTag="IdentityReply[*]" LocalIndex="1" ConnectedFlag="0" ConnectionPath="THIS" CommTypeCode="0" /></Data>
       </Tag>
       <Tag Name="SendIdentityAll" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="IdentityAllReply" DataType="SINT" TagType="Base" Dimensions="28">

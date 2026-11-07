@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+Available in `26.1107.104203` [ladder CIP Generic indexed buffers](ladder-message.md#cip-generic-identity-read)
+use LocalIndex for `[*]` starts and capture it at request admission. Message
+Lab shows the same reply written at two different offsets.
+
 Available in `26.1107.103435` [ladder Controller change-detection reads](ladder-message.md#cip-generic-controller-change-detection)
 expose the simulator Audit Value and source Changes to Detect mask through
 CIP Generic MSG. Message Lab demonstrates DINT and LINT destinations.

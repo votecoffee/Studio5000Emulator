@@ -172,7 +172,8 @@ reads of virtual controller identity, mode, UTC clock, Time Sync, Controller
 change detection, port diagnostics, TCP/IP configuration and Ethernet Link
 metadata. It supports runtime attribute selection, ordered lists and SINT,
 INT, DINT or LINT reply buffers addressed directly or through static aliases
-and numeric UDT members.
+and numeric UDT members. A buffer with a `[*]` selector takes its starting
+position from the MESSAGE control's LocalIndex.
 [Simulated loss of a required Running module](docs/gsv-configuration.md#required-module-loss-during-run)
 trips a latched I/O major fault during whole-project Run, including when a
 [simulated upstream fault interrupts a required connection](docs/gsv-configuration.md#required-module-loss-through-an-upstream-fault).

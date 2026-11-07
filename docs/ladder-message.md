@@ -153,6 +153,15 @@ unsupported ID returns item status 16#0014. The emulator stores the reply
 and sets ER with ERR 16#000A and the returned DN_LEN in this case. A
 malformed request reports 16#0003 and leaves the destination untouched.
 
+A one-dimensional source or destination buffer can use `[*]` to select
+its start from the writable DINT LocalIndex member. Both buffers use the
+same index if both use `[*]`. Literal indices keep their own start.
+A queued request captures LocalIndex with its other fields. An out-of-range
+destination start reports 16#0005. A valid start with insufficient space
+reports 16#0011. A request source outside its buffer reports 16#0003.
+These errors preserve the destination. Prescan preserves LocalIndex and
+Reset restores the authored value.
+
 The Generic control exposes Class (INT), Instance (DINT) and Attribute
 (INT) as writable members. A queued request keeps the values captured at
 trigger time. Later writes affect the next request. An Identity read uses
@@ -164,7 +173,9 @@ Prescan preserves the live members and Reset reloads the authored values.
 
 In Message Lab, set SendIdentityRead to 1 and step three times. IdentityReply
 changes from [-9, 0, 0, -9] to [-9, 35, 11, -9]. The middle bytes are the
-major and minor revision. Enable SendIdentityAll to read all seven
+major and minor revision. This rung uses IdentityReply[*] with a saved
+LocalIndex of 1. Rearm it and set IdentityControl.LocalIndex to 2 to write
+the same reply at indices 2 and 3. Enable SendIdentityAll to read all seven
 attributes. After three steps IdentityAllReply contains the 26-byte reply,
 including the two Program status bytes at indices 9 and 10 when stepping
 from Program mode. Enable SendIdentityWord to read the revision into a

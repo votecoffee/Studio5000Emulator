@@ -548,8 +548,72 @@ class MessageTests(unittest.TestCase):
         self.assertIn('program:other.otherreply', engine.project.tags)
         self.assertTrue(any('MSG: CIP Generic requires a writable' in problem for problem in engine.blockers))
 
+    def test_generic_reply_captures_index_and_rejects_invalid_or_short_windows(self):
+        engine = self.engine()
+        self.assertEqual(engine.blockers, [])
+        memory = engine.memory
+        self.assert_flags(engine, 'IdentityControl', LocalIndex=1)
+        memory.write('SendIdentityRead', True)
+        engine.step()
+        memory.write('IdentityControl.LocalIndex', 2)
+        engine.step()
+        engine.step()
+        self.assertEqual(memory.read('IdentityReply'), [-9, 35, 11, -9])
+
+        for index, expected_error, expected_reply in (
+            (2, 0, [-9, 35, 35, 11]),
+            (3, 0x11, [-9, 35, 35, 11]),
+            (-1, 0x05, [-9, 35, 35, 11]),
+        ):
+            with self.subTest(index=index):
+                memory.write('SendIdentityRead', False)
+                engine.step()
+                memory.write('IdentityControl.LocalIndex', index)
+                memory.write('SendIdentityRead', True)
+                for _ in range(3):
+                    engine.step()
+                self.assert_flags(engine, 'IdentityControl', ERR=expected_error,
+                                  DN=not expected_error, DN_LEN=0 if expected_error else 2)
+                self.assertEqual(memory.read('IdentityReply'), expected_reply)
+
+    def test_generic_list_uses_one_captured_index_for_both_alias_buffers(self):
+        def configure(root):
+            tags = root.find('./Controller/Tags')
+            control = tags.find('Tag[@Name="IdentityListControl"]//MessageParameters')
+            control.attrib.update(LocalElement='IdentityRequestAlias[*]', DestinationTag='IdentityReplyAlias[*]',
+                                  LocalIndex='3')
+            for name, size in (('IdentityListRequest', '6'), ('IdentityListReply', '11')):
+                tag = tags.find(f'Tag[@Name="{name}"]')
+                tag.set('Dimensions', size)
+                tag.find('.//Array').set('Dimensions', size)
+            request = tags.find('Tag[@Name="IdentityListRequest"]//Array')
+            for index, value in enumerate((2, 3, 3), 3):
+                ET.SubElement(request, 'Element', Index=f'[{index}]', Value=str(value))
+            tags.find('Tag[@Name="IdentityListReply"]//Element').set('Index', '[10]')
+
+        engine = self.engine(configure)
+        self.assertEqual(engine.blockers, [])
+        memory = engine.memory
+        memory.write('SendIdentityList', True)
+        engine.step()
+        memory.write('IdentityListControl.LocalIndex', 0)
+        engine.step()
+        engine.step()
+        expected = [None, None, None, 2, 3, 0, 168, 3, 0, 168, 91]
+        self.assertEqual(memory.read('IdentityListReply'), expected)
+        self.assert_flags(engine, 'IdentityListControl', DN=True, ERR=0, DN_LEN=14)
+
+        memory.write('SendIdentityList', False)
+        engine.step()
+        memory.write('IdentityListControl.LocalIndex', 4)
+        memory.write('SendIdentityList', True)
+        for _ in range(3):
+            engine.step()
+        self.assertEqual(memory.read('IdentityListReply'), expected)
+        self.assert_flags(engine, 'IdentityListControl', ER=True, ERR=0x03, DN_LEN=0)
+
     def test_generic_identity_list_requires_a_qualified_source_span(self):
-        for name, value in (('LocalElement', 'VirtualValue'), ('LocalElement', 'IdentityListRequest[*]'),
+        for name, value in (('LocalElement', 'VirtualValue'), ('LocalElement', 'VirtualValue[*]'),
                             ('RequestedLength', '5'), ('RequestedLength', '68')):
             with self.subTest(name=name, value=value):
                 def configure(root):
@@ -1037,11 +1101,11 @@ class MessageTests(unittest.TestCase):
 
     def test_generic_identity_prescan_keeps_live_address_fields_and_reset_restores_them(self):
         engine = self.engine()
-        for name, value in [('Class', 2), ('Instance', 3), ('Attribute', 5)]:
+        for name, value in [('Class', 2), ('Instance', 3), ('Attribute', 5), ('LocalIndex', 2)]:
             engine.memory.write('IdentityControl.' + name, value)
         engine.enter_run()
-        self.assert_flags(engine, 'IdentityControl', Class=2, Instance=3, Attribute=5)
-        self.assert_flags(Engine(engine.project), 'IdentityControl', Class=1, Instance=1, Attribute=4)
+        self.assert_flags(engine, 'IdentityControl', Class=2, Instance=3, Attribute=5, LocalIndex=2)
+        self.assert_flags(Engine(engine.project), 'IdentityControl', Class=1, Instance=1, Attribute=4, LocalIndex=1)
 
     def test_generic_identity_short_destination_and_timeout_preserve_all_bytes(self):
         def long_reply(root):
@@ -1118,7 +1182,7 @@ class MessageTests(unittest.TestCase):
     def test_generic_identity_rejects_unqualified_services_and_destinations(self):
         for name, value in [('ServiceCode', '16#10'), ('ObjectType', '2'), ('TargetObject', '2'),
                             ('AttributeNumber', '8'), ('RequestedLength', '1'),
-                            ('DestinationTag', 'SendRead'), ('DestinationTag', 'IdentityReply[*]'),
+                            ('DestinationTag', 'SendRead'), ('DestinationTag', 'VirtualValue[*]'),
                             ('ConnectionPath', '2,192.0.2.20')]:
             with self.subTest(name=name, value=value):
                 def configure(root):

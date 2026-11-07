@@ -122,6 +122,7 @@ class GenericRead:
     source_size: int = 0
     class_id: int = 1
     instance: int = 1
+    local_index: int | None = None
     connected: bool = False
     cache: bool = False
     path: bytes = b''
@@ -206,8 +207,8 @@ def _hex_number(attributes, name):
 
 def _generic_endpoint(attributes, name):
     endpoint = _parse_endpoint(attributes.get(name, '').strip(), 0)
-    if endpoint is None or endpoint.variable:
-        raise ModelError(f'CIP Generic {name} requires a tag or fixed array start')
+    if endpoint is None:
+        raise ModelError(f'CIP Generic {name} requires a supported tag or array start')
     return endpoint
 
 
@@ -235,11 +236,13 @@ def _generic_read(project, attributes):
     if attributes.get('RemoteElement', '').strip():
         raise ModelError('CIP Generic requires an empty RemoteElement')
     destination = _generic_endpoint(attributes, 'DestinationTag')
+    indexed = destination.variable or (source is not None and source.variable)
+    local_index = _number(attributes, 'LocalIndex', 0, 999999, '0') if indexed else None
     identity = Identity.from_project('logix-v35-l85e', project) if cls == 1 else None
     # Preserve the 16-bit pattern of an optional attribute placeholder.
     signed_attribute = attribute if attribute < 0x8000 else attribute - 0x10000
     return GenericRead(destination, identity, service, signed_attribute, source, source_size,
-                       class_id=cls, instance=instance)
+                       class_id=cls, instance=instance, local_index=local_index)
 
 
 def from_tag(project, tag, element, dims):
@@ -381,6 +384,8 @@ def initial(project, configuration):
     if isinstance(configuration, GenericRead):
         record.update(Class=configuration.class_id, Instance=configuration.instance,
                       Attribute=configuration.attribute, REQ_LEN=configuration.source_size)
+        if configuration.local_index is not None:
+            record['LocalIndex'] = configuration.local_index
         return record
     requested = 0
     try:
@@ -524,8 +529,8 @@ def _control_key(engine, name, scope, instruction):
     return key
 
 
-def _generic_span(memory, endpoint, size, *, write, scope=None):
-    start = endpoint.start(0)
+def _generic_span(memory, endpoint, size, *, write, scope=None, local_index=0):
+    start = endpoint.start(local_index)
     key, paths, dtype = _region(memory, endpoint, start, 1, remote=False, write=write, scope=scope)
     if dtype not in GENERIC_BUFFER_TYPES and not (write and dtype == 'LINT'):
         raise TransferError(0xFC)
@@ -544,7 +549,8 @@ def _generic_span(memory, endpoint, size, *, write, scope=None):
 
 def _capture_attribute_numbers(memory, request):
     try:
-        key, paths, dtype = _generic_span(memory, request.source, request.source_size, write=False)
+        key, paths, dtype = _generic_span(memory, request.source, request.source_size, write=False,
+                                          local_index=request.local_index)
         raw = b''.join(encode(memory.at(key, path), dtype) for path in paths)[:request.source_size]
     except (ModelError, TransferError):
         return None
@@ -554,8 +560,9 @@ def _capture_attribute_numbers(memory, request):
     return struct.unpack_from(f'<{count}H', raw, 2)
 
 
-def _write_generic_reply(memory, destination, payload):
-    key, paths, dtype = _generic_span(memory, destination, len(payload), write=True)
+def _write_generic_reply(memory, request, payload):
+    key, paths, dtype = _generic_span(memory, request.destination, len(payload), write=True,
+                                     local_index=request.local_index)
     width = ELEMENT_BYTES[dtype]
     writes = []
     for index, path in enumerate(paths):
@@ -764,7 +771,7 @@ def _admit(engine, key, power):
     numbers = None
     if isinstance(request, GenericRead):
         request = replace(request, class_id=record['Class'], instance=record['Instance'],
-                          attribute=record['Attribute'])
+                          attribute=record['Attribute'], local_index=record.get('LocalIndex'))
         if request.source is not None:
             numbers = _capture_attribute_numbers(engine.memory, request)
     else:
@@ -933,7 +940,7 @@ def _transfer(engine, request, status_word, attribute_numbers):
     memory = engine.memory
     if isinstance(request, GenericRead):
         error, payload = _generic_reply(engine, request, attribute_numbers, status_word)
-        _write_generic_reply(memory, request.destination, payload)
+        _write_generic_reply(memory, request, payload)
         return error, len(payload)
     configuration = request.configuration
     record = configuration.record
