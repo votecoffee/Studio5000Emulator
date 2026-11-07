@@ -772,14 +772,29 @@ class Project:
                         raise ModelError('Time/date tag and decorated data type must match')
                     tag.value = self.decorated(d[0], tag.value)
                 elif self.string_capacity(tag.dtype) is not None and not dims:
-                    raw=e.findtext("./Data[@Format='L5K']",'')
-                    match=re.fullmatch(r"\s*\[\s*(-?\d+)\s*,\s*('.*')\s*\]\s*",raw,re.S)
-                    if match is None:raise ModelError('String import requires full L5K or Decorated backing data')
-                    values=ascii_bytes(match[2]);capacity=self.string_capacity(tag.dtype)
-                    if len(values)!=capacity:raise ModelError('String backing DATA size differs from declared capacity')
-                    length=int(match[1])
-                    if not 0<=length<=capacity:raise ModelError('String LEN outside backing DATA bounds')
-                    tag.value={'LEN':length,'DATA':values}
+                    capacity = self.string_capacity(tag.dtype)
+                    string = e.find("./Data[@Format='String']")
+                    if string is not None:
+                        text = string.get('Length', '')
+                        if not re.fullmatch(r'[0-9]{1,6}', text, re.ASCII) or len(string):
+                            raise ModelError('String data requires a decimal Length and single-quoted text')
+                        length = int(text)
+                        values = ascii_bytes(string.text or '')
+                        if not 0 <= length <= capacity or len(values) not in (length, capacity):
+                            raise ModelError('String data does not match its Length or backing capacity')
+                        values += [0] * (capacity - len(values))
+                    else:
+                        raw = e.findtext("./Data[@Format='L5K']", '')
+                        match = re.fullmatch(r"\s*\[\s*(-?\d+)\s*,\s*('.*')\s*\]\s*", raw, re.S)
+                        if match is None:
+                            raise ModelError('String import requires String, full L5K or Decorated backing data')
+                        values = ascii_bytes(match[2])
+                        if len(values) != capacity:
+                            raise ModelError('String backing DATA size differs from declared capacity')
+                        length = int(match[1])
+                        if not 0 <= length <= capacity:
+                            raise ModelError('String LEN outside backing DATA bounds')
+                    tag.value = {'LEN': length, 'DATA': values}
                 elif e.find("Data") is not None: raise ModelError("Initial data requires Decorated format")
                 elif e.get("TagType", "Base") == "Base":
                     raise ModelError("Initial data missing; zero initialization was not assumed")

@@ -33,7 +33,7 @@ def add_message_burst(root):
                       MessageType='CIP Data Table Read', LocalElement=f'BurstValues[{index}]',
                       RemoteElement='VirtualValue', RequestedLength='1', ConnectedFlag='0',
                       ConnectionPath='THIS', CommTypeCode='0')
-        rung = ET.SubElement(content, 'Rung', Number=str(17 + index), Type='N')
+        rung = ET.SubElement(content, 'Rung', Number=str(19 + index), Type='N')
         ET.SubElement(rung, 'Text').text = f'XIC(SendBurst)MSG({name});'
 
 
@@ -157,7 +157,7 @@ class MessageTests(unittest.TestCase):
 
     def test_copy_into_flags_keeps_the_in_progress_status(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='17', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='19', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CaptureReadFlags)COP(IdentityAttribute,ReadControl.FLAGS,1);'
 
         engine = self.engine(configure)
@@ -275,7 +275,7 @@ class MessageTests(unittest.TestCase):
 
     def test_message_timeout_ssv_and_readback_roll_back_with_later_fault(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='17', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='19', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         engine = self.engine(configure)
@@ -455,7 +455,7 @@ class MessageTests(unittest.TestCase):
 
     def test_generic_identity_all_rolls_back_response_and_queue_after_later_fault(self):
         def configure(root):
-            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='17', Type='N')
+            rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='19', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         engine = self.engine(configure)
@@ -829,7 +829,7 @@ class MessageTests(unittest.TestCase):
     def test_completion_and_queue_roll_back_with_later_fault(self):
         def configure(root):
             content = root.find('.//RLLContent')
-            rung = ET.SubElement(content, 'Rung', Number='17', Type='N')
+            rung = ET.SubElement(content, 'Rung', Number='19', Type='N')
             ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
 
         for timeout in (30_000_000, 10_000):
@@ -1056,6 +1056,104 @@ class MessageTests(unittest.TestCase):
         engine = self.engine(configure)
         self.assertTrue(any('record transfer exceeds 32768' in item for item in engine.blockers))
         self.assert_flags(engine, 'RecordWriteControl', REQ_LEN=0)
+
+    def test_string_format_and_msg_preserve_escaped_bytes_and_report_full_length(self):
+        def configure(root):
+            root.find('.//Tag[@Name="TextSource"]/Data').text = "'GO$FF$00!'"
+
+        engine = self.engine(configure)
+        self.assertEqual(engine.blockers, [])
+        memory = engine.memory
+        expected = {'LEN': 5, 'DATA': [71, 79, -1, 0, 33] + [0] * 77}
+        self.assertEqual(memory.read('TextSource'), expected)
+        memory.write('SendText', True)
+        engine.step()
+        self.assert_flags(engine, 'TextWriteControl', EW=True, REQ_LEN=44)
+        self.assert_flags(engine, 'Program:MainProgram.TextReadControl', EW=True, REQ_LEN=44)
+        engine.step()
+        self.assertEqual(memory.string('TextEcho'), '')
+        engine.step()
+        self.assertEqual(memory.read('TextEcho'), expected)
+        self.assertEqual(memory.read('Program:MainProgram.TextInbox'), expected)
+        self.assert_flags(engine, 'TextWriteControl', DN=True, ER=False, DN_LEN=44)
+        self.assert_flags(engine, 'Program:MainProgram.TextReadControl', DN=True, ER=False, DN_LEN=44)
+
+    def test_string_format_rejects_inconsistent_length(self):
+        def configure(root):
+            root.find('.//Tag[@Name="TextSource"]/Data').set('Length', '4')
+
+        self.assertTrue(any('String data does not match its Length' in item for item in self.engine(configure).blockers))
+
+    def test_string_array_copies_unknown_tail_but_rejects_unknown_active_bytes(self):
+        for unknown_active in (False, True):
+            with self.subTest(unknown_active=unknown_active):
+                def configure(root):
+                    tag = root.find('.//Tag[@Name="TextSource"]')
+                    tag.set('Dimensions', '3')
+                    data = tag.find('Data')
+                    data.clear()
+                    data.set('Format', 'Decorated')
+                    array = ET.SubElement(data, 'Array', DataType='STRING', Dimensions='3')
+                    for index, byte in enumerate((65, 66, 67)):
+                        element = ET.SubElement(array, 'Element', Index=f'[{index}]')
+                        string = ET.SubElement(element, 'Structure', DataType='STRING')
+                        length = 2 if unknown_active and index == 1 else 1
+                        ET.SubElement(string, 'DataValueMember', Name='LEN', DataType='DINT', Value=str(length))
+                        backing = ET.SubElement(string, 'ArrayMember', Name='DATA', DataType='SINT', Dimensions='82')
+                        ET.SubElement(backing, 'Element', Index='[0]', Value=str(byte))
+                        ET.SubElement(backing, 'Element', Index='[81]', Value=str(-index - 1))
+                    config = root.find('.//Tag[@Name="TextWriteControl"]//MessageParameters')
+                    config.attrib.update(LocalElement='TextSource[0]', RemoteElement='TextSource[1]', RequestedLength='2')
+
+                engine = self.engine(configure)
+                self.assertEqual(engine.blockers, [])
+                memory = engine.memory
+                before = copy.deepcopy(memory.read('TextSource'))
+                memory.write('SendText', True)
+                for _ in range(3):
+                    engine.step()
+                if unknown_active:
+                    self.assertEqual(memory.read('TextSource'), before)
+                    self.assert_flags(engine, 'TextWriteControl', DN=False, ER=True, ERR=3, DN_LEN=0)
+                else:
+                    self.assertEqual(memory.read('TextSource'), [before[0], before[0], before[1]])
+                    self.assertEqual(memory.string('TextSource[2]'), 'B')
+                    self.assert_flags(engine, 'TextWriteControl', DN=True, ER=False, DN_LEN=88)
+
+    def test_string_family_uses_declared_capacity_type_and_member_access(self):
+        for case in ('matching', 'different', 'read_only'):
+            with self.subTest(case=case):
+                def configure(root):
+                    types = root.find('./Controller/DataTypes')
+                    label = ET.SubElement(types, 'DataType', Name='Label16', Family='StringFamily', Class='User')
+                    members = ET.SubElement(label, 'Members')
+                    ET.SubElement(members, 'Member', Name='LEN', DataType='DINT', Dimension='0')
+                    data = ET.SubElement(members, 'Member', Name='DATA', DataType='SINT', Dimension='16')
+                    if case == 'read_only':
+                        data.set('ExternalAccess', 'Read Only')
+                    for name in ('TextSource', 'TextInbox', 'TextEcho'):
+                        root.find(f'.//Tag[@Name="{name}"]').set('DataType', 'Label16')
+                    if case == 'different':
+                        other = copy.deepcopy(label)
+                        other.set('Name', 'OtherLabel16')
+                        types.append(other)
+                        root.find('.//Tag[@Name="TextEcho"]').set('DataType', 'OtherLabel16')
+
+                engine = self.engine(configure)
+                self.assertEqual(engine.blockers, [])
+                memory = engine.memory
+                memory.write('SendText', True)
+                for _ in range(3):
+                    engine.step()
+                self.assertEqual(memory.string('Program:MainProgram.TextInbox'), 'READY')
+                self.assertEqual(len(memory.read('Program:MainProgram.TextInbox.DATA')), 16)
+                self.assert_flags(engine, 'Program:MainProgram.TextReadControl', DN=True, REQ_LEN=10, DN_LEN=10)
+                if case == 'matching':
+                    self.assertEqual(memory.string('TextEcho'), 'READY')
+                    self.assert_flags(engine, 'TextWriteControl', DN=True, DN_LEN=10)
+                else:
+                    self.assertEqual(memory.string('TextEcho'), '')
+                    self.assert_flags(engine, 'TextWriteControl', DN=False, ER=True, ERR=0xFC if case == 'different' else 0x0F)
 
     def test_queue_exhaustion_waits_and_retries_on_a_false_rung(self):
         engine = self.engine()

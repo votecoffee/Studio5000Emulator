@@ -6,7 +6,7 @@ from dataclasses import dataclass, replace
 from .identity import Identity
 from .integer_math import CONTROLLERS
 from .model import ModelError, coerce
-from .templates import Catalog, MAX_BYTES
+from .templates import Catalog, MAX_BYTES, aligned
 
 MAX_ELEMENTS = 64
 THROTTLE_POSITIONS = 16
@@ -50,6 +50,7 @@ class RecordLayout:
     size: int
     writable: bool
     leaves: tuple[tuple[tuple[str | int, ...], str], ...]
+    string_capacity: int | None = None
 
 
 @dataclass(frozen=True)
@@ -199,6 +200,28 @@ def _record_layout(catalog, dtype):
     return RecordLayout(dtype, template.size, writable, leaves)
 
 
+def _string_layout(project, dtype):
+    capacity = project.string_capacity(dtype)
+    if dtype == 'STRING':
+        return RecordLayout(dtype, aligned(4 + capacity, 4), True, (), capacity)
+    schema = project.udts.get(dtype.casefold())
+    if (capacity is None or capacity > 4096 or schema is None
+            or schema.get('Family') != 'StringFamily' or schema.get('Class', 'User') != 'User'):
+        return None
+    members = schema.findall('./Members/Member')
+    if ([member.get('Name') for member in members] != ['LEN', 'DATA']
+            or members[0].get('Dimension', '0').strip() not in ('', '0')):
+        return None
+    access = [member.get('ExternalAccess', 'Read/Write') for member in members]
+    if (any(item not in ('Read Only', 'Read/Write') for item in access)
+            or any(member.get('Hidden', 'false').lower() != 'false'
+                   or member.get('AOILocal', 'false').lower() != 'false'
+                   or any(member.get(name) for name in ('Target', 'BitNumber', 'AliasFor'))
+                   for member in members)):
+        return None
+    return RecordLayout(dtype, aligned(4 + capacity, 4), all(item == 'Read/Write' for item in access), (), capacity)
+
+
 def initialize(project):
     catalog = None
     records = {}
@@ -207,12 +230,15 @@ def initialize(project):
         configuration = _bind_local(project, configuration, tag.scope)
         if isinstance(configuration, Configuration):
             local = project.tags.get(configuration.local.name)
-            if local and not local.problem and local.dtype.casefold() in project.udts:
+            if local and not local.problem and (local.dtype.upper() == 'STRING' or local.dtype.casefold() in project.udts):
                 dtype = local.dtype.upper()
                 if dtype not in records:
-                    if catalog is None:
-                        catalog = Catalog(project)
-                    records[dtype] = _record_layout(catalog, dtype)
+                    layout = _string_layout(project, dtype)
+                    if layout is None:
+                        if catalog is None:
+                            catalog = Catalog(project)
+                        layout = _record_layout(catalog, dtype)
+                    records[dtype] = layout
                 configuration = replace(configuration, record=records[dtype])
         project.message_configs[key] = configuration
         tag.value = initial(project, configuration)
@@ -467,7 +493,21 @@ def _known_scalar(value, dtype):
     return type(value) is int
 
 
+def _check_string(value, capacity):
+    if not isinstance(value, dict) or value.keys() != {'LEN', 'DATA'}:
+        raise TransferError(0x03)
+    length, data = value['LEN'], value['DATA']
+    if (type(length) is not int or not 0 <= length <= capacity
+            or not isinstance(data, list) or len(data) != capacity
+            or None in data[:length]
+            or any(type(byte) is not int or not -128 <= byte <= 127 for byte in data if byte is not None)):
+        raise TransferError(0x03)
+
+
 def _check_record(value, record):
+    if record.string_capacity is not None:
+        _check_string(value, record.string_capacity)
+        return
     try:
         for path, dtype in record.leaves:
             member = value

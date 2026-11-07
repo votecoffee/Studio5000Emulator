@@ -162,7 +162,7 @@ multidimensional array transfers and simulated timeouts with ladder-controlled r
 can read and set the message timeout. Ladder can copy the packed FLAGS word
 and use its TO bit to cancel a request. The simulated throttle admits 16
 requests at a time and retries waiting messages. The lab exercises program-local
-message controls, matching UDT records, and CIP Generic reads of virtual
+message controls, matching strings and UDT records, and CIP Generic reads of virtual
 controller identity and mode with runtime attribute selection.
 [Simulated loss of a required Running module](docs/gsv-configuration.md#required-module-loss-during-run)
 trips a latched I/O major fault during whole-project Run, including when a

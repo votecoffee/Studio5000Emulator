@@ -1,7 +1,7 @@
 # Ladder MSG
 
-LogixLab models CIP Data Table Read and Write for numeric tags and
-matching user-defined records, plus a bounded CIP Generic Identity read
+LogixLab models CIP Data Table Read and Write for numeric tags, matching
+strings and user-defined records, plus a bounded CIP Generic Identity read
 over the unconnected `THIS`
 path in whole-project v35 ControlLogix 5580 ladder execution. It transfers
 values between tags in the current project. The `MSG` faceplate shows the
@@ -48,6 +48,10 @@ Set SendRecord to 1 and step three scans to send the complete MessageRecord
 to the program-local RecordInbox and to RecordEcho. Inspect their Batch,
 Lot, Ready, Samples and Quality fields in Tag Watch. The bundled record
 uses a 32-byte modeled layout, so both controls report 16 words.
+
+Set SendText to 1 and step three scans. TextSource starts at READY.
+The two messages copy it to the program-local TextInbox and to TextEcho.
+Each control reports 44 words for the full standard STRING record.
 
 For a runtime index change, scan SendTyped false, then set SetReadIndices
 to 1, ReadLocalIndex to 1, and ReadRemoteIndex to 0. Set SendTyped to 1 and
@@ -139,9 +143,18 @@ two SINT elements. Those bytes encode product code 168.
   packed BOOLs. The 64-element limit applies to records, and the complete
   span may use up to 32,768 modeled bytes. A remote write requires every
   visible member to allow Read/Write. Unknown or invalid source members
-  reject the entire span before any destination changes. Built-in STRING,
-  operational records and layouts with unmodeled members remain outside
-  this profile.
+  reject the entire span before any destination changes. Operational
+  records and layouts with unmodeled members remain outside this profile.
+- Matching standard STRING or explicit `StringFamily` tags also support
+  scalar and array transfers. A string transfers its LEN and all DATA,
+  including any known bytes beyond LEN. Omitted inactive bytes in
+  Decorated data stay unknown. Invalid LEN or unknown active bytes return
+  ERR 16#0003 before any write. The modeled size includes the four-byte
+  LEN, declared DATA capacity and padding to a four-byte boundary.
+  Standard STRING uses 88 bytes. Custom capacities are bounded to
+  4,096 bytes and must match by declared type. Scalar L5X tags can use
+  the `Data Format="String"` form with a decimal Length and quoted data.
+  This form supplies zero padding when only the active bytes are present.
 - Local endpoints name direct Standard controller tags or data in the
   calling Standard program. For a Program Local control, a bare local data
   name resolves in its own program before looking in controller scope.
