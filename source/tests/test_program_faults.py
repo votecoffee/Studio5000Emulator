@@ -158,6 +158,24 @@ def bit_result_slot_fault_fixture(root, name):
                                'LabRecords[0],?,?,LabRecords[1],?,?)')
 
 
+def bit_input_extent_fault_fixture(root, name, operand):
+    ladder_fault_fixture(root, handler_tail='MOV(32,LabRecords[0].LEN);')
+    add_bit_diagnostic_tags(root)
+    tags = root.find('./Controller/Tags')
+    source = 'LabValues[LabIndex]' if operand == 'source' else 'LabValues[0]'
+    reference = 'LabQueue[LabIndex]' if operand == 'reference' else 'LabQueue[0]'
+    tags.find('Tag[@Name="LabIndex"]/Data/DataValue').set('Value', '1' if operand == 'source' else '2')
+    tags.find('Tag[@Name="FaultWitness"]/Data/DataValue').set('Value', '0')
+    records = tags.find('Tag[@Name="LabRecords"]/Data/Array')
+    for index, length in enumerate((33, 3)):
+        records.find(f'Element[@Index="[{index}]"]/Structure/DataValueMember[@Name="LEN"]').set('Value', str(length))
+    records.find('Element[@Index="[0]"]/Structure/DataValueMember[@Name="ER"]').set('Value', '0')
+    root.find('.//Routine[@Name="RecoverMove"]/RLLContent/Rung/Text').text = (
+        'XIC(LabRecords[0].ER)EQU(LabResults[0],-1)EQU(LabResults[1],-1)EQU(LabResults[2],88)'
+        'EQU(LabQueue[0],0)EQU(LabQueue[2],99)OTE(FaultWitness);')
+    set_fault_instruction(root, f'{name}({source},{reference},LabResults[0],LabRecords[0],?,?,LabRecords[1],?,?)')
+
+
 def add_array_calculation_tags(root):
     from logixlab.control_operations import default
 
@@ -2142,7 +2160,39 @@ class ProgramFaultTests(unittest.TestCase):
                 self.assertTrue(memory.read('LabRecords[0].DN'))
                 self.assertTrue(memory.read('LabRecords[1].DN'))
 
-    def test_bit_diagnostic_skips_unused_result_and_keeps_short_input_window_rollback(self):
+    def test_bit_diagnostic_input_overrun_restores_data_and_exposes_compare_er(self):
+        for name in ('FBC', 'DDT'):
+            for operand, offsets, learned in (
+                ('source', [0, 2, 3], [13, 0, 99]),
+                ('reference', [3, 5, 6], [0, 0, 12]),
+            ):
+                with self.subTest(name=name, operand=operand):
+                    self.setUp()
+                    engine = self.engine(mutate=lambda root: bit_input_extent_fault_fixture(root, name, operand))
+                    self.assertEqual(engine.blockers, [])
+                    memory = engine.memory
+                    engine.step()
+                    saved = memory.read('LabRecords')
+                    memory.write('StartPB', True)
+
+                    engine.step()
+                    fault = engine.last_cleared_program_fault
+                    self.assertEqual((fault['type'], fault['code'], fault['instruction']), (4, 20, name))
+                    self.assertIn(f'{operand} bit exceeds the selected array boundary', fault['detail'])
+                    self.assertEqual(memory.read('LabRecords'), [saved[0] | dict(LEN=32, ER=True), saved[1]])
+                    self.assertEqual(memory.read('LabResults'), [-1, -1, 88])
+                    self.assertEqual(memory.read('LabQueue'), [0, 0, 99])
+                    self.assertTrue(memory.read('FaultWitness'))
+
+                    engine.step()
+                    self.assertEqual(memory.read('LabResults'), offsets)
+                    self.assertEqual(memory.read('LabQueue'), learned if name == 'DDT' else [0, 0, 99])
+                    self.assertEqual(memory.read('LabValues'), [12, 13])
+                    self.assertEqual(memory.read('LabRecords[0].POS'), 32)
+                    self.assertTrue(memory.read('LabRecords[0].DN'))
+                    self.assertFalse(memory.read('LabRecords[0].ER'))
+
+    def test_bit_diagnostic_skips_result_selection_when_no_mismatch(self):
         def configure(root):
             ladder_fault_fixture(root)
             add_bit_diagnostic_tags(root)
@@ -2158,16 +2208,7 @@ class ProgramFaultTests(unittest.TestCase):
         engine.step()
         self.assertTrue(engine.memory.read('LabRecords[0].DN'))
         self.assertIsNone(engine.last_cleared_program_fault)
-        engine.memory.write('StartPB',False)
-        engine.step()
-        engine.memory.write('StartPB',True)
-        engine.memory.write('LabQueue[0]',0)
-        engine.memory.write('LabRecords[0].LEN',65)
-        before = copy.deepcopy(engine.memory.values)
-        with self.assertRaisesRegex(ModelError,'exceeds the modeled array/member boundary'):
-            engine.step()
-        self.assertEqual(engine.memory.values,before)
-        self.assertIsNone(engine.last_cleared_program_fault)
+        self.assertEqual(engine.memory.read('LabResults'), [-1, -1, 88])
 
     def test_dtr_array_fault_preserves_reference_on_both_rung_states(self):
         for power in (False,True):

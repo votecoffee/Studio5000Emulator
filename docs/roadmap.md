@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+[FBC and DDT input recovery](controller-handlers.md#recover-bit-diagnostic-and-data-transition-array-faults)
+checks each reached source or reference bit as of `26.1107.214034`. A read
+overrun raises Type 4 Code 20 and sets compare ER after the emulator
+restores writes and cursors from the faulting call.
+
 [FBC and DDT result-slot recovery](controller-handlers.md#recover-bit-diagnostic-and-data-transition-array-faults)
 checks result POS when a mismatch needs a slot as of `26.1107.213208`.
 Type 4 Code 20 restores earlier result writes and DDT learning from the

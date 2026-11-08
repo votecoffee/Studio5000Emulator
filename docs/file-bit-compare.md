@@ -51,7 +51,9 @@ and distinct controls may share a base tag; writable roles cannot share an array
 member, even with disjoint windows. Read-only FBC input tables are allowed
 outside AOIs. ST/FBD and other controller profiles remain unavailable.
 
-Each operation qualifies the complete configured source/reference word region.
+Each fresh comparison resolves the source and reference starts and checks the
+bounds of each reached bit. One-mismatch mode can stop before reaching a later
+overrun.
 The result start is selected once on the first mismatch, before DDT learning
 or result writes. Each reached result position must fit within the selected
 array or member. An available slot can be written even if ResultControl.LEN
@@ -63,14 +65,15 @@ Required unknown source/reference words or control values fault. Unvisited
 words and unwritten result entries need not be known. Writes can establish
 unknown result slots. Compare LEN<=0 or POS<0 sets compare ER without data
 writes; a fresh valid comparison clears ER. A position at/after the configured
-end completes at LEN when the configured regions are valid.
+end completes at LEN without reading an input word.
 
 A handler can
-[clear a reached subscript or result-slot fault](controller-handlers.md#recover-bit-diagnostic-and-data-transition-array-faults)
+[clear a reached array fault](controller-handlers.md#recover-bit-diagnostic-and-data-transition-array-faults)
 after the emulator restores both CONTROL records and any result or reference
-writes made in the faulting call. Short source/reference windows, resource
-limits and unsupported cursor states use scan rollback. A full result cursor
-requires DN set. Native partial-write behavior remains unqualified.
+writes made in the faulting call. An input overrun also sets compare ER for
+the handler. A fresh valid comparison clears ER and can retry after repair.
+Resource limits and unsupported cursor states use scan rollback. A full
+result cursor requires DN set. Native partial-write behavior remains unqualified.
 
 Coverage reports expose `file_bit_compare`; normal rung traces retain the two
 instructions' power conditions. The profile does not imply native timing,

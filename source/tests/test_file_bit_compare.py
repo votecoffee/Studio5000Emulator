@@ -195,6 +195,22 @@ class FileBitCompareTests(unittest.TestCase):
             with self.assertRaises(ModelError):e.step()
             self.assertEqual(e.memory.values,before)
 
+    def test_one_at_a_time_defers_input_overrun_until_a_later_edge(self):
+        e = self.checked(['XIC(Enable)'+self.instruction('DDT')+';'], length=33, one=True,
+                         source=(1,), reference=(0,))
+        e.memory.write('Enable', True)
+        e.step()
+        self.assertEqual(e.memory.read('Reference'), [1])
+        self.assertEqual(e.memory.read('Result[0]'), 0)
+        self.assertEqual(e.memory.read('Compare.POS'), 1)
+        e.memory.write('Enable', False)
+        e.step()
+        e.memory.write('Enable', True)
+        before = copy.deepcopy(e.memory.values)
+        with self.assertRaisesRegex(ModelError, 'source bit exceeds the selected array boundary'):
+            e.step()
+        self.assertEqual(e.memory.values, before)
+
     def test_valid_result_slot_accepts_capacity_beyond_physical_storage(self):
         e = self.checked(name='DDT', length=1, capacity=5, result_position=3,
                          source=(1,), reference=(0,))
