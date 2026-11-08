@@ -182,16 +182,24 @@ class ControlOperationTests(unittest.TestCase):
             self.assertEqual(e.memory.read('Queue'),[0,0,0,999])
 
     def test_fifo_pos_beyond_len_and_array_bounds_faults_are_transactional(self):
-        for length,position in ((3,4),(5,0)):
-            e=self.checked(['XIC(StartPB)FFL(Incoming,Queue[0],Ctl,?,?);'],length=length,position=position)
-            e.step();e.memory.write('StartPB',True);before=copy.deepcopy(e.memory.values)
-            with self.assertRaises(ModelError):e.step()
-            self.assertEqual(e.memory.values,before)
+        for length, position, processor in ((3, 4, '1756-L85E'), (5, 0, '1756-L75')):
+            with self.subTest(processor=processor, length=length, position=position):
+                def configure(root):
+                    root.find('Controller').set('ProcessorType', processor)
 
-    def test_unload_work_limit_retains_the_model_error(self):
-        for name in ('FFU', 'LFU'):
+                e = self.checked(['XIC(StartPB)FFL(Incoming,Queue[0],Ctl,?,?);'],
+                                 length=length, position=position, mutate=configure)
+                e.step()
+                e.memory.write('StartPB', True)
+                before = copy.deepcopy(e.memory.values)
+                with self.assertRaises(ModelError):e.step()
+                self.assertEqual(e.memory.values, before)
+
+    def test_queue_work_limit_retains_the_model_error(self):
+        for name, operands in (('FFL', 'Incoming,Queue[0]'), ('LFL', 'Incoming,Queue[0]'),
+                               ('FFU', 'Queue[0],Outgoing'), ('LFU', 'Queue[0],Outgoing')):
             with self.subTest(name=name):
-                e = self.checked([f'XIC(StartPB){name}(Queue[0],Outgoing,Ctl,?,?);'], length=4097, position=1)
+                e = self.checked([f'XIC(StartPB){name}({operands},Ctl,?,?);'], length=4097, position=1)
                 e.step()
                 e.memory.write('StartPB', True)
                 before = copy.deepcopy(e.memory.values)

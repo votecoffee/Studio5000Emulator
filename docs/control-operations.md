@@ -64,7 +64,11 @@ FFL/FFU share a CONTROL with independent EN and EU edge latches. Prescan sets
 the respective latch, preventing an initial load/unload until a false scan
 rearms it. A held true rung does not repeat data movement.
 
-FFL writes the source at the current POS and increments POS. FFU returns the
+FFL writes the source at the current POS and increments POS. In the v35 5580
+profile, a standalone array load checks that slot even if LEN exceeds the
+remaining storage. A reached slot outside the array can
+[raise Type 4 Code 20](controller-handlers.md#recover-shift-and-queue-array-faults).
+FFU returns the
 first element, shifts the entire configured region down, zeroes its last element
 and decrements POS. The software profile writes zero on an empty unload edge.
 DN indicates POS>=LEN; EM indicates empty. LEN<=0 or negative POS sets both
@@ -93,7 +97,7 @@ cannot overlap its CONTROL. These restrictions are checked before execution.
 ## LIFO pair
 
 LFL/LFU use the same qualified numeric/string/UDT types, bounds and EN/EU edges
-as FIFO. LFL loads at POS and increments it. LFU returns the newest value at
+as FIFO. LFL loads at POS and increments it using the same slot check. LFU returns the newest value at
 POS-1, zeroes only that slot and decrements POS; lower entries do not shift.
 An empty unload edge writes zero. Held true does not repeat either operation.
 DN/EM and the bounded invalid-state policy follow the FIFO profile above.

@@ -113,10 +113,14 @@ class QueueReferenceTests(unittest.TestCase):
         with self.assertRaises(ModelError):e.step()
         self.assertEqual(self.snapshot(e),before)
 
-    def test_out_of_bounds_and_selected_window_excess_roll_back_earlier_writes(self):
+    def test_out_of_bounds_starts_and_load_slots_roll_back_earlier_writes(self):
         for index in (-1,4,5,2147483647):
             e=self.checked(['MOV(99,SpeedCommand);','XIC(StartPB)FFL(Incoming,Queue[Index],Ctl,?,?);'],length=3,queue=(101,0,0,0,999));e.step()
-            e.memory.write('Index',index);e.memory.write('StartPB',True);before=self.snapshot(e)
+            e.memory.write('Index', index)
+            e.memory.write('Ctl.POS', 1)
+            e.memory.write('SpeedCommand', 17)
+            e.memory.write('StartPB', True)
+            before = self.snapshot(e)
             with self.assertRaises(ModelError):e.step()
             self.assertEqual(self.snapshot(e),before)
 

@@ -378,9 +378,9 @@ also skips out-of-bounds source, mask and reference selections. [PID prescan](do
 skips an out-of-bounds PID record.
 [CONTROL operand selection](docs/control-operands.md) defers shift and FIFO/LIFO
 payload indices until needed and lets false CONTROL resets skip live addresses.
-A [shift or queue unload past a standalone array](docs/controller-handlers.md#recover-shift-and-queue-array-faults)
-can raise a recoverable Type 4 Code 20 fault. BSL, BSR and LFU set ER for
-the fault handler.
+A [shift or queue access past a standalone array](docs/controller-handlers.md#recover-shift-and-queue-array-faults)
+can raise a recoverable Type 4 Code 20 fault. FFL and LFL check the slot
+selected by POS. BSL, BSR and LFU set ER for the fault handler.
 
 [Clipped record operations](docs/clipped-aggregates.md) stop COP/CPS and zero
 FLL at the selected logical region. **Data lab** demonstrates source-limited

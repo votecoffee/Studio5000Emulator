@@ -41,10 +41,6 @@ class ArrayBoundsError(ModelError):
 class BlockExtentError(ModelError):
     """A valid start selected a region larger than its storage boundary."""
 
-    def __init__(self, parts):
-        super().__init__('Block operation exceeds the modeled array/member boundary')
-        self.parts = tuple(parts)
-
 
 @dataclass
 class Op:
@@ -1188,7 +1184,7 @@ class Memory:
             addresses=addresses[start:]
         else:addresses=[parts]
         if count > len(addresses):
-            raise BlockExtentError(parts)
+            raise BlockExtentError('Block operation exceeds the modeled array/member boundary')
         return key,addresses[:count],dtype
 
     def _string_data(self, ref, scope):

@@ -1376,6 +1376,49 @@ class ProgramFaultTests(unittest.TestCase):
                 self.assertIs(engine.last_cleared_program_fault,fault)
                 self.assertEqual(engine.memory.read('LabQueue'),expected)
 
+    def test_queue_load_checks_only_the_reached_slot_and_retries_after_repair(self):
+        for name in ('FFL', 'LFL'):
+            with self.subTest(name=name):
+                self.setUp()
+
+                def configure(root):
+                    ladder_fault_fixture(root, handler_tail='CLR(LabRecords[0].POS)MOV(66,LabValues[0]);')
+                    add_fault_record_array(root, 'CONTROL', LEN=4, POS=1, ER=False)
+                    tags = root.find('./Controller/Tags')
+                    add_fault_dint_array(tags, 'LabQueue', [31, 47, 99])
+                    tags.find('Tag[@Name="LabIndex"]/Data/DataValue').set('Value', '1')
+                    ET.SubElement(tags, 'Tag', Name='QueueStart', DataType='DINT', TagType='Alias',
+                                  AliasFor='LabQueue[LabIndex]')
+                    set_fault_instruction(root, f'{name}(LabValues[0],QueueStart,LabRecords[0],?,?)')
+
+                engine = self.engine(mutate=configure)
+                self.assertEqual(engine.blockers, [])
+                memory = engine.memory
+                engine.step()
+                memory.write('StartPB', True)
+                engine.step()
+                self.assertEqual(memory.read('LabQueue'), [31, 47, 12])
+                self.assertEqual(memory.read('LabRecords[0].POS'), 2)
+                engine.step()
+                self.assertIsNone(engine.last_cleared_program_fault)
+                self.assertEqual(memory.read('LabRecords[0].POS'), 2)
+
+                memory.write('StartPB', False)
+                engine.step()
+                saved = memory.read('LabRecords')
+                memory.values['labvalues'][0] = None
+                memory.write('StartPB', True)
+                engine.step()
+                fault = engine.last_cleared_program_fault
+                self.assertEqual((fault['type'], fault['code'], fault['instruction']), (4, 20, name))
+                self.assertIn('load position', fault['detail'])
+                self.assertEqual(memory.read('LabQueue'), [31, 47, 12])
+                self.assertEqual(memory.read('LabRecords'), [saved[0] | dict(POS=0), saved[1]])
+
+                engine.step()
+                self.assertEqual(memory.read('LabQueue'), [31, 66, 12])
+                self.assertEqual(memory.read('LabRecords[0].POS'), 1)
+
     def test_queue_unload_bounds_restore_queue_and_control_before_handlers(self):
         for name,value,shifted in (('FFU',31,[47,0,99]),('LFU',47,[31,0,99])):
             for position in (0,2):

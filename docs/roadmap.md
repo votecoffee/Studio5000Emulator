@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+[Queue load slot recovery](controller-handlers.md#recover-shift-and-queue-array-faults)
+checks the reached standalone FFL/LFL slot as of `26.1107.205243`. A handler can
+repair an out-of-bounds position and let the load retry.
+
 [Queue unload recovery](controller-handlers.md#recover-shift-and-queue-array-faults)
 routes a standalone FFU or LFU length overrun to Type 4 Code 20 as of
 `26.1107.204029`. The handler can repair LEN before the next unload attempt.

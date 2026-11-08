@@ -170,9 +170,13 @@ def starting_array(memory, ref, scope, *, structural=False):
 def array_region(memory, ref, count, scope, *, writable=True, references=False):
     if references:starting_array(memory,ref,scope)
     else:static_array(memory, ref, scope, writable=writable)
+    _check_element_limit(count)
+    return memory.region(ref, count, scope)
+
+
+def _check_element_limit(count):
     if not 0 <= count <= MAX_ELEMENTS:
         raise ModelError('Shift/FIFO operation exceeds the 4096-element software limit')
-    return memory.region(ref, count, scope)
 
 
 def scalar(memory, ref, scope, dtype, *, destination=False):
@@ -276,14 +280,20 @@ def reset(memory, ref, scope):
     return key, tuple(parts)
 
 
-def _transfer_region(memory, name, ref, count, scope):
+def _transfer_region(memory, name, ref, count, scope, *, load_position=None):
+    _, parts, _ = starting_array(memory, ref, scope)
+    _check_element_limit(count)
+    standalone = (memory.project.version == '35' and memory.project.processor.upper() in CONTROLLERS
+                  and all(isinstance(part, int) for part in parts))
+    if standalone and load_position is not None:
+        count = load_position + 1
     try:
-        return array_region(memory, ref, count, scope, references=True)
+        return memory.region(ref, count, scope)
     except BlockExtentError as error:
-        if (name in ('FFL', 'LFL') or memory.project.version != '35'
-                or memory.project.processor.upper() not in CONTROLLERS
-                or any(isinstance(part, str) for part in error.parts)):
+        if not standalone:
             raise
+        if load_position is not None:
+            raise ArrayBoundsError(f'{name} load position exceeds the array boundary (Type 4 Code 20)') from error
         if name in ('BSL', 'BSR'):
             raise ShiftExtentError(f'{name} LEN exceeds the remaining array bits (Type 4 Code 20)') from error
         raise UnloadExtentError(f'{name} LEN exceeds the remaining array elements (Type 4 Code 20)') from error
@@ -344,7 +354,8 @@ def _unload(memory, dest, scope, key, paths, dtype):
 def fifo(memory, op, power, scope, obj):
     n, a = op.name, op.args
     length, position = fifo_status(obj)
-    latch = 'EN' if n in ('FFL', 'LFL') else 'EU'
+    loading = n in ('FFL', 'LFL')
+    latch = 'EN' if loading else 'EU'
     if not power:
         obj[latch] = False
         return False
@@ -353,10 +364,11 @@ def fifo(memory, op, power, scope, obj):
     if length <= 0 or position < 0:return True
     if position > length:
         raise ModelError('FIFO POS beyond LEN is outside the qualified runtime profile')
-    if n in ('FFL', 'LFL') and position == length:return True
-    array = a[1] if n in ('FFL', 'LFL') else a[0]
-    key, paths, dtype = _transfer_region(memory, n, array, length, scope)
-    if n in ('FFL', 'LFL'):
+    if loading and position == length:return True
+    array = a[1] if loading else a[0]
+    key, paths, dtype = _transfer_region(memory, n, array, length, scope,
+                                         load_position=position if loading else None)
+    if loading:
         source = fifo_values.read(memory,a[0],scope,dtype)
         memory.store(key, paths[position], source)
         obj['POS'] += 1
@@ -394,6 +406,7 @@ def description():
                 numeric_conversions='v35 5580 RLL FFL/FFU/LFL/LFU: narrow numeric payload/array pairs; signed integer extension, low-bit narrowing, float32 REAL and representable nearest-even integer results',
                 numeric_selection='Bounded DINT/finite REAL load immediates; structural payload preflight, lazy edge reads, complete unknown writes and whole-advance rollback',
                 fifo_empty='Empty unload writes a typed zero element once per qualified rising edge',
+                load_position='v35 5580 standalone FFL/LFL check only start + POS on the load edge; a reached missing slot raises Type 4 Code 20',
                 aggregate_values='Whole logical basic records/strings/UDTs including backing bytes; unknown represented fields remain unknown; no private instruction histories or native byte-layout claim',
                 basic_record_payloads=['TIMER','COUNTER','CONTROL'],
                 lifo='LFL writes current POS then increments; LFU pops and zeroes POS-1 without shifting other elements',

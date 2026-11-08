@@ -179,11 +179,19 @@ class RecordQueueTests(unittest.TestCase):
     def test_bounds_and_late_faults_restore_complete_records_control_and_schedule(self):
         for failure in ('bounds','later'):
             e=self.checked();e.step();e.memory.write('LoadPart',True)
-            e.memory.write('PartControl.LEN',5) if failure=='bounds' else e.memory.write('FaultDivisor',0)
+            if failure == 'bounds':
+                e.memory.write('PartControl.LEN', 5)
+                e.memory.write('PartControl.POS', 4)
+            else:
+                e.memory.write('FaultDivisor', 0)
             before=copy.deepcopy(e.memory.values);schedule=e.scheduler_description()
             with self.assertRaises(ModelError):e.step()
             self.assertEqual(e.memory.values,before);self.assertEqual(e.scheduler_description(),schedule);self.assertEqual((e.scan_count,e.time_ms),(1,10))
-            e.memory.write('PartControl.LEN',3);e.memory.write('FaultDivisor',1);e.step();self.assertEqual(e.memory.read('PartQueue[0].Id'),101)
+            e.memory.write('PartControl.LEN', 3)
+            e.memory.write('PartControl.POS', 0)
+            e.memory.write('FaultDivisor', 1)
+            e.step()
+            self.assertEqual(e.memory.read('PartQueue[0].Id'), 101)
 
     def test_false_and_full_rungs_do_not_read_unknown_source(self):
         e=self.checked();e.step();e.memory.values['incomingpart']=None;e.step()
