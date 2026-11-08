@@ -148,9 +148,18 @@ class QueueReferenceTests(unittest.TestCase):
             E.SubElement(obj,'DataValueMember',Name='Guard',DataType='DINT',Value='777')
         e=self.checked(['XIC(StartPB)FFL(Incoming,Window1.Data[Index],Ctl,?,?);'],length=2,mutate=nested);e.step();self.pulse(e,'StartPB')
         self.assertEqual(e.memory.read('Window1.Data'),[101,11,0,999]);self.assertEqual(e.memory.read('Window1.Guard'),777)
-        e.memory.write('Ctl.LEN',4);e.memory.write('StartPB',False);e.step();e.memory.write('StartPB',True);before=self.snapshot(e)
-        with self.assertRaisesRegex(ModelError,'boundary'):e.step()
-        self.assertEqual(self.snapshot(e),before)
+        e.memory.write('Ctl.LEN', 4)
+        self.pulse(e, 'StartPB', 22)
+        self.assertEqual(e.memory.read('Window1.Data'), [101, 11, 22, 999])
+        e.memory.write('Ctl.POS', 3)
+        e.memory.write('StartPB', False)
+        e.step()
+        e.memory.write('StartPB', True)
+        before = self.snapshot(e)
+        with self.assertRaisesRegex(ModelError, 'load position exceeds the array boundary'):
+            e.step()
+        self.assertEqual(self.snapshot(e), before)
+        self.assertEqual(e.memory.read('Window1.Guard'), 777)
 
     def test_multidimensional_indirect_start_uses_existing_flat_region(self):
         def dimensions(root):

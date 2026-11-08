@@ -36,8 +36,8 @@ requirements, unload/base-tag overlap restrictions and logical record copies.
 
 Preflight checks reference syntax, types, writable storage and shapes without
 consuming the value of a dynamic start index. When execution needs the array,
-v35 5580 standalone FFL/LFL check the current load slot. Shifts, unloads and
-member-array loads check their complete window. A false call can rearm
+v35 5580 FFL/LFL check the current load slot within the selected array or
+structure member. Shifts and unloads check their complete window. A false call can rearm
 its latch even if that index is currently unknown or out of range. A held
 true call does not repeat the operation or read that start again.
 
@@ -46,9 +46,10 @@ array region; an empty unload still checks its configured region before
 writing a typed zero destination. Other operands and CONTROL fields retain
 their existing validation and known-value requirements.
 
-A reached out-of-bounds subscript or a v35 5580 shift, unload or load slot
-that exceeds a standalone array can [use ladder fault recovery](controller-handlers.md#recover-shift-and-queue-array-faults).
-An uncleared fault, member overrun, unknown required data or later error
+A reached out-of-bounds subscript, v35 5580 shift or unload past a standalone
+array, or load slot past a standalone or member array can
+[use ladder fault recovery](controller-handlers.md#recover-shift-and-queue-array-faults).
+An uncleared fault, shift or unload member overrun, unknown required data or later error
 rolls back the entire advance, including array data, outputs, CONTROL state,
 time, scheduler and trace. Correct the input and retry the pending edge.
 Run entry preserves FIFO/LIFO startup inhibition and shift prescan rules.

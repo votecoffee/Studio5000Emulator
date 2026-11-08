@@ -245,9 +245,15 @@ class RecordQueueTests(unittest.TestCase):
     def test_udt_array_member_with_separate_control_respects_its_boundary(self):
         e=self.checked(['XIC(LoadPart)FFL(IncomingPart,Holder.Queue[0],PartControl,?,?);'],self.holder)
         self.pulse(e,'LoadPart');self.assertEqual(e.memory.read('Holder.Queue[0].Id'),101);self.assertEqual(e.memory.read('Holder.Queue[3].Id'),999)
-        e.memory.write('LoadPart',False);e.step();e.memory.write('PartControl.LEN',5);e.memory.write('LoadPart',True);before=copy.deepcopy(e.memory.values)
-        with self.assertRaises(ModelError):e.step()
-        self.assertEqual(e.memory.values,before)
+        e.memory.write('LoadPart', False)
+        e.step()
+        e.memory.write('PartControl.LEN', 5)
+        e.memory.write('PartControl.POS', 4)
+        e.memory.write('LoadPart', True)
+        before = copy.deepcopy(e.memory.values)
+        with self.assertRaisesRegex(ModelError, 'load position exceeds the array boundary'):
+            e.step()
+        self.assertEqual(e.memory.values, before)
 
     def test_aggregate_array_control_cannot_share_base_tag(self):
         e=self.engine(['FFL(IncomingPart,Holder.Queue[0],Holder.State,?,?);'],self.holder)

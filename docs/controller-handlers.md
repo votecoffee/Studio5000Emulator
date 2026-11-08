@@ -245,12 +245,13 @@ that extends past a standalone array, including the empty-queue path. The
 queue, destination and prior CONTROL state are retained. LFU sets ER for the
 handler.
 
-In this profile FFL and LFL check the reached slot at the selected standalone
-array start plus POS, within the emulator's work limit. A slot that fits can
-load even if LEN extends past the array. An out-of-bounds slot raises Type 4
-Code 20 before reading the source or writing the slot. The handler can repair
-POS or the array start, then the next scan can retry. Member overruns, emulator
-work limits and unknown consumed values use scan rollback.
+In this profile FFL and LFL check the reached slot at the selected array
+start plus POS. This includes an array member of a structure. A slot that
+fits can load even if LEN extends past the array. An out-of-bounds slot
+raises Type 4 Code 20 before reading the source or writing the slot. The
+handler can repair POS or the array start, then the next scan can retry.
+Shift and unload member overruns, emulator work limits and unknown consumed
+values use scan rollback.
 
 [Rockwell general instructions reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm003_-en-p.pdf)
 [Rockwell FFU reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-00/contents-ditamap/instruction-set/array--file--shift-instructions/fifo-unload--ffu-.html)

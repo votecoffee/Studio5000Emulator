@@ -283,17 +283,18 @@ def reset(memory, ref, scope):
 def _transfer_region(memory, name, ref, count, scope, *, load_position=None):
     _, parts, _ = starting_array(memory, ref, scope)
     _check_element_limit(count)
-    standalone = (memory.project.version == '35' and memory.project.processor.upper() in CONTROLLERS
-                  and all(isinstance(part, int) for part in parts))
-    if standalone and load_position is not None:
+    qualified = memory.project.version == '35' and memory.project.processor.upper() in CONTROLLERS
+    if qualified and load_position is not None:
         count = load_position + 1
     try:
         return memory.region(ref, count, scope)
     except BlockExtentError as error:
-        if not standalone:
+        if not qualified:
             raise
         if load_position is not None:
             raise ArrayBoundsError(f'{name} load position exceeds the array boundary (Type 4 Code 20)') from error
+        if any(isinstance(part, str) for part in parts):
+            raise
         if name in ('BSL', 'BSR'):
             raise ShiftExtentError(f'{name} LEN exceeds the remaining array bits (Type 4 Code 20)') from error
         raise UnloadExtentError(f'{name} LEN exceeds the remaining array elements (Type 4 Code 20)') from error
@@ -406,7 +407,7 @@ def description():
                 numeric_conversions='v35 5580 RLL FFL/FFU/LFL/LFU: narrow numeric payload/array pairs; signed integer extension, low-bit narrowing, float32 REAL and representable nearest-even integer results',
                 numeric_selection='Bounded DINT/finite REAL load immediates; structural payload preflight, lazy edge reads, complete unknown writes and whole-advance rollback',
                 fifo_empty='Empty unload writes a typed zero element once per qualified rising edge',
-                load_position='v35 5580 standalone FFL/LFL check only start + POS on the load edge; a reached missing slot raises Type 4 Code 20',
+                load_position='v35 5580 FFL/LFL check only start + POS in the selected array or member on the load edge; a reached missing slot raises Type 4 Code 20',
                 aggregate_values='Whole logical basic records/strings/UDTs including backing bytes; unknown represented fields remain unknown; no private instruction histories or native byte-layout claim',
                 basic_record_payloads=['TIMER','COUNTER','CONTROL'],
                 lifo='LFL writes current POS then increments; LFU pops and zeroes POS-1 without shifting other elements',

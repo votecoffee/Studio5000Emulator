@@ -65,8 +65,8 @@ the respective latch, preventing an initial load/unload until a false scan
 rearms it. A held true rung does not repeat data movement.
 
 FFL writes the source at the current POS and increments POS. In the v35 5580
-profile, a standalone array load checks that slot even if LEN exceeds the
-remaining storage. A reached slot outside the array can
+profile, a load checks that slot within the selected array or structure member
+even if LEN exceeds the remaining storage. A reached slot outside the array can
 [raise Type 4 Code 20](controller-handlers.md#recover-shift-and-queue-array-faults).
 FFU returns the
 first element, shifts the entire configured region down, zeroes its last element
