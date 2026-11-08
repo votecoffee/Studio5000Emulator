@@ -71,14 +71,20 @@ class SequencerReferenceTests(unittest.TestCase):
         e.memory.values['index']=None
         with self.assertRaisesRegex(ModelError,'Unknown'):e.step()
 
-    def test_valid_start_short_window_keeps_existing_er_and_sql_fault_policies(self):
-        for op in ('SQO(Queue[Index],-1,Outgoing,Ctl,?,?)','SQI(Queue[Index],-1,Incoming,Ctl,?,?)','SQL(Queue[Index],Incoming,Ctl,?,?)'):
+    def test_valid_start_short_window_keeps_sqi_and_sqo_error_policy(self):
+        for op in ('SQO(Queue[Index],-1,Outgoing,Ctl,?,?)','SQI(Queue[Index],-1,Incoming,Ctl,?,?)'):
             e=self.checked([op+';'],length=3,mutate=self.tags)
-            if op.startswith('SQL'):
-                before=self.snapshot(e)
-                with self.assertRaisesRegex(ModelError,'boundary'):e.step()
-                self.assertEqual(self.snapshot(e),before)
-            else:e.step();self.assertTrue(e.memory.read('Ctl.ER'));self.assertEqual(e.memory.read('Outgoing'),99)
+            e.step()
+            self.assertTrue(e.memory.read('Ctl.ER'))
+            self.assertEqual(e.memory.read('Outgoing'),99)
+
+    def test_sql_can_teach_a_valid_row_with_a_short_configured_window(self):
+        e=self.checked(['SQL(ViewAgain,Incoming,Ctl,?,?);'],length=4,position=0,
+                       queue=(101,0,0,999),mutate=self.tags)
+        e.step()
+        self.assertEqual(e.memory.read('Queue'),[101,11,0,999])
+        self.assertEqual(e.memory.read('Ctl.POS'),0)
+        self.assertFalse(e.memory.read('Ctl.ER'))
 
     def test_direct_alias_and_hidden_cursor_subscripts_are_blocked(self):
         for ref in ('Queue[Ctl.POS]','Queue[Cursor+1]','View'):

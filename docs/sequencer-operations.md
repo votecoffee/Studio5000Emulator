@@ -20,10 +20,10 @@ See [implementation](../source/logixlab/sequencer_operations.py) and
 ## Rows and scan behavior
 
 Row zero is the startup row. Cyclic rows run from 1 through LEN, including the
-last row, then wrap to one on the next enable edge. The bounded profile requires
-the entire configured LEN+1 region to fit within its selected array member,
-with at most 4096 elements. This whole-region rule is a software qualification,
-not a claim about native bounds checking.
+last row, then wrap to one on the next enable edge. The software limit is
+4096 configured rows, including row zero. SQI and SQO require the configured
+LEN+1 region to fit. SQL checks the reached row against the selected array
+or structure member before reading Source.
 
 Prescan sets SQO/SQL EN; a false rung clears EN. With EN clear, a true rung
 advances POS and sets EN. SQO writes the masked current row to Dest on every
@@ -48,11 +48,11 @@ Actual CONTROL addresses, prescan, row/edge and error policies remain.
 
 SQO/SQL clear ER on a new enable edge; SQI clears ER on a true evaluation.
 Modeled invalid lengths/positions set ER and retain data. Invalid SQI state
-also returns false. Physical table bounds set SQO/SQI ER without data movement;
-SQL bounds stop and roll back the modeled advance. Resource limits, unknown
-required values and later execution faults also roll back data, flags, time
-and scheduling. Native fault classification and partial side effects remain
-separate work.
+also returns false. Physical table bounds set SQO/SQI ER without data movement.
+[SQL row overruns](controller-handlers.md#recover-sequencer-array-faults)
+raise Type 4 Code 20 with the prior CONTROL state restored. Uncleared
+faults, resource limits, unknown required values and later execution
+errors roll back data, flags, time and scheduling.
 
 Input tables may be constant. SQL tables and CONTROL records must be writable.
 [Aliases, indirect starts and ladder AOI tables](sequencer-references.md) now

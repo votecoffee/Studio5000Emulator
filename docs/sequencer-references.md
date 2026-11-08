@@ -32,8 +32,9 @@ A reached out-of-bounds start can trigger
 [Type 4 Code 20 recovery](controller-handlers.md#recover-sequencer-array-faults)
 during a whole-project ladder scan. An unknown index or an uncleared fault
 rolls back the advance. If the start is valid and its LEN+1 window exceeds
-the selected array/member, SQO/SQI set ER and retain the data. SQL rolls back
-the advance. The configured region includes row zero and is limited
+the selected array/member, SQO/SQI set ER and retain the data. SQL checks
+the reached row and raises Type 4 Code 20 if it falls beyond the selected
+array or member. The configured region includes row zero and is limited
 to 4096 elements. No operation crosses into adjacent members. Input tables
 may be constant outside AOIs; SQL targets must be writable. Existing AOI InOut
 bindings require writable actuals even for a read-only instruction use.

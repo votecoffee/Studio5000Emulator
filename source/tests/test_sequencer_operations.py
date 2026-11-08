@@ -97,8 +97,9 @@ class SequencerTests(unittest.TestCase):
         self.assertFalse(e.memory.read('Ctl.ER'));self.assertEqual(e.memory.read('Ctl.POS'),1)
 
     def test_sql_physical_bounds_and_late_fault_roll_back_data_control_and_clock(self):
-        e=self.checked(['SQL(Queue[0],Incoming,Ctl,?,?);'],length=4);before=copy.deepcopy(e.memory.values)
-        with self.assertRaises(ModelError):e.step()
+        e=self.checked(['SQL(Queue[0],Incoming,Ctl,?,?);'],length=4,position=4)
+        before=copy.deepcopy(e.memory.values)
+        with self.assertRaisesRegex(ModelError,'SQL position exceeds the selected table boundary'):e.step()
         self.assertEqual(e.memory.values,before)
         e=self.checked(['SQL(Queue[0],Incoming,Ctl,?,?);','DIV(1,0,SpeedCommand);'],length=3)
         before=copy.deepcopy(e.memory.values)

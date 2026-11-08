@@ -267,6 +267,13 @@ def member_extent_fault_fixture(root, name):
     set_fault_instruction(root, f'{name}({operands})')
 
 
+def sql_row_fault_fixture(root, *, member):
+    ladder_fault_fixture(root, handler_tail='CLR(LabIndex)MOV(66,LabValues[1]);')
+    add_fault_record_array(root, 'CONTROL', LEN=4, POS=1, ER=False)
+    add_fault_queue_start(root, member=member)
+    set_fault_instruction(root, 'SQL(QueueStart,LabValues[LabIndex+1],LabRecords[0],?,?)')
+
+
 def ladder_fault_load(*, controller_fallback=False, call_fault=None, instruction=None,
                       record_type=None, record_members=None, queue_values=None, **options):
     root = ET.parse(fixtures.SAMPLE).getroot()
@@ -1679,11 +1686,48 @@ class ProgramFaultTests(unittest.TestCase):
         self.assertEqual(engine.memory.read('LabRecords'),controls)
         self.assertEqual(engine.memory.read('LabValues'),[47,47])
 
+    def test_sql_row_fault_precedes_source_read_and_retries_without_crossing_the_table(self):
+        for member in (False, True):
+            with self.subTest(member=member):
+                self.setUp()
+                engine = self.engine(mutate=lambda root: sql_row_fault_fixture(root, member=member))
+                self.assertEqual(engine.blockers, [])
+                memory = engine.memory
+                table = 'LabQueue.Slots' if member else 'LabQueue'
+                engine.step()
+                saved = memory.read('LabRecords')
+                memory.write('StartPB', True)
+
+                engine.step()
+                fault = engine.last_cleared_program_fault
+                self.assertEqual((fault['type'], fault['code'], fault['instruction']), (4, 20, 'SQL'))
+                self.assertIn('SQL position exceeds the selected table boundary', fault['detail'])
+                self.assertEqual(memory.read('LabRecords'), saved)
+                self.assertEqual(memory.read(table), [31, 47, 99])
+                self.assertEqual(memory.read('LabIndex'), 0)
+
+                engine.step()
+                self.assertEqual(memory.read(table), [31, 47, 66])
+                updated = [saved[0] | dict(POS=2, EN=True, DN=False), saved[1]]
+                self.assertEqual(memory.read('LabRecords'), updated)
+
+                memory.write('LabIndex', 1)
+                engine.step()
+                self.assertIsNot(engine.last_cleared_program_fault, fault)
+                self.assertEqual(memory.read('LabRecords'), updated)
+                self.assertEqual(memory.read(table), [31, 47, 66])
+
+                memory.write('LabValues[1]', 77)
+                engine.step()
+                self.assertEqual(memory.read(table), [31, 47, 77])
+                self.assertEqual(memory.read('LabRecords'), updated)
+                if member:
+                    self.assertEqual(memory.read('LabQueue.Guard'), 777)
+
     def test_sequencer_window_failures_remain_separate_from_subscript_recovery(self):
         for instruction in (
             'SQI(LabQueue[LabIndex],0,LabValues[SpeedSetpoint],LabRecords[0],?,?)',
             'SQO(LabQueue[LabIndex],0,LabValues[SpeedSetpoint],LabRecords[0],?,?)',
-            'SQL(LabQueue[LabIndex],12,LabRecords[0],?,?)',
         ):
             with self.subTest(instruction=instruction):
                 self.setUp()
@@ -1707,16 +1751,10 @@ class ProgramFaultTests(unittest.TestCase):
                 fault = engine.last_cleared_program_fault
                 self.assertEqual(fault['instruction'],instruction[:3])
                 engine.memory.write('LabRecords[0].LEN',2)
-                saved = copy.deepcopy(engine.memory.values)
-                if instruction.startswith('SQL'):
-                    with self.assertRaisesRegex(ModelError,'exceeds the modeled array/member boundary'):
-                        engine.step()
-                    self.assertEqual(engine.memory.values,saved)
-                else:
-                    engine.step()
-                    self.assertTrue(engine.memory.read('LabRecords[0].ER'))
-                    self.assertEqual(engine.memory.read('LabValues'),[12,13])
-                    self.assertFalse(any('recovery_source' in row for row in engine.trace))
+                engine.step()
+                self.assertTrue(engine.memory.read('LabRecords[0].ER'))
+                self.assertEqual(engine.memory.read('LabValues'),[12,13])
+                self.assertFalse(any('recovery_source' in row for row in engine.trace))
                 self.assertIs(engine.last_cleared_program_fault,fault)
 
     def test_negative_file_cursor_reaches_program_handler_in_all_modes(self):

@@ -23,15 +23,16 @@ Preflight checks declared shapes without live dynamic indices or saved numeric
 data. False calls skip live masks and payloads. Existing invalid CONTROL-state
 paths also skip them while applying their established ER/data-retention policy.
 
-Reached data paths still resolve and check the complete configured table
-window, including startup row zero. They then read the actual mask. A zero
+Reached SQI and SQO paths resolve and check the complete configured table
+window, including startup row zero, before reading the actual mask. A zero
 mask skips table-row values and live compared-source/SQO-output references;
 the table address and window must already be valid. A nonzero mask requires
 the selected known table row and the actual compared input or writable output.
 Full-mask SQO writes establish unknown destinations. Partial masks require
 known old output bits to preserve them.
 
-SQL reads its actual source when it writes the current row. Held true SQL
+SQL checks the reached row against the selected array or member before
+reading its source. Held true SQL
 calls reload current data, and held true SQO calls reapply the current row and
 mask to the current destination. Their POS does not advance again without a
 new enable edge. A changed indirect payload or mask index therefore matters
@@ -47,14 +48,14 @@ still apply.
 
 Aliases, constant sources and supported AOI local/InOut references retain
 canonical storage and frame scope. In whole-project ladder scans, a handler
-can [clear a reached array subscript fault](controller-handlers.md#recover-sequencer-array-faults)
+can [clear a reached subscript or SQL row fault](controller-handlers.md#recover-sequencer-array-faults)
 after the emulator restores CONTROL. The skipped instruction leaves table and
 destination values untouched. Unrecovered faults, unknown consumed values and
 later errors still roll back data, flags, time, scheduler and AOI bindings.
 Completed prescan is a separate boundary.
 
-SQI/SQO keep their existing ER policy for valid starts with short configured
-table windows. SQL window failures stop the advance. Native packed layouts,
+SQI/SQO set ER for valid starts with short configured table windows. A
+valid SQL row can load with a longer configured LEN. Native packed layouts,
 invalid-state and fault parity, other profiles and broader source types remain
 outside this sequencer execution profile.
 
