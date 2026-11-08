@@ -238,11 +238,17 @@ For v35 ControlLogix 5580 BSL and BSR, a positive LEN that exceeds the bits
 remaining at a valid standalone DINT array start also raises Type 4 Code 20.
 The emulator preserves the array and the prior CONTROL state, then sets ER
 before entering the handler. A cleared fault leaves the edge available for
-the next scan. Member overruns, queue region limits, the shift work limit and
+the next scan.
+
+FFU and LFU also raise Type 4 Code 20 when a reached unload edge has a LEN
+that extends past a standalone array, including the empty-queue path. The
+queue, destination and prior CONTROL state are retained. LFU sets ER for the
+handler. Member overruns, load window limits, emulator work limits and
 unknown consumed values use scan rollback.
 
 [Rockwell general instructions reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm003_-en-p.pdf)
 [Rockwell FFU reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-00/contents-ditamap/instruction-set/array--file--shift-instructions/fifo-unload--ffu-.html)
+[Rockwell LFU reference](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/array--file--shift-instructions/lifo-unload--lfu-.html)
 
 ## Recover sequencer array faults
 

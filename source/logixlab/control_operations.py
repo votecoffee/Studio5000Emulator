@@ -43,6 +43,10 @@ class ShiftExtentError(ArrayBoundsError):
     """The bit shift reached past the end of its standalone array."""
 
 
+class UnloadExtentError(ArrayBoundsError):
+    """An unload reached past the end of its standalone array."""
+
+
 class NegativeFileCursorError(ModelError):
     """A reached file instruction had negative CONTROL.LEN or POS."""
 
@@ -272,6 +276,19 @@ def reset(memory, ref, scope):
     return key, tuple(parts)
 
 
+def _transfer_region(memory, name, ref, count, scope):
+    try:
+        return array_region(memory, ref, count, scope, references=True)
+    except BlockExtentError as error:
+        if (name in ('FFL', 'LFL') or memory.project.version != '35'
+                or memory.project.processor.upper() not in CONTROLLERS
+                or any(isinstance(part, str) for part in error.parts)):
+            raise
+        if name in ('BSL', 'BSR'):
+            raise ShiftExtentError(f'{name} LEN exceeds the remaining array bits (Type 4 Code 20)') from error
+        raise UnloadExtentError(f'{name} LEN exceeds the remaining array elements (Type 4 Code 20)') from error
+
+
 def shift(memory, op, power, scope, obj):
     a = op.args
     if not power:
@@ -285,13 +302,7 @@ def shift(memory, op, power, scope, obj):
         return True
     if length:
         count = (length + 31) // 32
-        try:
-            key, paths, _ = array_region(memory, a[0], count, scope, references=True)
-        except BlockExtentError as error:
-            if (memory.project.version != '35' or memory.project.processor.upper() not in CONTROLLERS
-                    or any(isinstance(part, str) for part in error.parts)):
-                raise
-            raise ShiftExtentError(f'{op.name} LEN exceeds the remaining array bits (Type 4 Code 20)') from error
+        key, paths, _ = _transfer_region(memory, op.name, a[0], count, scope)
     source = memory.read(a[2], scope)
     if type(source) is not bool:raise ModelError('Shift source bit is unknown or not BOOL')
     if length == 0:
@@ -344,7 +355,7 @@ def fifo(memory, op, power, scope, obj):
         raise ModelError('FIFO POS beyond LEN is outside the qualified runtime profile')
     if n in ('FFL', 'LFL') and position == length:return True
     array = a[1] if n in ('FFL', 'LFL') else a[0]
-    key, paths, dtype = array_region(memory, array, length, scope, references=True)
+    key, paths, dtype = _transfer_region(memory, n, array, length, scope)
     if n in ('FFL', 'LFL'):
         source = fifo_values.read(memory,a[0],scope,dtype)
         memory.store(key, paths[position], source)
@@ -370,7 +381,7 @@ def execute(memory, op, power, scope):
         return operation(memory, op, power, scope, obj)
     except ArrayBoundsError as error:
         obj.update(previous)
-        if isinstance(error, ShiftExtentError):
+        if isinstance(error, ShiftExtentError) or (op.name == 'LFU' and isinstance(error, UnloadExtentError)):
             obj['ER'] = True
         raise
 
@@ -388,7 +399,7 @@ def description():
                 lifo='LFL writes current POS then increments; LFU pops and zeroes POS-1 without shifting other elements',
                 starting_references='v35 5580 shifts/FIFO/LIFO accept aliases and bounded indirect array starts; resolved on a data-moving edge',
                 skipped_references='v35 5580 structural preflight; false/latched calls skip live array starts and payload indices until needed',
-                array_recovery='Whole-project Type 4 Code 20 subscript recovery restores CONTROL and any moved queue elements',
+                array_recovery='Whole-project Type 4 Code 20 covers subscripts and v35 5580 standalone FFU/LFU extent overruns; restores CONTROL and queue data before the handler, with ER set for LFU extent overruns',
                 reset_selection='v35 5580 CONTROL RES skips live indices on false/prescan; true establishes POS/flags, retains LEN and clears modeled incremental progress',
                 lifecycle='Shift/queue prescan still requires actual CONTROL addresses and queue LEN/POS; algorithms and runtime state selection unchanged',
                 aoi_arrays='v35 5580 RLL: selected elements in one-dimensional exact-type InOut arrays or represented local arrays; disjoint instance members permitted',

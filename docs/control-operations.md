@@ -69,7 +69,9 @@ first element, shifts the entire configured region down, zeroes its last element
 and decrements POS. The software profile writes zero on an empty unload edge.
 DN indicates POS>=LEN; EM indicates empty. LEN<=0 or negative POS sets both
 status bits without data movement. POS beyond LEN remains outside the qualified
-profile and stops execution. Exact native invalid-state/edge parity remains open.
+profile and stops execution. A reached FFU unload with LEN past a standalone
+array can [raise Type 4 Code 20](controller-handlers.md#recover-shift-and-queue-array-faults)
+before any data moves. Exact native invalid-state and edge parity remains open.
 
 Scalar SINT/INT/DINT/REAL sources, destinations and arrays support
 [mixed numeric conversions](queue-conversions.md) in the v35 5580 profile.
@@ -95,6 +97,8 @@ as FIFO. LFL loads at POS and increments it. LFU returns the newest value at
 POS-1, zeroes only that slot and decrements POS; lower entries do not shift.
 An empty unload edge writes zero. Held true does not repeat either operation.
 DN/EM and the bounded invalid-state policy follow the FIFO profile above.
+LFU also raises Type 4 Code 20 for a standalone array overrun and sets ER
+for the fault handler.
 
 [Sequence lab](../source/samples/SequenceLab.L5X) demonstrates a three-value stack
 and [DINT sequencers](sequencer-operations.md). Step once to rearm, then pulse

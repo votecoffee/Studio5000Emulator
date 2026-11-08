@@ -45,7 +45,7 @@ array region; an empty unload still checks its configured region before
 writing a typed zero destination. Other operands and CONTROL fields retain
 their existing validation and known-value requirements.
 
-A reached out-of-bounds subscript or a v35 5580 shift window that exceeds
+A reached out-of-bounds subscript or a v35 5580 shift or unload window that exceeds
 a standalone array can [use ladder fault recovery](controller-handlers.md#recover-shift-and-queue-array-faults).
 An uncleared fault, member overrun, unknown required data or later error
 rolls back the entire advance, including array data, outputs, CONTROL state,

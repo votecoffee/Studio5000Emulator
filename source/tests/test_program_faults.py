@@ -1409,6 +1409,46 @@ class ProgramFaultTests(unittest.TestCase):
                     self.assertEqual(engine.memory.read('LabValues'),[12,value if position else 0])
                     self.assertEqual(engine.memory.read('LabRecords[0].POS'),max(position-1,0))
 
+    def test_queue_unload_extent_fault_preserves_data_until_the_repaired_edge(self):
+        for name, value, unloaded in (('FFU', 47, [31, 99, 0]), ('LFU', 99, [31, 47, 0])):
+            for position in (0, 2):
+                with self.subTest(name=name, position=position):
+                    self.setUp()
+
+                    def configure(root):
+                        ladder_fault_fixture(root, handler_tail='MOV(2,LabRecords[0].LEN);')
+                        add_fault_record_array(root, 'CONTROL', LEN=3, POS=position, ER=False)
+                        tags = root.find('./Controller/Tags')
+                        add_fault_dint_array(tags, 'LabQueue', [31, 47, 99])
+                        tags.find('Tag[@Name="LabIndex"]/Data/DataValue').set('Value', '1')
+                        ET.SubElement(tags, 'Tag', Name='QueueStart', DataType='DINT', TagType='Alias',
+                                      AliasFor='LabQueue[LabIndex]')
+                        root.find('.//Routine[@Name="RecoverMove"]/RLLContent/Rung/Text').text = (
+                            'XIC(LabRecords[0].ER)OTE(FaultWitness);')
+                        set_fault_instruction(root, f'{name}(QueueStart,LabValues[0],LabRecords[0],?,?)')
+
+                    engine = self.engine(mutate=configure)
+                    self.assertEqual(engine.blockers, [])
+                    memory = engine.memory
+                    engine.step()
+                    saved = memory.read('LabRecords')
+                    self.assertIsNone(engine.last_cleared_program_fault)
+
+                    memory.write('StartPB', True)
+                    engine.step()
+                    fault = engine.last_cleared_program_fault
+                    self.assertEqual((fault['type'], fault['code'], fault['instruction']), (4, 20, name))
+                    self.assertIn('remaining array elements', fault['detail'])
+                    self.assertEqual(memory.read('LabQueue'), [31, 47, 99])
+                    self.assertEqual(memory.read('LabValues'), [12, 13])
+                    self.assertEqual(memory.read('LabRecords'), [saved[0] | dict(LEN=2, ER=name == 'LFU'), saved[1]])
+                    self.assertIs(memory.read('FaultWitness'), name == 'LFU')
+
+                    engine.step()
+                    self.assertEqual(memory.read('LabQueue'), unloaded if position else [31, 47, 99])
+                    self.assertEqual(memory.read('LabValues'), [value if position else 0, 13])
+                    self.assertEqual(memory.read('LabRecords[0].POS'), max(position - 1, 0))
+
     def test_queue_unload_recovery_restores_aggregate_fields_with_unknown_values(self):
         def configure(root):
             ladder_fault_fixture(root,handler_tail='MOV(1,LabIndex);')

@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+[Queue unload recovery](controller-handlers.md#recover-shift-and-queue-array-faults)
+routes a standalone FFU or LFU length overrun to Type 4 Code 20 as of
+`26.1107.204029`. The handler can repair LEN before the next unload attempt.
+
 [Bit-shift extent recovery](controller-handlers.md#recover-shift-and-queue-array-faults)
 routes a standalone BSL/BSR array overrun to Type 4 Code 20 as of
 `26.1107.135236`. The fault handler can observe ER and repair LEN.

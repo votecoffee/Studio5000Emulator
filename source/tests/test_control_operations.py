@@ -188,6 +188,18 @@ class ControlOperationTests(unittest.TestCase):
             with self.assertRaises(ModelError):e.step()
             self.assertEqual(e.memory.values,before)
 
+    def test_unload_work_limit_retains_the_model_error(self):
+        for name in ('FFU', 'LFU'):
+            with self.subTest(name=name):
+                e = self.checked([f'XIC(StartPB){name}(Queue[0],Outgoing,Ctl,?,?);'], length=4097, position=1)
+                e.step()
+                e.memory.write('StartPB', True)
+                before = copy.deepcopy(e.memory.values)
+                with self.assertRaisesRegex(ModelError, '4096-element software limit') as fault:
+                    e.step()
+                self.assertIs(type(fault.exception.__cause__), ModelError)
+                self.assertEqual(e.memory.values, before)
+
     def test_fifo_unload_unknown_data_rolls_back_prior_rungs_and_control(self):
         e=self.checked(['MOV(7,SpeedCommand);','XIC(PartSensor)FFU(Queue[0],Outgoing,Ctl,?,?);'],length=3,position=1)
         e.step();e.memory.values['queue'][1]=None;e.memory.write('PartSensor',True);before=copy.deepcopy(e.memory.values)
@@ -307,6 +319,18 @@ class ControlOperationTests(unittest.TestCase):
         e.memory.write('Record.State.LEN',65)
         with self.assertRaises(ModelError) as fault:e.step()
         self.assertIs(type(fault.exception.__cause__), BlockExtentError)
+
+        for name in ('FFU', 'LFU'):
+            with self.subTest(name=name):
+                e = self.checked([f'XIC(StartPB){name}(Record.Bits[0],Outgoing,ControlAlias,?,?);'], mutate=record)
+                e.step()
+                e.memory.write('StartPB', True)
+                e.memory.write('Record.State.POS', 1)
+                before = copy.deepcopy(e.memory.values)
+                with self.assertRaises(ModelError) as fault:
+                    e.step()
+                self.assertIs(type(fault.exception.__cause__), BlockExtentError)
+                self.assertEqual(e.memory.values, before)
 
     def test_alias_start_array_is_supported_and_st_calls_remain_blocked(self):
         def alias(root):E.SubElement(root.find('./Controller/Tags'),'Tag',Name='ArrayAlias',DataType='DINT',TagType='Alias',AliasFor='Words[0]')
