@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+[Sequencer Input and Output row checks](sequencer-operations.md#errors-and-limits)
+allow a reached row to be used even if LEN exceeds the table as of
+`26.1107.212408`. SQI and SQO set ER on a row overrun before reading the
+mask or accessing the payload.
+
 [Sequencer Load row recovery](controller-handlers.md#recover-sequencer-array-faults)
 checks the SQL row selected by POS as of `26.1107.211630`. A reached row
 outside the selected array or member raises Type 4 Code 20 before the source

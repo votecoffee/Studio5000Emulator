@@ -110,20 +110,16 @@ def _execute(memory, op, power, scope, obj):
     if length + 1 > controls.MAX_ELEMENTS:
         raise ModelError('Sequencer table exceeds the 4096-element software limit')
     starting_array(memory, a[0], scope, writable=n == 'SQL')
-    if n == 'SQL':
-        try:
-            key, paths, _ = memory.region(a[0], position + 1, scope)
-        except BlockExtentError as error:
+    try:
+        key, paths, _ = memory.region(a[0], position + 1, scope)
+    except BlockExtentError as error:
+        if n == 'SQL':
             raise ArrayBoundsError('SQL position exceeds the selected table boundary (Type 4 Code 20)') from error
+        obj['ER'] = True
+        return n == 'SQO'
+    if n == 'SQL':
         memory.store(key, paths[position], source_value(memory, a[1], scope))
         return True
-    try:
-        key, paths, _ = memory.region(a[0], length + 1, scope)
-    except ArrayBoundsError:
-        raise
-    except ModelError:
-        obj['ER'] = True
-        return False if n == 'SQI' else True
     width = bit_transfer.operand(memory, a[1], scope)
     mask = bit_transfer.unsigned(memory, a[1], scope, width)
     if not mask:return True
@@ -146,14 +142,14 @@ def description():
                 sources='SQL/SQI scalar narrow integer tags, signed DINT literals or full 32-bit radix patterns; no FIFO REAL conversions',
                 source_conversion='Preserve signed narrow numeric values in DINT; full radix patterns retain all bits; SQI retains signed-source masked comparison and masks retain declared zero-fill widths',
                 source_selection='Structural types/shapes and immediate bounds; false/invalid-state paths skip live sources; SQI zero mask skips compared-source references',
-                bounds='Selected array/member: SQL checks the reached row, SQI/SQO check LEN+1 rows; maximum 4096 configured rows',
+                bounds='Reached row checked against selected array/member; maximum 4096 configured rows',
                 starting_references='Aliases and bounded indirect starts; no CONTROL.POS-dependent subscripts; false/invalid CONTROL calls do not consume live table indices',
                 selection='Structural preflight for table, mask and payload references; false/invalid-state paths skip live mask/source/destination indices',
-                zero_mask='Full table window checked first; zero mask skips row values and live compared-source/output references',
+                zero_mask='Row address checked first; zero mask skips row values and live compared-source/output references',
                 control_selection='Actual CONTROL address still required at runtime; SQO/SQL prescan sets actual EN; held true calls consume live data without advancing again',
                 aoi='RLL bodies with exact one-dimensional InOut/local DINT arrays and selected element starts; disjoint instance members allowed; existing Prescan/EnableInFalse/binding rollback rules',
                 array_recovery='Reached subscripts and SQL row overruns can raise Type 4 Code 20; original CONTROL fields restored before the handler',
-                invalid_state='ER with data retained for modeled invalid CONTROL states and short SQI/SQO table windows',
+                invalid_state='ER with data retained for modeled invalid CONTROL states and SQI/SQO row overruns',
                 native_scan_parity=False, native_control_layout=False,
                 remaining=['Wide/unsigned/floating payloads and broader table/result types', 'Broader AOI shapes/lifecycle and additional languages',
                            'Native faults/invalid-state parity and broader controller profiles'])

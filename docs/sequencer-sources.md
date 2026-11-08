@@ -33,14 +33,14 @@ unsigned payloads, whole aggregates and non-DINT tables/results remain excluded.
 Structural preflight validates types, shapes, references, permissions and
 immediate bounds without reading saved values or dynamic indices. False and
 invalid-CONTROL paths skip live payload references. SQI zero masks skip row and
-compared-source values/references after the existing table-window check. SQL
+compared-source values and references after the reached row is checked. SQL
 full writes establish unknown selected rows. SQO full masks establish unknown
 DINT results; partial masks require preserved destination bits.
 
-Startup row zero, edge advances through 1..LEN, held SQL reloads, held SQO writes,
-SQI comparisons, prescan, error flags and configured table-window rules retain
-their existing behavior. Aliases, UDT members, indirect operands and supported
-AOI copied inputs/InOut/local tables use the same selection. Required unknowns,
+The reached row may be startup row zero or a cyclic row from 1 through LEN.
+Held SQL reloads, held SQO writes and SQI comparisons use that row. Aliases,
+UDT members, indirect operands and supported AOI copied inputs, InOut bindings
+and local tables follow the same selection rules. Required unknowns,
 bad indices and later failures restore data, flags, task progress/timing and
 warm AOI state/bindings. Sources and neighboring guards remain unchanged.
 

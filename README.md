@@ -368,9 +368,10 @@ when a transfer has executed.
 AVE/STD result indices and establishes unknown REAL/integer result elements.
 
 [Sequencer operand selection](docs/sequencer-operands.md) defers dormant mask
-and payload indices while preserving held output and teach updates. SQL checks
-only the reached row against the selected array or member and can raise a
-[recoverable Type 4 Code 20 fault](docs/controller-handlers.md#recover-sequencer-array-faults).
+and payload indices while preserving held output and teach updates. SQI,
+SQO and SQL check the reached row within the selected array or member.
+A row overrun sets ER for SQI/SQO or raises a
+[recoverable Type 4 Code 20 fault](docs/controller-handlers.md#recover-sequencer-array-faults) for SQL.
 
 [CONTROL prescan recovery](docs/controller-handlers.md#skip-out-of-bounds-control-records-during-prescan)
 skips out-of-bounds selections in shifts, queues, sequencers, statistics, and

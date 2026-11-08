@@ -23,10 +23,9 @@ Preflight checks declared shapes without live dynamic indices or saved numeric
 data. False calls skip live masks and payloads. Existing invalid CONTROL-state
 paths also skip them while applying their established ER/data-retention policy.
 
-Reached SQI and SQO paths resolve and check the complete configured table
-window, including startup row zero, before reading the actual mask. A zero
-mask skips table-row values and live compared-source/SQO-output references;
-the table address and window must already be valid. A nonzero mask requires
+Reached SQI and SQO paths check the selected row address before reading
+the actual mask. A zero mask skips table-row values and live compared-source
+or SQO-output references. A nonzero mask requires
 the selected known table row and the actual compared input or writable output.
 Full-mask SQO writes establish unknown destinations. Partial masks require
 known old output bits to preserve them.
@@ -54,10 +53,10 @@ destination values untouched. Unrecovered faults, unknown consumed values and
 later errors still roll back data, flags, time, scheduler and AOI bindings.
 Completed prescan is a separate boundary.
 
-SQI/SQO set ER for valid starts with short configured table windows. A
-valid SQL row can load with a longer configured LEN. Native packed layouts,
-invalid-state and fault parity, other profiles and broader source types remain
-outside this sequencer execution profile.
+SQI/SQO set ER when the reached row falls outside the table. All three
+instructions can use a valid row with a longer configured LEN. Native packed
+layouts, invalid-state and fault parity, other profiles and broader source
+types remain outside this sequencer execution profile.
 
 ## Sequence lab
 

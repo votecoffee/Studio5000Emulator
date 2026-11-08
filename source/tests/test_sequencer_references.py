@@ -71,9 +71,9 @@ class SequencerReferenceTests(unittest.TestCase):
         e.memory.values['index']=None
         with self.assertRaisesRegex(ModelError,'Unknown'):e.step()
 
-    def test_valid_start_short_window_keeps_sqi_and_sqo_error_policy(self):
+    def test_valid_start_out_of_bounds_row_sets_sqi_and_sqo_error(self):
         for op in ('SQO(Queue[Index],-1,Outgoing,Ctl,?,?)','SQI(Queue[Index],-1,Incoming,Ctl,?,?)'):
-            e=self.checked([op+';'],length=3,mutate=self.tags)
+            e=self.checked([op+';'],length=3,position=3,mutate=self.tags)
             e.step()
             self.assertTrue(e.memory.read('Ctl.ER'))
             self.assertEqual(e.memory.read('Outgoing'),99)

@@ -274,6 +274,16 @@ def sql_row_fault_fixture(root, *, member):
     set_fault_instruction(root, 'SQL(QueueStart,LabValues[LabIndex+1],LabRecords[0],?,?)')
 
 
+def sequencer_read_rows_fixture(root):
+    ladder_fault_fixture(root)
+    add_fault_record_array(root, 'CONTROL', LEN=4, POS=1, ER=False)
+    add_fault_queue_start(root, member=True)
+    set_fault_instruction(root, 'SQO(QueueStart,255,LabValues[LabIndex],LabRecords[0],?,?)')
+    content = root.find('./Controller/Programs/Program/Routines/Routine/RLLContent')
+    ET.SubElement(ET.SubElement(content, 'Rung', Number='2', Type='N'), 'Text').text = (
+        'XIC(StartPB)SQI(QueueStart,255,LabValues[LabIndex],LabRecords[1],?,?)OTE(FaultWitness);')
+
+
 def ladder_fault_load(*, controller_fallback=False, call_fault=None, instruction=None,
                       record_type=None, record_members=None, queue_values=None, **options):
     root = ET.parse(fixtures.SAMPLE).getroot()
@@ -1724,7 +1734,38 @@ class ProgramFaultTests(unittest.TestCase):
                 if member:
                     self.assertEqual(memory.read('LabQueue.Guard'), 777)
 
-    def test_sequencer_window_failures_remain_separate_from_subscript_recovery(self):
+    def test_sequencer_reads_check_reached_member_row_before_live_payload(self):
+        engine = self.engine(mutate=sequencer_read_rows_fixture)
+        self.assertEqual(engine.blockers, [])
+        memory = engine.memory
+        memory.write('StartPB', True)
+
+        engine.step()
+        self.assertEqual(memory.read('LabValues'), [12, 99])
+        self.assertTrue(memory.read('FaultWitness'))
+        self.assertFalse(memory.read('LabRecords[0].ER'))
+        self.assertFalse(memory.read('LabRecords[1].ER'))
+
+        memory.write('LabIndex', 2)
+        engine.step()
+        self.assertEqual(memory.read('LabValues'), [12, 99])
+        self.assertTrue(memory.read('LabRecords[0].ER'))
+        self.assertTrue(memory.read('LabRecords[1].ER'))
+        self.assertFalse(memory.read('FaultWitness'))
+        self.assertIsNone(engine.last_cleared_program_fault)
+
+        memory.write('LabIndex', 1)
+        memory.write('LabValues[1]', 13)
+        engine.step()
+        self.assertEqual(memory.read('LabValues'), [12, 99])
+        self.assertTrue(memory.read('FaultWitness'))
+        self.assertTrue(memory.read('LabRecords[0].ER'))
+        self.assertFalse(memory.read('LabRecords[1].ER'))
+        self.assertEqual(memory.read('LabRecords[0].POS'), 1)
+        self.assertEqual(memory.read('LabRecords[1].POS'), 1)
+        self.assertEqual(memory.read('LabQueue'), dict(Slots=[31, 47, 99], Guard=777))
+
+    def test_sequencer_row_errors_remain_separate_from_subscript_recovery(self):
         for instruction in (
             'SQI(LabQueue[LabIndex],0,LabValues[SpeedSetpoint],LabRecords[0],?,?)',
             'SQO(LabQueue[LabIndex],0,LabValues[SpeedSetpoint],LabRecords[0],?,?)',
@@ -1751,6 +1792,7 @@ class ProgramFaultTests(unittest.TestCase):
                 fault = engine.last_cleared_program_fault
                 self.assertEqual(fault['instruction'],instruction[:3])
                 engine.memory.write('LabRecords[0].LEN',2)
+                engine.memory.write('LabIndex',2)
                 engine.step()
                 self.assertTrue(engine.memory.read('LabRecords[0].ER'))
                 self.assertEqual(engine.memory.read('LabValues'),[12,13])

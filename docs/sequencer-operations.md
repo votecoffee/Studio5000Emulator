@@ -21,9 +21,9 @@ See [implementation](../source/logixlab/sequencer_operations.py) and
 
 Row zero is the startup row. Cyclic rows run from 1 through LEN, including the
 last row, then wrap to one on the next enable edge. The software limit is
-4096 configured rows, including row zero. SQI and SQO require the configured
-LEN+1 region to fit. SQL checks the reached row against the selected array
-or structure member before reading Source.
+4096 configured rows, including row zero. All three instructions check
+the reached row against the selected array or structure member before
+reading a mask or source or accessing a destination.
 
 Prescan sets SQO/SQL EN; a false rung clears EN. With EN clear, a true rung
 advances POS and sets EN. SQO writes the masked current row to Dest on every
@@ -40,15 +40,17 @@ unchanged without requiring known source/destination data.
 
 [Sequencer operand selection](sequencer-operands.md) adds structural preflight
 for masks and scalar payloads. False/invalid-state paths skip their live
-indices; zero masks skip compared-source/output references after the full table
-window is checked. Held SQO/SQL still consume current data on every true call.
-Actual CONTROL addresses, prescan, row/edge and error policies remain.
+indices. Zero masks skip compared-source and output references after the
+reached row address is checked. Held SQO/SQL still consume current data on
+every true call when their row is valid.
 
 ## Errors and limits
 
 SQO/SQL clear ER on a new enable edge; SQI clears ER on a true evaluation.
 Modeled invalid lengths/positions set ER and retain data. Invalid SQI state
-also returns false. Physical table bounds set SQO/SQI ER without data movement.
+also returns false. A row past the end of the table sets ER without data
+movement for SQO/SQI. On a held true rung, SQO can resume writing after
+the row is repaired and keeps ER set until a new enable edge.
 [SQL row overruns](controller-handlers.md#recover-sequencer-array-faults)
 raise Type 4 Code 20 with the prior CONTROL state restored. Uncleared
 faults, resource limits, unknown required values and later execution

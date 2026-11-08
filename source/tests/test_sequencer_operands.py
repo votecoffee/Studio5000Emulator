@@ -90,7 +90,7 @@ class SequencerOperandTests(unittest.TestCase):
         before = self.snapshot(e)
         with self.assertRaisesRegex(ModelError, 'outside bounds'):e.step()
         self.assertEqual(self.snapshot(e), before)
-        e = self.checked(['SQI(Queue[0],Masks[MaskIndex],Samples[PayloadIndex],Ctl,?,?)OTE(RunLatch);'], length=4)
+        e = self.checked(['SQI(Queue[0],Masks[MaskIndex],Samples[PayloadIndex],Ctl,?,?)OTE(RunLatch);'], length=4, position=4)
         e.step(); self.assertTrue(e.memory.read('Ctl.ER')); self.assertFalse(e.memory.read('RunLatch'))
 
     def test_full_mask_establishes_unknown_output_partial_mask_requires_old_bits(self):

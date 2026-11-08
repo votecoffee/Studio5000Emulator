@@ -4449,7 +4449,7 @@ class ApplicationLifecycleTests(unittest.TestCase):
         write('IndexedCompare',True);fault('outside bounds');write('SourceIndex',1);fault('Unknown');write('FeedbackInputs[1]',1);row=values(step());self.assertTrue(row['IndexedMatches']);write('IndexedTeach',True);fault('Unknown');write('TeachInputs[1]',67);row=values(step());self.assertEqual(row['IndexedLearned[1]'],67)
         write('IndexedPatterns[1]',4);write('FeedbackInputs[1]',4);write('TeachInputs[1]',77);row=values(step());self.assertEqual((row['IndexedOutputs[1]'],row['IndexedLearned[1]']),(4,77));self.assertEqual((row['IndexedSequenceControl.POS'],row['IndexedTeachControl.POS']),(1,1));self.assertTrue(row['IndexedMatches']);self.assertEqual((row['IndexedPatterns[3]'],row['IndexedLearned[0]'],row['IndexedLearned[3]']),(999,111,999))
         write('IndexedTeach',False);write('Masks[1]',0);write('OutputIndex',99);write('SourceIndex',99);row=values(step());self.assertEqual(row['IndexedOutputs[1]'],4);self.assertTrue(row['IndexedMatches']);write('Masks[1]',-1);fault('outside bounds');write('OutputIndex',1);fault('outside bounds');write('SourceIndex',1);step()
-        profile=self.post('report',{})['sequencer_operations'];self.assertIn('Structural',profile['selection']);self.assertIn('table window',profile['zero_mask'])
+        profile=self.post('report',{})['sequencer_operations'];self.assertIn('Structural',profile['selection']);self.assertIn('Row address checked first',profile['zero_mask'])
 
     def test_stats_lab_indirect_unknown_results_latch_and_recover_through_http(self):
         self.assertEqual(self.post('demo',{'sample':'StatsLab'})['blockers'],[])

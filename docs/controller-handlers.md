@@ -273,13 +273,15 @@ If the handler clears the record, the next instruction receives the
 incoming rung power. A later valid call uses the retained edge state
 and position. For example, a held SQO can write the same row to a
 repaired destination without advancing again. A zero mask still checks
-the table window and skips the live compared source or destination.
+the reached row address and skips the live compared source or destination.
 
 For SQL, a reached row beyond the selected array or member also raises
 Type 4 Code 20 before the source is read. A row that fits can be taught
 even when LEN extends beyond the table. A cleared fault preserves the
-saved position and enable state for the next call. SQI and SQO still set
-ER when their configured table window is too short.
+saved position and enable state for the next call. SQI and SQO set ER
+and skip data access when their reached row overruns the table. SQI also
+returns false. An out-of-bounds starting subscript still raises Type 4
+Code 20.
 
 [Rockwell general instructions reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm003_-en-p.pdf)
 [Rockwell SQO reference](https://www.rockwellautomation.com/en-gb/docs/studio-5000-logix-designer/38-00/contents-ditamap/instruction-set/sequencer-instructions/sequencer-output--sqo-.html)

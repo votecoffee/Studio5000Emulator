@@ -83,7 +83,7 @@ class SequencerTests(unittest.TestCase):
 
     def test_invalid_lengths_positions_and_physical_table_bounds_set_errors(self):
         for instruction in ('SQO(Queue[0],-1,Outgoing,Ctl,?,?);','SQI(Queue[0],-1,Incoming,Ctl,?,?)OTE(RunLatch);'):
-            for length,position in ((0,0),(-1,0),(3,-1),(3,4),(4,0)):
+            for length,position in ((0,0),(-1,0),(3,-1),(3,4),(4,4)):
                 e=self.checked([instruction],length=length,position=position);e.step()
                 self.assertTrue(e.memory.read('Ctl.ER'))
                 if instruction.startswith('SQI'):self.assertFalse(e.memory.read('RunLatch'))
