@@ -55,8 +55,9 @@ control bits and then performs the operation. Success sets DN and POS=LEN.
 LEN=0 sets DN, POS=0 and UL=SourceBit without changing data; negative LEN sets ER.
 A positive LEN that extends past a standalone array can
 [raise Type 4 Code 20](controller-handlers.md#recover-shift-and-queue-array-faults)
-in the v35 5580 profile. The fault handler can observe ER. Overruns of
-structure members and the emulator's work limit use scan rollback.
+in the v35 5580 profile. BSL also raises that fault when LEN extends past the
+selected structure member. The fault handler can observe ER. BSR member
+overruns and the emulator's work limit use scan rollback.
 
 ## FIFO pair
 
@@ -101,7 +102,7 @@ as FIFO. LFL loads at POS and increments it using the same slot check. LFU retur
 POS-1, zeroes only that slot and decrements POS; lower entries do not shift.
 An empty unload edge writes zero. Held true does not repeat either operation.
 DN/EM and the bounded invalid-state policy follow the FIFO profile above.
-LFU also raises Type 4 Code 20 for a standalone array overrun and sets ER
+LFU raises Type 4 Code 20 for a standalone or member-array overrun and sets ER
 for the fault handler.
 
 [Sequence lab](../source/samples/SequenceLab.L5X) demonstrates a three-value stack

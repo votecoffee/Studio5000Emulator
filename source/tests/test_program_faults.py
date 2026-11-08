@@ -220,9 +220,7 @@ def configure_for_recovery(root, *lines):
         ET.SubElement(rung,'Text').text = line
 
 
-def queue_load_slot_fixture(root, name, *, member=False):
-    ladder_fault_fixture(root, handler_tail='CLR(LabRecords[0].POS)MOV(66,LabValues[0]);')
-    add_fault_record_array(root, 'CONTROL', LEN=4, POS=1, ER=False)
+def add_fault_queue_start(root, *, member):
     controller = root.find('Controller')
     tags = controller.find('Tags')
     add_fault_dint_array(tags, 'LabQueue', [31, 47, 99])
@@ -248,7 +246,25 @@ def queue_load_slot_fixture(root, name, *, member=False):
     tags.find('Tag[@Name="LabIndex"]/Data/DataValue').set('Value', '1')
     ET.SubElement(tags, 'Tag', Name='QueueStart', DataType='DINT', TagType='Alias',
                   AliasFor=f'{target}[LabIndex]')
+
+
+def queue_load_slot_fixture(root, name, *, member=False):
+    ladder_fault_fixture(root, handler_tail='CLR(LabRecords[0].POS)MOV(66,LabValues[0]);')
+    add_fault_record_array(root, 'CONTROL', LEN=4, POS=1, ER=False)
+    add_fault_queue_start(root, member=member)
     set_fault_instruction(root, f'{name}(LabValues[0],QueueStart,LabRecords[0],?,?)')
+
+
+def member_extent_fault_fixture(root, name):
+    shift = name == 'BSL'
+    length, repaired_length = (65, 4) if shift else (3, 2)
+    ladder_fault_fixture(root, handler_tail=f'MOV({repaired_length},LabRecords[0].LEN);')
+    add_fault_record_array(root, 'CONTROL', LEN=length, POS=2, ER=False)
+    add_fault_queue_start(root, member=True)
+    root.find('.//Routine[@Name="RecoverMove"]/RLLContent/Rung/Text').text = (
+        'XIC(LabRecords[0].ER)OTE(FaultWitness);')
+    operands = 'QueueStart,LabRecords[0],LabValues[0].0,?' if shift else 'QueueStart,LabValues[0],LabRecords[0],?,?'
+    set_fault_instruction(root, f'{name}({operands})')
 
 
 def ladder_fault_load(*, controller_fallback=False, call_fault=None, instruction=None,
@@ -1516,6 +1532,33 @@ class ProgramFaultTests(unittest.TestCase):
                     self.assertEqual(memory.read('LabQueue'), unloaded if position else [31, 47, 99])
                     self.assertEqual(memory.read('LabValues'), [value if position else 0, 13])
                     self.assertEqual(memory.read('LabRecords[0].POS'), max(position - 1, 0))
+
+    def test_member_shift_and_unload_extent_faults_preserve_the_neighboring_field(self):
+        for name, length, slots, output in (('BSL', 4, [31, 46, 99], 12), ('LFU', 2, [31, 47, 0], 99)):
+            with self.subTest(name=name):
+                self.setUp()
+                engine = self.engine(mutate=lambda root: member_extent_fault_fixture(root, name))
+                self.assertEqual(engine.blockers, [])
+                memory = engine.memory
+                engine.step()
+                saved = memory.read('LabRecords')
+                self.assertIsNone(engine.last_cleared_program_fault)
+
+                memory.write('StartPB', True)
+                engine.step()
+                fault = engine.last_cleared_program_fault
+                self.assertEqual((fault['type'], fault['code'], fault['instruction']), (4, 20, name))
+                self.assertEqual(memory.read('LabQueue'), dict(Slots=[31, 47, 99], Guard=777))
+                self.assertEqual(memory.read('LabValues'), [12, 13])
+                self.assertEqual(memory.read('LabRecords'), [saved[0] | dict(LEN=length, ER=True), saved[1]])
+                self.assertTrue(memory.read('FaultWitness'))
+
+                engine.step()
+                self.assertEqual(memory.read('LabQueue'), dict(Slots=slots, Guard=777))
+                self.assertEqual(memory.read('LabValues'), [output, 13])
+                self.assertEqual(memory.read('LabRecords[0].POS'), 4 if name == 'BSL' else 1)
+                engine.step()
+                self.assertEqual(memory.read('LabQueue'), dict(Slots=slots, Guard=777))
 
     def test_queue_unload_recovery_restores_aggregate_fields_with_unknown_values(self):
         def configure(root):

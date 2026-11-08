@@ -47,9 +47,9 @@ writing a typed zero destination. Other operands and CONTROL fields retain
 their existing validation and known-value requirements.
 
 A reached out-of-bounds subscript, v35 5580 shift or unload past a standalone
-array, or load slot past a standalone or member array can
+array, or BSL, LFU, FFL or LFL past a member array can
 [use ladder fault recovery](controller-handlers.md#recover-shift-and-queue-array-faults).
-An uncleared fault, shift or unload member overrun, unknown required data or later error
+An uncleared fault, BSR or FFU member overrun, unknown required data or later error
 rolls back the entire advance, including array data, outputs, CONTROL state,
 time, scheduler and trace. Correct the input and retry the pending edge.
 Run entry preserves FIFO/LIFO startup inhibition and shift prescan rules.

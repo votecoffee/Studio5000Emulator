@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+[Member-array shift and unload recovery](controller-handlers.md#recover-shift-and-queue-array-faults)
+routes BSL and LFU member length overruns to Type 4 Code 20 as of
+`26.1107.210814`. The handler can shorten LEN and retry the same edge.
+
 [Member-array queue load recovery](controller-handlers.md#recover-shift-and-queue-array-faults)
 applies the FFL/LFL slot check to structure members as of `26.1107.210054`.
 A reached slot past the member raises Type 4 Code 20 before any data moves.

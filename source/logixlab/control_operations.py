@@ -40,11 +40,11 @@ def integer(obj, name):
 
 
 class ShiftExtentError(ArrayBoundsError):
-    """The bit shift reached past the end of its standalone array."""
+    """The bit shift reached past the end of its array boundary."""
 
 
 class UnloadExtentError(ArrayBoundsError):
-    """An unload reached past the end of its standalone array."""
+    """An unload reached past the end of its array boundary."""
 
 
 class NegativeFileCursorError(ModelError):
@@ -293,7 +293,7 @@ def _transfer_region(memory, name, ref, count, scope, *, load_position=None):
             raise
         if load_position is not None:
             raise ArrayBoundsError(f'{name} load position exceeds the array boundary (Type 4 Code 20)') from error
-        if any(isinstance(part, str) for part in parts):
+        if name in ('BSR', 'FFU') and any(isinstance(part, str) for part in parts):
             raise
         if name in ('BSL', 'BSR'):
             raise ShiftExtentError(f'{name} LEN exceeds the remaining array bits (Type 4 Code 20)') from error
@@ -402,7 +402,7 @@ def execute(memory, op, power, scope):
 def description():
     return dict(instructions=sorted(INSTRUCTIONS), language='RLL', control_fields=['LEN', 'POS', *FLAGS],
                 shifts='DINT arrays, rising EN, low-to-high word order, partial last word preserved',
-                shift_extent='v35 5580 standalone array overrun sets ER for Type 4 Code 20 recovery; member and software limits retain rollback',
+                shift_extent='v35 5580 standalone BSL/BSR or member-array BSL overrun sets ER for Type 4 Code 20 recovery',
                 fifo='SINT/INT/DINT/REAL plus qualified v35 5580 mixed numeric payloads and matching TIMER/COUNTER/CONTROL, strings and explicit UDTs; rising EN/EU, saved LEN/POS, selected-member bounds',
                 numeric_conversions='v35 5580 RLL FFL/FFU/LFL/LFU: narrow numeric payload/array pairs; signed integer extension, low-bit narrowing, float32 REAL and representable nearest-even integer results',
                 numeric_selection='Bounded DINT/finite REAL load immediates; structural payload preflight, lazy edge reads, complete unknown writes and whole-advance rollback',
@@ -413,7 +413,7 @@ def description():
                 lifo='LFL writes current POS then increments; LFU pops and zeroes POS-1 without shifting other elements',
                 starting_references='v35 5580 shifts/FIFO/LIFO accept aliases and bounded indirect array starts; resolved on a data-moving edge',
                 skipped_references='v35 5580 structural preflight; false/latched calls skip live array starts and payload indices until needed',
-                array_recovery='Whole-project Type 4 Code 20 covers subscripts and v35 5580 standalone FFU/LFU extent overruns; restores CONTROL and queue data before the handler, with ER set for LFU extent overruns',
+                array_recovery='Whole-project Type 4 Code 20 covers subscripts and v35 5580 standalone FFU/LFU and member-array LFU extent overruns; restores CONTROL and queue data before the handler, with ER set for LFU extent overruns',
                 reset_selection='v35 5580 CONTROL RES skips live indices on false/prescan; true establishes POS/flags, retains LEN and clears modeled incremental progress',
                 lifecycle='Shift/queue prescan still requires actual CONTROL addresses and queue LEN/POS; algorithms and runtime state selection unchanged',
                 aoi_arrays='v35 5580 RLL: selected elements in one-dimensional exact-type InOut arrays or represented local arrays; disjoint instance members permitted',

@@ -380,8 +380,9 @@ skips an out-of-bounds PID record.
 payload indices until needed and lets false CONTROL resets skip live addresses.
 A [shift or queue access past an array](docs/controller-handlers.md#recover-shift-and-queue-array-faults)
 can raise a recoverable Type 4 Code 20 fault. FFL and LFL check the slot
-selected by POS within the selected array or structure member. BSL, BSR and
-LFU set ER for the fault handler.
+selected by POS within the selected array or structure member. BSL and LFU
+also raise this fault when LEN overruns a structure member. The fault handler
+can inspect ER after BSL, BSR and LFU extent faults.
 
 [Clipped record operations](docs/clipped-aggregates.md) stop COP/CPS and zero
 FLL at the selected logical region. **Data lab** demonstrates source-limited

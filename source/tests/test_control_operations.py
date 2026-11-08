@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 from xml.etree import ElementTree as E
 
-from logixlab.control_operations import FLAGS, ShiftExtentError, default
+from logixlab.control_operations import FLAGS, ShiftExtentError, UnloadExtentError, default
 from logixlab.model import BlockExtentError, ModelError, Project
 from logixlab.runtime import Engine
 
@@ -323,12 +323,17 @@ class ControlOperationTests(unittest.TestCase):
             E.SubElement(root.find('./Controller/Tags'),'Tag',Name='ControlAlias',DataType='CONTROL',TagType='Alias',AliasFor='Record.State')
         e=self.checked(['BSL(Record.Bits[0],ControlAlias,BitIn,?);'],mutate=record);e.step()
         self.assertEqual(e.memory.read('Record.Bits'),[1,1]);self.assertEqual(e.memory.read('Record.State.POS'),33)
-        e=self.checked(['BSL(Record.Bits[0],ControlAlias,BitIn,?);'],mutate=record)
-        e.memory.write('Record.State.LEN',65)
-        with self.assertRaises(ModelError) as fault:e.step()
-        self.assertIs(type(fault.exception.__cause__), BlockExtentError)
+        for name, error in (('BSL', ShiftExtentError), ('BSR', BlockExtentError)):
+            with self.subTest(name=name):
+                e = self.checked([f'{name}(Record.Bits[0],ControlAlias,BitIn,?);'], mutate=record)
+                e.memory.write('Record.State.LEN', 65)
+                before = copy.deepcopy(e.memory.values)
+                with self.assertRaises(ModelError) as fault:
+                    e.step()
+                self.assertIs(type(fault.exception.__cause__), error)
+                self.assertEqual(e.memory.values, before)
 
-        for name in ('FFU', 'LFU'):
+        for name, error in (('FFU', BlockExtentError), ('LFU', UnloadExtentError)):
             with self.subTest(name=name):
                 e = self.checked([f'XIC(StartPB){name}(Record.Bits[0],Outgoing,ControlAlias,?,?);'], mutate=record)
                 e.step()
@@ -337,7 +342,7 @@ class ControlOperationTests(unittest.TestCase):
                 before = copy.deepcopy(e.memory.values)
                 with self.assertRaises(ModelError) as fault:
                     e.step()
-                self.assertIs(type(fault.exception.__cause__), BlockExtentError)
+                self.assertIs(type(fault.exception.__cause__), error)
                 self.assertEqual(e.memory.values, before)
 
     def test_alias_start_array_is_supported_and_st_calls_remain_blocked(self):

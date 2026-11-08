@@ -236,21 +236,22 @@ existing rules for when to read an address.
 
 For v35 ControlLogix 5580 BSL and BSR, a positive LEN that exceeds the bits
 remaining at a valid standalone DINT array start also raises Type 4 Code 20.
+For BSL, the same rule applies at the selected member boundary.
 The emulator preserves the array and the prior CONTROL state, then sets ER
 before entering the handler. A cleared fault leaves the edge available for
 the next scan.
 
 FFU and LFU also raise Type 4 Code 20 when a reached unload edge has a LEN
-that extends past a standalone array, including the empty-queue path. The
-queue, destination and prior CONTROL state are retained. LFU sets ER for the
-handler.
+that extends past a standalone array, including the empty-queue path. LFU
+also checks the selected member boundary. The queue, destination and prior
+CONTROL state are retained. LFU sets ER for the handler.
 
 In this profile FFL and LFL check the reached slot at the selected array
 start plus POS. This includes an array member of a structure. A slot that
 fits can load even if LEN extends past the array. An out-of-bounds slot
 raises Type 4 Code 20 before reading the source or writing the slot. The
 handler can repair POS or the array start, then the next scan can retry.
-Shift and unload member overruns, emulator work limits and unknown consumed
+BSR and FFU member overruns, emulator work limits and unknown consumed
 values use scan rollback.
 
 [Rockwell general instructions reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm003_-en-p.pdf)
