@@ -14,8 +14,6 @@ class InputExtentError(ArrayBoundsError):
 
 
 def region(memory, ref, count, scope, *, writable=False, structural=False):
-    if type(count) is not int or not 0 <= count <= controls.MAX_ELEMENTS:
-        raise ModelError('FBC/DDT array region exceeds the 4096-element software limit')
     previous=memory.structural
     try:
         if structural:memory.structural=True
@@ -162,12 +160,12 @@ def _compare_bits(engine, op, scope, compare, saved_controls, store):
                 compare.update(ER=True, POS=initial_compare_position)
                 result['POS'] = initial_result_position
                 return True
-            if offset >= capacity:
-                raise ModelError('FBC/DDT result POS must be within capacity; full lists require DN')
             if destinations is None:
-                # Freeze the result start on the first mismatch, before DDT
-                # changes reference bits or result writes can change an index.
-                dk, destinations, result_path = region(memory, a[2], capacity, scope, writable=True)
+                if capacity > controls.MAX_ELEMENTS:
+                    raise ModelError('FBC/DDT result LEN exceeds the 4096-element software limit')
+                # Freeze the result start before any writes. Include the first
+                # slot even past LEN, plus the slots needed after wrapping.
+                dk, destinations, result_path = region(memory, a[2], max(capacity, offset + 1), scope, writable=True)
                 check_roles(op, dict(arrays, result=result_path), control_paths)
             if offset >= len(destinations):
                 raise ArrayBoundsError(f'{op.name} result position exceeds the selected array boundary (Type 4 Code 20)')
@@ -192,11 +190,11 @@ def description():
                 positions='Compare LEN/POS count bits; Result LEN/POS count DINT entries; LSB first',
                 fbc='Record mismatching bit offsets; source and reference unchanged',
                 ddt='Record offsets and update only mismatching reference bits',
-                result='Append at POS; DN marks capacity, next mismatch wraps to entry zero',
+                result='Write at a physically valid POS even at or past LEN; increment POS, set DN at capacity, and wrap on the next mismatch',
                 false_prescan='Clear compare EN/FD; when compare DN was set, reset both positions and done bits',
                 max_bits=MAX_BITS, max_result_entries=controls.MAX_ELEMENTS,
                 array_recovery='Type 4 Code 20 restores both CONTROL records and data writes before the handler; input extent faults then set compare ER',
-                invalid_state='Compare or reached result LEN<=0 or POS<0 sets compare ER and preserves data/cursors; unknowns and inconsistent result state roll back the advance',
+                invalid_state='Compare or reached result LEN<=0 or POS<0 sets compare ER and preserves data/cursors; unknowns and resource limits roll back the advance',
                 starting_references='Aliases and bounded indirect starts; structural preflight; false/held/done/invalid compare calls skip live indices; no CONTROL.POS-dependent starts',
                 sampling='Source/reference starts sampled once and bounds checked at each reached bit; result start sampled on first mismatch before writes, with each reached slot checked',
                 storage='Disjoint logical array members and distinct CONTROL records may share a base tag; writable roles cannot share an array member, even disjoint windows',

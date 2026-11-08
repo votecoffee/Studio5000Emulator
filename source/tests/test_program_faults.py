@@ -144,14 +144,16 @@ def add_bit_diagnostic_tags(root, *, single=False):
     add_fault_dint_array(tags,'LabResults',[-1,-1,88])
 
 
-def bit_result_slot_fault_fixture(root, name):
-    ladder_fault_fixture(root, handler_tail='MOV(1,LabIndex);')
+def bit_result_slot_fault_fixture(root, name, *, position=0):
+    start, repaired_start = (1, 0) if position else (2, 1)
+    ladder_fault_fixture(root, handler_tail=f'MOV({repaired_start},LabIndex);')
     add_bit_diagnostic_tags(root)
     tags = root.find('./Controller/Tags')
-    tags.find('Tag[@Name="LabIndex"]/Data/DataValue').set('Value', '2')
+    tags.find('Tag[@Name="LabIndex"]/Data/DataValue').set('Value', str(start))
     tags.find('Tag[@Name="FaultWitness"]/Data/DataValue').set('Value', '0')
-    tags.find('Tag[@Name="LabRecords"]/Data/Array/Element[@Index="[1]"]/Structure/'
-              'DataValueMember[@Name="LEN"]').set('Value', '2')
+    record = tags.find('Tag[@Name="LabRecords"]/Data/Array/Element[@Index="[1]"]/Structure')
+    record.find('DataValueMember[@Name="LEN"]').set('Value', '2')
+    record.find('DataValueMember[@Name="POS"]').set('Value', str(position))
     root.find('.//Routine[@Name="RecoverMove"]/RLLContent/Rung/Text').text = (
         'EQU(LabResults[2],88)EQU(LabQueue[0],0)OTE(FaultWitness);')
     set_fault_instruction(root, f'{name}(LabValues[0],LabQueue[0],LabResults[LabIndex],'
@@ -2159,6 +2161,34 @@ class ProgramFaultTests(unittest.TestCase):
                 self.assertEqual(memory.read('LabQueue'), [12 if name == 'DDT' else 0, 0, 99])
                 self.assertTrue(memory.read('LabRecords[0].DN'))
                 self.assertTrue(memory.read('LabRecords[1].DN'))
+
+    def test_bit_diagnostic_retries_a_position_at_capacity_after_array_fault(self):
+        for name in ('FBC', 'DDT'):
+            with self.subTest(name=name):
+                self.setUp()
+                engine = self.engine(mutate=lambda root: bit_result_slot_fault_fixture(root, name, position=2))
+                self.assertEqual(engine.blockers, [])
+                memory = engine.memory
+                engine.step()
+                saved = memory.read('LabRecords')
+                memory.write('StartPB', True)
+                engine.step()
+
+                fault = engine.last_cleared_program_fault
+                self.assertEqual((fault['type'], fault['code'], fault['instruction']), (4, 20, name))
+                self.assertIn('result position exceeds the selected array boundary', fault['detail'])
+                self.assertEqual(memory.read('LabRecords'), saved)
+                self.assertEqual(memory.read('LabResults'), [-1, -1, 88])
+                self.assertEqual(memory.read('LabQueue'), [0, 0, 99])
+                self.assertEqual(memory.read('LabIndex'), 0)
+                self.assertTrue(memory.read('FaultWitness'))
+
+                engine.step()
+                self.assertEqual(memory.read('LabResults'), [3, -1, 2])
+                self.assertEqual(memory.read('LabQueue'), [12 if name == 'DDT' else 0, 0, 99])
+                self.assertEqual(memory.read('LabRecords[1].POS'), 1)
+                self.assertFalse(memory.read('LabRecords[1].DN'))
+                self.assertTrue(memory.read('LabRecords[0].DN'))
 
     def test_bit_diagnostic_input_overrun_restores_data_and_exposes_compare_er(self):
         for name in ('FBC', 'DDT'):

@@ -275,12 +275,49 @@ class FileBitCompareTests(unittest.TestCase):
                     self.assertEqual(memory.read('Result'), [3, -1, -1, 999])
                     self.assertEqual(memory.read('Reference'), [8 if name == 'DDT' else 0])
 
-    def test_full_result_cursor_without_done_keeps_scan_rollback(self):
-        for position in (3, 4):
+    def test_result_slot_at_or_past_length_writes_then_wraps(self):
+        for name in ('FBC', 'DDT'):
+            for offset in (1, 2):
+                with self.subTest(name=name, offset=offset):
+                    self.setUp()
+                    op = self.instruction(name)
+                    engine = self.checked([f'XIC(Enable){op};'], length=4, capacity=1, one=True,
+                                          result_position=offset, source=(12,), reference=(0,))
+                    memory = engine.memory
+                    memory.write('Enable', True)
+                    engine.step()
+                    expected = [-1, -1, -1, 999]
+                    expected[offset] = 2
+                    self.assertEqual(memory.read('Result'), expected)
+                    self.assertEqual(memory.read('ResultControl.POS'), offset + 1)
+                    self.assertTrue(memory.read('ResultControl.DN'))
+                    self.assertEqual(memory.read('Reference'), [4 if name == 'DDT' else 0])
+
+                    memory.write('Enable', False)
+                    engine.step()
+                    memory.write('Enable', True)
+                    engine.step()
+                    expected[0] = 3
+                    self.assertEqual(memory.read('Result'), expected)
+                    self.assertEqual(memory.read('ResultControl.POS'), 1)
+                    self.assertTrue(memory.read('ResultControl.DN'))
+                    self.assertEqual(memory.read('Reference'), [12 if name == 'DDT' else 0])
+
+    def test_result_slot_can_be_farther_than_the_configured_length_limit(self):
+        engine = self.checked(name='DDT', length=1, capacity=1, result_position=4096,
+                              source=(1,), reference=(0,), result=(-1,)*4097)
+        engine.step()
+        self.assertEqual(engine.memory.read('Result[4095]'), -1)
+        self.assertEqual(engine.memory.read('Result[4096]'), 0)
+        self.assertEqual(engine.memory.read('ResultControl.POS'), 4097)
+        self.assertTrue(engine.memory.read('ResultControl.DN'))
+
+    def test_result_cursor_outside_physical_array_faults(self):
+        for position in (4, 2147483647):
             self.setUp()
             engine = self.checked(name='DDT', capacity=3, result_position=position)
             before = copy.deepcopy(engine.memory.values)
-            with self.assertRaisesRegex(ModelError, 'full lists require DN'):
+            with self.assertRaisesRegex(ModelError, 'result position exceeds the selected array boundary'):
                 engine.step()
             self.assertEqual(engine.memory.values, before)
 

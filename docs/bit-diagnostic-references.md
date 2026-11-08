@@ -45,7 +45,9 @@ The result start is selected lazily on the first mismatch, after validating
 result LEN and POS and before DDT learning or result writes. An invalid
 length or negative position sets compare ER without consuming the result
 start. A valid selection stays fixed for that invocation, including list wraps.
-The reached result slot must fit within the selected array or member. This prevents an index derived from learned reference
+The reached result slot must fit within the selected array or member.
+Result LEN determines when DN is set after a write. A physically valid
+slot can still be written at or past LEN when DN is clear. This prevents an index derived from learned reference
 bits or result data from moving storage midway through the operation. With no
 mismatch, live result indices/cursor values are not consumed. A later enable
 edge selects new windows; retained compare/result positions apply relative to
@@ -55,9 +57,8 @@ This address-sampling rule is an explicit simulator choice. Exact native
 evaluation timing, partial effects, status and fault behavior remain unqualified.
 A handler can
 [clear a reached subscript, input or result-slot fault](controller-handlers.md#recover-bit-diagnostic-and-data-transition-array-faults)
-during a whole-project scan. Unknown consumed indices or data, a full result
-position without DN, limits, budget exhaustion and uncleared faults roll back the
-entire modeled advance.
+during a whole-project scan. Unknown consumed indices or data, limits,
+budget exhaustion and uncleared faults roll back the entire modeled advance.
 
 ## AOI state
 

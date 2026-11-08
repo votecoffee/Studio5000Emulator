@@ -29,9 +29,10 @@ to the next bit, reaching LEN with DN=true at completion. Rung-out follows
 incoming power; FD carries the match result. No mismatch still completes
 the comparison and leaves existing result entries intact.
 
-Each mismatch appends at ResultControl.POS and advances it. Reaching result
-capacity sets result DN. The **next mismatch** clears that DN and restarts
-at result entry zero. Comparison continues, so a short result array can wrap
+With result DN clear, each mismatch writes at ResultControl.POS if the slot
+exists, including a POS at or beyond ResultControl.LEN. It then increments POS
+and sets result DN if the new position reaches or passes LEN. The **next
+mismatch** clears DN and restarts at result entry zero. Comparison continues, so a short result array can wrap
 within an all-mode operation. It does not stop merely because the list fills.
 Unused result entries are retained rather than cleared automatically.
 
@@ -80,8 +81,8 @@ A handler can
 after the emulator restores both CONTROL records and any result or reference
 writes made in the faulting call. An input overrun also sets compare ER for
 the handler. A fresh valid comparison clears ER and can retry after repair.
-Resource limits use scan rollback. A nonnegative result position at or past
-its configured capacity still requires DN set. Native partial-write behavior remains unqualified.
+Resource limits use scan rollback. Native partial-write behavior remains
+unqualified.
 
 Coverage reports expose `file_bit_compare`; normal rung traces retain the two
 instructions' power conditions. The profile does not imply native timing,

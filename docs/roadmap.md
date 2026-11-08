@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+[FBC and DDT result cursor bounds](file-bit-compare.md#modes-edges-and-result-lists)
+allow a physically valid result POS at or beyond LEN as of `26.1107.215450`.
+The write sets DN after advancing POS. A reached slot outside storage
+raises Type 4 Code 20 and can be retried after a handler repairs the address.
+
 [FBC and DDT invalid result status](file-bit-compare.md#supported-storage-and-failure-policy)
 sets compare ER when a reached mismatch has a negative result POS or nonpositive
 result LEN as of `26.1107.214804`. The emulator preserves data and cursors and
