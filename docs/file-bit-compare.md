@@ -67,13 +67,21 @@ unknown result slots. Compare LEN<=0 or POS<0 sets compare ER without data
 writes; a fresh valid comparison clears ER. A position at/after the configured
 end completes at LEN without reading an input word.
 
+When a mismatch reaches a negative result POS or nonpositive result LEN,
+FBC/DDT set compare ER and FD and continue the scan without resolving the
+result array. The emulator saves the status flags and retains both prior
+positions and the data. A result DN is examined first. It selects slot zero
+and clears DN before the length check, so an invalid length can clear DN
+while retaining the saved result position. Repair the result control and
+cycle the rung false and true to retry.
+
 A handler can
 [clear a reached array fault](controller-handlers.md#recover-bit-diagnostic-and-data-transition-array-faults)
 after the emulator restores both CONTROL records and any result or reference
 writes made in the faulting call. An input overrun also sets compare ER for
 the handler. A fresh valid comparison clears ER and can retry after repair.
-Resource limits and unsupported cursor states use scan rollback. A full
-result cursor requires DN set. Native partial-write behavior remains unqualified.
+Resource limits use scan rollback. A nonnegative result position at or past
+its configured capacity still requires DN set. Native partial-write behavior remains unqualified.
 
 Coverage reports expose `file_bit_compare`; normal rung traces retain the two
 instructions' power conditions. The profile does not imply native timing,

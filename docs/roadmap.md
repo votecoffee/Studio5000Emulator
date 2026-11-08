@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+[FBC and DDT invalid result status](file-bit-compare.md#supported-storage-and-failure-policy)
+sets compare ER when a reached mismatch has a negative result POS or nonpositive
+result LEN as of `26.1107.214804`. The emulator preserves data and cursors and
+can retry on the next enable edge after repair.
+
 [FBC and DDT input recovery](controller-handlers.md#recover-bit-diagnostic-and-data-transition-array-faults)
 checks each reached source or reference bit as of `26.1107.214034`. A read
 overrun raises Type 4 Code 20 and sets compare ER after the emulator

@@ -627,8 +627,8 @@ starts, disjoint shared members and stable per-call result windows. Choose
 learning.
 
 [File bit diagnostics](docs/file-bit-compare.md) add FBC/DDT array comparisons,
-recoverable input and result overruns, all/one-mismatch modes, result-list
-wrapping and selective reference learning.
+recoverable input and result overruns, invalid result status, result-list
+wrapping and selective reference learning in all or one-mismatch mode.
 
 [Continuous/periodic scheduling](docs/task-scheduling.md) now runs mixed
 Standard tasks at deterministic simulated release times. Choose **Task lab**

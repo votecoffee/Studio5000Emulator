@@ -235,11 +235,54 @@ class FileBitCompareTests(unittest.TestCase):
         e=self.checked([self.instruction(source='Source[0,1]',reference='Reference[0,1]')+';'],length=64,mutate=mutate)
         e.step();self.assertEqual(e.memory.read('Result'),[1,34,-1,999])
 
-    def test_invalid_result_cursor_state_faults_and_rolls_back_reference_writes(self):
-        for capacity,position in ((0,0),(-1,0),(3,-1),(3,3),(3,4)):
-            e=self.checked(name='DDT',capacity=capacity,result_position=position);before=copy.deepcopy(e.memory.values)
-            with self.assertRaises(ModelError):e.step()
-            self.assertEqual(e.memory.values,before)
+    def test_invalid_result_state_sets_compare_error_without_consuming_result_start(self):
+        for name in ('FBC', 'DDT'):
+            for capacity, position, done in ((0, 0, False), (-1, 1, False), (3, -1, False), (0, 3, True)):
+                with self.subTest(name=name, length=capacity, position=position, done=done):
+                    self.setUp()
+                    op = self.instruction(name, result='Result[FaultDivisor]')
+                    engine = self.checked([f'XIC(Enable){op}OTE(BitOK);'], length=4, position=1,
+                                          capacity=capacity, result_position=position,
+                                          result_flags=dict(DN=done), source=(8,), reference=(0,))
+                    memory = engine.memory
+                    memory.write('FaultDivisor', 99)
+                    memory.write('Enable', True)
+                    engine.step()
+                    self.assertTrue(memory.read('Compare.ER'))
+                    self.assertTrue(memory.read('Compare.FD'))
+                    self.assertTrue(memory.read('Compare.EN'))
+                    self.assertFalse(memory.read('Compare.DN'))
+                    self.assertTrue(memory.read('BitOK'))
+                    self.assertEqual(memory.read('Compare.POS'), 1)
+                    self.assertEqual(memory.read('ResultControl.POS'), position)
+                    self.assertFalse(memory.read('ResultControl.DN'))
+                    self.assertEqual(memory.read('Result'), [-1, -1, -1, 999])
+                    self.assertEqual(memory.read('Reference'), [0])
+
+                    memory.write('ResultControl.LEN', 3)
+                    memory.write('ResultControl.POS', 0)
+                    memory.write('FaultDivisor', 0)
+                    engine.step()
+                    self.assertTrue(memory.read('Compare.ER'))
+                    self.assertEqual(memory.read('Result[0]'), -1)
+                    memory.write('Enable', False)
+                    engine.step()
+                    memory.write('Enable', True)
+                    engine.step()
+                    self.assertFalse(memory.read('Compare.ER'))
+                    self.assertTrue(memory.read('Compare.DN'))
+                    self.assertEqual(memory.read('Compare.POS'), 4)
+                    self.assertEqual(memory.read('Result'), [3, -1, -1, 999])
+                    self.assertEqual(memory.read('Reference'), [8 if name == 'DDT' else 0])
+
+    def test_full_result_cursor_without_done_keeps_scan_rollback(self):
+        for position in (3, 4):
+            self.setUp()
+            engine = self.checked(name='DDT', capacity=3, result_position=position)
+            before = copy.deepcopy(engine.memory.values)
+            with self.assertRaisesRegex(ModelError, 'full lists require DN'):
+                engine.step()
+            self.assertEqual(engine.memory.values, before)
 
     def test_late_fault_rolls_back_both_controls_results_and_reference_then_retry_commits_once(self):
         e=self.checked([self.instruction('DDT')+';','DIV(1,FaultDivisor,GuardResult);'])

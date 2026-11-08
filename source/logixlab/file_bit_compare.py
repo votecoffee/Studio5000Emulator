@@ -142,6 +142,7 @@ def _compare_bits(engine, op, scope, compare, saved_controls, store):
         compare.update(POS=length, DN=True);return True
     result = controls.control(memory, a[6], scope)
     saved_controls.append((result, result.copy()))
+    initial_compare_position, initial_result_position = position, result['POS']
     destinations=None
     while position < length:
         engine.budget -= 1
@@ -155,9 +156,14 @@ def _compare_bits(engine, op, scope, compare, saved_controls, store):
         if (source ^ reference) & (1 << bit):
             compare['FD'] = True
             if controls.flag(result, 'DN'):result.update(DN=False, POS=0)
-            capacity, offset = controls.integer(result, 'LEN'), controls.integer(result, 'POS')
-            if capacity <= 0 or not 0 <= offset < capacity:
-                raise ModelError('FBC/DDT require positive result LEN and POS within capacity; full lists require DN')
+            offset = controls.integer(result, 'POS')
+            if offset < 0 or (capacity := controls.integer(result, 'LEN')) <= 0:
+                # The status flags survive, while data and the saved cursors stay intact.
+                compare.update(ER=True, POS=initial_compare_position)
+                result['POS'] = initial_result_position
+                return True
+            if offset >= capacity:
+                raise ModelError('FBC/DDT result POS must be within capacity; full lists require DN')
             if destinations is None:
                 # Freeze the result start on the first mismatch, before DDT
                 # changes reference bits or result writes can change an index.
@@ -190,7 +196,7 @@ def description():
                 false_prescan='Clear compare EN/FD; when compare DN was set, reset both positions and done bits',
                 max_bits=MAX_BITS, max_result_entries=controls.MAX_ELEMENTS,
                 array_recovery='Type 4 Code 20 restores both CONTROL records and data writes before the handler; input extent faults then set compare ER',
-                invalid_state='Compare LEN<=0 or POS<0 sets ER; unknowns and inconsistent result state roll back the advance',
+                invalid_state='Compare or reached result LEN<=0 or POS<0 sets compare ER and preserves data/cursors; unknowns and inconsistent result state roll back the advance',
                 starting_references='Aliases and bounded indirect starts; structural preflight; false/held/done/invalid compare calls skip live indices; no CONTROL.POS-dependent starts',
                 sampling='Source/reference starts sampled once and bounds checked at each reached bit; result start sampled on first mismatch before writes, with each reached slot checked',
                 storage='Disjoint logical array members and distinct CONTROL records may share a base tag; writable roles cannot share an array member, even disjoint windows',
