@@ -3,12 +3,13 @@ from . import control_operations as controls
 from .bit_transfer import unsigned
 from .integer_math import CONTROLLERS, bit_value
 from .model import ArrayBoundsError, ModelError
+from .numeric_copy import prefix
 
 INSTRUCTIONS = frozenset(('FBC', 'DDT'))
 MAX_BITS = 4096
 
 
-def region(memory, ref, count, scope, *, writable=False, structural=False):
+def region(memory, ref, count, scope, *, writable=False, structural=False, clip=False):
     if type(count) is not int or not 0 <= count <= controls.MAX_ELEMENTS:
         raise ModelError('FBC/DDT array region exceeds the 4096-element software limit')
     previous=memory.structural
@@ -27,7 +28,10 @@ def region(memory, ref, count, scope, *, writable=False, structural=False):
         if scope in memory.frames and (not parts or not isinstance(parts[-1],int) or
                 len(parts)>1 and isinstance(parts[-2],int) or isinstance(value,list)):
             raise ModelError('AOI FBC/DDT require selected elements of one-dimensional arrays')
-        _,paths,_=memory.region(ref,count,scope)
+        if clip:
+            _, paths, _ = prefix(memory, ref, scope, count)
+        else:
+            _, paths, _ = memory.region(ref, count, scope)
         return key,paths,(key,boundary)
     finally:memory.structural=previous
 
@@ -100,15 +104,23 @@ def execute(engine, op, power, scope):
     a = op.args;compare = controls.control(memory, a[3], scope)
     if controls.flag(compare, 'EN'):return True
     saved_controls = [(compare, compare.copy())]
+    writes = {}
+
+    def store(key, path, value):
+        writes.setdefault((key, tuple(path)), memory.at(key, path))
+        memory.store(key, path, value)
+
     try:
-        return _compare_bits(engine, op, scope, compare, saved_controls)
+        return _compare_bits(engine, op, scope, compare, saved_controls, store)
     except ArrayBoundsError:
+        for (key, path), value in writes.items():
+            memory.store(key, path, value)
         for record, previous in saved_controls:
             record.update(previous)
         raise
 
 
-def _compare_bits(engine, op, scope, compare, saved_controls):
+def _compare_bits(engine, op, scope, compare, saved_controls, store):
     memory, a = engine.memory, op.args
     compare['EN'] = True
     if controls.flag(compare, 'DN'):return True
@@ -142,11 +154,13 @@ def _compare_bits(engine, op, scope, compare, saved_controls):
             if destinations is None:
                 # Freeze the result start on the first mismatch, before DDT
                 # changes reference bits or result writes can change an index.
-                dk,destinations,result_path=region(memory,a[2],capacity,scope,writable=True)
-                check_roles(op,dict(arrays,result=result_path),control_paths)
+                dk, destinations, result_path = region(memory, a[2], capacity, scope, writable=True, clip=True)
+                check_roles(op, dict(arrays, result=result_path), control_paths)
+            if offset >= len(destinations):
+                raise ArrayBoundsError(f'{op.name} result position exceeds the selected array boundary (Type 4 Code 20)')
             if op.name == 'DDT':
-                memory.store(rk, references[word], bit_value(reference ^ (1 << bit), 'DINT'))
-            memory.store(dk, destinations[offset], position)
+                store(rk, references[word], bit_value(reference ^ (1 << bit), 'DINT'))
+            store(dk, destinations[offset], position)
             result['POS'] = offset + 1
             if result['POS'] >= capacity:result['DN'] = True
             position += 1;compare['POS'] = position
@@ -168,10 +182,10 @@ def description():
                 result='Append at POS; DN marks capacity, next mismatch wraps to entry zero',
                 false_prescan='Clear compare EN/FD; when compare DN was set, reset both positions and done bits',
                 max_bits=MAX_BITS, max_result_entries=controls.MAX_ELEMENTS,
-                array_recovery='A cleared Type 4 Code 20 skips the whole-project call and restores both CONTROL records',
-                invalid_state='Compare LEN<=0 or POS<0 sets ER; window/unknown/result-state failures roll back advance',
+                array_recovery='Type 4 Code 20 for reached subscripts or result slots restores CONTROL, result entries and DDT reference writes before the handler',
+                invalid_state='Compare LEN<=0 or POS<0 sets ER; short source/reference windows, unknowns and inconsistent result state roll back the advance',
                 starting_references='Aliases and bounded indirect starts; structural preflight; false/held/done/invalid compare calls skip live indices; no CONTROL.POS-dependent starts',
-                sampling='Source/reference windows once per fresh comparison; result window lazily once on first mismatch, before reference/result writes',
+                sampling='Source/reference windows once per fresh comparison; result start sampled on first mismatch before reference/result writes, with each reached slot checked',
                 storage='Disjoint logical array members and distinct CONTROL records may share a base tag; writable roles cannot share an array member, even disjoint windows',
                 aoi='RLL bodies with exact one-dimensional DINT InOut/local arrays and selected element starts; canonical role checks and existing lifecycle/binding rollback rules',
                 native_runtime_parity=False,

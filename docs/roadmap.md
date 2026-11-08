@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+[FBC and DDT result-slot recovery](controller-handlers.md#recover-bit-diagnostic-and-data-transition-array-faults)
+checks result POS when a mismatch needs a slot as of `26.1107.213208`.
+Type 4 Code 20 restores earlier result writes and DDT learning from the
+faulting call before the handler runs.
+
 [Sequencer Input and Output row checks](sequencer-operations.md#errors-and-limits)
 allow a reached row to be used even if LEN exceeds the table as of
 `26.1107.212408`. SQI and SQO set ER on a row overrun before reading the

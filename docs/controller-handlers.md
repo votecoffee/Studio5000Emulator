@@ -340,18 +340,20 @@ unverified.
 ## Recover bit diagnostic and data transition array faults
 
 A reached out-of-bounds subscript in FBC, DDT or DTR can raise Type 4
-Code 20 during a whole-project ladder scan. FBC and DDT restore the compare
-and result CONTROL records before the fault handler runs. They resolve the
-result array on the first mismatch, before writing any mismatch offsets
-or changing reference bits. If a handler clears a fault on a later enable
-edge, offsets and reference bits committed on earlier edges remain available.
+Code 20 during a whole-project ladder scan. FBC and DDT also raise this
+fault when a mismatch reaches a result position outside the selected
+array or member. They resolve the result array on the first mismatch,
+before writing any mismatch offsets or changing reference bits. Before
+the handler runs, the emulator restores both CONTROL records and any
+result offsets or DDT reference bits written in that call. Writes from
+earlier enable edges remain available.
 
 DTR skips its reference write if an indexed source, mask or reference
 faults. Recovery applies when a true scan compares the reference and when
 a false scan refreshes it. In each instruction, a cleared fault passes
-the incoming rung power to the next instruction. Other faults, including
-a configured window that runs beyond a valid starting element, use the
-existing scan rollback.
+the incoming rung power to the next instruction. FBC and DDT still roll
+back the scan if a configured source or reference window exceeds a valid
+starting element's array boundary.
 
 During prescan, DTR skips an out-of-bounds source, mask or reference
 selection before writing anything. Prescan continues without invoking a user

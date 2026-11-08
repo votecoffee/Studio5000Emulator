@@ -52,9 +52,11 @@ member, even with disjoint windows. Read-only FBC input tables are allowed
 outside AOIs. ST/FBD and other controller profiles remain unavailable.
 
 Each operation qualifies the complete configured source/reference word region.
-The result region is selected once on the first mismatch, before DDT learning
-or result writes; that window stays fixed for the invocation. The software
-limits are 4096 compared bits and 4096 result entries. Every compared bit consumes
+The result start is selected once on the first mismatch, before DDT learning
+or result writes. Each reached result position must fit within the selected
+array or member. An available slot can be written even if ResultControl.LEN
+exceeds the available space. The software limits are 4096 compared bits and
+4096 configured result entries. Every compared bit consumes
 the existing instruction budget. There is no cross-tag memory traversal.
 
 Required unknown source/reference words or control values fault. Unvisited
@@ -64,13 +66,11 @@ writes; a fresh valid comparison clears ER. A position at/after the configured
 end completes at LEN when the configured regions are valid.
 
 A handler can
-[clear a reached array subscript fault](controller-handlers.md#recover-bit-diagnostic-and-data-transition-array-faults)
-after the emulator restores both CONTROL records. The instruction has performed
-no writes to the result or reference arrays when address selection faults.
-Short windows from a valid start, resource limits and unsupported cursor states
-use scan rollback. A full result cursor requires DN set. Later faults also roll
-back recorded offsets, reference changes, control positions and earlier
-instructions. Native fault classification and partial effects remain unqualified.
+[clear a reached subscript or result-slot fault](controller-handlers.md#recover-bit-diagnostic-and-data-transition-array-faults)
+after the emulator restores both CONTROL records and any result or reference
+writes made in the faulting call. Short source/reference windows, resource
+limits and unsupported cursor states use scan rollback. A full result cursor
+requires DN set. Native partial-write behavior remains unqualified.
 
 Coverage reports expose `file_bit_compare`; normal rung traces retain the two
 instructions' power conditions. The profile does not imply native timing,

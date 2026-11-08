@@ -190,10 +190,19 @@ class FileBitCompareTests(unittest.TestCase):
         self.assertTrue(e.memory.read('Compare.DN'))
 
     def test_software_limit_and_array_bound_failures_roll_back(self):
-        for options in ({'length':4097},{'length':97},{'capacity':5}):
+        for options in ({'length':4097},{'length':97},{'capacity':5,'result_position':4}):
             e=self.checked(name='DDT',**options);before=copy.deepcopy(e.memory.values)
             with self.assertRaises(ModelError):e.step()
             self.assertEqual(e.memory.values,before)
+
+    def test_valid_result_slot_accepts_capacity_beyond_physical_storage(self):
+        e = self.checked(name='DDT', length=1, capacity=5, result_position=3,
+                         source=(1,), reference=(0,))
+        e.step()
+        self.assertEqual(e.memory.read('Result'), [-1, -1, -1, 0])
+        self.assertEqual(e.memory.read('Reference'), [1])
+        self.assertEqual(e.memory.read('ResultControl.POS'), 4)
+        self.assertFalse(e.memory.read('ResultControl.DN'))
 
     def test_maximum_bit_span_reaches_high_bit_without_touching_guard_word(self):
         e=self.checked(name='DDT',length=4096,capacity=1,source=tuple([0]*127+[-2147483648,999]),reference=tuple([0]*128+[888]))

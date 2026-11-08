@@ -41,9 +41,9 @@ reference word windows once, using `ceil(Compare.LEN / 32)` words. This window
 must fit even when the saved bit position is at the end; unvisited word values
 are not read. The limits remain 4096 compared bits and 4096 result entries.
 
-The result window is selected lazily on the first mismatch, before DDT learning
-or result writes. Its start and capacity window stay fixed for that invocation,
-including list wraps. This prevents an index derived from learned reference
+The result start is selected lazily on the first mismatch, before DDT learning
+or result writes. It stays fixed for that invocation, including list wraps.
+The reached result slot must fit within the selected array or member. This prevents an index derived from learned reference
 bits or result data from moving storage midway through the operation. With no
 mismatch, live result indices/cursor values are not consumed. A later enable
 edge selects new windows; retained compare/result positions apply relative to
@@ -52,8 +52,8 @@ those new starts. Authors must account for that when changing windows mid-search
 This address-sampling rule is an explicit simulator choice. Exact native
 evaluation timing, partial effects, status and fault behavior remain unqualified.
 A handler can
-[clear a reached array subscript fault](controller-handlers.md#recover-bit-diagnostic-and-data-transition-array-faults)
-during a whole-project scan. Unknown consumed indices or data, short windows,
+[clear a reached subscript or result-slot fault](controller-handlers.md#recover-bit-diagnostic-and-data-transition-array-faults)
+during a whole-project scan. Unknown consumed indices or data, short input windows,
 inconsistent list state, limits, budget exhaustion and later faults roll back
 the entire modeled advance.
 
