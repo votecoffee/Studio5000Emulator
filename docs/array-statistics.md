@@ -48,6 +48,25 @@ A one-element DINT source of 2147483647 first rounds to 2147483648, so a DINT
 result fails its range check. Wider intermediates and native precision remain
 unqualified. STD is not widened by the integer AVE profile.
 
+## STD arithmetic overflow
+
+App `26.1112.172716` latches STD EN/ER, clears DN and leaves the destination
+unchanged if a float32 calculation overflows after all selected source values
+have been read and converted. POS records the zero-based sample offset at the
+failing sum, squared difference or variance accumulation. The source array and
+earlier ladder writes remain intact; the rung continues true.
+
+Held error state skips another calculation. A false rung or CONTROL RES clears
+the latch and resets POS; correct the samples before a fresh call. An unknown
+destination remains unknown until a successful calculation writes it. Unknown
+source samples, invalid references, excluded ranges and later faults still use
+whole-advance rollback. AVE keeps its existing overflow policy.
+
+The two-pass float32 order and retained result are explicit software behavior.
+Native intermediate precision, partial results, exact error positions and math
+status remain unqualified. Installed v35 help 14501 documents ER on expression
+overflow. [Rockwell STD reference](https://www.rockwellautomation.com/en-id/docs/factorytalk-design-studio/current/contents-ditamap/instructions/instruction-set/array-file-misc-instructions/std.html).
+
 ## Operand selection
 
 [Statistics operand selection](statistics-operands.md) adds structural preflight
@@ -79,9 +98,10 @@ In a whole-project ladder scan, a handler can
 and skip both the result write and CONTROL update. A reached negative
 STD LEN or POS raises [Type 4 Code 21](controller-handlers.md#recover-negative-sort-and-deviation-cursors)
 before writing the result or changing CONTROL. Other invalid cursors,
-unknown values, short windows, accumulation overflow and unrecovered
-faults roll back the modeled advance. Native ER/POS fault side effects,
-partial results, math flags and fault classifications remain unfinished.
+unknown values, short windows, AVE accumulation overflow and unrecovered
+faults roll back the modeled advance. STD arithmetic overflow uses the
+[error latch](#std-arithmetic-overflow). Native partial results, precision,
+math flags and complete fault classifications remain unfinished.
 Wider types, partial-state execution and broader AOI forms remain open.
 Neither instruction is available as an ST call or FBD instruction.
 

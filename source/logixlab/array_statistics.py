@@ -87,6 +87,25 @@ def prescan(memory, op, scope):
     elif not controls.flag(obj, 'ER'):obj.update(dict.fromkeys(controls.FLAGS, False))
 
 
+def standard_deviation(values):
+    """Converted finite samples; return a float32 result or overflow offset."""
+    position = 0
+    try:
+        total = 0.0
+        for position, value in enumerate(values):total = real(total + value)
+        mean = real(total / len(values))
+        total = 0.0
+        for position, value in enumerate(values):
+            delta = real(value - mean)
+            total = real(total + real(delta * delta))
+        result = real(math.sqrt(real(total / (len(values) - 1))))
+    except ModelError:
+        # Only arithmetic on already converted samples occurs in this block.
+        # Unknown values and invalid operands keep their normal fault paths.
+        return None, position
+    return result, None
+
+
 def execute(memory, op, power, scope):
     validate(memory, op, scope)
     obj = controls.control(memory, op.args[3], scope)
@@ -107,16 +126,15 @@ def execute(memory, op, power, scope):
     key, paths, prefix, _ = region(memory, op, scope, length, references=True)
     destination(memory,op,scope,key,prefix)
     values = [real(memory.read(memory.address(key, path))) for path in paths]
-    total = 0.0
-    for value in values:total = real(total + value)
-    mean = real(total / length)
-    result = mean
     if op.name == 'STD':
+        result, overflow_position = standard_deviation(values)
+        if overflow_position is not None:
+            obj.update(EN=True, DN=False, ER=True, POS=overflow_position)
+            return True
+    else:
         total = 0.0
-        for value in values:
-            delta = real(value - mean)
-            total = real(total + real(delta * delta))
-        result = real(math.sqrt(real(total / (length - 1))))
+        for value in values:total = real(total + value)
+        result = real(total / length)
     memory.write(op.args[2], result, scope)
     obj.update(EN=True, DN=True, ER=False, POS=length)
     return True
@@ -127,6 +145,7 @@ def description():
                 source_types=sorted(controls.NUMERIC), destination='AVE: SINT/INT/DINT/REAL; STD: REAL',
                 destinations={'AVE':sorted(controls.NUMERIC),'STD':['REAL']}, max_elements=controls.MAX_ELEMENTS,
                 integer_ave='Float32 mean rounded to nearest integer, ties to even; rounded range errors roll back the advance',
+                std_overflow='Finite-sample float32 calculation overflow latches EN/ER, clears DN, records the failing sample offset in POS and retains the result; false/RES rearms',
                 result_storage='Scalar aliases/members/AOI results disjoint from the source array and its CONTROL record',
                 selection='Structural source/result/control preflight; false or EN/DN/ER-inhibited calls skip live result indices and values',
                 result_writes='A fresh calculation resolves the actual result before reading samples; full writes establish unknown destinations',

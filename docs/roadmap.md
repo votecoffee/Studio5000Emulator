@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+[STD arithmetic overflow](array-statistics.md#std-arithmetic-overflow) latches
+ER with a sample offset and retains the result as of `26.1112.172716`. A false
+rung or CONTROL reset rearms the calculation after the samples are corrected.
+
 [SRT range recovery](controller-handlers.md#recover-sort-and-statistics-array-faults)
 raises Type 4 Code 20 for LEN beyond the selected dimension or member as of
 `26.1112.171200`. Fault handlers can repair the range and retry before any sorting

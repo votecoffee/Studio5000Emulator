@@ -7,6 +7,13 @@ import test_control_operations as fixtures
 from logixlab.model import ModelError
 
 
+STD_OVERFLOW_CASES = (
+    ((3e38, 3e38), 1),
+    ((2e20, -2e20), 0),
+    ((1e19, 1e19, -1e19, -1e19), 3),
+)
+
+
 class ArrayStatisticsTests(unittest.TestCase):
     setUp=fixtures.ControlOperationTests.setUp
     checked=fixtures.ControlOperationTests.checked
@@ -142,6 +149,57 @@ class ArrayStatisticsTests(unittest.TestCase):
         before=copy.deepcopy(e.memory.values)
         with self.assertRaises(ModelError):e.step()
         self.assertEqual(e.memory.values,before);self.assertEqual(e.scheduler_description()['tasks'][0]['executions'],0)
+
+    def test_std_overflow_latches_control_at_failing_sample_and_continues_rung(self):
+        for values, position in STD_OVERFLOW_CASES:
+            with self.subTest(values=values):
+                e = self.checked(['MOV(42,SpeedCommand);',
+                                  'STD(Queue[0],0,Result,Ctl,?,?)OTE(RunLatch);'],
+                                 dtype='REAL', length=len(values), queue=values+(999,))
+                source = copy.deepcopy(e.memory.read('Queue'))
+                e.step()
+                self.assertEqual([e.memory.read('Ctl.'+n) for n in ('EN','DN','ER','POS')],
+                                 [True,False,True,position])
+                self.assertEqual(e.memory.read('Result'),7.0)
+                self.assertEqual(e.memory.read('Queue'),source)
+                self.assertEqual(e.memory.read('SpeedCommand'),42)
+                self.assertTrue(e.memory.read('RunLatch'))
+                self.assertEqual(e.scan_count,1)
+                self.assertIsNone(e.last_cleared_program_fault)
+
+    def test_std_overflow_preserves_unknown_result_until_false_rung_rearms(self):
+        e = self.checked(['XIC(StartPB)STD(Queue[0],0,Result,Ctl,?,?);'],
+                         dtype='REAL', length=2, queue=(3e38,3e38,999))
+        e.memory.values['result'] = None
+        e.memory.write('StartPB',True)
+        e.step()
+        self.assertTrue(e.memory.read('Ctl.ER'))
+        self.assertIsNone(e.memory.values['result'])
+        e.memory.values['queue'][0] = None
+        e.step()
+        self.assertTrue(e.memory.read('Ctl.ER'))
+        self.assertIsNone(e.memory.values['result'])
+        e.memory.write('StartPB',False)
+        e.step()
+        self.assertEqual([e.memory.read('Ctl.'+n) for n in ('EN','DN','ER','POS')],
+                         [False,False,False,0])
+        e.memory.write('Queue[0]',2.0)
+        e.memory.write('Queue[1]',4.0)
+        e.memory.write('StartPB',True)
+        e.step()
+        self.assertAlmostEqual(e.memory.read('Result'),2**0.5,places=6)
+        self.assertEqual([e.memory.read('Ctl.'+n) for n in ('EN','DN','ER','POS')],
+                         [True,True,False,2])
+        self.assertEqual(e.memory.read('Queue[2]'),999)
+
+    def test_std_overflow_latch_rolls_back_with_a_later_fault(self):
+        e = self.checked(['STD(Queue[0],0,Result,Ctl,?,?);','DIV(1,0,SpeedCommand);'],
+                         dtype='REAL', length=2, queue=(3e38,3e38))
+        before = copy.deepcopy(e.memory.values)
+        with self.assertRaises(ModelError):e.step()
+        self.assertEqual(e.memory.values,before)
+        self.assertEqual((e.scan_count,e.time_ms),(0,0))
+        self.assertEqual(e.scheduler_description()['tasks'][0]['executions'],0)
 
     def test_constant_sources_allowed_constant_results_and_controls_rejected(self):
         def source(root):root.find('./Controller/Tags/Tag[@Name="Queue"]').set('Constant','true')

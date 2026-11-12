@@ -366,6 +366,8 @@ when a transfer has executed.
 
 [Statistics operand selection](docs/statistics-operands.md) defers dormant
 AVE/STD result indices and establishes unknown REAL/integer result elements.
+[STD arithmetic overflow](docs/array-statistics.md#std-arithmetic-overflow)
+latches CONTROL.ER/POS, retains the result and allows ladder execution to continue.
 [SRT range recovery](docs/controller-handlers.md#recover-sort-and-statistics-array-faults)
 raises Type 4 Code 20 when LEN extends past the selected dimension or member,
 so a handler can repair the range before the next sort.
