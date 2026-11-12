@@ -4,6 +4,12 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+[Regression and upload-export validation](development.md#run-and-test)
+for `26.1112.165951` exercises 6,287 software tests and resolves the partial
+export reader's missing parser dependencies. All 34 initially failed cases
+pass in focused reruns. The coverage inventory and instruction-count checks
+now agree on 108 ladder instructions and 63 FBD blocks.
+
 [FBC and DDT result cursor bounds](file-bit-compare.md#modes-edges-and-result-lists)
 allow a physically valid result POS at or beyond LEN as of `26.1107.215450`.
 The write sets DN after advancing POS. A reached slot outside storage

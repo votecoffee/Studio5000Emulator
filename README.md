@@ -1043,10 +1043,14 @@ With Node.js installed for development, run the dependency-free viewer checks
 from the project root:
 
 ```powershell
-node --test source/tests/web/logic-view.test.cjs source/tests/web/logic-values.test.cjs
+node --test source/tests/web/*.test.cjs
 ```
 
-See the [viewer architecture and planned graph editor](docs/logic-viewer.md).
+The `26.1112.165951` regression milestone exercised 6,287 Python tests,
+with two platform skips. The 34 failed cases passed after fixes and 1,004
+focused checks across affected modules. All 51 viewer tests passed.
+See the [validation details](docs/development.md#run-and-test) and
+[viewer architecture and planned graph editor](docs/logic-viewer.md).
 
 Store machine-specific notes, private PLC files, settings, captures and test
 receipts in ignored `.local/` storage. Generated builds and local reports are

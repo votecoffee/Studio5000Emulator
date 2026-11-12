@@ -110,12 +110,13 @@ class RealRemainderTests(unittest.TestCase):
         self.assertEqual(self.snapshot(e),before)
         e.memory.write('Inputs[0]',1);e.step();self.assertEqual(e.memory.read('Results'),[-0.5,None,None])
 
-    def test_invalid_shapes_types_constants_and_wide_real_mixtures_stay_blocked(self):
+    def test_invalid_shapes_permissions_and_bool_results_stay_blocked(self):
         for rung in ('MOD(StartPB,Mask,Results[0]);','MOD(Source,Mask,Results);','MOD(Inputs,Mask,Results[0]);','MOD(Missing,Mask,Results[0]);'):
             self.assertTrue(self.engine(['AFI()'+rung]).blockers,rung)
-        for kwargs in ({'source':'LREAL','value':7},{'other':'LREAL'},{'dest':'UDINT'},{'dest':'BOOL'}):
-            self.assertTrue(self.engine(**kwargs).blockers,kwargs)
-        for kwargs in ({'source':'LINT','value':7},{'other':'ULINT','value':7}):
+        self.assertTrue(self.engine(dest='BOOL').blockers)
+        for kwargs in ({'source':'LINT','value':7},{'other':'ULINT','value':7},
+                       {'source':'LREAL','value':7},{'other':'LREAL','value':7},
+                       {'dest':'UDINT','value':7}):
             e=self.checked(**kwargs);e.step();self.assertEqual(e.memory.read('Results[1]'),1)
         def constant(root):root.find('./Controller/Tags/Tag[@Name="Results"]').set('Constant','true')
         self.assertTrue(self.engine(['AFI()MOD(Source,Mask,Results[0]);'],mutate=constant).blockers)

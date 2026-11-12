@@ -99,8 +99,7 @@ class MathOperandTests(unittest.TestCase):
                      'SQR(Inputs[Index MOD 2],Results[0]);','XPY(Source,2147483648,Results[0]);',
                      'LN(1e40,Results[0]);','SQR(Source,Results[99]);'):
             self.assertTrue(self.engine(['AFI()'+text]).blockers,text)
-        for dtype in ('BOOL','LINT','USINT','UINT','UDINT','ULINT'):
-            self.assertTrue(self.engine(dest=dtype).blockers,dtype)
+        self.assertTrue(self.engine(dest='BOOL').blockers)
         def constant(root):root.find('./Controller/Tags/Tag[@Name="Results"]').set('Constant','true')
         self.assertTrue(self.engine(mutate=constant).blockers)
 

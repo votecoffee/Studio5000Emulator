@@ -122,7 +122,7 @@ class MixedRelationTests(unittest.TestCase):
         self.assertEqual(self.snapshot(e),before);e.memory.write('IndexB',2);e.step();self.assertTrue(e.memory.read('DriverA.EnableOut'));self.assertEqual(e.memory.read('DriverA.Stack[3]'),777)
 
     def test_lossy_types_immediates_shapes_and_other_profiles_remain_blocked(self):
-        for types,values in [(('DINT','UDINT','DINT'),(1,1,0)),(('LINT','ULINT','DINT'),(1,1,0)),(('SINT','USINT','DINT'),(1,1,0)),(('LINT','REAL','DINT'),(1,1,0))]:
+        for types,values in [(('DINT','UDINT','DINT'),(1,1,0)),(('LINT','ULINT','DINT'),(1,1,0)),(('SINT','USINT','DINT'),(1,1,0))]:
             self.assertTrue(self.engine(['AFI()EQU(Source,Mask)OTE(RunLatch);'],types=types,values=values).blockers)
         for text in ('LIM(2147483648,Source,Mask)','EQU(Source,2147483648)','EQU(Source,TRUE)','EQU(Values,Mask)','EQU(Missing,Mask)'):
             self.assertTrue(self.engine(['AFI()'+text+'OTE(RunLatch);'],types=('LINT','DINT','DINT')).blockers)

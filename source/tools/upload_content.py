@@ -249,6 +249,7 @@ class _ProgramValues:
     default=Project.default
     string_capacity=Project.string_capacity
     decorated=Project.decorated
+    _decorated_scalar=Project._decorated_scalar
     _tag=Project._tag
 
     def __init__(self,controller):
@@ -256,6 +257,7 @@ class _ProgramValues:
         self.udts={d.get('Name','').casefold():d for d in types}
         if len(self.udts)!=len(types):raise ValueError('Duplicate exported data type')
         self.tags={}
+        self.message_configs={}
 
 
 def verify_programs(folder,expected,native_types,receipt):

@@ -28,7 +28,7 @@ firmware features are separate profiles, not implicit L85E capabilities.
 | FBD math records | [Basic arithmetic](fbd-arithmetic.md) plus [SQR/LN/LOG/XPY/DEG/RAD/trig](fbd-advanced-math.md), 19 finite REAL Block forms over two records, prescan retention and transactional failures | Other math/forms/types, native precision/flags, minor-fault/domain/nonfinite/overflow/layout/lifecycle parity |
 | FBD Boolean records | [BAND/BOR/BNOT/BXOR](fbd-boolean.md), strict BOOL inputs, known-value requirements and four logical types | Tagless functions and native initialization/layout/lifecycle/fault parity |
 | Function blocks | [Single-sheet signal graphs](function-blocks.md), Sixty-three blocks including target bit moves, conversions/remainder, advanced math, bitwise/masked operations, comparisons, limits, basic arithmetic, enhanced selection, derivatives, accumulation, integration, rate limiting, extrema, Boolean logic, latches and timers/counter/one-shots, typed references/wires, BOOL diagnostics, enables and rollback | Other blocks/functions, multiple sheets, feedback/connectors, AOIs, native ordering/layout/lifecycle/status/fault and transfer/edit parity |
-| Ladder (RLL) | 106 built-in dispatch entries, branches, bounded calls, [FOR/BRK loops](ladder-loops.md), [paired MCR zones](master-control.md), traces and prescan | Additional instructions, operand forms, full scan/status/fault semantics |
+| Ladder (RLL) | 108 built-in dispatch entries, branches, bounded calls, [FOR/BRK loops](ladder-loops.md), [paired MCR zones](master-control.md), traces and prescan | Additional instructions, operand forms, full scan/status/fault semantics |
 | User interrupt control | [UID/UIE](interrupt-control.md), balanced task-local nesting in RLL/ST, queued EVENT requests, outer-UIE priority drain, called routines and transactional guards | Native unmatched/persistent-state behavior, CPU/Periodic preemption, latency, watchdog/fault/Safety/AOI/harness and other profiles remain separate |
 | Event tasks | [Instruction-only EVENT dispatch](event-tasks.md), RLL/ST, [configured and runtime timeouts](event-tasks.md#runtime-timeout-settings), priority ordering, first scans, active/pending diagnostics and transactional rollback | Native time slicing and pending-duplicate semantics, external triggers, AOI/harness/ST FOR forms and CPU/status/fault parity |
 | Program DisableFlag | [Runtime Program control](program-disable.md) in ladder/ST, named/THIS, SINT write, SINT/DINT readback, independent first scans, activation of imported disabled targets, enabled default for ordinary omissions, and rollback | Other Program kinds and native write/lifecycle parity |
@@ -222,7 +222,7 @@ numerical/status/fault/lifecycle parity remain open.
   instruction availability. Preserve language-specific operand ordering and
   evaluation rules; current expressions evaluate operands eagerly.
 - [ ] **L03 — FBD execution:** [Single-sheet signal graphs](function-blocks.md)
-  now execute thirty-three blocks over typed acyclic wires with enable/status/rollback. Complete multiple
+  now execute sixty-three blocks over typed acyclic wires with enable/status/rollback. Complete multiple
   sheets, connectors, feedback, native execution order, retained state, sample
   periods, other FBD instructions/functions/AOIs and native transfer/edit support.
 - [ ] **L04 — SFC execution:** active steps and transitions, selection/parallel
@@ -366,7 +366,7 @@ Instruction names were checked against the installed Studio v35 instruction-set
 and A–Z indexes; vendor help files and private projects are not redistributed.
 The reference list includes language aliases, SFC elements and product-specific
 families; it is not a denominator for a percentage-complete claim. Instructions
-added by project AOIs are counted separately from the 106 built-in RLL entries.
+added by project AOIs are counted separately from the 108 built-in RLL entries.
 Update both this matrix and the instruction inventory when capabilities change.
 
 [REAL-result math](real-destination-math.md) additionally selects float32

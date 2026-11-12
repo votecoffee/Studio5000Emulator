@@ -208,7 +208,7 @@ class LadderWideExpressionTests(unittest.TestCase):
     def test_report_preserves_dispatch_inventory_and_marks_remaining_forms(self):
         from logixlab.model import ARITIES, ST_ONLY_ARITIES
         e=self.checked(['CPT(Dest,Source+Mask);']);profile=e.report()['wide_ladder_expressions']
-        self.assertEqual((len(ARITIES),len(ST_ONLY_ARITIES)),(106,29));self.assertEqual(profile['instructions'],['CPT','CMP','MEQ'])
+        self.assertEqual((len(ARITIES),len(ST_ONLY_ARITIES)),(108,29));self.assertEqual(profile['instructions'],['CPT','CMP','MEQ'])
         self.assertTrue(profile['available']);self.assertTrue(profile['mixed_numeric_types']);self.assertFalse(profile['native_runtime_parity'])
 
     def test_wide_helpers_stay_opt_in_and_file_consumers_qualify_separately(self):

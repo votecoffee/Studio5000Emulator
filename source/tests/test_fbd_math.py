@@ -62,7 +62,7 @@ class FBDMathTests(unittest.TestCase):
         self.assertEqual(math.copysign(1,e.memory.read('Magnitude')),1)
 
     def test_math_schemas_and_member_types_are_exact(self):
-        e=self.checked();self.assertEqual((len(ARITIES),len(ST_ONLY_ARITIES)),(106,29))
+        e=self.checked();self.assertEqual((len(ARITIES),len(ST_ONLY_ARITIES)),(108,29))
         for tag,dtype in (('Adder','FBD_MATH'),('Absolute','FBD_MATH_ADVANCED')):
             self.assertNotIn(dtype,e.project.data_only_types)
             for pin,kind in SCHEMAS[dtype].items():self.assertEqual(e.memory.resolve(tag+'.'+pin)[2],kind)

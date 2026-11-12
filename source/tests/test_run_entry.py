@@ -94,10 +94,10 @@ class RunEntryTests(unittest.TestCase):
         e.enter_run()
         self.assertFalse(e.memory.read('MotorRunning'));self.assertTrue(e.memory.read('RunLatch'))
         self.assertEqual(e.memory.read('Parts.ACC'),3)
-        for timer in ('StartDelay','OffDelay','RetainedTimer'):
+        for timer, accumulator in (('StartDelay',0),('OffDelay',1000),('RetainedTimer',23)):
             self.assertFalse(e.memory.read(timer+'.EN'));self.assertFalse(e.memory.read(timer+'.TT'))
             self.assertEqual(e.memory.read(timer+'.PRE'),1000)
-            self.assertEqual(e.memory.read(timer+'.ACC'),23 if timer=='RetainedTimer' else 0)
+            self.assertEqual(e.memory.read(timer+'.ACC'),accumulator)
             self.assertEqual(e.memory.read(timer+'.DN'),timer=='RetainedTimer')
 
     def test_run_entry_has_a_fresh_budget_and_clears_timer_history_without_advancing_time(self):

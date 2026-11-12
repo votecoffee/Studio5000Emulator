@@ -222,7 +222,7 @@ class McrTests(unittest.TestCase):
         self.assertFalse(next(row for row in e.trace if row['number']=='1')['power'])
 
     def test_body_fifo_and_shift_receive_normal_false_execution(self):
-        e=self.checked(self.zone(['FFL(Incoming,Queue[0],QueueControl,?,?);','BSL(LeftBits[0],LeftControl,BitIn,?);']))
+        e=self.checked(self.zone(['FFL(Incoming,Queue[0],QueueControl,3,0);','BSL(LeftBits[0],LeftControl,BitIn,33);']))
         e.memory.write('ZoneEnable',False);e.step();self.assertFalse(e.memory.read('QueueControl.EN'))
         before=copy.deepcopy(e.memory.read('LeftBits'));e.memory.write('ZoneEnable',True);e.step()
         self.assertEqual(e.memory.read('QueueControl.POS'),1);self.assertNotEqual(e.memory.read('LeftBits'),before)

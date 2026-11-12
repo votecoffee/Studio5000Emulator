@@ -121,11 +121,11 @@ class LrealConstantTests(unittest.TestCase):
         self.assertTrue(e.memory.read('RunLatch'))
 
     def test_literal_and_destination_guards_remain_structural_even_when_false(self):
-        for token in ('TRUE','1.0','1e0','2147483648','-2147483649','16#FFFF_FFFF','1L','1UL'):
+        for token in ('TRUE','1e999','2147483648','-2147483649','16#FFFF_FFFF','18446744073709551616UL','1.0UL'):
             for call in (f'ADD(Source,{token},Dest)',f'EQU(Source,{token})',f'LIM(0,Source,{token})'):
                 self.assertTrue(self.engine(['XIC(StartPB)'+call+';']).blockers,(token,call))
-        for call in ('ADD(Source,1,SpeedCommand);','ADD(1.0,2,Dest);','NEG(1.0,Dest);',
-                     'AND(Source,1,Dest);','MEQ(Source,1,Mask);','CPT(Dest,Source+1e999);','XPY(Source,2.0,Dest);'):
+        for call in ('ADD(Source,1,StartPB);','ADD(Source,1,Results);','NEG(TRUE,Dest);',
+                     'MEQ(Source,1,Mask);','CPT(Dest,Source+1e999);','XPY(Source,1e999,Dest);'):
             self.assertTrue(self.engine([call]).blockers,call)
         def readonly(root):root.find('./Controller/Tags/Tag[@Name="Results"]').set('Constant','true')
         self.assertTrue(self.engine(['ADD(Source,1,Results[1]);'],mutate=readonly).blockers)
@@ -135,4 +135,7 @@ class LrealConstantTests(unittest.TestCase):
     def test_report_describes_exact_constant_promotion_and_native_boundary(self):
         report=self.checked(['ADD(Source,1,Dest);']).report()
         for item in (report['scalar_math']['lreal_arithmetic'],report['numeric_comparisons']['lreal_ordering']):
-            self.assertIn('Signed DINT',item['constants']);self.assertFalse(item['native_runtime_parity'])
+            self.assertIn('DINT',item['constants'])
+            self.assertIn('finite REAL',item['constants'])
+            self.assertIn('L/U/UL',item['constants'])
+            self.assertFalse(item['native_runtime_parity'])

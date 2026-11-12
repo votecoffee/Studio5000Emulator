@@ -184,7 +184,7 @@ class StructuredPITests(unittest.TestCase):
         for name,kind in FIELDS.items():self.assertEqual(e.memory.resolve('T.'+name)[2],kind)
         e.memory.write('T.DeltaTInv',True);self.assertEqual(e.memory.read('T.Status'),-2147483648)
         self.step(e);self.assertEqual(e.memory.read('T.Status'),0)
-        self.assertEqual((len(ARITIES),len(ST_ONLY_ARITIES)),(106,29));self.assertFalse(e.report()['st_pi']['native_runtime_parity'])
+        self.assertEqual((len(ARITIES),len(ST_ONLY_ARITIES)),(108,29));self.assertFalse(e.report()['st_pi']['native_runtime_parity'])
         self.assertIn('0.333',e.report()['st_pi']['shaping'])
 
     def test_wrong_types_arity_constants_redefinitions_and_ladder_block(self):
