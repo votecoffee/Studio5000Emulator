@@ -74,6 +74,27 @@ class AOIStatisticsTests(unittest.TestCase):
         with self.assertRaisesRegex(ModelError,'dimension/member'):e.step()
         self.assertEqual(self.snapshot(e),before);self.write(e,MeanB__LEN=3);e.step();self.assertEqual(e.memory.read('DriverA.Mean'),4)
 
+    def test_one_std_instance_extent_error_retains_output_and_other_instance_work(self):
+        e = self.checked()
+        source = copy.deepcopy(e.memory.read('SamplesB'))
+        saved = e.memory.read('DriverB.Deviation')
+        available = len(source)-e.memory.read('IndexB')
+        self.write(e,Calculate=True,DeviationB__LEN=available+1)
+        e.step()
+        self.assertEqual(e.memory.read('DriverA.Deviation'),2)
+        self.assertEqual(e.memory.read('DriverB.Mean'),20)
+        self.assertEqual(e.memory.read('DriverB.Deviation'),saved)
+        self.assertTrue(e.memory.read('DeviationA.DN'))
+        self.assertEqual([e.memory.read('DeviationB.'+n) for n in ('EN','DN','ER','POS')],
+                         [True,False,True,available])
+        self.assertEqual(e.memory.read('SamplesB'),source)
+        self.assertIsNone(e.last_cleared_program_fault)
+        self.rearm(e)
+        self.write(e,DeviationB__LEN=3)
+        e.step()
+        self.assertEqual(e.memory.read('DriverB.Deviation'),10)
+        self.assertTrue(e.memory.read('DeviationB.DN'))
+
     def test_unknown_saved_local_sample_faults_only_when_consumed(self):
         def hidden(root):
             arr=root.find('./Controller/Tags/Tag[@Name="DriverA"]/Data/Structure/ArrayMember');arr.remove(arr.find('Element[@Index="[2]"]'))

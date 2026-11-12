@@ -67,6 +67,27 @@ Native intermediate precision, partial results, exact error positions and math
 status remain unqualified. Installed v35 help 14501 documents ER on expression
 overflow. [Rockwell STD reference](https://www.rockwellautomation.com/en-id/docs/factorytalk-design-studio/current/contents-ditamap/instructions/instruction-set/array-file-misc-instructions/std.html).
 
+## STD one-dimensional range overruns
+
+App `26.1112.174015` also latches EN/ER and clears DN when a valid start in
+a one-dimensional array or numeric UDT array member has LEN beyond its end.
+POS records the first unavailable offset relative to that start. The range is
+checked before sample reads; the destination and source retain their values,
+including unknowns. Live destination-address checks still precede the latch.
+Other instructions continue and no Program/controller fault handler is invoked.
+
+Held EN/ER retains the error and skips live source/result operands. Correct the
+range and use a false rung or CONTROL RES to rearm the calculation. A later
+fault still rolls back the whole advance, including the error latch and AOI
+output transfers. Matching one-dimensional AOI arrays use the same behavior.
+
+Invalid starting subscripts retain their Type 4 Code 20 handler path.
+Multidimensional window overruns, limits above 4096 and other invalid cursors
+retain the existing rollback policy. Packed cross-member traversal, native
+partial results/read order and exact native cursor behavior remain unqualified.
+The source basis is installed v35 STD help 14501 and the
+[Rockwell STD reference](https://www.rockwellautomation.com/en-id/docs/factorytalk-design-studio/current/contents-ditamap/instructions/instruction-set/array-file-misc-instructions/std.html).
+
 ## Operand selection
 
 [Statistics operand selection](statistics-operands.md) adds structural preflight
@@ -98,9 +119,10 @@ In a whole-project ladder scan, a handler can
 and skip both the result write and CONTROL update. A reached negative
 STD LEN or POS raises [Type 4 Code 21](controller-handlers.md#recover-negative-sort-and-deviation-cursors)
 before writing the result or changing CONTROL. Other invalid cursors,
-unknown values, short windows, AVE accumulation overflow and unrecovered
-faults roll back the modeled advance. STD arithmetic overflow uses the
-[error latch](#std-arithmetic-overflow). Native partial results, precision,
+unknown values, AVE or multidimensional short windows, AVE accumulation overflow
+and unrecovered faults roll back the modeled advance. One-dimensional STD
+[range overruns](#std-one-dimensional-range-overruns) and arithmetic overflow use
+their documented error latches. Native partial results, precision,
 math flags and complete fault classifications remain unfinished.
 Wider types, partial-state execution and broader AOI forms remain open.
 Neither instruction is available as an ST call or FBD instruction.

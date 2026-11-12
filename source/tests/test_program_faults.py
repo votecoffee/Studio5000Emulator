@@ -2458,10 +2458,33 @@ class ProgramFaultTests(unittest.TestCase):
         self.assertIs(engine.last_cleared_program_fault, fault)
         self.assertEqual(memory.read('LabQueue'), [99, 2, 4, 6, 77])
 
-    def test_statistics_short_windows_keep_scan_rollback(self):
+    def test_std_extent_error_continues_without_invoking_a_fault_handler(self):
+        def configure(root):
+            sort_extent_fault_fixture(root)
+            set_fault_instruction(root,'STD(LabQueue[LabIndex],0,LabStats[0],LabRecords[0],?,?)')
+        engine = self.engine(mutate=configure)
+        self.assertEqual(engine.blockers,[])
+        memory = engine.memory
+        memory.write('StartPB',True)
+        memory.write('SpeedCommand',50)
+        engine.step()
+        self.assertIsNone(engine.last_cleared_program_fault)
+        self.assertEqual(memory.read('LabIndex'),4)
+        self.assertEqual(memory.read('LabStats[0]'),11)
+        self.assertEqual(memory.read('SpeedCommand'),51)
+        self.assertEqual([memory.read('LabRecords[0].'+n) for n in ('EN','DN','ER','POS')],
+                         [True,False,True,1])
+        memory.write('StartPB',False)
+        engine.step()
+        memory.write('LabIndex',1)
+        memory.write('StartPB',True)
+        engine.step()
+        self.assertEqual(memory.read('LabStats[0]'),2)
+        self.assertTrue(memory.read('LabRecords[0].DN'))
+
+    def test_ave_short_windows_keep_scan_rollback(self):
         for instruction in (
             'AVE(LabQueue[LabIndex],0,LabStats[0],LabRecords[0],?,?)',
-            'STD(LabQueue[LabIndex],0,LabStats[0],LabRecords[0],?,?)',
         ):
             with self.subTest(instruction=instruction):
                 self.setUp()

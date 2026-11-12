@@ -9,6 +9,15 @@ from .real_math import real
 INSTRUCTIONS = frozenset(('AVE', 'STD'))
 
 
+class StandardDeviationExtentError(ModelError):
+    """A valid one-dimensional start whose requested window exceeds its member."""
+    def __init__(self, key, prefix, position):
+        super().__init__('STD exceeds the selected one-dimensional array/member boundary')
+        self.key = key
+        self.prefix = list(prefix)
+        self.position = position
+
+
 def region(memory, op, scope, count=0, *, writable=False, structural=False, references=False):
     if type(count) is not int or not 0 <= count <= controls.MAX_ELEMENTS:
         raise ModelError('Statistics exceed the 4096-element software limit')
@@ -44,6 +53,8 @@ def selected_region(memory, op, scope, count, *, writable, references):
     if indices[dimension] + count > shape[dimension]:
         if op.name == 'SRT':
             raise ArrayBoundsError('SRT LEN exceeds the selected dimension/member boundary (Type 4 Code 20)')
+        if op.name == 'STD' and len(shape) == 1:
+            raise StandardDeviationExtentError(key, prefix, shape[0] - indices[0])
         raise ModelError('Statistics exceed the selected dimension/member boundary')
     paths = []
     for offset in range(count):
@@ -123,7 +134,13 @@ def execute(memory, op, power, scope):
         raise ModelError('Statistics require POS zero for a fresh complete operation; resume is unqualified')
     if length < (2 if op.name == 'STD' else 1):
         raise ModelError('AVE requires at least one element; sample STD requires at least two')
-    key, paths, prefix, _ = region(memory, op, scope, length, references=True)
+    try:
+        key, paths, prefix, _ = region(memory, op, scope, length, references=True)
+    except StandardDeviationExtentError as error:
+        # Retain live result-address checks before changing the CONTROL record.
+        destination(memory,op,scope,error.key,error.prefix)
+        obj.update(EN=True, DN=False, ER=True, POS=error.position)
+        return True
     destination(memory,op,scope,key,prefix)
     values = [real(memory.read(memory.address(key, path))) for path in paths]
     if op.name == 'STD':
@@ -146,6 +163,7 @@ def description():
                 destinations={'AVE':sorted(controls.NUMERIC),'STD':['REAL']}, max_elements=controls.MAX_ELEMENTS,
                 integer_ave='Float32 mean rounded to nearest integer, ties to even; rounded range errors roll back the advance',
                 std_overflow='Finite-sample float32 calculation overflow latches EN/ER, clears DN, records the failing sample offset in POS and retains the result; false/RES rearms',
+                std_extent='Valid one-dimensional starts with LEN beyond the array/member latch EN/ER, clear DN and record the first unavailable offset in POS before reading samples; preserve the result',
                 result_storage='Scalar aliases/members/AOI results disjoint from the source array and its CONTROL record',
                 selection='Structural source/result/control preflight; false or EN/DN/ER-inhibited calls skip live result indices and values',
                 result_writes='A fresh calculation resolves the actual result before reading samples; full writes establish unknown destinations',

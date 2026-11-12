@@ -132,7 +132,7 @@ class ArrayStatisticsTests(unittest.TestCase):
         self.assertTrue(e.memory.read('RunLatch'))
 
     def test_invalid_lengths_positions_bounds_and_limits_roll_back(self):
-        for name,length,position in (('AVE',0,0),('STD',1,0),('AVE',-1,0),('AVE',4,-1),('AVE',4,1),('STD',6,0)):
+        for name,length,position in (('AVE',0,0),('STD',1,0),('AVE',-1,0),('AVE',4,-1),('AVE',4,1)):
             e=self.checked([f'{name}(Queue[0],0,Result,Ctl,?,?);'],length=length,position=position)
             before=copy.deepcopy(e.memory.values)
             with self.assertRaises(ModelError):e.step()
@@ -200,6 +200,72 @@ class ArrayStatisticsTests(unittest.TestCase):
         self.assertEqual(e.memory.values,before)
         self.assertEqual((e.scan_count,e.time_ms),(0,0))
         self.assertEqual(e.scheduler_description()['tasks'][0]['executions'],0)
+
+    def test_std_one_dimensional_extent_latches_before_samples_or_result_writes(self):
+        for dtype in ('SINT','INT','DINT','REAL'):
+            with self.subTest(dtype=dtype):
+                e = self.checked(['MOV(42,SpeedCommand);',
+                                  'STD(Queue[3],0,Result,Ctl,?,?)OTE(RunLatch);'],
+                                 dtype=dtype, length=3, queue=(2,4,6,8,99))
+                e.memory.values['queue'][3] = None
+                e.memory.values['result'] = None
+                source = copy.deepcopy(e.memory.values['queue'])
+                e.step()
+                self.assertEqual([e.memory.read('Ctl.'+n) for n in ('EN','DN','ER','POS')],
+                                 [True,False,True,2])
+                self.assertIsNone(e.memory.values['result'])
+                self.assertEqual(e.memory.values['queue'],source)
+                self.assertEqual(e.memory.read('SpeedCommand'),42)
+                self.assertTrue(e.memory.read('RunLatch'))
+                self.assertIsNone(e.last_cleared_program_fault)
+
+    def test_std_extent_error_skips_held_indices_and_rearms_after_range_repair(self):
+        e = self.checked(['XIC(StartPB)STD(Queue[SpeedCommand],0,Result,Ctl,?,?);'],length=3)
+        e.memory.write('SpeedCommand',3)
+        e.memory.write('StartPB',True)
+        e.step()
+        self.assertEqual(e.memory.read('Ctl.POS'),2)
+        self.assertTrue(e.memory.read('Ctl.ER'))
+        self.assertEqual(e.memory.read('Result'),7)
+        e.memory.write('SpeedCommand',999)
+        e.step()
+        self.assertTrue(e.memory.read('Ctl.ER'))
+        e.memory.write('StartPB',False)
+        e.step()
+        self.assertEqual([e.memory.read('Ctl.'+n) for n in ('EN','DN','ER','POS')],
+                         [False,False,False,0])
+        e.memory.write('SpeedCommand',1)
+        e.memory.write('StartPB',True)
+        e.step()
+        self.assertEqual(e.memory.read('Result'),2)
+        self.assertEqual([e.memory.read('Ctl.'+n) for n in ('EN','DN','ER','POS')],
+                         [True,True,False,3])
+
+    def test_std_extent_error_checks_live_destination_before_latching(self):
+        def results(root):
+            tags=root.find('./Controller/Tags')
+            tag=E.SubElement(tags,'Tag',Name='Results',DataType='REAL',TagType='Base',Dimensions='2')
+            array=E.SubElement(E.SubElement(tag,'Data',Format='Decorated'),'Array',DataType='REAL',Dimensions='2')
+            for i,value in enumerate((7,9)):E.SubElement(array,'Element',Index=f'[{i}]',Value=str(value))
+        e=self.checked(['STD(Queue[3],0,Results[SpeedCommand],Ctl,?,?);'],length=3,mutate=results)
+        e.memory.write('SpeedCommand',999)
+        before=copy.deepcopy(e.memory.values)
+        with self.assertRaises(ModelError):e.step()
+        self.assertEqual(e.memory.values,before)
+
+    def test_std_extent_error_latch_rolls_back_with_a_later_fault(self):
+        e = self.checked(['STD(Queue[3],0,Result,Ctl,?,?);','DIV(1,0,SpeedCommand);'],length=3)
+        before = copy.deepcopy(e.memory.values)
+        with self.assertRaises(ModelError):e.step()
+        self.assertEqual(e.memory.values,before)
+        self.assertEqual((e.scan_count,e.time_ms),(0,0))
+
+    def test_multidimensional_std_window_keeps_dimension_spill_rollback(self):
+        e = self.checked(['STD(Queue[0,1],1,Result,Ctl,?,?);'],length=3,
+                         mutate=self.multidimensional((2,3),range(6)))
+        before = copy.deepcopy(e.memory.values)
+        with self.assertRaisesRegex(ModelError,'dimension/member boundary'):e.step()
+        self.assertEqual(e.memory.values,before)
 
     def test_constant_sources_allowed_constant_results_and_controls_rejected(self):
         def source(root):root.find('./Controller/Tags/Tag[@Name="Queue"]').set('Constant','true')
