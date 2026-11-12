@@ -68,7 +68,7 @@ def description():
                 aoi='RLL/ST bodies with exact one/two/three-dimensional numeric InOut arrays or represented saved locals; existing copied-input/Prescan/EnableInFalse/binding rollback rules',
                 write_effects='Whole selected array member; enclosing parent arrays widened conservatively for FOR bounds/step; CONTROL EN/DN tracked separately',
                 position='Qualified POS zero retained; positive LEN, at most 4096 values in selected dimension/member',
-                array_recovery='A cleared Type 4 Code 20 during a whole-project ladder scan skips the sort before any writes',
+                array_recovery='Reached subscripts or LEN beyond the selected dimension/member raise Type 4 Code 20 before any writes in whole-project ladder',
                 cursor_recovery='In whole-project ladder, negative LEN/POS latches ER and raises Type 4 Code 21 before sorting',
                 prescan='No state initialization', native_math_status=False, native_fault_classification=False,
                 remaining=['Native internal POS cursor and partial-state behavior', 'Native faults/side effects',

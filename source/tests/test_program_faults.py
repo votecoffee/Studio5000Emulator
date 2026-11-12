@@ -190,6 +190,13 @@ def add_array_calculation_tags(root):
         ET.SubElement(array,'Element',Index=f'[{index}]',Value=value)
 
 
+def sort_extent_fault_fixture(root):
+    ladder_fault_fixture(root, handler_tail='MOV(1,LabIndex);')
+    add_array_calculation_tags(root)
+    root.find('./Controller/Tags/Tag[@Name="LabIndex"]/Data/DataValue').set('Value', '4')
+    set_fault_instruction(root, 'SRT(LabQueue[LabIndex],0,LabRecords[0],?,?)')
+
+
 def add_string_recovery_tags(root):
     from test_string_operations import string_data
 
@@ -2426,9 +2433,33 @@ class ProgramFaultTests(unittest.TestCase):
                 self.assertEqual((engine.scan_count, engine.time_ms), (0, 0))
                 self.assertIsNone(engine.last_cleared_program_fault)
 
-    def test_sort_and_statistics_short_windows_keep_scan_rollback(self):
+    def test_sort_extent_fault_preserves_control_and_retries_after_start_repair(self):
+        engine = self.engine(mutate=sort_extent_fault_fixture)
+        self.assertEqual(engine.blockers, [])
+        memory = engine.memory
+        engine.step()
+        saved = memory.read('LabRecords')
+        memory.write('StartPB', True)
+        memory.write('SpeedCommand', 50)
+        engine.step()
+        fault = engine.last_cleared_program_fault
+        self.assertEqual((fault['type'], fault['code'], fault['instruction']), (4, 20, 'SRT'))
+        self.assertIn('LEN exceeds the selected dimension/member boundary', fault['detail'])
+        self.assertEqual(memory.read('LabRecords'), saved)
+        self.assertEqual(memory.read('LabQueue'), [99, 6, 2, 4, 77])
+        self.assertEqual(memory.read('LabStats'), [11.0, 22.0])
+        self.assertEqual(memory.read('SpeedCommand'), 51)
+
+        engine.step()
+        self.assertEqual(memory.read('LabQueue'), [99, 2, 4, 6, 77])
+        self.assertEqual(memory.read('LabRecords'), [saved[0] | dict(EN=True, DN=True), saved[1]])
+        memory.write('LabIndex', 999)
+        engine.step()
+        self.assertIs(engine.last_cleared_program_fault, fault)
+        self.assertEqual(memory.read('LabQueue'), [99, 2, 4, 6, 77])
+
+    def test_statistics_short_windows_keep_scan_rollback(self):
         for instruction in (
-            'SRT(LabQueue[LabIndex],0,LabRecords[0],?,?)',
             'AVE(LabQueue[LabIndex],0,LabStats[0],LabRecords[0],?,?)',
             'STD(LabQueue[LabIndex],0,LabStats[0],LabRecords[0],?,?)',
         ):

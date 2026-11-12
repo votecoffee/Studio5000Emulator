@@ -37,13 +37,14 @@ the current LEN. The written CONTROL EN/DN fields are tracked separately;
 unchanged LEN/POS may still supply loop bounds.
 
 In a whole-project ladder scan, a handler can
-[clear a reached array subscript fault](controller-handlers.md#recover-sort-and-statistics-array-faults)
-and skip the sort before it changes data or CONTROL. A reached negative
+[clear a reached array fault](controller-handlers.md#recover-sort-and-statistics-array-faults)
+and skip the sort before it changes data or CONTROL. This includes a valid
+start whose LEN extends beyond the selected dimension or array member. A reached negative
 LEN or POS raises [Type 4 Code 21](controller-handlers.md#recover-negative-sort-and-deviation-cursors)
 and sets ER before the handler runs. The array remains unchanged on a
 successful clear. Correct the cursor and clear ER to enable a later sort.
-Uncleared faults, other invalid cursors, short windows, and unknown or
-nonfinite values use whole-advance rollback. Native partial writes and
+Uncleared faults, other invalid cursors, and unknown or nonfinite values
+use whole-advance rollback. Native partial writes and
 internal status/cursor behavior remain unqualified.
 [Alias/indirect and AOI array starts](sort-references.md) now execute. Wider/unsigned
 types and FBD forms remain unqualified. Numeric UDT array members and CONTROL

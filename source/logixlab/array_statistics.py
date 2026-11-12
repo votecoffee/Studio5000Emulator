@@ -3,7 +3,7 @@ import math
 
 from . import control_operations as controls
 from .integer_math import CONTROLLERS
-from .model import ModelError, literal
+from .model import ArrayBoundsError, ModelError, literal
 from .real_math import real
 
 INSTRUCTIONS = frozenset(('AVE', 'STD'))
@@ -42,6 +42,8 @@ def selected_region(memory, op, scope, count, *, writable, references):
     if type(dimension) is not int or not 0 <= dimension < len(shape):
         raise ModelError('Statistics dimension must select a declared array dimension')
     if indices[dimension] + count > shape[dimension]:
+        if op.name == 'SRT':
+            raise ArrayBoundsError('SRT LEN exceeds the selected dimension/member boundary (Type 4 Code 20)')
         raise ModelError('Statistics exceed the selected dimension/member boundary')
     paths = []
     for offset in range(count):

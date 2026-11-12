@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+[SRT range recovery](controller-handlers.md#recover-sort-and-statistics-array-faults)
+raises Type 4 Code 20 for LEN beyond the selected dimension or member as of
+`26.1112.171200`. Fault handlers can repair the range and retry before any sorting
+has changed the data.
+
 [Regression and upload-export validation](development.md#run-and-test)
 for `26.1112.165951` exercises 6,287 software tests and resolves the partial
 export reader's missing parser dependencies. All 34 initially failed cases

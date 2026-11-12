@@ -377,8 +377,10 @@ window or calculate its result on the retained edge. False or
 inhibited calls continue to skip live array and result operands
 according to the instruction. The CONTROL address is still required.
 
-A valid start with a window that extends beyond its selected dimension
-or an unknown consumed value uses scan rollback.
+SRT also raises Type 4 Code 20 when LEN extends beyond the selected
+array dimension or member. The array and CONTROL retain their values for
+the handler. A cleared fault leaves the edge available for a later call.
+Unknown consumed values and AVE/STD window overruns use scan rollback.
 The recovery path applies to ladder execution.
 
 ### Recover negative sort and deviation cursors
