@@ -75,7 +75,7 @@ class GsvTimeSyncTests(unittest.TestCase):
         bad=[f'GSV({NANO},ClockWords[1]);',f'GSV({NANO},SyncDate);',f'GSV({MICRO},SyncNano);',
              f'GSV({MICRO},ClockWords[11]);',f'GSV({NANO},ClockWide.0);',f'SSV({NANO},SyncNano);',
              f'SSV({MICRO},ClockWide);','GSV(TimeSynchronize,THIS,CurrentTimeMicroseconds,ClockWide);',
-             'GSV(TimeSynchronize,,PTPEnable,Out);']
+             'GSV(TimeSynchronize,,DomainNumber,Out);']
         for call in bad:self.assertTrue(self.engine(['AFI()'+call]).blockers,call)
         def constant(root):root.find('./Controller/Tags/Tag[@Name="SyncNano"]').set('Constant','true')
         self.assertTrue(self.engine([f'AFI()GSV({NANO},SyncNano);'],mutate=constant).blockers)

@@ -6,6 +6,10 @@ from . import controller_schemas, software_clock
 
 
 CLASS_ID = 0x43
+# GSV scalar types differ from the corresponding one-byte CIP settings.
+GSV_SETTINGS = {'ptpenable': ('DINT', 1), 'issynchronized': ('DINT', 2),
+                'priority1': ('SINT', 16), 'priority2': ('SINT', 17),
+                'numberofports': ('INT', None)}
 INSTANCE_ATTRIBUTES = frozenset((1, 16, 17, *software_clock.STATIC_ATTRIBUTES, *software_clock.TIME_ATTRIBUTES,
                                  *software_clock.IDENTITY_ATTRIBUTES, *software_clock.INACTIVE_ATTRIBUTES))
 

@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from .integer_math import CONTROLLERS
 from .model import ModelError, coerce, dimensions
 from .numeric_copy import static_reference
+from .time_sync import GSV_SETTINGS
 
 CST_CURRENT = None  # The software CST object has no CIP attribute number.
 CST_OFFSET = 3
@@ -17,6 +18,9 @@ ATTRIBUTES = {'currentvalue': (6, 2), 'datetime': (7, 7), 'localdatetime': (5, 7
 
 
 def matches(op):
+    if (len(op.args)>2 and isinstance(op.args[0],str) and op.args[0].casefold()=='timesynchronize'
+            and isinstance(op.args[2],str) and op.args[2].casefold() in GSV_SETTINGS):
+        return False  # Typed scalar metadata uses configuration destination rules.
     return bool(op.args and isinstance(op.args[0],str) and op.args[0].casefold() in ('wallclocktime', 'cst', 'timesynchronize'))
 
 

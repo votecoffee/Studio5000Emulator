@@ -78,8 +78,9 @@ Reads do not require a TimeSynchronize source element or an enabled PTP setting.
 The software clock remains free-running and unsynchronized. Pending SSV clock
 adjustments are visible within the same advance; external CIP reads use the
 committed adjustment. Project reload retains the application clock as before.
-This adds no PTP exchange, master/accuracy claim, synchronization setter or other
-TimeSynchronize GSV attribute. SSV of either current-time attribute is blocked.
+These counter reads add no PTP exchange, master/accuracy claim or synchronization
+setter. [Status and settings](gsv-configuration.md#timesynchronize-status-and-settings)
+have a separate typed scalar GSV profile. SSV of either current-time attribute is blocked.
 
 Structural destination checks, lazy indices, full writes to unknown cells,
 aliases, existing AOI bindings, ST FOR protection and whole-advance rollback

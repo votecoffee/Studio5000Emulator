@@ -62,7 +62,9 @@ with REAL or integer results. In **Wide expression lab**, enable
 `Binary64ResultEnabled` and step. See [REAL and integer results](docs/lreal-math-literals.md#real-and-integer-results).
 
 **TimeSynchronize GSV reads** now expose software UTC microseconds and
-nanoseconds to ladder and ST, including DT/LDT tags. In **System lab**, set
+nanoseconds to ladder and ST, including DT/LDT tags. ReadSyncStatus also reads
+configured enable/priorities, synchronization status and the PTP port count.
+See [status and settings](docs/gsv-configuration.md#timesynchronize-status-and-settings). In **System lab**, set
 `SyncIndex=1`, enable `ReadSyncClock` and step. See
 [clock reads](docs/wall-clock-gsv.md#timesynchronize-clock-reads).
 

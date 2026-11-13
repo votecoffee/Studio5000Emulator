@@ -10,6 +10,7 @@ from .model import ModelError, coerce, dimensions
 from .numeric_copy import location, prefix, static_reference
 from .string_operations import string_operand
 from .task_configuration import NAME
+from .time_sync import GSV_SETTINGS
 
 TASK = {'rate':(2,'DINT'), 'watchdog':(12,'DINT'), 'priority':(6,'INT'),
         'disableupdateoutputs':(18,'DINT'), 'inhibittask':(19,'DINT')}
@@ -480,12 +481,26 @@ def write_major_fault_record(engine, op, scope, *, executing):
         memory.structural = previous
 
 
+def time_sync_attribute(project, instance, attribute):
+    if instance:
+        raise ModelError('GSV TimeSynchronize requires an empty instance operand')
+    dtype,number=GSV_SETTINGS[attribute]
+    if number is None:
+        return dtype,project.time_sync.description()['software_clock']['ptp_port_count']
+    raw=project.time_sync.cip_attributes().get(number)
+    if raw is None or len(raw)!=1:
+        raise ModelError('GSV TimeSynchronize '+attribute+' requires an explicit unambiguous source setting')
+    return dtype,struct.unpack('<b' if dtype=='SINT' else '<B',raw)[0]
+
+
 def source(engine, op, scope='', *, executing=False):
     if len(op.args)!=4 or any(not isinstance(a,str) for a in op.args):
         raise ModelError('GSV requires four neutral-text operands')
     project = _configuration_source(engine)
     configuration = project.task_configuration
     cls,instance,attribute,_=op.args;cls=cls.casefold();attribute=attribute.casefold()
+    if cls=='timesynchronize' and attribute in GSV_SETTINGS:
+        return time_sync_attribute(project,instance,attribute)
     if cls == 'controllerdevice':
         return controller_device(engine, instance, attribute, executing=executing)
     if cls == 'module':
@@ -674,6 +689,10 @@ def description():
                 controller=['Name','TimeSlice (explicit)','ShareUnusedTimeSlice (explicit)',
                             'CanUseRPIFromProducer','RedundancyEnabled','KeepTestEditsOnSwitchover','InhibitAutomaticFirmwareUpdate'],
                 controller_flags='Read-only explicit project flags. No producer negotiation, redundancy switchover or firmware service.',
+                time_synchronize=dict(attributes={name:dtype for name,(dtype,_) in GSV_SETTINGS.items()},
+                    source='Explicit PTPEnable/Priority1/Priority2 settings; initialized software unsynchronized state and empty PTP ports',
+                    priority='Signed SINT storage retains the unsigned 0..255 byte pattern',
+                    clock_sampling=False,read_only=True,ptp=False,native_runtime_parity=False),
                 program=['Name'],routine=['Name'],
                 module=['ForceStatus','LEDStatus','Mode','EntryStatus','FaultCode','FaultInfo','Path'],
                 module_path='Counted CIP route for a local slot, an explicit IPv4 device, or a slot under a qualified remote EN2T/EN2TR.',

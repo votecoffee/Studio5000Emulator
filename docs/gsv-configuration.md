@@ -82,6 +82,44 @@ require the [qualified Event project context](event-tasks.md). Event Rate is
 available when source enables the timeout with an explicit rate or when SSV
 defines one. A defined period remains readable while the timeout is disabled.
 
+## TimeSynchronize status and settings
+
+Ladder and ST can read these attributes with an empty TimeSynchronize instance.
+They use the same explicit source settings and software clock state as CIP:
+
+| Attribute | Exact destination type | Software value |
+| --- | --- | --- |
+| PTPEnable | DINT | Explicit source PTPEnable, as 0 or 1 |
+| Priority1 / Priority2 | SINT | Explicit source priority byte, stored as signed SINT |
+| IsSynchronized | DINT | 0: the software clock has no synchronized master |
+| NumberOfPorts | INT | 0: the software clock has no PTP ports |
+
+Priority values above 127 retain their unsigned byte pattern: 128 reads as -128
+and 255 as -1 in a decimal SINT watch. Use hexadecimal, or interpret the byte
+as unsigned, to view the configured priority. PTPEnable is configuration intent;
+even when the source requests PTP, IsSynchronized remains zero in this model.
+These reads do not sample UTC or require a working host clock.
+
+The existing complete v35 5580 configuration-source rules apply. Missing,
+ambiguous or invalid source enable/priority settings are unavailable and block
+those reads, including false calls. IsSynchronized and NumberOfPorts remain
+known software state when no TimeSynchronize source element exists. Typed
+destinations, scoped aliases, selected elements and existing AOI bindings use
+structural preflight, lazy live indices, full writes and whole-advance rollback.
+ST FOR protection tracks the complete destination. This adds no SSV settings,
+PTP messages, master measurements or native status/fault/lifecycle equivalence.
+
+In **System lab**, set SyncStatusIndex=1 and enable ReadSyncStatus. The source
+explicitly disables PTP and sets priorities 128/255. Ladder reads enable/status/
+ports as zero and priorities as -128/-1. SyncStatusWords[1] receives status zero;
+guard cells retain 101/999. ST reads match when ReadConfig is enabled and FastTask
+runs. SyncStatusDivisor=0 faults after the reads; restore 1 to retry. Disable the
+gate before returning its index to 99. Current-time reads retain their separate
+[clock profile](wall-clock-gsv.md#timesynchronize-clock-reads).
+
+The source basis is installed v35 accessing_the_time_sync_object and the
+[Rockwell TimeSynchronize reference](https://www.rockwellautomation.com/en-dk/docs/studio-5000-logix-designer/37-02/contents-ditamap/instruction-set/input-output-instructions/access-the-timesynchronize-object.html).
+
 ## Object identity reads
 
 Program Name and Routine Name use the current loaded source catalogs. Both

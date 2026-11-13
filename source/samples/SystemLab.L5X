@@ -17,9 +17,24 @@
       </DataType>
     </DataTypes>
     <Modules />
+    <TimeSynchronize PTPEnable="false" Priority1="128" Priority2="255" />
     <WallClockTime TimeZone="0" LocalTimeAdjustment="0" />
     <AddOnInstructionDefinitions />
     <Tags>
+      <Tag Name="ReadSyncStatus" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="SyncStatusIndex" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="SyncStatusDivisor" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="SyncStatusGuard" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="SyncPtpEnabled" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="SyncSynchronized" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="SyncPortCount" DataType="INT" TagType="Base"><Data Format="Decorated"><DataValue DataType="INT" Value="-1" /></Data></Tag>
+      <Tag Name="SyncPriority1" DataType="SINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="SINT" Value="0" /></Data></Tag>
+      <Tag Name="SyncPriority2" DataType="SINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="SINT" Value="0" /></Data></Tag>
+      <Tag Name="StSyncPtpEnabled" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="StSyncSynchronized" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="StSyncPortCount" DataType="INT" TagType="Base"><Data Format="Decorated"><DataValue DataType="INT" Value="-1" /></Data></Tag>
+      <Tag Name="StSyncPriority1" DataType="SINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="SINT" Value="0" /></Data></Tag>
+      <Tag Name="SyncStatusWords" DataType="DINT" Dimensions="3" TagType="Base"><Data Format="Decorated"><Array DataType="DINT" Dimensions="3"><Element Index="[0]" Value="101" /><Element Index="[2]" Value="999" /></Array></Data></Tag>
       <Tag Name="ReadSyncClock" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="SyncIndex" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
       <Tag Name="SyncDivisor" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
@@ -681,6 +696,7 @@
               <Rung Number="24" Type="N"><Text>XIC(ApplyWatchdog)SSV(Task,THIS,Watchdog,WatchdogCommandUs);</Text></Rung>
               <Rung Number="25" Type="N"><Text>GSV(Task,THIS,Watchdog,LiveWatchdogUs);</Text></Rung>
               <Rung Number="26" Type="N"><Text>XIC(ReadSyncClock)JSR(ReadSyncTime,0);</Text></Rung>
+              <Rung Number="27" Type="N"><Text>XIC(ReadSyncStatus)JSR(ReadSyncSettings,0);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="ReadTypedClock" Type="RLL">
@@ -735,7 +751,17 @@
               <Line Number="15">IF ReadControllerFlags THEN GSV(Controller,,KeepTestEditsOnSwitchover,RetainTestEdits); GSV(Controller,,InhibitAutomaticFirmwareUpdate,FirmwareUpdateInhibit); END_IF;</Line>
               <Line Number="16">IF ReadModuleStatus THEN GSV(Module,,ForceStatus,IoForceStatus); END_IF;</Line>
               <Line Number="17">IF ReadSyncClock THEN GSV(TimeSynchronize,,CurrentTimeMicroseconds,StSyncMicros); GSV(TimeSynchronize,,CurrentTimeNanoseconds,StSyncNanos); END_IF;</Line>
+              <Line Number="18">IF ReadSyncStatus THEN GSV(TimeSynchronize,,PTPEnable,StSyncPtpEnabled); GSV(TimeSynchronize,,IsSynchronized,StSyncSynchronized); GSV(TimeSynchronize,,NumberOfPorts,StSyncPortCount); GSV(TimeSynchronize,,Priority1,StSyncPriority1); END_IF;</Line>
             </STContent>
+          </Routine>
+          <Routine Name="ReadSyncSettings" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>GSV(TimeSynchronize,,PTPEnable,SyncPtpEnabled);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>GSV(TimeSynchronize,,IsSynchronized,SyncSynchronized)GSV(TimeSynchronize,,IsSynchronized,SyncStatusWords[SyncStatusIndex]);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>GSV(TimeSynchronize,,NumberOfPorts,SyncPortCount);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>GSV(TimeSynchronize,,Priority1,SyncPriority1)GSV(TimeSynchronize,,Priority2,SyncPriority2);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>DIV(1,SyncStatusDivisor,SyncStatusGuard);</Text></Rung>
+            </RLLContent>
           </Routine>
           <Routine Name="ReadSyncTime" Type="RLL">
             <RLLContent>
