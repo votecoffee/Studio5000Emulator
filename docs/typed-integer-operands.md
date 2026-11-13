@@ -144,3 +144,8 @@ See [integer execution](../source/logixlab/integer_math.py),
 [arithmetic selection](../source/logixlab/scalar_math.py),
 [comparisons](../source/logixlab/comparisons.py) and
 [focused cases](../source/tests/test_typed_integer_operands.py).
+
+[Signed DINT radix expressions](ladder-wide-expressions.md#unsuffixed-dint-radix-expressions)
+now separately qualify unsuffixed words in ladder CPT/CMP/FAL/FSC integer
+expressions. Their unary operators follow word decoding; default, ST and
+array-index parsers keep their previous behavior.

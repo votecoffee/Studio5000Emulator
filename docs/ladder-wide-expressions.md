@@ -225,7 +225,7 @@ force; full CPT writes establish selected unknown results without reading them.
 
 Choose **Ladder wide expression lab** or load
 [WideExpressionLab.L5X](../source/samples/WideExpressionLab.L5X). It contains
-42 controller tags, twenty-two rungs and only ladder routines. One step produces:
+a base example and separately gated ladder demonstrations. One step produces:
 
 | Tag | Expected value |
 | --- | --- |
@@ -250,8 +250,8 @@ or native import acceptance of the public fixture.
 ## Remaining work
 
 Remaining integer forms include lower-type-only mixed arithmetic subtrees,
-additional conversions, nonmatching typed and untyped larger constants, typed
-radix, mixed numeric bitwise, power and functions beyond ABS. Time/date
+additional conversions, nonmatching typed and untyped larger constants, mixed
+numeric bitwise, power and functions beyond ABS in wide expressions. Time/date
 expressions and wide arithmetic inside array indices remain unsupported.
 
 [Integer FAL/FSC](integer-files.md), [LREAL CPT/CMP/FAL/FSC](lreal-expressions.md)
@@ -263,3 +263,42 @@ no new FBD/SFC forms are included.
 The operand families and operator grammar were checked against the installed
 v35 help topics Compute (CPT), Compare (CMP) and Mask Equal To (MEQ), alongside
 Rockwell's [General Instructions Reference Manual](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm003_-en-p.pdf).
+
+## Unsuffixed DINT radix expressions
+
+The v35 ControlLogix 5580 ladder CPT, CMP, FAL and FSC integer profiles now
+decode unsuffixed `2#`, `8#` and `16#` words as 32-bit DINT constants. Shorter
+words zero-fill; bit 31 supplies the sign. Underscore digit grouping is accepted.
+Thus `16#FFFFFFFF` is -1, `16#80000000` is -2147483648, and
+`-16#FFFFFFFF` is 1: expression unary operators follow word decoding.
+
+```text
+CPT(Result,Input+16#FFFFFFFF);
+CMP(16#80000000<0)OTE(Negative);
+FAL(Control,?,?,ALL,Output[Control.POS],Input[Control.POS]+16#FFFFFFFF);
+FSC(Control,?,?,ALL,Output[Control.POS]>16#FFFFFFFF);
+```
+
+The signed constants retain narrow integer functions, power, bitwise and
+division rules. They may also combine with compatible wide tags or matching
+typed literals under the existing range and intermediate rules. Every required
+source is consumed; unknown values, bounds, overflow and later faults roll back
+the modeled advance. False/prescan paths skip live values and dynamic indices,
+while malformed words, permissions and static type errors remain blockers.
+
+A word that decodes negative selects an integer-only profile; REAL/LREAL mixes
+are blocked. Default literal parsing, ST, array-index syntax and other instruction
+consumers retain their separate contracts. This does not establish native
+promotion, status, overflow or partial-effect parity.
+
+In **Wide expression lab**, set DintExprIndex=1 and DintExprEnabled=true.
+The DintExpr outputs are Value=6, Quotient=-3, Remainder=-1, Bcd=166666665,
+Root=3, Power=4 and Wide=9007199254740992. Match and Negative are true;
+Selected[1] becomes 6 with guards 101/999. The gate starts false with index99
+dormant. Divisor=0 or LateDivisor=0 demonstrates rollback. Restore 2 or 1,
+respectively, before retrying. Disable the gate before restoring index99.
+
+The report publishes `wide_ladder_expressions.signed_dint_radix_expressions`.
+Source basis: installed v35 Immediate values (14454), CPT (14597), CMP (14592),
+FAL (14504) and FSC (14515). See the existing [scalar-word profile](typed-integer-operands.md)
+and [focused expression checks](../source/tests/test_dint_radix_expressions.py).

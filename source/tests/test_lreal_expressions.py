@@ -203,7 +203,7 @@ class LrealExpressionTests(unittest.TestCase):
     def test_scoped_cache_keeps_generic_and_ladder_conditions_separate(self):
         e = self.checked(['CMP(Source>Other)OTE(RunLatch);'])
         e.step()
-        self.assertIn(('Source>Other', True, True, True, False), e.extensions.conditions)
+        self.assertIn(('Source>Other', True, True, True, False, True), e.extensions.conditions)
         for condition in (Condition('Source>Other'), e.extensions.condition('Source>Other', allow_wide=True, bcd=True)):
             with self.assertRaises(ModelError):
                 condition.validate(e.memory)

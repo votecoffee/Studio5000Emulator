@@ -78,6 +78,13 @@ class Expression:
             if number:
                 value = number[0]
                 pos += len(value)
+                if radix_literals and integer_literals and '#' in value:
+                    from .numeric_storage import typed_literal
+                    _, word = typed_literal(value)
+                    if word < 0:
+                        # Keep a plain literal AST: a signed DINT word does not
+                        # select wide typed-literal function/promotion rules.
+                        value = str(word);self.radix_types.add('DINT')
                 if (floating_literals and '#' not in value and any(c in value for c in '.eE')
                         and pos < len(text) and text[pos] in 'lL'
                         and (pos+1 == len(text) or not (text[pos+1].isalnum() or text[pos+1]=='_'))):
@@ -155,6 +162,12 @@ class Expression:
             node = ('binary', op, node, right)
         return node
 
+    def validate_radix(self, memory, real):
+        if 'DINT' not in self.radix_types:return
+        if memory.project.version != '35' or memory.project.processor.upper() not in CONTROLLERS:
+            raise ModelError('Signed DINT radix expressions require the v35 ControlLogix 5580 profile')
+        if real:raise ModelError('Signed DINT radix expressions require integer arithmetic')
+
     def validate(self, memory, scope='', destination_type=None, index=False):
         if self.typed_types:raise ModelError('Typed integer literals require a qualified integer expression profile')
         if self.literal_types:raise ModelError('LREAL literals require the qualified ladder floating expression profile')
@@ -171,6 +184,7 @@ class Expression:
         integer_root = memory.project.version == '35' and memory.project.processor.upper() in CONTROLLERS
         real |= bool(self.functions - {'ABS','TRN','TRUNC'} - ({'SQR'} if integer_root else set())
                      - (INDEX_FUNCTIONS if index else BCD_FUNCTIONS if self.bcd else set()))
+        self.validate_radix(memory, real)
         if index:
             if real or self.operators - {'+','-','*','/','AND','OR','XOR','NOT'} or self.functions-INDEX_FUNCTIONS:
                 raise ModelError('Array index expressions require narrow integers and supported arithmetic/bitwise operators')

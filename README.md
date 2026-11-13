@@ -464,6 +464,11 @@ skips out-of-bounds timer and counter selections and continues initialization.
 lengths and indices until reached. **Byte copy lab** includes an indexed ladder
 byte round trip with unknown inputs and outputs, alongside its ST examples.
 
+[Signed DINT radix expressions](docs/ladder-wide-expressions.md#unsuffixed-dint-radix-expressions)
+add full 32-bit binary, octal and hexadecimal words to ladder CPT, CMP, FAL
+and FSC integer expressions. For example, `7+16#FFFFFFFF` evaluates to 6.
+Wide expression lab includes gated arithmetic and comparison examples.
+
 [Ladder wide expressions](docs/ladder-wide-expressions.md) add exact homogeneous and bounded mixed
 LINT/unsigned CPT and CMP forms for v35 5580. Ladder MEQ additionally mixes
 all eight integer tag types with zero extension and exact 64-bit masks. **Ladder wide expression lab**

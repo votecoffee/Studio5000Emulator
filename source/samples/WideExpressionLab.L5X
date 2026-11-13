@@ -924,6 +924,23 @@
       <Tag Name="Binary64ResultSelected" DataType="LINT" Dimensions="3" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="LINT" Dimensions="3"><Element Index="[2]" Value="903" /></Array></Data></Tag>
       <Tag Name="Binary64ResultDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
       <Tag Name="Binary64ResultLate" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="DintExprEnabled" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="DintExprIndex" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="DintExprSource" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="7" /></Data></Tag>
+      <Tag Name="DintExprDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="2" /></Data></Tag>
+      <Tag Name="DintExprLateDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="DintExprPermit" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="true" /></Data></Tag>
+      <Tag Name="DintExprValue" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="DintExprQuotient" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="DintExprRemainder" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="DintExprBcd" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="DintExprRoot" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="DintExprPower" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="DintExprLateResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="DintExprWide" DataType="LINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="0" /></Data></Tag>
+      <Tag Name="DintExprMatch" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="DintExprNegative" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="DintExprSelected" DataType="DINT" Dimensions="3" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="DINT" Dimensions="3"><Element Index="[0]" Value="101" /><Element Index="[2]" Value="999" /></Array></Data></Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
@@ -1005,7 +1022,7 @@
               <Rung Number="25" Type="N"><Text>JSR(IntegerConstants,0);</Text></Rung>
               <Rung Number="26" Type="N"><Text>JSR(DoubleIntegerConstants,0);</Text></Rung>
               <Rung Number="27" Type="N"><Text>JSR(IntegerFileConstants,0);</Text></Rung>
-              <Rung Number="28" Type="N"><Text>JSR(NumericMoveConstants,0)JSR(RadixMoves,0)JSR(MathConstants,0)JSR(ComparisonConstants,0)JSR(RealIntegerConstants,0)JSR(IntegerOperandConstants,0)JSR(BitwiseOperandConstants,0)JSR(Binary64SourceResults,0)JSR(DintPatternConstants,0);</Text></Rung>
+              <Rung Number="28" Type="N"><Text>JSR(NumericMoveConstants,0)JSR(RadixMoves,0)JSR(MathConstants,0)JSR(ComparisonConstants,0)JSR(RealIntegerConstants,0)JSR(IntegerOperandConstants,0)JSR(BitwiseOperandConstants,0)JSR(Binary64SourceResults,0)JSR(DintPatternConstants,0)JSR(DintWordExpressions,0);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="Binary64" Type="RLL">
@@ -1238,6 +1255,21 @@
               <Rung Number="3" Type="N"><Text>XIC(Binary64ResultEnabled)SQR(-9.0L,Binary64ResultRoot);</Text></Rung>
               <Rung Number="4" Type="N"><Text>XIC(Binary64ResultEnabled)XPY(4.0L,0.5L,Binary64ResultSelected[Binary64ResultIndex]);</Text></Rung>
               <Rung Number="5" Type="N"><Text>XIC(Binary64ResultEnabled)DIV(1,Binary64ResultDivisor,Binary64ResultLate);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="DintWordExpressions" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(DintExprEnabled)CPT(DintExprValue,DintExprSource+16#FFFFFFFF);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(DintExprEnabled)CPT(DintExprQuotient,16#FFFFFFF9/DintExprDivisor);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(DintExprEnabled)CPT(DintExprRemainder,8#37777777771 MOD DintExprDivisor);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(DintExprEnabled)CPT(DintExprBcd,FRD(16#FFFFFFFF));</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(DintExprEnabled)CPT(DintExprRoot,SQR(2#11111111111111111111111111110111));</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(DintExprEnabled)CPT(DintExprPower,16#FFFFFFFE**2);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(DintExprEnabled)CPT(DintExprWide,9007199254740993L+16#FFFFFFFF);</Text></Rung>
+              <Rung Number="7" Type="N"><Text>XIC(DintExprEnabled)CMP((DintExprSource+16#FFFFFFFF=6)&amp;&amp;DintExprPermit)OTE(DintExprMatch);</Text></Rung>
+              <Rung Number="8" Type="N"><Text>XIC(DintExprEnabled)CMP(16#80000000&lt;0)OTE(DintExprNegative);</Text></Rung>
+              <Rung Number="9" Type="N"><Text>XIC(DintExprEnabled)CPT(DintExprSelected[DintExprIndex],DintExprSource+16#FFFFFFFF);</Text></Rung>
+              <Rung Number="10" Type="N"><Text>XIC(DintExprEnabled)DIV(1,DintExprLateDivisor,DintExprLateResult);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

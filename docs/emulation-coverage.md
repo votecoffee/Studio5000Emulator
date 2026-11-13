@@ -429,3 +429,7 @@ remain separate.
 sources or finite LREAL floating constants, checked before existing numeric
 conversion. The viewer retains integer digits and declared literal types.
 Other arguments/consumers, typed radix forms and native parity remain separate.
+
+Ladder CPT/CMP/FAL/FSC also support [signed DINT radix words in integer expressions](ladder-wide-expressions.md#unsuffixed-dint-radix-expressions),
+with existing integer ranges, file progress and transactional rollback. Default,
+ST and index parsing are unchanged; native arithmetic/status parity is unverified.

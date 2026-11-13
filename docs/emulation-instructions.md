@@ -295,3 +295,7 @@ conversion. The viewer retains integer digits and declared literal types.
 [Typed radix MOV sources](radix-mov-literals.md#typed-radix-mov-sources) also
 select LINT/UDINT/ULINT bit patterns. Other arguments/consumers, explicit signed
 radix forms and native parity remain separate.
+
+Ladder CPT/CMP/FAL/FSC also support [signed DINT radix words in integer expressions](ladder-wide-expressions.md#unsuffixed-dint-radix-expressions),
+with existing integer ranges, file progress and transactional rollback. Default,
+ST and index parsing are unchanged; native arithmetic/status parity is unverified.

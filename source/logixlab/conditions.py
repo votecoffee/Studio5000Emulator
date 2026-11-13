@@ -79,6 +79,7 @@ class Condition(Expression):
             if left!='number' or right!='number':raise ModelError('CMP arithmetic requires numeric operands')
             return 'number'
         if infer(self.tree)!='bool':raise ModelError('CMP requires a BOOL result or comparison')
+        self.validate_radix(memory, real)
         if self.functions & BCD_FUNCTIONS:
             if memory.project.version!='35' or memory.project.processor.upper() not in CONTROLLERS:
                 raise ModelError('BCD conditions require the v35 ControlLogix 5580 profile')
