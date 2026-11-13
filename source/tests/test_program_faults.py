@@ -2482,27 +2482,22 @@ class ProgramFaultTests(unittest.TestCase):
         self.assertEqual(memory.read('LabStats[0]'),2)
         self.assertTrue(memory.read('LabRecords[0].DN'))
 
-    def test_ave_short_windows_keep_scan_rollback(self):
-        for instruction in (
-            'AVE(LabQueue[LabIndex],0,LabStats[0],LabRecords[0],?,?)',
-        ):
-            with self.subTest(instruction=instruction):
-                self.setUp()
-
-                def configure(root):
-                    ladder_fault_fixture(root)
-                    add_array_calculation_tags(root)
-                    set_fault_instruction(root,instruction)
-
-                engine = self.engine(mutate=configure)
-                self.assertEqual(engine.blockers,[])
-                engine.memory.write('LabIndex',4)
-                engine.memory.write('StartPB',True)
-                before = copy.deepcopy(engine.memory.values)
-                with self.assertRaisesRegex(ModelError,'selected dimension/member boundary'):
-                    engine.step()
-                self.assertEqual(engine.memory.values,before)
-                self.assertIsNone(engine.last_cleared_program_fault)
+    def test_ave_extent_error_continues_without_invoking_a_fault_handler(self):
+        def configure(root):
+            sort_extent_fault_fixture(root)
+            set_fault_instruction(root,'AVE(LabQueue[LabIndex],0,LabStats[0],LabRecords[0],?,?)')
+        engine=self.engine(mutate=configure)
+        self.assertEqual(engine.blockers,[])
+        memory=engine.memory
+        memory.write('StartPB',True)
+        memory.write('SpeedCommand',50)
+        engine.step()
+        self.assertIsNone(engine.last_cleared_program_fault)
+        self.assertEqual(memory.read('LabIndex'),4)
+        self.assertEqual(memory.read('LabStats[0]'),11)
+        self.assertEqual(memory.read('SpeedCommand'),51)
+        self.assertEqual([memory.read('LabRecords[0].'+n) for n in ('EN','DN','ER','POS')],
+                         [True,False,True,1])
 
     def test_bcd_size_and_truncate_array_faults_skip_the_result_write(self):
         cases = (

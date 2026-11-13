@@ -69,10 +69,32 @@ class AOIStatisticsTests(unittest.TestCase):
         with self.assertRaises(ModelError):e.step()
         self.assertEqual(self.snapshot(e),before);self.write(e,FaultDivisor=1);e.step();self.assertEqual(e.memory.read('DriverB.Mean'),20)
 
-    def test_second_instance_short_window_rolls_back_first_instance_work(self):
-        e=self.checked();self.write(e,Calculate=True,MeanB__LEN=5);before=self.snapshot(e)
-        with self.assertRaisesRegex(ModelError,'dimension/member'):e.step()
-        self.assertEqual(self.snapshot(e),before);self.write(e,MeanB__LEN=3);e.step();self.assertEqual(e.memory.read('DriverA.Mean'),4)
+    def test_second_mean_extent_error_retains_first_instance_work_and_rearms_with_res(self):
+        def reset(root):
+            tag=E.SubElement(root.find('./Controller/Tags'),'Tag',Name='ResetMeanB',DataType='BOOL',TagType='Base')
+            E.SubElement(E.SubElement(tag,'Data',Format='Decorated'),'DataValue',DataType='BOOL',Value='0')
+            content=root.find('./Controller/Programs/Program/Routines/Routine/RLLContent')
+            E.SubElement(E.SubElement(content,'Rung',Number=str(len(content)),Type='N'),'Text').text='XIC(ResetMeanB)RES(MeanB);'
+        e=self.checked(reset)
+        saved=e.memory.read('DriverB.Mean')
+        available=len(e.memory.read('SamplesB'))-e.memory.read('IndexB')
+        self.write(e,Calculate=True,MeanB__LEN=available+1)
+        e.step()
+        self.assertEqual(e.memory.read('DriverA.Mean'),4)
+        self.assertTrue(e.memory.read('MeanA.DN'))
+        self.assertEqual(e.memory.read('DriverB.Mean'),saved)
+        self.assertEqual([e.memory.read('MeanB.'+n) for n in ('EN','DN','ER','POS')],
+                         [True,False,True,available])
+        self.write(e,Calculate=False)
+        e.step()
+        self.assertTrue(e.memory.read('MeanB.ER'))
+        self.write(e,ResetMeanB=True)
+        e.step()
+        self.assertFalse(e.memory.read('MeanB.ER'))
+        self.write(e,ResetMeanB=False,Calculate=True,MeanB__LEN=3)
+        e.step()
+        self.assertEqual(e.memory.read('DriverB.Mean'),20)
+        self.assertTrue(e.memory.read('MeanB.DN'))
 
     def test_one_std_instance_extent_error_retains_output_and_other_instance_work(self):
         e = self.checked()

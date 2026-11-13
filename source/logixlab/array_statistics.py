@@ -9,10 +9,10 @@ from .real_math import real
 INSTRUCTIONS = frozenset(('AVE', 'STD'))
 
 
-class StandardDeviationExtentError(ModelError):
+class StatisticsExtentError(ModelError):
     """A valid one-dimensional start whose requested window exceeds its member."""
-    def __init__(self, key, prefix, position):
-        super().__init__('STD exceeds the selected one-dimensional array/member boundary')
+    def __init__(self, instruction, key, prefix, position):
+        super().__init__(f'{instruction} exceeds the selected one-dimensional array/member boundary')
         self.key = key
         self.prefix = list(prefix)
         self.position = position
@@ -53,8 +53,8 @@ def selected_region(memory, op, scope, count, *, writable, references):
     if indices[dimension] + count > shape[dimension]:
         if op.name == 'SRT':
             raise ArrayBoundsError('SRT LEN exceeds the selected dimension/member boundary (Type 4 Code 20)')
-        if op.name == 'STD' and len(shape) == 1:
-            raise StandardDeviationExtentError(key, prefix, shape[0] - indices[0])
+        if op.name in INSTRUCTIONS and len(shape) == 1:
+            raise StatisticsExtentError(op.name, key, prefix, shape[0] - indices[0])
         raise ModelError('Statistics exceed the selected dimension/member boundary')
     paths = []
     for offset in range(count):
@@ -98,13 +98,23 @@ def prescan(memory, op, scope):
     elif not controls.flag(obj, 'ER'):obj.update(dict.fromkeys(controls.FLAGS, False))
 
 
-def standard_deviation(values):
-    """Converted finite samples; return a float32 result or overflow offset."""
+def average(values):
+    """Converted finite samples; return a float32 mean or overflow offset."""
     position = 0
     try:
         total = 0.0
         for position, value in enumerate(values):total = real(total + value)
-        mean = real(total / len(values))
+        return real(total / len(values)), None
+    except ModelError:
+        return None, position
+
+
+def standard_deviation(values):
+    """Converted finite samples; return a float32 result or overflow offset."""
+    mean, position = average(values)
+    if position is not None:return None, position
+    position = 0
+    try:
         total = 0.0
         for position, value in enumerate(values):
             delta = real(value - mean)
@@ -136,22 +146,18 @@ def execute(memory, op, power, scope):
         raise ModelError('AVE requires at least one element; sample STD requires at least two')
     try:
         key, paths, prefix, _ = region(memory, op, scope, length, references=True)
-    except StandardDeviationExtentError as error:
+    except StatisticsExtentError as error:
         # Retain live result-address checks before changing the CONTROL record.
         destination(memory,op,scope,error.key,error.prefix)
         obj.update(EN=True, DN=False, ER=True, POS=error.position)
         return True
     destination(memory,op,scope,key,prefix)
     values = [real(memory.read(memory.address(key, path))) for path in paths]
-    if op.name == 'STD':
-        result, overflow_position = standard_deviation(values)
-        if overflow_position is not None:
-            obj.update(EN=True, DN=False, ER=True, POS=overflow_position)
-            return True
-    else:
-        total = 0.0
-        for value in values:total = real(total + value)
-        result = real(total / length)
+    calculate = standard_deviation if op.name == 'STD' else average
+    result, overflow_position = calculate(values)
+    if overflow_position is not None:
+        obj.update(EN=True, DN=False, ER=True, POS=overflow_position)
+        return True
     memory.write(op.args[2], result, scope)
     obj.update(EN=True, DN=True, ER=False, POS=length)
     return True
@@ -162,6 +168,7 @@ def description():
                 source_types=sorted(controls.NUMERIC), destination='AVE: SINT/INT/DINT/REAL; STD: REAL',
                 destinations={'AVE':sorted(controls.NUMERIC),'STD':['REAL']}, max_elements=controls.MAX_ELEMENTS,
                 integer_ave='Float32 mean rounded to nearest integer, ties to even; rounded range errors roll back the advance',
+                ave_errors='Float32 calculation overflow or a valid one-dimensional range overrun latches EN/ER, clears DN, records the failing offset in POS and retains the result; false retains errors, CONTROL RES rearms',
                 std_overflow='Finite-sample float32 calculation overflow latches EN/ER, clears DN, records the failing sample offset in POS and retains the result; false/RES rearms',
                 std_extent='Valid one-dimensional starts with LEN beyond the array/member latch EN/ER, clear DN and record the first unavailable offset in POS before reading samples; preserve the result',
                 result_storage='Scalar aliases/members/AOI results disjoint from the source array and its CONTROL record',

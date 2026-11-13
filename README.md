@@ -366,6 +366,8 @@ when a transfer has executed.
 
 [Statistics operand selection](docs/statistics-operands.md) defers dormant
 AVE/STD result indices and establishes unknown REAL/integer result elements.
+[AVE error latches](docs/array-statistics.md#ave-error-latches) retain results
+on arithmetic overflow or one-dimensional range overruns; CONTROL RES rearms them.
 [STD arithmetic overflow](docs/array-statistics.md#std-arithmetic-overflow)
 latches CONTROL.ER/POS, retains the result and allows ladder execution to continue.
 [One-dimensional STD range overruns](docs/array-statistics.md#std-one-dimensional-range-overruns)

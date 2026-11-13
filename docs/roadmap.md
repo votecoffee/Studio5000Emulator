@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+[AVE error latches](array-statistics.md#ave-error-latches) retain results during
+float32 accumulation overflow and one-dimensional range overruns as of
+`26.1112.190744`. False rungs retain the error; CONTROL RES enables a fresh call.
+
 [One-dimensional STD range overruns](array-statistics.md#std-one-dimensional-range-overruns)
 latch ER/POS and retain the result as of `26.1112.174015`. Ladder and AOI
 execution continue; corrected ranges can recalculate after a false rung/reset.

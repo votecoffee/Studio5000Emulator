@@ -380,9 +380,10 @@ according to the instruction. The CONTROL address is still required.
 SRT also raises Type 4 Code 20 when LEN extends beyond the selected
 array dimension or member. The array and CONTROL retain their values for
 the handler. A cleared fault leaves the edge available for a later call.
-Unknown consumed values and AVE or multidimensional STD window overruns use
-scan rollback. A [one-dimensional STD range overrun](array-statistics.md#std-one-dimensional-range-overruns)
-latches CONTROL.ER/POS and continues without invoking a fault handler.
+Unknown consumed values and multidimensional AVE/STD window overruns use
+scan rollback. [AVE error latches](array-statistics.md#ave-error-latches) and
+[one-dimensional STD range overruns](array-statistics.md#std-one-dimensional-range-overruns)
+retain results and continue without invoking a fault handler.
 The recovery path applies to ladder execution.
 
 ### Recover negative sort and deviation cursors

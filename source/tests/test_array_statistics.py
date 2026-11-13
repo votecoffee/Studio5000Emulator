@@ -140,11 +140,7 @@ class ArrayStatisticsTests(unittest.TestCase):
         e=self.checked(['AVE(Queue[0],0,Result,Ctl,?,?);'],length=4097,queue=(0,)*4097)
         with self.assertRaisesRegex(ModelError,'software limit'):e.step()
 
-    def test_float32_accumulation_overflow_and_late_fault_roll_back(self):
-        e=self.checked(['AVE(Queue[0],0,Result,Ctl,?,?);'],dtype='REAL',length=2,queue=(3e38,3e38))
-        before=copy.deepcopy(e.memory.values)
-        with self.assertRaises(ModelError):e.step()
-        self.assertEqual(e.memory.values,before)
+    def test_late_fault_rolls_back_completed_mean(self):
         e=self.checked(['AVE(Queue[0],0,Result,Ctl,?,?);','DIV(1,0,SpeedCommand);'])
         before=copy.deepcopy(e.memory.values)
         with self.assertRaises(ModelError):e.step()
@@ -267,6 +263,70 @@ class ArrayStatisticsTests(unittest.TestCase):
         with self.assertRaisesRegex(ModelError,'dimension/member boundary'):e.step()
         self.assertEqual(e.memory.values,before)
 
+    def test_ave_arithmetic_overflow_latches_at_failing_sample_and_continues(self):
+        for values,position in (((3e38,3e38),1),((1e38,1e38,1e38,1e38),3)):
+            with self.subTest(values=values):
+                e=self.checked(['MOV(42,SpeedCommand);','AVE(Queue[0],0,Result,Ctl,?,?)OTE(RunLatch);'],
+                               dtype='REAL',length=len(values),queue=values+(999,))
+                source=copy.deepcopy(e.memory.read('Queue'))
+                e.step()
+                self.assertEqual([e.memory.read('Ctl.'+n) for n in ('EN','DN','ER','POS')],
+                                 [True,False,True,position])
+                self.assertEqual(e.memory.read('Result'),7)
+                self.assertEqual(e.memory.read('Queue'),source)
+                self.assertEqual(e.memory.read('SpeedCommand'),42)
+                self.assertTrue(e.memory.read('RunLatch'))
+
+    def test_ave_extent_skips_samples_and_retains_unknown_result(self):
+        for dtype in ('SINT','INT','DINT','REAL'):
+            e=self.checked(['AVE(Queue[3],0,Result,Ctl,?,?);'],dtype=dtype,length=3,queue=(2,4,6,8,99))
+            e.memory.values['queue'][3]=None
+            e.memory.values['result']=None
+            e.step()
+            self.assertEqual([e.memory.read('Ctl.'+n) for n in ('EN','DN','ER','POS')],
+                             [True,False,True,2])
+            self.assertIsNone(e.memory.values['result'])
+            self.assertIsNone(e.memory.values['queue'][3])
+
+    def test_ave_errors_survive_false_rungs_until_control_reset_then_recalculate(self):
+        cases=(((3e38,3e38,6,8,99),2,0,1),((2,4,6,8,99),3,3,2))
+        for values,length,index,position in cases:
+            with self.subTest(length=length):
+                e=self.checked(['XIC(StartPB)AVE(Queue[SpeedCommand],0,Result,Ctl,?,?);',
+                                'XIC(RunLatch)RES(Ctl);'],dtype='REAL',length=length,queue=values)
+                e.memory.values['result']=None
+                e.memory.write('SpeedCommand',index)
+                e.memory.write('StartPB',True)
+                e.step()
+                status=[True,False,True,position]
+                self.assertEqual([e.memory.read('Ctl.'+n) for n in ('EN','DN','ER','POS')],status)
+                e.memory.write('SpeedCommand',999)
+                e.step()
+                e.memory.write('StartPB',False)
+                e.step()
+                self.assertEqual([e.memory.read('Ctl.'+n) for n in ('EN','DN','ER','POS')],status)
+                self.assertIsNone(e.memory.values['result'])
+                e.memory.write('RunLatch',True)
+                e.step()
+                self.assertEqual([e.memory.read('Ctl.'+n) for n in ('EN','DN','ER','POS')],
+                                 [False,False,False,0])
+                for i,value in enumerate((2,4,6,8,99)):e.memory.write(f'Queue[{i}]',value)
+                for ref,value in (('RunLatch',False),('SpeedCommand',1),('Ctl.LEN',3),('StartPB',True)):
+                    e.memory.write(ref,value)
+                e.step()
+                self.assertEqual(e.memory.read('Result'),6)
+                self.assertEqual([e.memory.read('Ctl.'+n) for n in ('EN','DN','ER','POS')],
+                                 [True,True,False,3])
+
+    def test_ave_error_latches_roll_back_with_a_later_fault(self):
+        for start,length,values in ((0,2,(3e38,3e38,6,8,99)),(3,3,(2,4,6,8,99))):
+            e=self.checked([f'AVE(Queue[{start}],0,Result,Ctl,?,?);','DIV(1,0,SpeedCommand);'],
+                           dtype='REAL',length=length,queue=values)
+            before=copy.deepcopy(e.memory.values)
+            with self.assertRaises(ModelError):e.step()
+            self.assertEqual(e.memory.values,before)
+            self.assertEqual((e.scan_count,e.time_ms),(0,0))
+
     def test_constant_sources_allowed_constant_results_and_controls_rejected(self):
         def source(root):root.find('./Controller/Tags/Tag[@Name="Queue"]').set('Constant','true')
         e=self.checked(['AVE(Queue[0],0,Result,Ctl,?,?);'],mutate=source);e.step()
@@ -298,7 +358,11 @@ class ArrayStatisticsTests(unittest.TestCase):
         e=self.checked(['AVE(Packet1.Samples[0],0,MeanAlias,Ctl,?,?);'],mutate=member);e.step()
         self.assertEqual(e.memory.read('Packet1.Mean'),5.0)
         e=self.checked(['AVE(Packet1.Samples[0],0,MeanAlias,Ctl,?,?);'],length=5,mutate=member)
-        with self.assertRaisesRegex(ModelError,'boundary'):e.step()
+        e.step()
+        self.assertEqual(e.memory.read('Packet1.Mean'),0)
+        self.assertEqual(e.memory.read('Packet1.Samples'),[2,4,6,8])
+        self.assertEqual([e.memory.read('Ctl.'+n) for n in ('EN','DN','ER','POS')],
+                         [True,False,True,4])
 
     def test_st_calls_remain_unavailable(self):
         for text in ('AVE(Queue[0],0,Result,Ctl);','STD(Queue[0],0,Result,Ctl);'):

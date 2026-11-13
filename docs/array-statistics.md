@@ -38,8 +38,8 @@ profile; native precision and bit-for-bit parity remain unverified.
 An integer AVE result rounds the float32 mean to the nearest whole number,
 with exact halves going to the nearest even value: 2.5 becomes 2, 3.5 becomes
 4, and -2.5 becomes -2. Range checks apply after rounding: SINT -128.5 fits as
--128, while 127.5 rounds outside SINT and rolls back the advance. No native
-overflow bits or arithmetic flags are synthesized.
+-128, while 127.5 rounds outside SINT and rolls back the advance. These
+destination range errors do not synthesize native saturation results or math flags.
 
 Integer results retain the same float32 accumulation order as REAL results.
 For example, DINT samples [16777216,1,-16777216,2] produce a modeled float32
@@ -47,6 +47,28 @@ mean of 0.5 and an integer result of 0; an exact integer sum would differ.
 A one-element DINT source of 2147483647 first rounds to 2147483648, so a DINT
 result fails its range check. Wider intermediates and native precision remain
 unqualified. STD is not widened by the integer AVE profile.
+
+## AVE error latches
+
+App `26.1112.190744` latches AVE EN/ER, clears DN and retains its result on
+float32 accumulation overflow or a valid one-dimensional array/member start
+whose LEN extends past its end. POS records the failing sample offset or the
+first unavailable offset. The rung continues true and earlier ladder/AOI work
+is retained. Range checks precede sample reads; live destination-address checks
+still precede the range-error latch. Unknown results remain unknown.
+
+AVE retains its error state on a false rung. Correct the input range or values
+and execute CONTROL RES to clear EN/ER/POS before a fresh call. This differs
+from STD's false-rung rearm. Held error states skip live source/result operands.
+A later fault still rolls back the entire advance, including both latches and
+AOI output transfers. Integer destination range checks keep their rollback policy.
+
+Invalid starting subscripts retain Type 4 Code 20. Multidimensional window
+spill, unsupported cursors and lengths above 4096 keep existing rollback.
+Native intermediate precision, partial results/read order, packed traversal,
+exact error positions and math flags remain unqualified. The source basis is
+installed v35 AVE help 14507 and its false-rung flowchart, also documented in the
+[Rockwell AVE reference](https://www.rockwellautomation.com/en-il/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/array-file-misc-instructions/file-average-ave.html).
 
 ## STD arithmetic overflow
 
@@ -60,7 +82,7 @@ Held error state skips another calculation. A false rung or CONTROL RES clears
 the latch and resets POS; correct the samples before a fresh call. An unknown
 destination remains unknown until a successful calculation writes it. Unknown
 source samples, invalid references, excluded ranges and later faults still use
-whole-advance rollback. AVE keeps its existing overflow policy.
+whole-advance rollback. AVE has its [own reset and error behavior](#ave-error-latches).
 
 The two-pass float32 order and retained result are explicit software behavior.
 Native intermediate precision, partial results, exact error positions and math
@@ -119,8 +141,8 @@ In a whole-project ladder scan, a handler can
 and skip both the result write and CONTROL update. A reached negative
 STD LEN or POS raises [Type 4 Code 21](controller-handlers.md#recover-negative-sort-and-deviation-cursors)
 before writing the result or changing CONTROL. Other invalid cursors,
-unknown values, AVE or multidimensional short windows, AVE accumulation overflow
-and unrecovered faults roll back the modeled advance. One-dimensional STD
+unknown values, multidimensional short windows and unrecovered faults roll back
+the modeled advance. AVE [errors](#ave-error-latches), one-dimensional STD
 [range overruns](#std-one-dimensional-range-overruns) and arithmetic overflow use
 their documented error latches. Native partial results, precision,
 math flags and complete fault classifications remain unfinished.
