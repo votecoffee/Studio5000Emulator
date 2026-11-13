@@ -30,8 +30,8 @@ The qualified ladder combinations are:
 
 | Instruction | Source | Destination |
 | --- | --- | --- |
-| FRD | Any of the eight integer tag types or bounded DINT/32-bit radix/decimal L/U/UL immediate | Writable SINT/INT/DINT/LINT/USINT/UINT/UDINT/ULINT scalar |
-| TOD | Any of the eight integer tag types or bounded DINT/32-bit radix/decimal L/U/UL immediate | Writable SINT/INT/DINT/LINT/USINT/UINT/UDINT/ULINT scalar |
+| FRD | Any of the eight integer tag types or bounded DINT/32-bit radix/decimal or radix L/U/UL immediate | Writable SINT/INT/DINT/LINT/USINT/UINT/UDINT/ULINT scalar |
+| TOD | Any of the eight integer tag types or bounded DINT/32-bit radix/decimal or radix L/U/UL immediate | Writable SINT/INT/DINT/LINT/USINT/UINT/UDINT/ULINT scalar |
 
 FRD checks the decoded integer against the destination's signed/unsigned range. Thus
 16#127 decodes to SINT 127; 16#128 decodes to 128 and faults on a SINT result.
@@ -130,7 +130,7 @@ value. `TOD(9007199254740993UL,Packed)` writes the exact pattern
 Preflight checks the declared literal range. Reached instructions check TOD's
 destination capacity and FRD's decoded result range. False rungs skip live
 indices, and full writes establish unknown elements. The literal profile is
-limited to decimal integers in these ladder instructions.
+extended by the [typed radix source profile](#typed-radix-bcd-sources) below.
 
 Enable `ImmediateConversions` in **Conversion lab** and step. The
 **TypedImmediateConversions** routine writes the packed pattern to
@@ -138,6 +138,39 @@ Enable `ImmediateConversions` in **Conversion lab** and step. The
 unknown and element 2 retains 903. The same routine contrasts floating L/l
 and unsuffixed inputs in [TRN](lreal-truncate.md). The operand references are
 installed v35 help 14454, 14674 and 14675. Native acceptance remains open.
+
+## Typed radix BCD sources
+
+App `26.1113.004109` accepts attached binary/octal/hexadecimal L/l, U/u and
+UL/ul/Ul/uL constants as ladder FRD/TOD sources. LINT/ULINT use 64-bit source
+patterns and UDINT uses 32 bits. Short patterns zero-fill; signed LINT top-bit
+interpretation follows the [radix source rules](radix-mov-literals.md#typed-radix-mov-sources).
+
+FRD decodes the complete declared pattern, including weighted A-F nibbles.
+`FRD(16#FFFF_FFFFU,Result)` yields 166666665, while a full 64-bit all-ones L or
+UL yields 16666666666666665. TOD instead uses the numeric value: a full all-ones
+L is -1 and fails its nonnegative range; the same pattern as UL exceeds the
+sixteen-digit packed capacity. `TOD(16#0020000000000001UL,Packed)` preserves
+9007199254740993 exactly and packs `16#9007199254740993` without floating math.
+
+All eight existing integer destinations retain their rules. TOD checks decimal
+capacity by destination width, FRD checks decoded result range, and signed
+packed destinations retain their bits. Overwide/invalid source words block
+false rungs. False/prescan skip live indices/data; full writes establish unknown
+results. Aliases, selected elements, AOI bindings, source capture and whole-advance
+rollback retain existing behavior. SWPB, BCD expressions/index/file consumers,
+ST calls, FBD defaults and general literal parsing are not extended. The viewer
+preserves exact declared source values only in qualified operand contexts.
+Native typed-radix import, numerical/status/fault and lifecycle parity remain
+unverified.
+
+Enable ImmediateConversions in **Conversion lab**. The existing exact round trip
+now uses a hexadecimal UL input, and ImmediateWeighted uses an octal signed
+all-ones source. ImmediateRadixDecoded is 9007199254740993; ImmediateWeightedDword
+is 166666665. A binary source packs 99 into ImmediateBytePacked (153), then
+decodes to ImmediateByteDecoded (99). Set ImmediateLateDivisor to zero for
+rollback after every conversion; restore one to retry. Existing indexed guards
+and REAL/LREAL truncation examples retain their behavior.
 
 ## Byte orders
 

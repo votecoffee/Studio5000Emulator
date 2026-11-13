@@ -118,7 +118,7 @@ class RadixBitwiseTests(unittest.TestCase):
         self.assertIsNone(typed_integer('16#FFUL'));self.assertEqual(typed_integer('16#FFUL',radix=True),('ULINT',255))
         with self.assertRaises(ValueError):literal('16#FFUL')
         for call in ('XPY(Source,16#FFUL,Results[1]);','EQU(Source,16#FFUL)OTE(RunLatch);',
-                     'FRD(16#FFUL,Results[1]);','TOD(16#FFUL,Results[1]);',
+                     'SWPB(16#FFUL,REVERSE,Results[1]);','CMP(Source=16#FFUL)OTE(RunLatch);',
                      'CPT(Results[1],16#FFUL);','MOV(1,Results[16#FFUL]);'):
             self.assertTrue(self.engine([call]).blockers,call)
         for key,value in [('ProcessorType','1756-L75'),('MajorRev','34')]:

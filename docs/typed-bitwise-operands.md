@@ -73,8 +73,9 @@ MEQ remains integer-only. Overwide/invalid words block even false rungs.
 Required unknowns, indices, zero masks, full writes and AOI/advance rollback
 retain their existing contracts. Explicit radix signs and alternate syntax
 remain excluded. [Integer arithmetic and relations/LIM](typed-integer-operands.md#typed-radix-integer-operands)
-have a separate profile. Floating radix operations, BCD, expression/file/ST,
-AOI call arguments and SBR/RET parsing are not extended.
+have a separate profile, as do [ladder BCD sources](numeric-conversions.md#typed-radix-bcd-sources).
+Floating radix operations, expression/file/ST, AOI call arguments and SBR/RET
+parsing are not extended.
 
 The bitwise viewer interpretation is scoped to these source operands; MOV and
 integer arithmetic/ordering have separate qualified profiles.

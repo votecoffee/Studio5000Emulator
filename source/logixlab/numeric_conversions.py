@@ -27,7 +27,7 @@ def validate(memory, op, scope):
         if op.args[1].upper() not in ORDERS:
             raise ModelError('SWPB order must be REVERSE, WORD or HIGHLOW')
         return 16 if stype == 'INT' else 32
-    width = pattern_width(memory, source, scope)
+    width = pattern_width(memory, source, scope, radix=True)
     if op.name == 'FRD':
         if dtype not in INT_BITS:
             raise ModelError('FRD requires an integer packed source and integer destination')
@@ -71,9 +71,9 @@ def execute(memory, op, power, scope):
     source = op.args[0]
     if op.name == 'FRD':
         # v35 explicitly defines weighted hex nibbles, including A..F.
-        result = from_bcd(pattern(memory, source, scope, width), width)
+        result = from_bcd(pattern(memory, source, scope, width, radix=True), width)
     elif op.name == 'TOD':
-        value = read_source(memory, source, scope)
+        value = read_source(memory, source, scope, radix=True)
         if type(value) is not int:
             raise ModelError('TOD source requires an integer value')
         result = to_bcd(value, scalar(memory, op.args[-1], scope))
@@ -103,8 +103,12 @@ def description():
                 array_recovery='A cleared Type 4 Code 20 during a whole-project ladder scan skips the conversion write',
                 frd_range='Two/four/eight/sixteen weighted nibbles including A-F; decoded value must fit the destination; range errors roll back the advance',
                 tod_range='Nonnegative integer input: 0..99 (8-bit), 0..9999 (16-bit), 0..99999999 (32-bit), 0..9999999999999999 (64-bit); exact packed destination bits',
-                immediates='FRD/TOD accept decimal L/U/UL integer sources alongside bounded DINT and 32-bit radix sources',
+                immediates='FRD/TOD accept decimal and typed radix L/U/UL sources alongside bounded DINT and unsuffixed 32-bit patterns',
                 typed_immediates='FRD decodes the declared 32/64-bit pattern; TOD packs the exact numeric value within destination capacity',
+                typed_radix=dict(bases=[2,8,16],types=['LINT','UDINT','ULINT'],
+                    selection='Declared 32/64-bit source pattern for FRD; exact numeric source value for TOD',
+                    scope='Ladder source only; SWPB, expression/ST/FBD and other consumers retain their existing contracts',
+                    native_runtime_parity=False),
                 native_runtime_parity=False,
                 swpb='RLL/ST INT to INT/DINT (sign extension) or DINT to DINT tags',
                 orders=sorted(ORDERS), native_math_status=False, native_fault_classification=False,

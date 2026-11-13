@@ -5,6 +5,12 @@
     <Modules />
     <AddOnInstructionDefinitions />
     <Tags>
+      <Tag Name="ImmediateRadixDecoded" DataType="LINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="0" /></Data></Tag>
+      <Tag Name="ImmediateWeightedDword" DataType="LINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="0" /></Data></Tag>
+      <Tag Name="ImmediateBytePacked" DataType="USINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="USINT" Value="0" /></Data></Tag>
+      <Tag Name="ImmediateByteDecoded" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="ImmediateLateDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="ImmediateLateGuard" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
       <Tag Name="ImmediateConversions" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="ImmediateIndex" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
       <Tag Name="ImmediatePacked" DataType="ULINT" Dimensions="3" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="ULINT" Dimensions="3"><Element Index="[2]" Value="903" /></Array></Data></Tag>
@@ -340,10 +346,14 @@
           </Routine>
           <Routine Name="TypedImmediateConversions" Type="RLL">
             <RLLContent>
-              <Rung Number="0" Type="N"><Text>XIC(ImmediateConversions)TOD(9007199254740993UL,ImmediatePacked[ImmediateIndex]);</Text></Rung>
+              <Rung Number="0" Type="N"><Text>XIC(ImmediateConversions)TOD(16#0020000000000001UL,ImmediatePacked[ImmediateIndex]);</Text></Rung>
               <Rung Number="1" Type="N"><Text>XIC(ImmediateConversions)FRD(ImmediatePacked[ImmediateIndex],ImmediateDecoded);</Text></Rung>
-              <Rung Number="2" Type="N"><Text>XIC(ImmediateConversions)FRD(-1L,ImmediateWeighted);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(ImmediateConversions)FRD(8#1777777777777777777777L,ImmediateWeighted);</Text></Rung>
               <Rung Number="3" Type="N"><Text>XIC(ImmediateConversions)TRN(16777217.875L,ImmediateTruncated)TRN(16777217.875,ImmediateRealTruncated);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(ImmediateConversions)FRD(16#9007199254740993UL,ImmediateRadixDecoded);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(ImmediateConversions)FRD(16#FFFF_FFFFu,ImmediateWeightedDword);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(ImmediateConversions)TOD(2#1100011U,ImmediateBytePacked)FRD(ImmediateBytePacked,ImmediateByteDecoded);</Text></Rung>
+              <Rung Number="7" Type="N"><Text>XIC(ImmediateConversions)DIV(1,ImmediateLateDivisor,ImmediateLateGuard);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

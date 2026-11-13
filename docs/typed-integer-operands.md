@@ -80,8 +80,9 @@ their existing contracts. The viewer preserves authored spelling, declared
 literal type and exact decimal values only for these operand positions.
 
 REAL/LREAL or time/date sources/results combined with typed radix remain
-excluded. Existing decimal floating priority is unchanged. Advanced math, BCD,
-expressions/file/ST, AOI call arguments and SBR/RET parsing are not extended.
+excluded. Existing decimal floating priority is unchanged. [Radix BCD sources](numeric-conversions.md#typed-radix-bcd-sources)
+have a separate ladder profile. Advanced math, expressions/file/ST, AOI call
+arguments and SBR/RET parsing are not extended.
 This is bounded software execution; native import, numerical/status/fault and
 controller lifecycle equivalence remain unverified.
 

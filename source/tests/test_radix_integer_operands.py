@@ -128,7 +128,7 @@ class RadixIntegerOperandTests(unittest.TestCase):
     def test_permissions_profiles_and_unrelated_literal_consumers_do_not_expand(self):
         self.assertIsNone(typed_integer('16#FFUL'))
         with self.assertRaises(ValueError):literal('16#FFUL')
-        for call in ('FRD(16#FFUL,Results[1]);','TOD(16#FFUL,Results[1]);','XPY(Source,16#FFUL,Results[1]);',
+        for call in ('SWPB(16#FFUL,REVERSE,Results[1]);','CMP(Source=16#FFUL)OTE(RunLatch);','XPY(Source,16#FFUL,Results[1]);',
                      'FLL(16#FFUL,Results[1],1);','CPT(Results[1],16#FFUL);','MOV(1,Results[16#FFUL]);'):
             self.assertTrue(self.engine([call]).blockers,call)
         def constant(root):root.find('./Controller/Tags/Tag[@Name="Results"]').set('Constant','true')

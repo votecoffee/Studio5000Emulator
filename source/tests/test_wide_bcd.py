@@ -126,7 +126,7 @@ class WideBCDTests(unittest.TestCase):
                 with self.assertRaisesRegex(ModelError, error):
                     engine.step()
                 self.assertEqual(self.snapshot(engine), before)
-        for operand in ('4294967296U', '-1UL', '9223372036854775808L', '18446744073709551616UL', '1.0L', '16#99UL'):
+        for operand in ('4294967296U', '-1UL', '9223372036854775808L', '18446744073709551616UL', '1.0L', '16#99LU'):
             for instruction in ('FRD', 'TOD'):
                 with self.subTest(operand=operand, instruction=instruction):
                     self.assertTrue(self.engine([f'AFI(){instruction}({operand},Results[1]);']).blockers)
