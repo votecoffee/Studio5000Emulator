@@ -80,7 +80,7 @@ class SsvWallClockTests(unittest.TestCase):
         e.step();self.assertEqual(e.coordinated_clock.utc.state.offset_us,TARGET-RAW)
 
     def test_types_attributes_instances_and_controller_profiles_are_structural(self):
-        for text in ['SSV(CST,,CurrentValue,ClockTarget);','SSV(WallClockTime,,DateTime,ClockWords[0]);',
+        for text in ['SSV(CST,,CurrentValue,ClockTarget);','SSV(WallClockTime,,DSTAdjustment,ClockWords[0]);',
                      'SSV(WallClockTime,THIS,CurrentValue,ClockTarget);','SSV(WallClockTime,,CurrentValue,1);',
                      'SSV(WallClockTime,,CurrentValue,ReadClock);','SSV(WallClockTime,,CurrentValue,ClockWords[11]);',
                      'SSV(WallClockTime,,CurrentValue,WideUnknown);']:

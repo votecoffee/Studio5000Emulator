@@ -1,5 +1,6 @@
 """Typed v35 ladder/ST reads of the host UTC and software coordinated clocks."""
 import struct
+from datetime import datetime, timezone
 
 from .integer_math import CONTROLLERS
 from .model import ModelError, coerce, dimensions
@@ -33,7 +34,7 @@ def specification(engine,op):
     return ATTRIBUTES[attribute]
 
 
-def _calendar_record_paths(memory, key, parts, count):
+def _calendar_record_paths(memory, key, parts, count, *, role='destination'):
     parent = parts[:-1]
     _, _, dtype = memory.resolve(memory.address(key, parent))
     definition = memory.project.udts.get(dtype.lower())
@@ -48,7 +49,7 @@ def _calendar_record_paths(memory, key, parts, count):
             or any(member.get('DataType') != 'DINT' or dimensions(member.get('Dimension', '0'))
                    or member.get('Hidden', 'false').lower() != 'false' for member in members)):
         raise ModelError('WallClockTime calendar record requires seven leading visible scalar DINTs '
-                         'and the first member as destination')
+                         'and the first member as '+role)
     return [parent + [name] for name in names]
 
 
@@ -75,36 +76,52 @@ def _clock_destination(memory, ref, scope, number, count):
     return destination(memory, ref, scope, count)
 
 
-def setting_source(memory, ref, scope):
+def setting_source(memory, ref, scope, count=2):
     key, parts, dtype = memory.resolve(ref, scope)
     if key is None or any(isinstance(part, tuple) for part in parts):
         raise ModelError('Clock setting requires a scalar DT/LINT tag or two DINT cells')
     value = memory.at(key, parts)
-    if dtype in ('DT','LINT') and not isinstance(value, (list,dict)):
+    if count == 2 and dtype in ('DT','LINT') and not isinstance(value, (list,dict)):
         return key, [parts], dtype
     if dtype == 'DINT':
-        return memory.region(ref, 2, scope)
+        if count == 7 and parts and isinstance(parts[-1], str) and not isinstance(value, list):
+            paths = _calendar_record_paths(memory, key, parts, count, role='source')
+            if paths is not None:return key, paths, dtype
+        return memory.region(ref, count, scope)
+    if count == 7:raise ModelError('Clock calendar source requires seven contiguous DINT cells or seven leading record fields')
     raise ModelError('Clock setting requires a scalar DT/LINT tag or two DINT cells')
 
 
 def setting_specification(engine, op):
-    number, _ = specification(engine, op)
-    if op.args[0].casefold() != 'wallclocktime' or number != 6:
-        raise ModelError('Clock SSV supports only WallClockTime CurrentValue')
+    number, count = specification(engine, op)
+    if op.args[0].casefold() != 'wallclocktime' or number not in (5,6,7):
+        raise ModelError('Clock SSV supports WallClockTime CurrentValue, DateTime and UTC-qualified LocalDateTime')
+    return number, count
 
 
 def validate_set(engine, op, scope):
-    setting_specification(engine, op);memory=engine.memory;previous=memory.structural
+    _,count=setting_specification(engine, op);memory=engine.memory;previous=memory.structural
     memory.structural=True
-    try:return setting_source(memory,op.args[3],scope)
+    try:return setting_source(memory,op.args[3],scope,count)
     finally:memory.structural=previous
 
 
+def calendar_microseconds(values):
+    if len(values) != 7 or any(type(value) is not int for value in values):
+        raise ModelError('Clock calendar requires seven integer DINT fields')
+    try:
+        instant=datetime(*values,tzinfo=timezone.utc)
+    except (ValueError,TypeError,OverflowError) as error:
+        raise ModelError('Clock calendar requires a valid UTC year, month, day, hour, minute, second and microsecond') from error
+    delta=instant-datetime(1970,1,1,tzinfo=timezone.utc)
+    return (delta.days*86400+delta.seconds)*1_000_000+delta.microseconds
+
+
 def execute_set(engine, op, scope):
-    setting_specification(engine, op);memory=engine.memory
-    key,paths,dtype=setting_source(memory,op.args[3],scope)
+    _,count=setting_specification(engine, op);memory=engine.memory
+    key,paths,dtype=setting_source(memory,op.args[3],scope,count)
     values=[memory.read(memory.address(key,path),allow_time=True) for path in paths]
-    value=(coerce(values[0],dtype) if len(paths)==1 else
+    value=(calendar_microseconds(values) if count==7 else coerce(values[0],dtype) if len(paths)==1 else
            struct.unpack('<q',struct.pack('<ii',*(coerce(value,'DINT') for value in values)))[0])
     engine.set_wall_clock(value)
 
@@ -164,7 +181,7 @@ def description():
                 local_time='Existing explicit source UTC policy only; no workstation local-zone or extended DST inference',
                 failures='Unavailable clock, out-of-range DT, invalid destinations and later faults roll back the whole modeled advance',
                 native_runtime_parity=False,clock_setters=True,ptp=False,
-                setting='SSV CurrentValue from scalar DT/LINT or two DINT cells; transactional controller UTC adjustment, 15-second monotonic interval, maximum 2068-12-29; no host clock write',
+                setting='SSV CurrentValue from scalar DT/LINT or two DINT cells; DateTime and UTC-qualified LocalDateTime from seven DINT cells or leading UDT members; transactional controller UTC adjustment, 15-second monotonic interval, maximum 2068-12-29; no host clock write',
                 remaining=['Built-in DATETIMESTRUCT layout and other attributes',
                            'Other clock SSV attributes, non-UTC/DST policies, CST status and chassis synchronization',
                            'Native sampling, interruption, scheduling, layout and fault/lifecycle parity'])

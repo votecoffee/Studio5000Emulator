@@ -19,8 +19,9 @@ In a whole-project ladder scan, a handler that clears an out-of-bounds
 operand can skip the GSV write or SSV setting change and continue the rung.
 See [GSV and SSV array recovery](controller-handlers.md#recover-gsv-and-ssv-array-faults).
 
-[SSV WallClockTime CurrentValue](wall-clock-set.md) adds controller UTC setting
-from a scalar DT/LINT or two DINT cells. Clock changes commit with a successful
+[SSV WallClockTime settings](wall-clock-set.md) add CurrentValue from a scalar
+DT/LINT or two DINT cells, plus DateTime and UTC-qualified LocalDateTime from
+seven DINT cells or leading user-record members. Clock changes commit with a successful
 advance and are visible to GSV and the software clock services.
 
 ## Attributes and types

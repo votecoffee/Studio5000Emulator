@@ -20,6 +20,11 @@
     <WallClockTime TimeZone="0" LocalTimeAdjustment="0" />
     <AddOnInstructionDefinitions />
     <Tags>
+      <Tag Name="SetClockDateTime" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="SetClockLocalTime" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="ClockCalendarIndex" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="ClockCalendarReadback" DataType="LINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="LINT" Value="0" /></Data></Tag>
+      <Tag Name="ClockCalendarSetpoint" DataType="DINT" Dimensions="9" TagType="Base"><Data Format="Decorated"><Array DataType="DINT" Dimensions="9"><Element Index="[0]" Value="101" /><Element Index="[1]" Value="2032" /><Element Index="[2]" Value="2" /><Element Index="[3]" Value="29" /><Element Index="[4]" Value="12" /><Element Index="[5]" Value="34" /><Element Index="[6]" Value="56" /><Element Index="[7]" Value="123456" /><Element Index="[8]" Value="999" /></Array></Data></Tag>
       <Tag Name="SetClock" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="ClockSetpoint" DataType="LINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="LINT" Value="1893456000000000" /></Data></Tag>
       <Tag Name="ClockSetReadback" DataType="LINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="LINT" Value="0" /></Data></Tag>
@@ -731,6 +736,8 @@
               <Rung Number="6" Type="N"><Text>XIC(ReadClock)GSV(CST,,CurrentValue,ClockCstWords[1]);</Text></Rung>
               <Rung Number="7" Type="N"><Text>XIC(ReadClock)GSV(WallClockTime,,CSTOffset,ClockCstOffset[0]);</Text></Rung>
               <Rung Number="8" Type="N"><Text>XIC(SetClock)SSV(WallClockTime,,CurrentValue,ClockSetpoint)GSV(WallClockTime,,CurrentValue,ClockSetReadback)DIV(1,ClockSetDivisor,ClockSetGuard)OTU(SetClock);</Text></Rung>
+              <Rung Number="9" Type="N"><Text>XIC(SetClockDateTime)SSV(WallClockTime,,DateTime,ClockCalendarSetpoint[ClockCalendarIndex])GSV(WallClockTime,,CurrentValue,ClockCalendarReadback)DIV(1,ClockSetDivisor,ClockSetGuard)OTU(SetClockDateTime);</Text></Rung>
+              <Rung Number="10" Type="N"><Text>XIC(SetClockLocalTime)SSV(WallClockTime,,LocalDateTime,ClockCalendarSetpoint[ClockCalendarIndex])GSV(WallClockTime,,CurrentValue,ClockCalendarReadback)DIV(1,ClockSetDivisor,ClockSetGuard)OTU(SetClockLocalTime);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="ReadCurrentInstances" Type="RLL">

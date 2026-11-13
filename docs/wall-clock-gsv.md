@@ -2,7 +2,7 @@
 
 The v35 ControlLogix 5580 software profile lets ladder and existing ST GSV calls
 read the emulator's software UTC clock, which defaults to host UTC and accepts
-[transactional CurrentValue settings](wall-clock-set.md). It shares the `WallClock` implementation
+[transactional UTC counter/calendar settings](wall-clock-set.md). It shares the `WallClock` implementation
 used by the CIP endpoint; separate calls have separate sampling times.
 
 ```text
