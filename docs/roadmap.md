@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+[Typed routine constants](indirect-routine-calls.md#typed-numeric-constants)
+add exact decimal LINT/unsigned and finite LREAL immediate JSR/RET values as of
+`26.1112.211906`. Formal/result types must match; caller address capture, lazy
+selection, range checks, transfer traces and transactional rollback remain.
+
 [Precise record copies](aggregate-copies.md#precise-udt-fields) and
 [typed zero fills](aggregate-fill.md#precise-udt-zero-fills) support LREAL and
 TIME32/TIME/LTIME/DT/LDT fields as of `26.1112.210459`. Record lab exposes separate

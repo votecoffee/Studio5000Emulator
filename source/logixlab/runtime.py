@@ -1334,7 +1334,7 @@ class Engine:
                            "v35 5580 homogeneous integer math uses bounded DINT literals in RLL; ST also accepts matching decimal L/U/UL literals; CPT/CMP retain homogeneous wide operands; MEQ and standalone bitwise operations use separate mixed-integer profiles; arithmetic promotion and native math status remain incomplete",
                            "Routine harness ignores task scheduling and unrelated program prescan",
                            "v35 5580 RLL shifts/FIFO/LIFO accept alias and indirect starts; false/latched calls structurally check starts without consuming indices; selected one-dimensional RLL AOI InOut/local arrays are supported; broader AOI shapes and separate file/sequencer reference expansions remain unqualified",
-                           "JSR/SBR/RET use exact counts/types/dimensions and by-value copies; v35 5580 caller elements may be indirect with call-entry address capture; formals/RET stay static and overlap is rejected",
+                           "JSR/SBR/RET use exact counts/types/dimensions and by-value copies; v35 5580 caller elements may be indirect with call-entry address capture; ladder formals/RET select live elements; typed numeric constants retain declared types; overlap is checked at the selected addresses",
                            "JSR/FOR share a 25-level call limit; JSR permits 40 parameters each direction; prescan does not transfer routine parameters; RET in a main routine is blocked",
                            "RLL/ST AOIs support required scalar Input/Output and exact-type InOut bindings; optional parameters use instance members",
                            "Hidden saved AOI locals stay unknown until written; definition defaults are never substituted for saved values",

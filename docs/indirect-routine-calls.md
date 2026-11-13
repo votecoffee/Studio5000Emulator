@@ -15,6 +15,34 @@ direction permits 40 parameters; JSR/FOR share the existing 25-level nesting
 limit and execution budget. Main routines, recursion and AOI call restrictions
 retain their existing checks.
 
+## Typed numeric constants
+
+App `26.1112.211906` adds decimal LINT (`L/l`), UDINT (`U/u`), ULINT
+(`UL/ul/Ul/uL`) and finite floating LREAL (`L/l`) constants to JSR inputs and
+RET return values in the v35 5580 software profile. Examples include
+9007199254740993L, 4294967295U, 18446744073709551615UL and 1.0000000000000002L.
+The matching SBR destination and JSR return tag must have the exact declared
+type. No implicit promotion or narrowing is applied. Ranges are checked during
+preflight even on an unreachable call. Unsuffixed inputs retain their existing
+bounded DINT/float32 REAL rules.
+
+Constants are read-only values, not output locations. SBR operands and JSR
+return destinations still require writable tags. Typed radix, time/date,
+string/aggregate literals, wider FOR operands, other controller profiles and
+JSR inside AOIs are outside this increment. Existing ST JSR/RET calls use the
+same typed-value transfer rules. Literal values are captured with each resolved
+call or return; later faults restore all formal/result writes and call state.
+
+Load **Call lab** and enable TypedCallEnabled. TypedSigned, TypedUnsigned,
+TypedLargest and TypedPrecise receive the four values above. The TypedConstants
+routine also returns an unsigned and LREAL literal directly. LINT/ULINT values
+appear as exact decimal text in transfer traces and API snapshots; LREAL stays
+binary64. False calls retain prior values and skip live return indices.
+
+The installed v35 JSR/SBR/RET reference (14612) lists wide numeric immediate
+parameters for 5580 controllers. This is a bounded software implementation;
+native literal encoding, fault/layout and Studio acceptance remain unverified.
+
 ## Selection and copied values
 
 Structural JSR preflight checks reference grammar, declared shapes, permissions,

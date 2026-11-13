@@ -156,6 +156,15 @@
       <Tag Name="IndexedPairInputs" DataType="LabPair" TagType="Base" Dimensions="3"><Data Format="Decorated"><Array DataType="LabPair" Dimensions="3"></Array></Data></Tag>
       <Tag Name="IndexedPairResults" DataType="LabPair" TagType="Base" Dimensions="3"><Data Format="Decorated"><Array DataType="LabPair" Dimensions="3"></Array></Data></Tag>
       <Tag Name="SelectedPair" DataType="LabPair" TagType="Base"><Data Format="Decorated"><Structure DataType="LabPair"></Structure></Data></Tag>
+      <Tag Name="TypedCallEnabled" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="TypedSigned" DataType="LINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="0" /></Data></Tag>
+      <Tag Name="TypedSignedInput" DataType="LINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="0" /></Data></Tag>
+      <Tag Name="TypedUnsigned" DataType="UDINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="UDINT" Value="0" /></Data></Tag>
+      <Tag Name="TypedUnsignedInput" DataType="UDINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="UDINT" Value="0" /></Data></Tag>
+      <Tag Name="TypedLargest" DataType="ULINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="ULINT" Value="0" /></Data></Tag>
+      <Tag Name="TypedLargestInput" DataType="ULINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="ULINT" Value="0" /></Data></Tag>
+      <Tag Name="TypedPrecise" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="TypedPreciseInput" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Disabled="false" Class="Standard">
@@ -178,6 +187,7 @@
               <Rung Number="4" Type="N"><Text>XIC(IndirectCall)JSR(DoubleSelected,1,IndexedCallInputs[CallInputIndex],IndexedCallResults[CallOutputIndex]);</Text></Rung>
               <Rung Number="5" Type="N"><Text>XIC(IndirectPairCall)JSR(EchoSelectedPair,1,IndexedPairInputs[CallInputIndex],IndexedPairResults[CallOutputIndex]);</Text></Rung>
               <Rung Number="6" Type="N"><Text>XIC(SharedResultCall)JSR(ReturnTwoValues,0,IndexedCallResults[CallInputIndex],IndexedCallResults[CallOutputIndex]);</Text></Rung>
+              <Rung Number="7" Type="N"><Text>XIC(TypedCallEnabled)JSR(TypedConstants,4,9007199254740993L,4294967295U,18446744073709551615UL,1.0000000000000002L,TypedSigned,TypedUnsigned,TypedLargest,TypedPrecise);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="Calculate" Type="RLL">
@@ -245,6 +255,12 @@
           <Routine Name="ReturnTwoValues" Type="RLL">
             <RLLContent>
               <Rung Number="0" Type="N"><Text>RET(17,29);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="TypedConstants" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>SBR(TypedSignedInput,TypedUnsignedInput,TypedLargestInput,TypedPreciseInput);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>RET(TypedSignedInput,4294967295U,TypedLargestInput,1.0000000000000002L);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

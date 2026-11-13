@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from .model import ArrayBoundsError, ModelError, Op, coerce, literal, operand_problem, operations
 from .integer_math import CONTROLLERS
 from .time_values import TYPES as TIME_TYPES
+from .numeric_storage import typed_literal
 
 
 MAX_NESTING = 25
@@ -31,6 +32,7 @@ class Operand:
     dtype:str
     dims:tuple
     deferred_overlap:bool=False
+    immediate:object=None
 
 
 def shape(value):
@@ -72,12 +74,17 @@ class Calls:
                 and scope not in self.memory.frames)
 
     def operand(self,ref,scope,writable=False,*,indirect=False):
+        typed=typed_literal(ref) if self.indirect_profile(scope) and '#' not in ref else None
+        if typed is not None:
+            if writable:raise ModelError('Parameter destination must be a writable tag')
+            dtype,value=typed
+            return Operand(ref,scope,None,[],dtype,(),immediate=value)
         try:
             value=literal(ref)
             if writable:raise ModelError('Parameter destination must be a writable tag')
             dtype='BOOL' if isinstance(value,bool) else 'REAL' if isinstance(value,float) else 'DINT'
-            coerce(value,dtype)
-            return Operand(ref,scope,None,[],dtype,())
+            value=coerce(value,dtype)
+            return Operand(ref,scope,None,[],dtype,(),immediate=value)
         except ValueError:pass
         dynamic=any(not re.fullmatch(r'\s*\d+\s*(?:,\s*\d+\s*)*',indices)
                     for indices in re.findall(r'\[([^\]]*)\]',ref))
@@ -268,7 +275,7 @@ class Calls:
                                'AOI FOR/BRK, BRK inside MCR zones and SFC targets','Native postscan and hardware scheduling'])
 
     def values(self,operands):
-        return [coerce(self.memory.read(p.ref,p.scope),p.dtype) if p.key is None else copy.deepcopy(self.memory.read(p.ref,p.scope)) for p in operands]
+        return [coerce(p.immediate,p.dtype) if p.key is None else copy.deepcopy(self.memory.read(p.ref,p.scope)) for p in operands]
 
     def store(self,destinations,values):
         for dest,value in zip(destinations,values):
@@ -321,6 +328,11 @@ class Calls:
     def report(self):
         return {'calls':self.edges,'nesting_limit':MAX_NESTING,'parameters_per_direction':40,
                 'contract':'Exact counts/types/dimensions; copied values; bounded indirect JSR and ladder SBR/RET elements; cross-parameter overlap rejected; prescan does not transfer parameters',
+                'typed_constants':dict(available=self.indirect_profile(''),types=['LINT','UDINT','ULINT','LREAL'],
+                    syntax='Decimal L/l, U/u and UL/ul/Ul/uL integers; floating L/l constants',
+                    transfers='JSR inputs and RET values keep their declared type; exact matching formal/return types; literal range checked before execution',
+                    trace='LINT/ULINT values recorded as decimal text; LREAL retained as binary64',
+                    excluded='Typed radix/time/date/aggregate constants, numeric promotion, other controller profiles and AOI calls',native_runtime_parity=False),
                 'indirect':dict(available=self.indirect_profile(''),profile='v35-5580-caller-elements',
                                 selection='Structural JSR preflight; false/prescan skip live caller indices and values',
                                 capture='Input and return-destination addresses captured at call entry before input copies; current values copied before SBR writes',
