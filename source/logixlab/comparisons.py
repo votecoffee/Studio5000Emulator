@@ -27,9 +27,9 @@ def validate(engine, op, scope):
         if op.name == 'MEQ':
             masked_values(engine, op.args, scope)
         else:
+            if lreal_specification(memory,op.args,scope):return True
             if integer_math.radix_profile(engine,op,scope):return True
-            if (time_specification(memory, op, scope) or lreal_specification(memory,op.args,scope)
-                    or real_specification(memory,op.args,scope)):return True
+            if (time_specification(memory, op, scope) or real_specification(memory,op.args,scope)):return True
             if integer_math.typed_profile(engine,op,scope):return True
             for arg in op.args:
                 value = memory.read(arg, scope)
@@ -56,14 +56,15 @@ def lreal_specification(memory, args, scope):
     """Select by a declared LREAL tag or floating L/l literal, never saved values."""
     selected=False
     for ref in args:
-        typed=typed_literal(ref) if '#' not in ref else None
+        if time_values.literal(ref) is not None:continue
+        typed=typed_literal(ref)
         if typed is not None:
             selected=selected or typed[0]=='LREAL'
             continue
         try:literal(ref)
         except ValueError:selected=selected or memory.resolve(ref,scope)[2]=='LREAL'
     if not selected:return None
-    for ref in args:lreal_math_source(memory,ref,scope)
+    for ref in args:lreal_math_source(memory,ref,scope,radix=True)
     return 'LREAL'
 
 
@@ -87,9 +88,9 @@ def ordering_profile(engine, op, scope):
     their existing profiles.
     """
     if not available(engine.project):return integer_math.profile(engine, op, scope)
+    if lreal_specification(engine.memory,op.args,scope):return 'LREAL'
     radix=integer_math.radix_profile(engine,op,scope)
     if radix:return radix
-    if lreal_specification(engine.memory,op.args,scope):return 'LREAL'
     if real_specification(engine.memory,op.args,scope):return 'REAL'
     typed=integer_math.typed_profile(engine,op,scope)
     if typed:return typed
@@ -157,14 +158,15 @@ def execute(engine, op, power, scope):
     if op.name == 'MEQ':
         source, mask, compare = masked_values(engine, op.args, scope)
         return (source & mask) == (compare & mask)
-    radix=integer_math.radix_profile(engine,op,scope)
-    temporal = None if radix else time_specification(memory, op, scope)
+    binary64=lreal_specification(memory,op.args,scope)
+    radix=None if binary64 else integer_math.radix_profile(engine,op,scope)
+    temporal = None if binary64 or radix else time_specification(memory, op, scope)
     if temporal:
         ticks = [time_values.read_operand(memory, ref, scope) * time_values.ns_per_tick(dtype)
                  for ref, dtype in zip(op.args, temporal)]
         return RELATIONS[op.name](*ticks)
-    profile=radix or ordering_profile(engine,op,scope)
-    if profile=='LREAL':values=[lreal_math_source(memory,arg,scope,execute=True) for arg in op.args]
+    profile=binary64 or radix or ordering_profile(engine,op,scope)
+    if profile=='LREAL':values=[lreal_math_source(memory,arg,scope,execute=True,radix=True) for arg in op.args]
     elif profile=='REAL':values=[real_math_source(memory,arg,scope,execute=True) for arg in op.args]
     else:values = [integer_math.read_source(memory,arg,scope,radix=bool(radix),signed_dint=bool(radix)) for arg in op.args]
     if op.name == 'LIM':
@@ -201,11 +203,12 @@ def description(project):
                 lreal_ordering=dict(instructions=sorted((*RELATIONS,'LIM')),types=['LREAL'],
                     operands='Scalar numeric tags and constants; at least one LREAL tag or floating L/l literal selects binary64, including constant-only calls',
                     source_types=sorted({*INT_BITS,'REAL','LREAL'}),
-                    constants='Bounded DINT/finite REAL and decimal L/U/UL integer or floating L/l constants; declared range/precision before binary64 promotion',
+                    constants='DINT radix words, bounded DINT/finite REAL and decimal/radix L/U/UL integer or floating L/l constants; declared range/precision before binary64 promotion',
+                    radix_sources=dict(bases=[2,8,16],types=['DINT','LINT','UDINT','ULINT'],selection='Explicit binary64 ordering and LIM only; integer-only, REAL-only and masks retain separate profiles',native_runtime_parity=False),
                     selection_by_literal='A floating L/l constant can select LREAL without an LREAL tag; typed integer-only forms retain their existing profile',
                     calculation='Finite host binary64, exact comparisons without tolerance; stored REAL precision retained and large integers may round',
                     limits='Inclusive normal limits; reversed limits accept values at or outside their endpoints after promotion',
-                    excluded='Typed radix and radix patterns above signed DINT, unsuffixed integers outside DINT, other consumer/controller profiles and native parity',
+                    excluded='Unsuffixed decimal integers outside DINT, negative-prefix radix words, other consumer/controller profiles and native parity',
                     native_runtime_parity=False),
                 real_ordering=dict(instructions=sorted((*RELATIONS,'LIM')),source_types=sorted({*INT_BITS,'REAL'}),
                     operands='Scalar numeric tags with at least one REAL input and no LREAL input',

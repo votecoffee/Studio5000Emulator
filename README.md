@@ -102,7 +102,8 @@ ordering beyond floating precision. See [integer operands](docs/typed-integer-op
 and seven comparisons, using declared integer ranges and existing float32
 conversion. See [REAL integer constants](docs/real-integer-literals.md).
 
-**LREAL comparison constants** now work across six relations and LIM. An LREAL
+**LREAL comparison constants** now include binary, octal and hexadecimal integer
+thresholds with declared signed widths across six relations and LIM. An LREAL
 tag or floating L/l constant selects binary64, with declared source precision
 and inclusive/reversed limits; see [comparison constants](docs/lreal-comparison-literals.md).
 

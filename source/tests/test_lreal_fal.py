@@ -92,7 +92,7 @@ class LrealFalTests(unittest.TestCase):
         self.assertEqual(engine.memory.read('CalcA.POS'), 1)
 
     def test_lreal_type_and_grammar_guards_apply_on_false_rungs(self):
-        for expression in ('0.0L+StartPB','0.0L+Queue','1e999L','1.0L AND 1','FRD(1)+0.0L','16#FFL'):
+        for expression in ('0.0L+StartPB','0.0L+Queue','1e999L','1.0L AND 1','FRD(1)+0.0L','16#10000000000000000L'):
             with self.subTest(expression=expression):
                 self.assertTrue(self.engine([f'AFI()FAL(Ctl,?,?,ALL,Results[Ctl.POS],{expression});'],
                                             dest_type='LREAL').blockers)

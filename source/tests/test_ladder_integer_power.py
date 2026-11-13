@@ -58,13 +58,13 @@ class LadderIntegerPowerTests(unittest.TestCase):
         e=self.scalar.engine('Dest:=Source**Mask;',st=True,values=(-3,3,0));e.step();self.assertEqual(e.memory.read('Dest'),-27)
         e=self.scalar.engine('Dest:=Source**Mask;',st=True,values=(2,-1,13));self.files.fault(e,'exponent')
 
-    def test_old_profiles_wide_types_and_array_index_power_remain_blocked(self):
+    def test_wide_power_executes_while_old_profiles_and_array_indices_stay_blocked(self):
         def old(root):root.find('Controller').set('ProcessorType','1756-L75')
         import test_bit_transfer as fixture
         f=fixture.BitTransferTests();f.setUp();self.addCleanup(f.doCleanups)
         self.assertTrue(f.engine(['AFI()CPT(Dest,Source**Mask);'],mutate=old).blockers)
         for dtype in ('LINT','USINT','UINT','UDINT','ULINT'):
-            e=f.engine(['AFI()CPT(Dest,Source**Mask);'],types=(dtype,dtype,dtype),values=(2,3,0));self.assertTrue(e.blockers,dtype)
+            e=f.checked(['CPT(Dest,Source**Mask);'],types=(dtype,dtype,dtype),values=(2,3,0));e.step();self.assertEqual(e.memory.read('Dest'),8,dtype)
         e=self.engine()
         with self.assertRaisesRegex(ModelError,'index'):Expression('2**3').validate(e.memory,index=True)
 

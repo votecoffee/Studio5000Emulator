@@ -159,7 +159,7 @@ class LrealLiteralTests(unittest.TestCase):
         e = self.checked(['CPT(Results[1],0.1L);'])
         with self.assertRaises(ModelError):
             e.extensions.expression('0.1L')
-        self.assertIn(('0.1L', True, True, True), e.extensions.expressions)
+        self.assertIn(('0.1L', True, True, True, True), e.extensions.expressions)
         with self.assertRaisesRegex(ModelError, 'qualified'):
             Expression('0.1L', floating_literals=True).evaluate(e.memory)
         import test_file_bcd as files

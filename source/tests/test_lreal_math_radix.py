@@ -56,7 +56,7 @@ class LrealMathRadixTests(unittest.TestCase):
         for call in ['ADD(16#1U,1U,Results[1]);', 'SQR(16#1U,Results[1]);', 'LN(16#1U,Results[1]);']:
             self.assertTrue(self.engine(['AFI()'+call], dest='REAL').blockers, call)
         self.assertTrue(self.engine(['AFI()SQR(16#1L,Results[1]);'], dest='LINT').blockers)
-        self.assertTrue(self.engine(['AFI()EQU(Source,16#1L)OTE(RunLatch);'], source='LREAL').blockers)
+        self.assertEqual(self.engine(['AFI()EQU(Source,16#1L)OTE(RunLatch);'], source='LREAL').blockers,[])
         e = self.checked(['ADD(1L,1L,Results[1]);'])
         from logixlab.numeric_storage import lreal_math_source, math_source_type
         for helper in [lreal_math_source, math_source_type]:

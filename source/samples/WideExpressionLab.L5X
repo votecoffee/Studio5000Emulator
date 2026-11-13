@@ -998,6 +998,20 @@
       <Tag Name="RadixMathLateDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
       <Tag Name="RadixMathLateResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
       <Tag Name="RadixMathSelected" DataType="LREAL" Dimensions="3" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="LREAL" Dimensions="3"><Element Index="[0]" Value="101" /><Element Index="[2]" Value="999" /></Array></Data></Tag>
+      <Tag Name="RadixCompareEnabled" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="RadixCompareIndex" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="RadixCompareValue" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="-1" /></Data></Tag>
+      <Tag Name="RadixCompareSigned" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="RadixCompareUnsigned" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="RadixCompareRounded" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="RadixCompareNormal" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="RadixCompareReversed" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="RadixCompareCollapsed" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="RadixCompareConstantOnly" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="RadixCompareSelected" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="RadixCompareLateDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="RadixCompareLateResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="RadixCompareInputs" DataType="LREAL" Dimensions="3" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="LREAL" Dimensions="3"><Element Index="[0]" Value="-1" /><Element Index="[2]" Value="999" /></Array></Data></Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
@@ -1079,7 +1093,7 @@
               <Rung Number="25" Type="N"><Text>JSR(IntegerConstants,0);</Text></Rung>
               <Rung Number="26" Type="N"><Text>JSR(DoubleIntegerConstants,0);</Text></Rung>
               <Rung Number="27" Type="N"><Text>JSR(IntegerFileConstants,0);</Text></Rung>
-              <Rung Number="28" Type="N"><Text>JSR(NumericMoveConstants,0)JSR(RadixMoves,0)JSR(MathConstants,0)JSR(ComparisonConstants,0)JSR(RealIntegerConstants,0)JSR(IntegerOperandConstants,0)JSR(BitwiseOperandConstants,0)JSR(Binary64SourceResults,0)JSR(DintPatternConstants,0)JSR(DintWordExpressions,0)JSR(WideBcdExpressions,0)JSR(WideRootPowerExpressions,0)JSR(BinaryRadixExpressions,0)JSR(RadixMathBlocks,0);</Text></Rung>
+              <Rung Number="28" Type="N"><Text>JSR(NumericMoveConstants,0)JSR(RadixMoves,0)JSR(MathConstants,0)JSR(ComparisonConstants,0)JSR(RealIntegerConstants,0)JSR(IntegerOperandConstants,0)JSR(BitwiseOperandConstants,0)JSR(Binary64SourceResults,0)JSR(DintPatternConstants,0)JSR(DintWordExpressions,0)JSR(WideBcdExpressions,0)JSR(WideRootPowerExpressions,0)JSR(BinaryRadixExpressions,0)JSR(RadixMathBlocks,0)JSR(RadixComparisons,0);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="Binary64" Type="RLL">
@@ -1379,6 +1393,19 @@
               <Rung Number="7" Type="N"><Text>XIC(RadixMathEnabled)ADD(8#37777777777,RadixMathSource,RadixMathSelected[RadixMathIndex]);</Text></Rung>
               <Rung Number="8" Type="N"><Text>XIC(RadixMathEnabled)EQU(RadixMathSum,4.0L)OTE(RadixMathMatch);</Text></Rung>
               <Rung Number="9" Type="N"><Text>XIC(RadixMathEnabled)DIV(1,RadixMathLateDivisor,RadixMathLateResult);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="RadixComparisons" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(RadixCompareEnabled)EQU(RadixCompareValue,16#FFFFFFFF)OTE(RadixCompareSigned);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(RadixCompareEnabled)GRT(16#FFFFFFFFL,RadixCompareValue)OTE(RadixCompareUnsigned);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(RadixCompareEnabled)EQU(16#0020000000000001L,9007199254740992.0L)OTE(RadixCompareRounded);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(RadixCompareEnabled)LIM(16#FFFFFFFF,RadixCompareValue,2#1U)OTE(RadixCompareNormal);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(RadixCompareEnabled)LIM(16#1U,RadixCompareValue,8#37777777777)OTE(RadixCompareReversed);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(RadixCompareEnabled)LIM(16#0020000000000001L,9007199254740992.0L,16#0020000000000000UL)OTE(RadixCompareCollapsed);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(RadixCompareEnabled)EQU(16#FFFFFFFFFFFFFFFFUL,18446744073709551616.0L)OTE(RadixCompareConstantOnly);</Text></Rung>
+              <Rung Number="7" Type="N"><Text>XIC(RadixCompareEnabled)EQU(RadixCompareInputs[RadixCompareIndex],8#37777777777)OTE(RadixCompareSelected);</Text></Rung>
+              <Rung Number="8" Type="N"><Text>XIC(RadixCompareEnabled)DIV(1,RadixCompareLateDivisor,RadixCompareLateResult);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

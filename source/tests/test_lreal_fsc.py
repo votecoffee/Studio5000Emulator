@@ -91,7 +91,7 @@ class LrealFscTests(unittest.TestCase):
 
     def test_lreal_type_and_grammar_guards_apply_on_false_rungs(self):
         for expression in ('0.1L', '0.1L>Queue', '0.1L>StartPB', '1e999L>0',
-                           'FRD(1)+0.1L>0', '(1.0L AND 1)=1', '16#FFL>0'):
+                           'FRD(1)+0.1L>0', '(1.0L AND 1)=1', '16#10000000000000000L>0'):
             with self.subTest(expression=expression):
                 self.assertTrue(self.engine([f'AFI()FSC(Ctl,?,?,ALL,{expression});']).blockers)
         for field, value in (('ProcessorType','1756-L75'), ('MajorRev','34')):

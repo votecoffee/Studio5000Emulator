@@ -120,5 +120,5 @@ class MixedLrealPowerTests(unittest.TestCase):
     def test_report_separates_mixed_power_from_unary_forms(self):
         d=self.checked().report()['real_math'];p=d['lreal']['power']
         self.assertEqual(len(p['source_types']),10);self.assertEqual(p['instruction'],'XPY')
-        self.assertIn('Bounded DINT',p['constants']);self.assertFalse(p['native_runtime_parity'])
+        self.assertIn('bounded DINT',p['constants']);self.assertFalse(p['native_runtime_parity'])
         self.assertEqual(d['destinations'],['DINT','INT','REAL','SINT'])

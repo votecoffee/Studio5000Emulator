@@ -74,7 +74,7 @@ class RadixIntegerOperandTests(unittest.TestCase):
         for source,value in [('REAL',1.0),('LREAL',1.0),('TIME',1),('BOOL',True)]:
             for call in ('ADD(Source,16#1L,Results[1]);','EQU(Source,16#1L)OTE(RunLatch);'):
                 engine=self.engine(['AFI()'+call],source=source,value=value)
-                if source=='LREAL' and call.startswith('ADD'):self.assertEqual(engine.blockers,[])
+                if source=='LREAL':self.assertEqual(engine.blockers,[])
                 else:self.assertTrue(engine.blockers,(source,call))
         for dest in ('REAL','LREAL','TIME','SINT'):
             engine=self.engine(['AFI()ADD(16#1L,1L,Results[1]);'],dest=dest)

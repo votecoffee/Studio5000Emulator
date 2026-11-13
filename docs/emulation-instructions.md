@@ -323,3 +323,7 @@ precede binary64 conversion; default/ST/index parsing and native parity remain s
 binary/octal/hex DINT and typed L/U/UL words in nineteen math forms. An explicit
 binary64 selector is required; REAL/integer-only and other consumers retain
 their contracts. Declared ranges precede conversion; native parity is unverified.
+
+Explicit LREAL ladder relations and LIM also accept declared-width binary/octal/
+hexadecimal integer thresholds. Integer-only and REAL-only profiles stay separate;
+see [radix comparison constants](lreal-comparison-literals.md#radix-integer-thresholds).

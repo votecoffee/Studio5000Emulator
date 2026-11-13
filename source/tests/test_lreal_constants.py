@@ -121,7 +121,7 @@ class LrealConstantTests(unittest.TestCase):
         self.assertTrue(e.memory.read('RunLatch'))
 
     def test_literal_and_destination_guards_remain_structural_even_when_false(self):
-        for token in ('TRUE','1e999','2147483648','-2147483649','16#FFFF_FFFF','18446744073709551616UL','1.0UL'):
+        for token in ('TRUE','1e999','2147483648','-2147483649','16#1_0000_0000','18446744073709551616UL','1.0UL'):
             for call in (f'ADD(Source,{token},Dest)',f'EQU(Source,{token})',f'LIM(0,Source,{token})'):
                 self.assertTrue(self.engine(['XIC(StartPB)'+call+';']).blockers,(token,call))
         for call in ('ADD(Source,1,StartPB);','ADD(Source,1,Results);','NEG(TRUE,Dest);',

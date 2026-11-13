@@ -78,7 +78,7 @@ class CmpBcdTests(unittest.TestCase):
             e.memory.write('ValueA',0);e.memory.write('FaultDivisor',0);self.fault(e,'zero');e.memory.write('FaultDivisor',1);e.step();self.assertEqual(e.memory.read('BufferA[1]'),0);self.assertEqual(e.memory.read('DriverA.Stack[1]'),21)
 
     def test_scoped_parser_cache_keeps_st_and_direct_conditions_separate(self):
-        expression='FRD(Source)>0';e=self.checked([f'CMP({expression})OTE(RunLatch);']);e.step();self.assertIn((expression,True,True,True,False),e.extensions.conditions)
+        expression='FRD(Source)>0';e=self.checked([f'CMP({expression})OTE(RunLatch);']);e.step();self.assertIn((expression,True,True,True,False,True),e.extensions.conditions)
         with self.assertRaisesRegex(ModelError,'Unsupported expression function'):e.extensions.condition(expression,allow_wide=True)
         with self.assertRaisesRegex(ModelError,'Unsupported expression function'):Condition(expression)
         for code in ('IF FRD(Source)>0 THEN Dest:=1; END_IF;','IF TOD(Source)>0 THEN Dest:=1; END_IF;'):
@@ -93,11 +93,15 @@ class CmpBcdTests(unittest.TestCase):
         tags=root.find('./Controller/Tags');obj=E.SubElement(E.SubElement(E.SubElement(tags,'Tag',Name='TextValue',DataType='STRING',TagType='Base'),'Data',Format='Decorated'),'Structure',DataType='STRING')
         E.SubElement(obj,'DataValueMember',Name='LEN',DataType='DINT',Value='1');arr=E.SubElement(obj,'ArrayMember',Name='DATA',DataType='SINT',Dimensions='82');E.SubElement(arr,'Element',Index='[0]',Value='65')
 
-    def test_real_wide_string_numeric_bool_and_malformed_forms_stay_guarded(self):
-        for dtype in ('BOOL','REAL','LREAL','LINT','USINT','UINT','UDINT','ULINT'):
+    def test_real_string_numeric_bool_and_malformed_forms_stay_guarded(self):
+        for dtype in ('BOOL','REAL','LREAL'):
             for function in ('FRD','TOD'):
                 self.assertTrue(self.engine([f'AFI()CMP({function}(Source)>0)OTE(RunLatch);'],source_type=dtype,value=1).blockers,(dtype,function))
-        for expression in ('FRD(Source)>0.0','TOD(Source+0.5)>0','FRD(Source)+SQR(4.0)>0','TOD(Source)**2.0>0','FRD(StartPB)>0','FRD(Source)=StartPB','TOD(1L)>0','FRD(Source,1)>0'):
+        for dtype in ('LINT','USINT','UINT','UDINT','ULINT'):
+            for function in ('FRD','TOD'):
+                e=self.checked([f'CMP({function}(Source)=1)OTE(RunLatch);'],source_type=dtype,value=1)
+                e.step();self.assertTrue(e.memory.read('RunLatch'))
+        for expression in ('FRD(Source)>0.0','TOD(Source+0.5)>0','FRD(Source)+SQR(4.0)>0','TOD(Source)**2.0>0','FRD(StartPB)>0','FRD(Source)=StartPB','TOD(18446744073709551616UL)>0','FRD(Source,1)>0'):
             self.assertTrue(self.engine([f'AFI()CMP({expression})OTE(RunLatch);']).blockers,expression)
         e=self.engine(['AFI()CMP((TextValue=TextValue)&&(FRD(Source)>0))OTE(RunLatch);'],mutate=self.text_tag);self.assertEqual(e.memory.string('TextValue'),'A');self.assertTrue(e.blockers)
         def old(root):root.find('Controller').set('ProcessorType','1756-L75')

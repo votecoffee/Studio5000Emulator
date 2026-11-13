@@ -118,7 +118,7 @@ class RadixBCDTests(unittest.TestCase):
         self.assertTrue(self.engine(['AFI()FRD(16#99UL,Results[1]);'],mutate=constant).blockers)
         for key,value in [('ProcessorType','1756-L75'),('MajorRev','34')]:
             self.assertTrue(self.engine(['AFI()TOD(16#63UL,Results[1]);'],mutate=lambda root:root.find('Controller').set(key,value)).blockers)
-        for call in ('SWPB(16#FFUL,REVERSE,Results[1]);','CPT(Results[1],FRD(16#FFUL));',
+        for call in ('SWPB(16#FFUL,REVERSE,Results[1]);','CPT(Results[1],FRD(16#10000000000000000UL));',
                      'MOV(1,Results[FRD(16#FFUL)]);','FLL(16#FFUL,Results[1],1);'):
             self.assertTrue(self.engine([call]).blockers,call)
 

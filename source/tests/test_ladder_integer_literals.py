@@ -168,7 +168,7 @@ class LadderIntegerLiteralTests(unittest.TestCase):
             with self.assertRaises(ModelError):
                 create(text)
         e = self.checked(['CPT(Dest,1L);'])
-        self.assertIn(('1L', True, True, True), e.extensions.expressions)
+        self.assertIn(('1L', True, True, True, True), e.extensions.expressions)
         with self.assertRaisesRegex(ModelError, 'qualified'):
             Expression('1L', integer_literals=True).evaluate(e.memory)
         import test_file_bcd as files
