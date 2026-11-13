@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+[PID record copies](aggregate-copies.md#pid-records) use structural/lazy matching
+COP/CPS as of `26.1112.220217`, including nested UDTs, aliases and AOI bindings.
+Represented fields copy independently; the destination retains its private solver
+history until ordinary INI/Run reinitialization. **PID lab** adds preset/snapshot gates.
+
 [DELETE retained windows](string-operations.md#delete-retained-windows) consume
 only surviving text as of `26.1112.215103`. Partially exported strings can delete
 unknown bytes or clear all active text. Ladder/ST/AOI calls retain range, capacity,

@@ -162,7 +162,7 @@ class AggregateCopyTests(unittest.TestCase):
                 self.assertTrue(self.engine([f'AFI(){instruction}({args});']).blockers, args)
         def constant(root):root.find('./Controller/Tags/Tag[@Name="CopyRecords"]').set('Constant', 'true')
         self.assertTrue(self.engine(['AFI()COP(Records[0],CopyRecords[0],1);'], constant).blockers)
-        def operational(root):root.find('./Controller/DataTypes/DataType[@Name="FillCell"]/Members/Member[@Name="Timer"]').set('DataType', 'PID')
+        def operational(root):root.find('./Controller/DataTypes/DataType[@Name="FillCell"]/Members/Member[@Name="Timer"]').set('DataType', 'MESSAGE')
         self.assertTrue(self.engine(['AFI()COP(Records[0],CopyRecords[0],1);'], operational).blockers)
         def older(root):root.find('Controller').set('ProcessorType', '1756-L75')
         self.assertTrue(self.engine(['AFI()COP(Records[SourceIndex],CopyRecords[Index],Lengths[0]);'], older).blockers)

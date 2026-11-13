@@ -6,6 +6,11 @@ tracking and alarm hysteresis. This is a deterministic simulator solver. Native
 discrete equations, startup, rounding, fault behavior and packed layouts remain
 unqualified. The separate [ST PI regulator](st-pi-regulation.md) uses `PROP_INT`.
 
+[Matching PID COP/CPS](aggregate-copies.md#pid-records) copy represented fields,
+including CTL and DATA. They preserve each destination's private solver history;
+the ordinary INI/Run lifecycle controls reinitialization. PID Lab provides gated
+preset loading before calculation and snapshot copying afterward.
+
 ## Operands and represented data
 
 ```text

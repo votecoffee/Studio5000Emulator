@@ -95,6 +95,9 @@ def write_effects(engine,op,scope):
 
 def aggregate_template(project,dtype,seen=(),*,instruction="FLL"):
     """Use declared schemas, never the Python types of unknown saved values."""
+    if dtype.upper() == 'PID' and instruction == 'COP/CPS':
+        if 'pid' in project.udts:raise ModelError('Aggregate COP/CPS excludes redefined PID records')
+        return project.default('PID')
     if dtype.upper() in ('TIMER','COUNTER','CONTROL','STRING'):return project.default(dtype)
     name=dtype.lower();definition=project.udts.get(name)
     if definition is None or dtype.upper() in project.aois:

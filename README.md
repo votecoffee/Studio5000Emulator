@@ -771,7 +771,9 @@ limits, alarms and software manual tracking. [Derivative and deadband](docs/pid-
 include PV/error rates, a [modeled derivative smoothing filter](docs/pid-dynamics.md#derivative-smoothing)
 and zero-crossing output holds.
 [Numeric operands and tieback](docs/pid-operands.md) add integer PV/CV and hardware
-manual mode. Choose **PID lab** for independent REAL/INT loops and Boolean mode
+manual mode. [PID record copies](docs/aggregate-copies.md#pid-records) support
+matching COP/CPS, including nested UDTs, with independent destination solver history.
+Choose **PID lab** for independent REAL/INT loops, preset/snapshot copies and Boolean mode
 controls. [PV tracking and inhold](docs/pid-restart.md) add manual SP tracking and
 explicit output-readback initialization. [One-way PID cascade](docs/pid-cascade.md)
 and [ladder AOI PID](docs/aoi-pid.md) add master/slave scaling and independent

@@ -15,7 +15,7 @@ def handle(engine, op, scope, *, execute=False):
     try:
         source_type = memory.resolve(op.args[0], scope)[2]
         dest_type = memory.check_writable(op.args[1], scope)[2]
-        if not any(t in ('TIMER', 'COUNTER', 'CONTROL', 'STRING') or t.lower() in project.udts
+        if not any(t in ('TIMER', 'COUNTER', 'CONTROL', 'STRING', 'PID') or t.lower() in project.udts
                    for t in (source_type, dest_type)):
             return False
         if source_type != dest_type:
@@ -72,7 +72,8 @@ def write_effects(engine,op,scope):
 def description(project):
     return dict(available=project.version == '35' and project.processor.upper() in CONTROLLERS,
                 instructions=['COP', 'CPS'], languages=['RLL', 'ST'],
-                types='Identical TIMER/COUNTER/CONTROL/STRING or explicit nested basic UDT element types',
+                types='Identical TIMER/COUNTER/CONTROL/STRING/PID or explicit nested qualified UDT element types',
+                pid='Copy represented CTL/REAL fields and DATA[17]; preserve each destination solver history until its ordinary INI/Run lifecycle resets it',
                 udt_scalar_fields=sorted(AGGREGATE_SCALARS-{'BIT'}),
                 selection='Structural preflight; false/prescan skip saved lengths, values and dynamic indices',
                 execution='Capture length and clipped source/destination windows before sequential stores; copy the minimum remaining element count',
@@ -83,5 +84,5 @@ def description(project):
                 overlap='Forward sequential propagation for both instructions, retaining existing logical-copy behavior',
                 work='One budget unit per actual scalar member copied; logical clipping and whole-advance rollback',
                 remaining=['Packed layouts, mixed aggregate types, native byte clipping and cross-member/base-tag traversal',
-                           'Operational/AOI aggregate schemas, private instruction histories and native synchronization/fault/lifecycle parity'],
+                           'Other operational/AOI aggregate schemas, private instruction-history transfer and native synchronization/fault/lifecycle parity'],
                 native_runtime_parity=False)
