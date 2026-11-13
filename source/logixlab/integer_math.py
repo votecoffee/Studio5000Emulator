@@ -150,8 +150,8 @@ def typed_integer(ref, *, radix=False):
     return value if value is not None and value[0] in INT_BITS else None
 
 
-def integer_operand(memory, ref, scope):
-    typed=typed_integer(ref)
+def integer_operand(memory, ref, scope, *, radix=False):
+    typed=typed_integer(ref,radix=radix)
     if typed is not None:return typed[0],None
     try:value=literal(ref)
     except ValueError:
@@ -168,17 +168,17 @@ def integer_bounds(dtype):
     return (0,(1<<bits)-1) if dtype in UNSIGNED_BITS else (-(1<<(bits-1)),(1<<(bits-1))-1)
 
 
-def typed_profile(engine, op, scope, *, arithmetic=False):
+def typed_profile(engine, op, scope, *, arithmetic=False, radix=False):
     """Existing range-preserving integer rules with declared typed immediates."""
     allowed={'ADD','SUB','MUL','DIV','MOD','NEG','ABS'} if arithmetic else {*COMPARISONS,'LIM'}
     if op.name not in allowed:return None
     sources=op.args[:-1] if arithmetic else op.args
-    if not any(typed_integer(ref) is not None for ref in sources):return None
+    if not any(typed_integer(ref,radix=radix) is not None for ref in sources):return None
     if engine.project.version!='35' or engine.project.processor.upper() not in CONTROLLERS:
         raise ModelError('Typed integer operands require the v35 ControlLogix 5580 profile')
     memory=engine.memory;types=[];constants=[]
     for ref in sources:
-        dtype,value=integer_operand(memory,ref,scope)
+        dtype,value=integer_operand(memory,ref,scope,radix=radix)
         if dtype is not None:types.append(dtype)
         else:constants.append(value)
     if arithmetic:
@@ -196,8 +196,16 @@ def typed_profile(engine, op, scope, *, arithmetic=False):
     return common
 
 
-def read_source(memory, ref, scope):
-    typed=typed_integer(ref)
+def radix_profile(engine, op, scope, *, arithmetic=False):
+    """Select the integer-only scalar profile only when a typed radix is present."""
+    sources=op.args[:-1] if arithmetic else op.args
+    if not any('#' in ref and typed_integer(ref,radix=True) is not None for ref in sources):
+        return None
+    return typed_profile(engine,op,scope,arithmetic=arithmetic,radix=True)
+
+
+def read_source(memory, ref, scope, *, radix=False):
+    typed=typed_integer(ref,radix=radix)
     return typed[1] if typed is not None else memory.read(ref,scope)
 
 
@@ -236,12 +244,12 @@ def bit_value(value, dtype):
     return value
 
 
-def execute(engine, op, scope, dtype):
+def execute(engine, op, scope, dtype, *, radix=False):
     """Execute a validated true-rung operation; return its rung-out condition."""
     memory = engine.memory
     name = op.name
     sources = op.args if name in COMPARISONS or name == 'LIM' else op.args[:-1]
-    values = [read_source(memory, argument, scope) for argument in sources]
+    values = [read_source(memory, argument, scope, radix=radix) for argument in sources]
     if name in COMPARISONS:
         return COMPARISONS[name](*values)
     if name == 'LIM':

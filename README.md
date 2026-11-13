@@ -70,7 +70,8 @@ and [LREAL truncation](docs/lreal-truncate.md).
 constants retain their declared widths when combined with integer tags and
 legacy patterns; see [typed bitwise operands](docs/typed-bitwise-operands.md).
 
-**Typed integer arithmetic and comparisons** now accept decimal L/U/UL constants
+**Typed integer arithmetic and comparisons** now accept decimal and
+[binary/octal/hexadecimal L/U/UL](docs/typed-integer-operands.md#typed-radix-integer-operands) constants
 under the existing range-preserving integer rules, with exact division and
 ordering beyond floating precision. See [integer operands](docs/typed-integer-operands.md).
 

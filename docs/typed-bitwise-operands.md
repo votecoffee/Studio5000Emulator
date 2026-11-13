@@ -72,10 +72,12 @@ floating results, unsigned inputs to floating destinations stay excluded, and
 MEQ remains integer-only. Overwide/invalid words block even false rungs.
 Required unknowns, indices, zero masks, full writes and AOI/advance rollback
 retain their existing contracts. Explicit radix signs and alternate syntax
-remain excluded. Arithmetic, ordinary relations/LIM, BCD, expression/file/ST,
+remain excluded. [Integer arithmetic and relations/LIM](typed-integer-operands.md#typed-radix-integer-operands)
+have a separate profile. Floating radix operations, BCD, expression/file/ST,
 AOI call arguments and SBR/RET parsing are not extended.
 
-The viewer interprets typed radix only for these source operands and MOV.
+The bitwise viewer interpretation is scoped to these source operands; MOV and
+integer arithmetic/ordering have separate qualified profiles.
 Unsuffixed bitwise patterns retain their prior monitoring and execution rules.
 In **Bit lab**, enable WideMaskEnabled. Existing AND/OR/XOR/NOT/MEQ examples now
 use three-base typed masks with their original results. WideMaskFull preserves

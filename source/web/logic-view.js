@@ -67,7 +67,8 @@
     function read(ref, node) {
       if (node?.literalValues && Object.hasOwn(node.literalValues, ref)) return node.literalValues[ref];
       const bitwiseRadix = node?.opcode === 'MEQ' || ['AND','OR','XOR','NOT'].includes(node?.opcode) && node.operands?.slice(0,-1).includes(ref);
-      return snapshot?.read(ref, {movRadix: node?.opcode === 'MOV' && node.operands?.[0] === ref, bitwiseRadix}) || null;
+      const integerRadix = ['EQU','NEQ','LES','LEQ','GRT','GEQ','LIM'].includes(node?.opcode) || ['ADD','SUB','MUL','DIV','MOD','NEG','ABS'].includes(node?.opcode) && node.operands?.slice(0,-1).includes(ref);
+      return snapshot?.read(ref, {movRadix: node?.opcode === 'MOV' && node.operands?.[0] === ref, bitwiseRadix, integerRadix}) || null;
     }
     function operandDisplay(field, node, power) {
       const sample = power?.operandSamples?.[field.argument];

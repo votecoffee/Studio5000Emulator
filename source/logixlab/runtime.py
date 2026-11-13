@@ -1092,12 +1092,13 @@ class Engine:
         if extra is not None:return extra
         if p and n in integer_math.INSTRUCTIONS:
             scalar = n in scalar_math.ARITHMETIC and scalar_math.available(self.project)
-            if scalar and scalar_math.time_arithmetic(self, op, scope, execute=True):
+            radix = integer_math.radix_profile(self,op,scope,arithmetic=True) if scalar else None
+            if scalar and not radix and scalar_math.time_arithmetic(self, op, scope, execute=True):
                 return True
-            dtype = scalar_math.arithmetic_profile(self,op,scope) if scalar else integer_math.profile(self,op,scope)
+            dtype = radix or (scalar_math.arithmetic_profile(self,op,scope) if scalar else integer_math.profile(self,op,scope))
             if dtype=='LREAL':return scalar_math.execute_lreal(self,op,scope)
             if dtype=='REAL':return scalar_math.execute_real(self,op,scope)
-            if dtype is not None:return integer_math.execute(self,op,scope,dtype)
+            if dtype is not None:return integer_math.execute(self,op,scope,dtype,radix=bool(radix))
         if n=='LBL':return p
         if n=='JMP':
             if p:raise JumpRoutine(a[0])

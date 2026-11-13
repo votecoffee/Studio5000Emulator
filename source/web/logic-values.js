@@ -142,11 +142,11 @@
     function read(ref, options = {}) {
       const name = String(ref).trim(), row = at(resolve(name));
       if (row) return row;
-      const word = (options.movRadix || options.dintRadix || options.bitwiseRadix) && name.match(/^(2|8|16)#([\da-fA-F_ ]+?)(UL|U|L)?$/i);
+      const word = (options.movRadix || options.dintRadix || options.bitwiseRadix || options.integerRadix) && name.match(/^(2|8|16)#([\da-fA-F_ ]+?)(UL|U|L)?$/i);
       if (word && (word[3] || options.movRadix || options.dintRadix)) {
         try {
           const suffix = (word[3] || '').toUpperCase(), digits = word[2];
-          if (suffix && (!(options.movRadix || options.bitwiseRadix) || !/^[\da-fA-F](?:[\da-fA-F_ ]*[\da-fA-F])?$/.test(digits))) return null;
+          if (suffix && (!(options.movRadix || options.bitwiseRadix || options.integerRadix) || !/^[\da-fA-F](?:[\da-fA-F_ ]*[\da-fA-F])?$/.test(digits))) return null;
           const type = {'': 'DINT', L: 'LINT', U: 'UDINT', UL: 'ULINT'}[suffix], bits = BigInt(widths[type]);
           let value = BigInt(({'2': '0b', '8': '0o', '16': '0x'})[word[1]] + digits.replaceAll('_', '').replaceAll(' ', ''));
           if (value >= (1n << bits)) return null;

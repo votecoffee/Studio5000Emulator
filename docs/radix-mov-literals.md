@@ -66,8 +66,9 @@ other bases, expressions and alternate typed prefixes remain excluded.
 The MOV viewer uses the same width/sign interpretation and displays integer
 values as exact decimal strings. The legacy DINT viewer option retains its
 existing behavior. [Bitwise/MEQ masks](typed-bitwise-operands.md#typed-radix-masks)
-have a separate qualified profile. General memory/ST/expression, arithmetic,
-AOI argument and SBR/RET literal parsers are not extended.
+and [integer arithmetic/ordering](typed-integer-operands.md#typed-radix-integer-operands)
+have separate qualified profiles. General memory/ST/expression, floating radix
+operations, AOI argument and SBR/RET literal parsers are not extended.
 
 Enable RadixEnabled in **Wide expression lab** and step. RadixLongShort gives
 4294967295, RadixLongNegative gives -1, RadixDwordMax gives 4294967295,

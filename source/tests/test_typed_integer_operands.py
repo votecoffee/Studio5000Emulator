@@ -13,7 +13,7 @@ KINDS=(('LINT','L'),('UDINT','U'),('ULINT','UL'))
 BINARY={'ADD':5,'SUB':1,'MUL':6,'DIV':1,'MOD':1}
 RELATIONS=('EQU','NEQ','LES','LEQ','GRT','GEQ')
 ORDER={0:(False,True,True,True,False,False),1:(True,False,False,True,False,True),2:(False,True,False,False,True,True)}
-BAD=('9223372036854775808L','-9223372036854775809L','4294967296U','-1U','18446744073709551616UL','-1UL','1LU','1_000L','16#FFU','1.0UL','1e3U','(1L)','1L+1L','TRUE')
+BAD=('9223372036854775808L','-9223372036854775809L','4294967296U','-1U','18446744073709551616UL','-1UL','1LU','1_000L','16#FFLU','1.0UL','1e3U','(1L)','1L+1L','TRUE')
 
 
 class TypedIntegerOperandTests(unittest.TestCase):

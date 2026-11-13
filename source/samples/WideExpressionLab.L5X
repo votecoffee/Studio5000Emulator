@@ -867,6 +867,9 @@
       <Tag Name="RealIntLateDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
       <Tag Name="RealIntLateResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
       <Tag Name="RealIntSelected" DataType="REAL" Dimensions="3" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="REAL" Dimensions="3"><Element Index="[2]" Value="903.25" /></Array></Data></Tag>
+      <Tag Name="TypedRadixProduct" DataType="LINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="0" /></Data></Tag>
+      <Tag Name="TypedRadixNegative" DataType="LINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="0" /></Data></Tag>
+      <Tag Name="TypedRadixAbsolute" DataType="LINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="0" /></Data></Tag>
       <Tag Name="TypedIntEnabled" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
       <Tag Name="TypedIntIndex" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
       <Tag Name="TypedIntSigned" DataType="LINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="0" /></Data></Tag>
@@ -1164,16 +1167,19 @@
           </Routine>
           <Routine Name="IntegerOperandConstants" Type="RLL">
             <RLLContent>
-              <Rung Number="0" Type="N"><Text>XIC(TypedIntEnabled)ADD(9007199254740993L,1L,TypedIntSigned);</Text></Rung>
-              <Rung Number="1" Type="N"><Text>XIC(TypedIntEnabled)DIV(18446744073709551615UL,3UL,TypedIntQuotient);</Text></Rung>
-              <Rung Number="2" Type="N"><Text>XIC(TypedIntEnabled)MOD(18446744073709551615UL,3UL,TypedIntRemainder);</Text></Rung>
-              <Rung Number="3" Type="N"><Text>XIC(TypedIntEnabled)ADD(4294967294U,1U,TypedIntDword);</Text></Rung>
-              <Rung Number="4" Type="N"><Text>XIC(TypedIntEnabled)SUB(0L,4294967295U,TypedIntDifference);</Text></Rung>
-              <Rung Number="5" Type="N"><Text>XIC(TypedIntEnabled)GRT(9007199254740993L,9007199254740992L)OTE(TypedIntExact);</Text></Rung>
-              <Rung Number="6" Type="N"><Text>XIC(TypedIntEnabled)LIM(-9223372036854775808L,TypedIntSigned,9223372036854775807L)OTE(TypedIntLimit);</Text></Rung>
-              <Rung Number="7" Type="N"><Text>XIC(TypedIntEnabled)ADD(18446744073709551615UL,0UL,TypedIntSelected[TypedIntIndex]);</Text></Rung>
-              <Rung Number="8" Type="N"><Text>XIC(TypedIntEnabled)XIC(TypedIntOverflow)ADD(9223372036854775807L,1L,TypedIntFaultResult);</Text></Rung>
-              <Rung Number="9" Type="N"><Text>XIC(TypedIntEnabled)DIV(1,TypedIntLateDivisor,TypedIntLateResult);</Text></Rung>
+              <Rung Number="0" Type="N"><Text>XIC(TypedIntEnabled)ADD(16#0020000000000001L,1L,TypedIntSigned);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(TypedIntEnabled)DIV(16#FFFFFFFFFFFFFFFFUL,3UL,TypedIntQuotient);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(TypedIntEnabled)MOD(8#1777777777777777777777UL,3UL,TypedIntRemainder);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(TypedIntEnabled)ADD(16#FFFFFFFEU,1U,TypedIntDword);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(TypedIntEnabled)SUB(2#0L,16#FFFFFFFFU,TypedIntDifference);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(TypedIntEnabled)GRT(16#0020000000000001L,16#0020000000000000L)OTE(TypedIntExact);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(TypedIntEnabled)LIM(16#8000000000000000L,TypedIntSigned,16#7FFFFFFFFFFFFFFFL)OTE(TypedIntLimit);</Text></Rung>
+              <Rung Number="7" Type="N"><Text>XIC(TypedIntEnabled)ADD(2#1111111111111111111111111111111111111111111111111111111111111111UL,0UL,TypedIntSelected[TypedIntIndex]);</Text></Rung>
+              <Rung Number="8" Type="N"><Text>XIC(TypedIntEnabled)MUL(16#FFFFFFFFFFFFFFFEL,2L,TypedRadixProduct);</Text></Rung>
+              <Rung Number="9" Type="N"><Text>XIC(TypedIntEnabled)NEG(2#10L,TypedRadixNegative);</Text></Rung>
+              <Rung Number="10" Type="N"><Text>XIC(TypedIntEnabled)ABS(8#1777777777777777777776L,TypedRadixAbsolute);</Text></Rung>
+              <Rung Number="11" Type="N"><Text>XIC(TypedIntEnabled)XIC(TypedIntOverflow)ADD(16#7FFFFFFFFFFFFFFFL,1L,TypedIntFaultResult);</Text></Rung>
+              <Rung Number="12" Type="N"><Text>XIC(TypedIntEnabled)DIV(1,TypedIntLateDivisor,TypedIntLateResult);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="BitwiseOperandConstants" Type="RLL">

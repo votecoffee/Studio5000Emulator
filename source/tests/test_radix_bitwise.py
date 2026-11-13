@@ -117,7 +117,7 @@ class RadixBitwiseTests(unittest.TestCase):
     def test_other_literal_consumers_and_controller_profiles_do_not_expand(self):
         self.assertIsNone(typed_integer('16#FFUL'));self.assertEqual(typed_integer('16#FFUL',radix=True),('ULINT',255))
         with self.assertRaises(ValueError):literal('16#FFUL')
-        for call in ('ADD(16#FFUL,1,Results[1]);','EQU(Source,16#FFUL)OTE(RunLatch);',
+        for call in ('XPY(Source,16#FFUL,Results[1]);','EQU(Source,16#FFUL)OTE(RunLatch);',
                      'FRD(16#FFUL,Results[1]);','TOD(16#FFUL,Results[1]);',
                      'CPT(Results[1],16#FFUL);','MOV(1,Results[16#FFUL]);'):
             self.assertTrue(self.engine([call]).blockers,call)

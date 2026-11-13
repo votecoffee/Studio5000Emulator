@@ -4,7 +4,7 @@ import operator
 
 from . import time_values
 from .bit_transfer import operand, unsigned
-from .integer_math import CONTROLLERS, WIDE_TYPES, bit_value, bitwise_immediate_widths, profile, typed_profile, typed_integer, pattern
+from .integer_math import CONTROLLERS, WIDE_TYPES, bit_value, bitwise_immediate_widths, profile, typed_profile, typed_integer, radix_profile, pattern
 from .model import INT_BITS, UNSIGNED_BITS, ModelError, coerce, literal
 from .numeric_storage import floating_math_profile, lreal_math_source, typed_literal, write_lreal_math_result
 from .real_math import real
@@ -26,6 +26,7 @@ def validate(engine, op, scope):
     memory.structural = True
     try:
         if op.name in ARITHMETIC:
+            if radix_profile(engine,op,scope,arithmetic=True):return True
             if time_arithmetic(engine, op, scope):
                 return True
             if floating_math_profile(memory, op, scope) or typed_profile(engine, op, scope, arithmetic=True):
@@ -111,6 +112,8 @@ def arithmetic_profile(engine, op, scope):
     """
     if op.name not in ARITHMETIC or not available(engine.project):
         return profile(engine, op, scope)
+    radix = radix_profile(engine,op,scope,arithmetic=True)
+    if radix:return radix
     floating = floating_math_profile(engine.memory, op, scope)
     if floating:
         return floating
@@ -237,11 +240,11 @@ def description(project):
                     selection='Declared-type checks even false; false/prescan skip live values and indices; true full writes establish unknowns',
                     excluded='Narrowing, mixed signed to unsigned, REAL/LREAL and larger/typed or unrepresentable constants; native overflow/status/fault parity',
                     native_runtime_parity=False),
-                typed_integer_arithmetic=dict(instructions=sorted(ARITHMETIC),constant_types=['LINT','UDINT','ULINT'],
-                    constants='Decimal L/U/UL integers checked at their declared source range; existing bounded DINT constants must fit the result type',
+                typed_integer_arithmetic=dict(instructions=sorted(ARITHMETIC),constant_types=['LINT','UDINT','ULINT'],radix_bases=[2,8,16],
+                    constants='Decimal L/U/UL values and declared-width typed radix patterns; existing bounded DINT constants must fit the result type',
                     selection='An integer result covers every complete declared source type range; no saved value justifies narrowing or signed-to-unsigned conversion',
                     calculation='Exact integer operations; DIV truncates toward zero, MOD has the dividend sign; result overflow faults atomically',
-                    scope='RLL v35 5580 only; bitwise/MEQ, floating sources, other results/consumers and native status/fault/lifecycle parity remain separate',
+                    scope='RLL v35 5580; typed radix selects integer-only sources/results; decimal floating priority, bitwise/MEQ and other consumers retain separate profiles; native parity remains unverified',
                     native_runtime_parity=False),
                 lreal_arithmetic=dict(instructions=sorted(ARITHMETIC),types=['LREAL'],
                     operands='Scalar numeric tags, bounded DINT/finite REAL and decimal typed L/U/UL integer or floating L/l constants; no LREAL source is required when the destination is LREAL',
