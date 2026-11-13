@@ -88,7 +88,7 @@ def _execute(engine, power, scope, obj, count, expression):
 
 def description():
     return dict(profile='v35-5580-FSC-ALL-numeric-INC', language='RLL', modes=['ALL','positive DINT immediate','INC'],
-                expressions='Existing bounded CMP grammar including qualified narrow FRD/TOD, exact wide/mixed integers, binary64 comparisons and dynamic CONTROL.POS subscripts',
+                expressions='Existing bounded CMP grammar including qualified integer FRD/TOD/SQR/power, exact wide/mixed integers, binary64 comparisons and dynamic CONTROL.POS subscripts',
                 binary64=dict(selection='LREAL source or floating L/l literal',
                     modes=['ALL','positive DINT immediate','INC'],
                     calculation='Use the bounded binary64 comparison evaluator per reached element, including eager BOOL composition',

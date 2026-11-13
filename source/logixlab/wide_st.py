@@ -25,11 +25,11 @@ def analyze(expression,memory,scope='',destination_type=None,*,consumer='ST'):
         dtype=next(iter(wide))
     if destination_type not in (None,'BOOL',dtype):
         raise ModelError(label+' numeric destination must match the expression type')
-    ladder_math = consumer in ('CPT','CMP','FAL') and not mixed
-    bcd = {'FRD','TOD'} if expression.bcd and ladder_math else set()
+    ladder_math = consumer in ('CPT','CMP','FAL')
+    bcd = {'FRD','TOD'} if expression.bcd and ladder_math and not mixed else set()
     roots = {'SQR'} if ladder_math else set()
     if expression.functions-{'ABS'}-bcd-roots or '**' in expression.operators and not ladder_math:
-        raise ModelError(label+' supports ABS and qualified homogeneous FRD/TOD/SQR/integer power; other functions remain unqualified')
+        raise ModelError(label+' supports ABS, homogeneous FRD/TOD and qualified integer SQR/power; other functions remain unqualified')
     types={ref:'bool' if kind=='BOOL' else 'number' for ref,kind in declared.items()}
     for ref in declared:
         if isinstance(memory.read(ref,scope),(list,dict)):
@@ -85,7 +85,7 @@ def analyze(expression,memory,scope='',destination_type=None,*,consumer='ST'):
         if value in ('AND','OR','XOR') and left==right=='bool':return 'bool'
         if left!='number' or right!='number':raise ModelError('Wide ST arithmetic requires numeric operands')
         if mixed:
-            if value not in ('+','-','*','/','MOD'):raise ModelError('Mixed numeric bitwise expressions remain unqualified')
+            if value not in ('+','-','*','/','MOD','**'):raise ModelError('Mixed numeric bitwise expressions remain unqualified')
             require_common(node)
         return 'number'
     return dtype,infer(expression.tree),types
@@ -151,7 +151,10 @@ def ladder_description(project):
                     root='SQR of integer absolute magnitude, rounded to nearest integer without a floating conversion',
                     power='Exact nonnegative integer powers; exponent 0..width-1, with checked selected-width intermediates',
                     exponent_max={'USINT':7,'UINT':15,'UDINT':31,'LINT':63,'ULINT':63},
-                    excluded='Mixed numeric tags, other functions, negative/fractional exponents, ST/index expansion and native parity',
+                    mixed_numeric_types=True,mixed_source_types=list(INTEGER_RANK),
+                    common_type='Actual source type covers every full source range; each arithmetic subtree contains a source of that type',
+                    mixed_exponent_max={dtype:INT_BITS[dtype]-1 for dtype in INTEGER_RANK},
+                    excluded='Incompatible ranges, lower-type-only arithmetic subtrees, other functions, negative/fractional exponents, ST/index expansion and native parity',
                     native_runtime_parity=False),
                 bcd=dict(instructions=['CPT','CMP','FAL','FSC'],functions=['FRD','TOD'],types=sorted(WIDE_TYPES),
                     widths={'USINT':8,'UINT':16,'UDINT':32,'LINT':64,'ULINT':64},
@@ -170,7 +173,7 @@ def ladder_description(project):
                     excluded='Numeric bitwise mixtures, other functions, REAL/LREAL, nonmatching typed or untyped larger constants, CPT comparison results, ST and native parity',
                     native_runtime_parity=False),
                 mixed_integer_arithmetic=dict(instructions=['CPT','CMP','FAL','FSC'],types=list(INTEGER_RANK),
-                    operators=['+','-','*','/','MOD','unary +','unary -','ABS'],
+                    operators=['+','-','*','/','MOD','unary +','unary -','ABS','SQR','**'],
                     operands='Highest-ranked actual source tag type covers every complete numeric source range; CPT/FAL destination matches that type',
                     intermediates='Every arithmetic subexpression contains an actual source tag of the selected common type; every result must fit',
                     constants='Signed-DINT values or decimal/radix L/U/UL constants matching the actual common source type; destination and constants do not invent a wider source type',
@@ -178,7 +181,7 @@ def ladder_description(project):
                         range='Declared range checked in preflight with the immediate unary sign; exact values above 2^53',
                         no_source_promotion=True),
                     arithmetic='Exact integers; quotient toward zero; remainder has dividend sign; all required sources consumed',
-                    excluded='Lower-type-only arithmetic subtrees, mixed numeric bitwise, other functions/power, REAL/LREAL, nonmatching typed or untyped larger constants, ST and native parity',
+                    excluded='Lower-type-only arithmetic subtrees, mixed numeric bitwise, other functions, negative/fractional powers, REAL/LREAL, nonmatching typed or untyped larger constants, ST and native parity',
                     native_runtime_parity=False),
                 meq='All eight integer tag types may mix with bounded plain and typed immediates; homogeneous LINT immediate compatibility is retained',
                 meq_mixed_integer_tags=True,

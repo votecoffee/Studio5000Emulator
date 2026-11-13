@@ -128,7 +128,7 @@ class MixedExpressionMathTests(unittest.TestCase):
     def test_unqualified_types_destinations_operators_and_permissions_stay_blocked(self):
         for types in [('LINT','DINT','DINT'),('LINT','ULINT','LINT'),('DINT','UINT','LINT')]:
             self.assertTrue(self.engine(['AFI()CPT(Dest,Source+Mask);'],types=types,values=(1,1,0)).blockers)
-        for expr in ('Source AND Mask','(NOT Source)+Mask','SQR(Source)+Mask','Source**2+Mask','Source+Mask+2147483648','Source+Mask+1.0','Source+Mask+1U'):
+        for expr in ('Source AND Mask','(NOT Source)+Mask','Source+SQR(Mask)','Source**2.0+Mask','Source+Mask+2147483648','Source+Mask+1.0','Source+Mask+1U'):
             self.assertTrue(self.engine(['AFI()CPT(Dest,'+expr+');']).blockers,expr)
         def constant(root):root.find('./Controller/Tags/Tag[@Name="Results"]').set('Constant','true')
         self.assertTrue(self.engine(['AFI()CPT(Results[0],Source+Mask);'],mutate=constant).blockers)

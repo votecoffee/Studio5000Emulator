@@ -102,7 +102,7 @@ class MixedIntegerFileTests(unittest.TestCase):
 
     def test_every_mixed_arithmetic_subtree_requires_the_common_source_type(self):
         for expr in ('Queue[Ctl.POS]+(Small+1)', 'Queue[Ctl.POS]+ABS(Small)', '(Small*Small)+Queue[Ctl.POS]',
-                     '(NOT Queue[Ctl.POS])+Small', 'Queue[Ctl.POS] AND Small', 'Queue[Ctl.POS]**2+Small'):
+                     '(NOT Queue[Ctl.POS])+Small', 'Queue[Ctl.POS] AND Small', 'Queue[Ctl.POS]**(Small+1)'):
             self.assertTrue(self.engine(expr).blockers, expr)
         e = self.checked('(Queue[Ctl.POS]+Small)+1');e.memory.write('StartPB', True);e.step()
         self.assertEqual(e.memory.read('Queue')[:2], [6, 8])

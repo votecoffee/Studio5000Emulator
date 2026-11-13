@@ -78,7 +78,7 @@ class WideIntegerRootPowerTests(unittest.TestCase):
         self.assertEqual(e.memory.read('Dest'), 3)
 
     def test_mixed_types_permissions_profiles_st_and_index_paths_stay_guarded(self):
-        for text in ['SQR(Source)+Mask', 'Source**Mask']:
+        for text in ['Source+SQR(Mask)', 'Source**(Mask+1)']:
             self.assertTrue(self.engine([f'AFI()CPT(Dest,{text});'], types=('LINT', 'DINT', 'LINT'), checked=False).blockers)
         for text in ['SQRT(Source)', 'LN(Source)', 'SQR(Source)+1.0', 'Source**2.5', 'SQR(StartPB)']:
             self.assertTrue(self.engine([f'AFI()CPT(Dest,{text});'], checked=False).blockers, text)

@@ -60,7 +60,7 @@ FAL(Calc,?,?,ALL,Result[Calc.POS],Wide[Calc.POS]+DintDelta);
 FAL(Calc,?,?,1,Result[Calc.POS],(Wide[Calc.POS]*DintGain)+DintDelta);
 ```
 
-Supported mixed operations are +, -, *, /, MOD, unary signs and ABS. Every
+Supported mixed operations are +, -, *, /, MOD, unary signs, ABS, SQR and bounded **. Every
 arithmetic subtree must contain an actual source of the common type, matching
 [CPT's existing rule](ladder-wide-expressions.md#mixed-integer-arithmetic).
 For LINT Wide and DINT Small, `(Wide+Small)+1` is supported while
@@ -70,7 +70,7 @@ would cancel an overflow. Results above 2^53 remain integer-exact.
 
 Signed-DINT constants must fit the selected type. Mixed numeric bitwise,
 nonmatching typed or untyped larger/REAL literals, independent lower-type arithmetic subtrees, other
-functions/powers, narrowing and additional ST/index forms remain excluded.
+functions, negative/fractional powers, narrowing and additional ST/index forms remain excluded.
 Homogeneous typed constants and binary64 expressions retain their separate rules.
 
 Structural preflight checks types without saved values or dynamic indices.
@@ -119,3 +119,8 @@ remain separate.
 separately qualify integer SQR and nonnegative bounded `**` in CPT/CMP/FAL/FSC.
 USINT/UINT/UDINT/LINT/ULINT use exact integer calculations; mixed numeric tags,
 ST/index expansion and native arithmetic/status parity remain excluded.
+
+[Mixed integer roots and powers](ladder-wide-expressions.md#mixed-integer-roots-and-powers)
+qualify compatible common-range tags in CPT/CMP/FAL/FSC, including LINT bases
+with DINT exponents. Full source ranges, common-type arithmetic subtrees and
+checked exponent/result bounds remain required; native parity is unverified.

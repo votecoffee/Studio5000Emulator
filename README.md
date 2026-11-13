@@ -464,6 +464,10 @@ skips out-of-bounds timer and counter selections and continues initialization.
 lengths and indices until reached. **Byte copy lab** includes an indexed ladder
 byte round trip with unknown inputs and outputs, alongside its ST examples.
 
+[Mixed integer roots and powers](docs/ladder-wide-expressions.md#mixed-integer-roots-and-powers)
+also allow compatible tag widths, such as a LINT base with a DINT exponent,
+while retaining full-range type checks and exact integer calculations.
+
 [Wide integer roots and powers](docs/ladder-wide-expressions.md#integer-roots-and-powers)
 add SQR and bounded nonnegative powers to homogeneous ladder CPT/CMP/FAL/FSC,
 using exact integer calculations even above floating-point precision.

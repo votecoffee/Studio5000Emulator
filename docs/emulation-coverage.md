@@ -443,3 +443,8 @@ widths, REAL/LREAL, ST/index expansion and native parity remain excluded.
 separately qualify integer SQR and nonnegative bounded `**` in CPT/CMP/FAL/FSC.
 USINT/UINT/UDINT/LINT/ULINT use exact integer calculations; mixed numeric tags,
 ST/index expansion and native arithmetic/status parity remain excluded.
+
+[Mixed integer roots and powers](ladder-wide-expressions.md#mixed-integer-roots-and-powers)
+qualify compatible common-range tags in CPT/CMP/FAL/FSC, including LINT bases
+with DINT exponents. Full source ranges, common-type arithmetic subtrees and
+checked exponent/result bounds remain required; native parity is unverified.

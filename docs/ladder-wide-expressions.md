@@ -97,13 +97,14 @@ must match that source type. Destination context and constants do not invent a
 larger source type; positive saved values do not justify lossy signed/unsigned
 conversion. Types rank SINT, USINT, INT, UINT, DINT, UDINT, LINT, ULINT.
 
-Supported mixed operations are `+`, `-`, `*`, `/`, `MOD`, unary signs and `ABS`.
+Supported mixed operations are `+`, `-`, `*`, `/`, `MOD`, unary signs, `ABS`,
+[SQR and bounded integer powers](#mixed-integer-roots-and-powers).
 Every arithmetic subexpression must contain an actual source tag of the selected
 common type. Thus a LINT Wide and DINT Small permit `(Wide+Small)+1`, while
 `Wide+(Small+1)` remains blocked: its inner arithmetic has no LINT source. Unary
 signs and ABS follow that same rule. This keeps intermediate widths explicit;
-independent lower-type arithmetic, mixed numeric bitwise and functions beyond
-ABS remain unqualified. Existing homogeneous expressions keep their prior rules.
+independent lower-type arithmetic, mixed numeric bitwise and other functions
+beyond ABS/SQR remain unqualified. Existing homogeneous expressions keep their prior rules.
 
 Every result must fit the selected type. Calculations use exact integers, quotient
 truncation toward zero and dividend-sign remainders. A later operation does not
@@ -251,7 +252,7 @@ or native import acceptance of the public fixture.
 
 Remaining integer forms include lower-type-only mixed arithmetic subtrees,
 additional conversions, nonmatching typed and untyped larger constants, mixed
-numeric bitwise, mixed root/power arithmetic and other functions beyond the
+numeric bitwise, additional mixed root/power forms and other functions beyond the
 qualified homogeneous ABS/FRD/TOD/SQR forms in wide expressions. Time/date
 expressions and wide arithmetic inside array indices remain unsupported.
 
@@ -341,8 +342,8 @@ SQR and powers compose with the existing homogeneous arithmetic, bitwise,
 ABS and qualified FRD/TOD forms. Structural preflight, false/prescan lazy reads,
 file modes and eager Boolean evaluation are retained. Reached exponent ranges,
 required unknowns, bounds, overflow and later faults roll back the advance.
-Mixed numeric tag types, other functions, ST/index expansion and broader
-controller profiles remain separate. Native precision/status/fault/partial-effect
+Mixed numeric tag types use the [common-range profile](#mixed-integer-roots-and-powers)
+below. Other functions, ST/index expansion and broader controller profiles remain separate. Native precision/status/fault/partial-effect
 parity is unverified.
 
 In **Wide expression lab**, set RootPowerIndex=1 and RootPowerEnabled=true.
@@ -355,3 +356,37 @@ The gate starts false with index99 dormant.
 Reports publish `wide_ladder_expressions.root_power`. Source basis: installed
 v35 CPT/CMP/FAL/FSC tables 14597/14592/14504/14515 and SQR/XPY references
 14617/14478. See [focused checks](../source/tests/test_wide_integer_root_power.py).
+
+## Mixed integer roots and powers
+
+The v35 5580 CPT/CMP/FAL/FSC mixed integer profile now supports SQR and bounded
+nonnegative `**`. A common actual source tag type must cover every source tag's
+complete declared range; the CPT/FAL result must match it. Positive saved values
+do not justify signed-to-unsigned conversion. No wider type is invented.
+
+For example, a LINT Base with a DINT Exponent can use `Base**Exponent` without
+floating conversion. A LINT Value and DINT Delta can use `SQR(Value)+Delta`
+or `SQR(Value+Delta)`. Compatible INT/USINT and DINT/UINT sources also select
+their existing INT/DINT common type when this mixed profile applies.
+
+Every arithmetic subtree, including each SQR call and power expression, must
+contain an actual source tag of that common type. Thus `SQR(Value)+Delta` is
+qualified, while `Value+SQR(Delta)` and `Value**(Exponent+1)` remain blocked:
+their inner arithmetic lacks a common-type tag. Compatible constants retain
+the existing signed-DINT or matching decimal/radix L/U/UL rules. These are
+explicit software restrictions, not a complete native promotion model.
+
+Roots retain exact integer magnitude/nearest-root calculations. Powers retain
+the common width's 0..width-1 exponent bound and checked intermediates/results.
+Unknowns, invalid indices, exponent limits, overflow and later faults roll back
+the advance. False/prescan reads, file modes, eager BOOL composition, aliases and
+AOI binding rules are retained. Mixed numeric bitwise and mixed FRD/TOD,
+REAL/LREAL, ST/index expansion and native status/precision parity stay excluded.
+
+**Wide expression lab** now uses a DINT RootPowerExponent with its LINT base.
+Its gate and index controls are unchanged. RootPowerOffset is DINT 1:
+RootPowerShifted is 5, RootPowerScaled is 4 and RootPowerMixedMatch is true.
+Set Offset=100 to get 104 and 9. The existing late divisor demonstrates rollback.
+Reports expose the source/common-width rules in `wide_ladder_expressions.root_power`
+and include SQR/power in `mixed_integer_arithmetic.operators`.
+See [focused mixed checks](../source/tests/test_mixed_integer_root_power.py).
