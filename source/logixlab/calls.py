@@ -74,7 +74,7 @@ class Calls:
                 and scope not in self.memory.frames)
 
     def operand(self,ref,scope,writable=False,*,indirect=False):
-        typed=typed_literal(ref) if self.indirect_profile(scope) and '#' not in ref else None
+        typed=typed_literal(ref) if self.indirect_profile(scope) and ('#' not in ref or ref.rstrip().upper().endswith(('L','U'))) else None
         if typed is not None:
             if writable:raise ModelError('Parameter destination must be a writable tag')
             dtype,value=typed
@@ -329,10 +329,10 @@ class Calls:
         return {'calls':self.edges,'nesting_limit':MAX_NESTING,'parameters_per_direction':40,
                 'contract':'Exact counts/types/dimensions; copied values; bounded indirect JSR and ladder SBR/RET elements; cross-parameter overlap rejected; prescan does not transfer parameters',
                 'typed_constants':dict(available=self.indirect_profile(''),types=['LINT','UDINT','ULINT','LREAL'],
-                    syntax='Decimal L/l, U/u and UL/ul/Ul/uL integers; floating L/l constants',
+                    radix_bases=[2,8,16],syntax='Decimal and attached radix L/l, U/u and UL/ul/Ul/uL integers; floating L/l constants',
                     transfers='JSR inputs and RET values keep their declared type; exact matching formal/return types; literal range checked before execution',
                     trace='LINT/ULINT values recorded as decimal text; LREAL retained as binary64',
-                    excluded='Typed radix/time/date/aggregate constants, numeric promotion, other controller profiles and AOI calls',native_runtime_parity=False),
+                    excluded='Time/date/aggregate constants, numeric promotion, other controller profiles and AOI calls',native_runtime_parity=False),
                 'indirect':dict(available=self.indirect_profile(''),profile='v35-5580-caller-elements',
                                 selection='Structural JSR preflight; false/prescan skip live caller indices and values',
                                 capture='Input and return-destination addresses captured at call entry before input copies; current values copied before SBR writes',

@@ -116,7 +116,10 @@ lab adds exact constants, comparisons and recovery examples; see
 **LREAL expressions** now execute in ladder CPT/CMP with finite binary64
 arithmetic, mixed numeric tags, [checked integer/REAL results](docs/lreal-results.md)
 and copied AOI parameters. [Typed AOI input constants](docs/aoi-constants.md)
-now preserve LINT, unsigned and LREAL values; choose **AOI constants lab** to try them. [Floating constants](docs/lreal-literals.md) now support
+now preserve decimal and binary/octal/hexadecimal L/U/UL values, plus finite
+LREAL inputs; choose **AOI constants lab** to try them.
+[Routine call constants](docs/indirect-routine-calls.md#typed-radix-parameters)
+share the exact type contract. [Floating constants](docs/lreal-literals.md) now support
 REAL defaults and explicit LREAL suffixes in CPT/CMP. Wide expression lab
 adds precision and fault-recovery examples; see [LREAL expressions](docs/lreal-expressions.md).
 

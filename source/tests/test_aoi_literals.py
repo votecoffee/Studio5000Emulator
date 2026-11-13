@@ -79,7 +79,7 @@ class AOILiteralTests(unittest.TestCase):
         for name,text in [('Signed','9223372036854775808L'),('Unsigned','-1U'),
                           ('Largest','18446744073709551616UL'),('Precise','1e309L'),
                           ('Signed','1U'),('Unsigned','1L'),('Largest','1U'),('Precise','1L'),
-                          ('Signed','16#FFFF_FFFF_FFFF_FFFFL')]:
+                          ('Signed','16#1_0000_0000_0000_0000L')]:
             e=self.typed({name:text},checked=False);self.assertTrue(e.blockers,(name,text))
 
     def test_outputs_and_inout_parameters_still_reject_constants(self):
@@ -120,7 +120,7 @@ class AOILiteralTests(unittest.TestCase):
             locals=E.SubElement(d,'LocalTags')
             for name,dtype in [('Core','LabTypedInputs'),('U','UDINT'),('UL','ULINT'),('R','LREAL')]:E.SubElement(locals,'LocalTag',Name=name,DataType=dtype)
             content=E.SubElement(E.SubElement(E.SubElement(d,'Routines'),'Routine',Name='Logic',Type='RLL'),'RLLContent')
-            E.SubElement(E.SubElement(content,'Rung',Number='0',Type='N'),'Text').text='LabTypedInputs(Core,9007199254740993L,4294967295U,18446744073709551615UL,1.0000000000000002L,Result,U,UL,R);'
+            E.SubElement(E.SubElement(content,'Rung',Number='0',Type='N'),'Text').text='LabTypedInputs(Core,16#0020000000000001L,8#37777777777U,2#1111111111111111111111111111111111111111111111111111111111111111UL,1.0000000000000002L,Result,U,UL,R);'
             obj=E.SubElement(E.SubElement(E.SubElement(c.find('Tags'),'Tag',Name='Wrapped',DataType='TypedWrapper',TagType='Base'),'Data',Format='Decorated'),'Structure',DataType='TypedWrapper')
             core=copy.deepcopy(c.find('./Tags/Tag[@Name="TypedInputs"]/Data/Structure'));core.tag='StructureMember';core.set('Name','Core');obj.append(core)
             for name,dtype in [('EnableIn','BOOL'),('EnableOut','BOOL'),('Result','LINT'),('U','UDINT'),('UL','ULINT'),('R','LREAL')]:

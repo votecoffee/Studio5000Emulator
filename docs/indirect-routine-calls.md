@@ -27,7 +27,7 @@ preflight even on an unreachable call. Unsuffixed inputs retain their existing
 bounded DINT/float32 REAL rules.
 
 Constants are read-only values, not output locations. SBR operands and JSR
-return destinations still require writable tags. Typed radix, time/date,
+return destinations still require writable tags. Time/date,
 string/aggregate literals, wider FOR operands, other controller profiles and
 JSR inside AOIs are outside this increment. Existing ST JSR/RET calls use the
 same typed-value transfer rules. Literal values are captured with each resolved
@@ -42,6 +42,26 @@ binary64. False calls retain prior values and skip live return indices.
 The installed v35 JSR/SBR/RET reference (14612) lists wide numeric immediate
 parameters for 5580 controllers. This is a bounded software implementation;
 native literal encoding, fault/layout and Studio acceptance remain unverified.
+
+## Typed radix parameters
+
+App `26.1113.063603` also accepts attached binary, octal and hexadecimal L/l, U/u
+and UL/ul/Ul/uL constants with the same exact parameter-type contract. LINT
+and ULINT patterns use 64 bits; UDINT uses 32. Short patterns zero-fill and the
+LINT top bit represents a negative number. `16#FFFFFFFFL` is positive
+4294967295; `16#FFFFFFFFFFFFFFFFL` is -1. Values above 2^53 stay exact.
+Invalid digits, overwide patterns and type mismatches block false calls too.
+Unsuffixed radix operands retain their earlier DINT rules. These forms do not
+expand expression parsing, numeric conversion or other controller profiles.
+Native Studio import, numerical/fault and lifecycle parity remain unverified.
+
+Call lab now supplies hexadecimal, octal and binary typed inputs and returns
+a hexadecimal UDINT constant directly. TypedCallLateDivisor defaults to one;
+zero demonstrates whole-advance rollback after transfer, then one retries.
+JSR inputs and RET values retain exact types in existing ladder and ST calls.
+SBR destinations and return addresses remain writable references. The viewer
+shows constants at these source positions, while live trace samples retain
+captured addresses and values.
 
 ## Selection and copied values
 

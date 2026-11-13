@@ -60,6 +60,14 @@
     return tokens;
   }
 
+  function parameterRadix(node, ref, definitions = {}) {
+    if (!String(ref).includes('#')) return false;
+    const args = node?.operands || [], index = args.indexOf(ref);
+    if (node?.opcode === 'RET') return index >= 0;
+    if (node?.opcode === 'JSR') return index >= 2 && index < 2 + Number(args[1]);
+    const face = node && faceplates?.describe(node, definitions);
+    return !!(face?.kind === 'aoi' && face.fields.some(field => field.ref === ref && field.required && field.usage === 'Input'));
+  }
   function create(options) {
     const canvas = options.canvas, inspector = options.inspector, status = options.status;
     let current, key = '', sourceIdentity = '', zoom = 1, showValues = true, showComments = true, selected = '', documents = [], valueMap = new Map(), snapshot, lastTraces = new Map();
@@ -69,7 +77,7 @@
       const bitwiseRadix = node?.opcode === 'MEQ' || ['AND','OR','XOR','NOT'].includes(node?.opcode) && node.operands?.slice(0,-1).includes(ref);
       const integerRadix = ['EQU','NEQ','LES','LEQ','GRT','GEQ','LIM'].includes(node?.opcode) || ['ADD','SUB','MUL','DIV','MOD','NEG','ABS'].includes(node?.opcode) && node.operands?.slice(0,-1).includes(ref);
       const bcdRadix = ['FRD','TOD'].includes(node?.opcode) && node.operands?.[0] === ref;
-      return snapshot?.read(ref, {movRadix: node?.opcode === 'MOV' && node.operands?.[0] === ref, bitwiseRadix, integerRadix, bcdRadix}) || null;
+      return snapshot?.read(ref, {movRadix: node?.opcode === 'MOV' && node.operands?.[0] === ref, bitwiseRadix, integerRadix, bcdRadix, callRadix: parameterRadix(node, ref, current.state.aoi_definitions)}) || null;
     }
     function operandDisplay(field, node, power) {
       const sample = power?.operandSamples?.[field.argument];
@@ -381,5 +389,5 @@
       dispose() {documents = [];current = null;}
     };
   }
-  return {create, tokenizeST, labelTarget};
+  return {create, tokenizeST, labelTarget, parameterRadix};
 });

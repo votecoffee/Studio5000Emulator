@@ -12,6 +12,8 @@
     <Modules />
     <AddOnInstructionDefinitions />
     <Tags>
+      <Tag Name="TypedCallLateDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="TypedCallLateGuard" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
       <Tag Name="Enabled" TagType="Base" DataType="BOOL" Constant="false" ExternalAccess="Read/Write">
         <Data Format="Decorated">
           <DataValue DataType="BOOL" Radix="Decimal" Value="1" />
@@ -187,7 +189,8 @@
               <Rung Number="4" Type="N"><Text>XIC(IndirectCall)JSR(DoubleSelected,1,IndexedCallInputs[CallInputIndex],IndexedCallResults[CallOutputIndex]);</Text></Rung>
               <Rung Number="5" Type="N"><Text>XIC(IndirectPairCall)JSR(EchoSelectedPair,1,IndexedPairInputs[CallInputIndex],IndexedPairResults[CallOutputIndex]);</Text></Rung>
               <Rung Number="6" Type="N"><Text>XIC(SharedResultCall)JSR(ReturnTwoValues,0,IndexedCallResults[CallInputIndex],IndexedCallResults[CallOutputIndex]);</Text></Rung>
-              <Rung Number="7" Type="N"><Text>XIC(TypedCallEnabled)JSR(TypedConstants,4,9007199254740993L,4294967295U,18446744073709551615UL,1.0000000000000002L,TypedSigned,TypedUnsigned,TypedLargest,TypedPrecise);</Text></Rung>
+              <Rung Number="7" Type="N"><Text>XIC(TypedCallEnabled)JSR(TypedConstants,4,16#0020000000000001L,8#37777777777U,2#1111111111111111111111111111111111111111111111111111111111111111UL,1.0000000000000002L,TypedSigned,TypedUnsigned,TypedLargest,TypedPrecise);</Text></Rung>
+              <Rung Number="8" Type="N"><Text>XIC(TypedCallEnabled)DIV(1,TypedCallLateDivisor,TypedCallLateGuard);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="Calculate" Type="RLL">
@@ -260,7 +263,7 @@
           <Routine Name="TypedConstants" Type="RLL">
             <RLLContent>
               <Rung Number="0" Type="N"><Text>SBR(TypedSignedInput,TypedUnsignedInput,TypedLargestInput,TypedPreciseInput);</Text></Rung>
-              <Rung Number="1" Type="N"><Text>RET(TypedSignedInput,4294967295U,TypedLargestInput,1.0000000000000002L);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>RET(TypedSignedInput,16#FFFF_FFFFu,TypedLargestInput,1.0000000000000002L);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

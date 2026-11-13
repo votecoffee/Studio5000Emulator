@@ -75,7 +75,7 @@ class CallLiteralTests(unittest.TestCase):
     def test_out_of_range_and_excluded_constants_block_even_when_false(self):
         for dtype,text in [('LINT','9223372036854775808L'),('UDINT','-1U'),
                            ('ULINT','18446744073709551616UL'),('LREAL','1e309L'),
-                           ('LINT','16#FFFF_FFFF_FFFF_FFFFL'),('DINT','4294967295'),
+                           ('LINT','16#1_0000_0000_0000_0000L'),('DINT','4294967295'),
                            ('DINT','16#FFFFFFFF'),('LINT','T#1s')]:
             e=self.literal(dtype,text,gate=True,checked=False);self.assertTrue(e.blockers,text)
 

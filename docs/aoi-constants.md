@@ -36,11 +36,30 @@ above. Disable Enabled and change an output tag to observe retention on a false
 call. Re-enable to copy the constants again. LINT/ULINT API snapshots use exact
 decimal text; LREAL retains binary64 precision.
 
-Typed radix, time/date, string/aggregate literals, Output/InOut constants,
+Time/date, string/aggregate literals, Output/InOut constants,
 other controller profiles, protected definitions, nullable/alias parameters,
 FBD definitions and native packing/status/lifecycle qualification remain outside
 this increment. The separate [JSR/RET constant profile](indirect-routine-calls.md#typed-numeric-constants)
 uses its own exact routine-parameter contract.
+
+## Typed radix parameters
+
+App `26.1113.063603` also accepts attached binary, octal and hexadecimal L/l, U/u
+and UL/ul/Ul/uL constants with the same exact parameter-type contract. LINT
+and ULINT patterns use 64 bits; UDINT uses 32. Short patterns zero-fill and the
+LINT top bit represents a negative number. `16#FFFFFFFFL` is positive
+4294967295; `16#FFFFFFFFFFFFFFFFL` is -1. Values above 2^53 stay exact.
+Invalid digits, overwide patterns and type mismatches block false calls too.
+Unsuffixed radix operands retain their earlier DINT rules. These forms do not
+expand expression parsing, numeric conversion or other controller profiles.
+Native Studio import, numerical/fault and lifecycle parity remain unverified.
+
+AOI constants lab now supplies the same values using hexadecimal Signed,
+octal Unsigned and binary Largest inputs. ParameterLateDivisor defaults to one;
+zero demonstrates rollback after output copies, and one allows retry. False
+calls still copy Inputs and retain outputs. The viewer shows exact declared
+radix values for required Inputs only; nested and existing ST call transfers
+retain their copied-input lifecycle.
 
 See [implementation](../source/logixlab/addons.py),
 [sample](../source/samples/AOIConstantsLab.L5X) and

@@ -9,7 +9,7 @@ from .numeric_storage import available as numeric_available, typed_literal
 
 def typed_input(project,argument):
     """Keep typed numeric AOI inputs local to the qualified v35 profile."""
-    return typed_literal(argument) if numeric_available(project) and '#' not in argument else None
+    return typed_literal(argument) if numeric_available(project) and ('#' not in argument or argument.rstrip().upper().endswith(('L','U'))) else None
 
 
 def shape(value):
@@ -141,9 +141,9 @@ class AddOns:
         return {'definitions':len(project.aois),'active_definitions':sorted(self.active),
                 'instances':self.instances,
                 'typed_inputs':dict(available=numeric_available(project),types=['LINT','UDINT','ULINT','LREAL'],
-                    syntax='Decimal L/l, U/u and UL/ul/Ul/uL integers; finite floating L/l values',
+                    radix_bases=[2,8,16],syntax='Decimal and attached radix L/l, U/u and UL/ul/Ul/uL integers; finite floating L/l values',
                     contract='Required scalar Input parameters only; exact declared type and literal range; ordinary copied-input lifecycle',
-                    excluded='Typed radix/time/date/aggregate literals, numeric promotion, Output/InOut constants and other controller profiles',native_runtime_parity=False),
+                    excluded='Time/date/aggregate literals, numeric promotion, Output/InOut constants and other controller profiles',native_runtime_parity=False),
                 'local_state_policy':'Hidden saved local values remain unknown; Prescan or normal writes must establish them before reads',
                 'definition_issues':{a.name:a.problems for a in project.aois.values() if a.problems},
                 'instructions':{a.name:dict(__import__('collections').Counter(op.name for r in a.routines.values()
