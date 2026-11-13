@@ -69,7 +69,7 @@ class LrealRadixExpressionTests(unittest.TestCase):
             with self.assertRaises(ModelError):create('16#1L')
         self.assertEqual(literal('16#FFFFFFFF'), 4294967295)
         self.assertEqual(Expression('16#FFFFFFFF').tree, ('literal', 4294967295))
-        for dtype, text in [('REAL', '16#FFFFFFFF'), ('REAL', '16#1L'), ('DINT', '16#FFFFFFFF+1.0')]:
+        for dtype, text in [('REAL', '16#100000000'), ('REAL', '16#10000000000000000L'), ('DINT', '16#100000000+1.0')]:
             self.assertTrue(self.engine([f'AFI()CPT(Dest,{text});'], dtype=dtype, checked=False).blockers)
 
     def test_false_prescan_alias_indices_and_unknown_full_destinations(self):

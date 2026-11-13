@@ -1,9 +1,9 @@
-"""Scoped finite binary64 ladder expressions for the v35 5580 model."""
+"""Scoped floating ladder expressions; binary64 and selected REAL extensions."""
 import math
 import operator
 
 from .expressions import FUNCTIONS
-from .integer_math import CONTROLLERS
+from .integer_math import CONTROLLERS, WIDE_TYPES
 from .model import INT_BITS, ModelError, coerce
 
 NUMERIC = frozenset((*INT_BITS, 'REAL', 'LREAL'))
@@ -28,23 +28,32 @@ def immediate(value):
     return coerce(value, 'DINT')
 
 
-def analyze(expression, memory, scope='', destination_type=None, *, consumer='CPT'):
+def analyze(expression, memory, scope='', destination_type=None, *, consumer='CPT', precision='LREAL'):
     declared = {ref: memory.resolve(ref, scope)[2] for ref in expression.refs}
-    if destination_type != 'LREAL' and 'LREAL' not in declared.values() and 'LREAL' not in expression.literal_types:
-        return None
+    binary64 = destination_type == 'LREAL' or 'LREAL' in declared.values() or 'LREAL' in expression.literal_types
+    if precision == 'REAL':
+        def floating_literal(node):
+            return node[0] == 'literal' and type(node[1]) is float or any(floating_literal(x) for x in node[1:] if isinstance(x,tuple))
+        selected = destination_type == 'REAL' or 'REAL' in declared.values() or floating_literal(expression.tree)
+        extended = bool(expression.typed_types or expression.radix_types or destination_type in WIDE_TYPES or WIDE_TYPES.intersection(declared.values()))
+        if binary64 or not selected or not extended:return None
+        # Keep existing mixed string conditions on their established interpreter.
+        if any(memory.project.string_capacity(dtype) is not None for dtype in declared.values()):return None
+    elif precision != 'LREAL':raise ModelError('Unsupported floating expression precision')
+    elif not binary64:return None
     if not available(memory.project):
-        raise ModelError('LREAL expressions require the v35 ControlLogix 5580 profile')
+        raise ModelError(precision+' expressions require the v35 ControlLogix 5580 profile')
     if consumer != 'CMP' and destination_type not in NUMERIC:
-        raise ModelError(f'LREAL {consumer} requires a numeric scalar destination')
-    if expression.functions - MATH:
-        raise ModelError('Unsupported LREAL expression function')
+        raise ModelError(f'{precision} {consumer} requires a numeric scalar destination')
+    if expression.functions - (frozenset(FUNCTIONS) if precision == 'REAL' else MATH):
+        raise ModelError('Unsupported '+precision+' expression function')
     types = {}
     for ref, dtype in declared.items():
         if dtype not in NUMERIC and not (consumer == 'CMP' and dtype == 'BOOL'):
-            raise ModelError('LREAL expressions require numeric scalar operands or CMP BOOL tags')
+            raise ModelError(precision+' expressions require numeric scalar operands or CMP BOOL tags')
         key, parts, _ = memory.resolve(ref, scope)
         if isinstance(memory.at(key, parts), (dict, list)):
-            raise ModelError('LREAL expressions require scalar operands')
+            raise ModelError(precision+' expressions require scalar operands')
         types[ref] = 'bool' if dtype == 'BOOL' else 'number'
 
     def infer(node):
@@ -62,7 +71,7 @@ def analyze(expression, memory, scope='', destination_type=None, *, consumer='CP
             return types[value]
         if kind == 'call':
             if infer(node[2]) != 'number':
-                raise ModelError('LREAL math functions require numeric operands')
+                raise ModelError(precision+' math functions require numeric operands')
             return 'number'
         if kind == 'unary':
             if value in ('+', '-') and node[2][0] in ('literal','typed_literal'):
@@ -74,30 +83,33 @@ def analyze(expression, memory, scope='', destination_type=None, *, consumer='CP
             if consumer == 'CMP' and value in ('!', 'NOT') and operand == 'bool':
                 return 'bool'
             if value not in ('+', '-') or operand != 'number':
-                raise ModelError('Numeric LREAL bitwise/unary operators remain unqualified')
+                raise ModelError('Numeric '+precision+' bitwise/unary operators remain unqualified')
             return 'number'
         if kind != 'binary':
             raise ModelError('Unsupported LREAL expression operand')
         left, right = infer(node[2]), infer(node[3])
         if consumer == 'CMP' and value in RELATIONS:
             if left != right or left == 'bool' and value not in ('=', '<>'):
-                raise ModelError('LREAL CMP comparison operand types must match')
+                raise ModelError(precision+' CMP comparison operand types must match')
             return 'bool'
         if consumer == 'CMP' and value in LOGICAL and left == right == 'bool':
             return 'bool'
         if value not in ARITHMETIC or left != 'number' or right != 'number':
-            raise ModelError('LREAL expressions require numeric arithmetic or CMP Boolean composition')
+            raise ModelError(precision+' expressions require numeric arithmetic or CMP Boolean composition')
         return 'number'
 
     result = infer(expression.tree)
     if result != ('bool' if consumer == 'CMP' else 'number'):
-        raise ModelError(consumer + ' has an invalid LREAL expression result type')
-    return dict(consumer=consumer, declared=declared, types=types)
+        raise ModelError(consumer+' has an invalid '+precision+' expression result type')
+    result = dict(consumer=consumer, declared=declared, types=types)
+    if precision == 'REAL':result['precision'] = 'REAL'
+    return result
 
 
 def evaluate(expression, memory, scope, profile):
+    precision = profile.get('precision','LREAL')
     def number(value):
-        return coerce(value, 'LREAL')
+        return coerce(value, precision)
 
     def visit(node):
         kind, value = node[:2]
@@ -128,9 +140,9 @@ def evaluate(expression, memory, scope, profile):
         if value in LOGICAL:
             return (x and y) if value in ('&&', 'AND') else (x or y) if value in ('||', 'OR') else x != y
         if value in ('/', 'MOD') and not y:
-            raise ModelError('LREAL expression divide by zero')
+            raise ModelError(precision+' expression divide by zero')
         if value == '**' and abs(y) > 1024:
-            raise ModelError('LREAL expression exponent outside modeled range')
+            raise ModelError(precision+' expression exponent outside modeled range')
         if value == '+':
             result = x + y
         elif value == '-':
@@ -144,13 +156,17 @@ def evaluate(expression, memory, scope, profile):
         else:
             result = x ** y
         if isinstance(result, complex):
-            raise ModelError('Complex LREAL expression result')
+            raise ModelError('Complex '+precision+' expression result')
         return number(result)
 
     try:
         return visit(expression.tree)
-    except (ValueError, OverflowError, ZeroDivisionError) as error:
-        raise ModelError('LREAL expression arithmetic domain/range failure: ' + str(error)) from error
+    except OverflowError as error:
+        # FAL's existing REAL overflow handler preserves completed cells and retry POS.
+        if precision == 'REAL':raise
+        raise ModelError('LREAL expression arithmetic domain/range failure: '+str(error)) from error
+    except (ValueError, ZeroDivisionError) as error:
+        raise ModelError(precision+' expression arithmetic domain/range failure: '+str(error)) from error
 
 
 def description(project):
@@ -178,3 +194,17 @@ def description(project):
                 remaining=['Other separators/typed forms; FRD/TOD and numeric bitwise forms',
                            'ST/FBD/SFC consumers and other controller profiles',
                            'Native numerical, status, fault, packed-layout and lifecycle parity'])
+
+
+def real_description(project):
+    return dict(available=available(project),profile='v35-5580-real-extended-expressions',
+                consumers=['CPT','CMP','FAL','FSC'],types=sorted(NUMERIC-{'LREAL'}),
+                selection='A REAL tag, unsuffixed floating literal or CPT/FAL REAL destination; at least one wide integer tag, typed integer literal or signed DINT radix word',
+                priority='LREAL selection first; existing narrow REAL, exact integer, string, generic/ST/index consumers remain separate',
+                constants='Bounded DINT/finite REAL; declared decimal/radix L/U/UL words, signed DINT words and immediate unary range checks before float32 conversion',
+                arithmetic='Finite float32 sources and every numeric intermediate; existing unary math, arithmetic and bounded power',
+                operators=sorted(ARITHMETIC),functions=sorted(FUNCTIONS),exponent_limit=1024,
+                comparisons='CMP/FSC numeric relations, BOOL tags and eager Boolean composition; numeric bitwise and FRD/TOD excluded',
+                destination_types=sorted(NUMERIC-{'LREAL'}),destination_conversion='Nearest-even integer conversion with range checks; REAL results retain float32 precision',
+                failures='Unknowns, bounds, domains, integer ranges and later failures roll back; FAL REAL calculation overflow retains the existing ER/POS/prefix/retry behavior',
+                native_runtime_parity=False,native_math_status=False)

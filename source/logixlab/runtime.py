@@ -1284,6 +1284,7 @@ class Engine:
                 'integer_execution':integer_math.description(self.project),
                 'integer_expression_execution':integer_math.expression_description(),
                 'lreal_expression_execution':lreal_expressions.description(self.project),
+                'real_expression_execution':lreal_expressions.real_description(self.project),
                 'wide_st_execution':wide_st.description(self.project),
                 'wide_ladder_expressions':wide_st.ladder_description(self.project),
                 'bit_transfer':bit_transfer.description(),

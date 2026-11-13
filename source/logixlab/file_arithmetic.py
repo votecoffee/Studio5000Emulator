@@ -35,7 +35,8 @@ def destination(memory, op, scope):
 
 def calculate(engine,expression,scope,dtype,*,execute=False):
     memory = engine.memory
-    floating = lreal_expressions.analyze(expression, memory, scope, dtype, consumer='FAL')
+    floating = (lreal_expressions.analyze(expression,memory,scope,dtype,consumer='FAL') or
+                lreal_expressions.analyze(expression,memory,scope,dtype,consumer='FAL',precision='REAL'))
     if floating is not None:
         return lreal_expressions.evaluate(expression, memory, scope, floating) if execute else None
     profile = wide_st.analyze(expression, memory, scope, dtype, consumer='FAL')

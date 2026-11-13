@@ -172,3 +172,7 @@ acceptance.
 [BCD file expressions](file-bcd.md) now qualify FRD/TOD in narrow FAL/FSC
 operands for existing ALL/numeric/INC modes. Conversion and progress/rollback
 rules are explicit; wider types, ST and native parity remain separate.
+
+[Selected REAL expressions](real-expressions.md) add wide integer tags and typed
+decimal/radix constants to CPT/CMP/FAL/FSC with float32 intermediates. LREAL
+priority, exact integer consumers and existing FAL overflow/retry remain separate.

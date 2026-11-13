@@ -93,7 +93,8 @@ class Extensions:
     def compute(self,args,scope,execute=False):
         dtype=self.numeric_destination(args[0],scope,wide=True)
         expression=self.expression(args[1],bcd=True,floating_literals=True,integer_literals=True,radix_literals=True)
-        floating=lreal_expressions.analyze(expression,self.memory,scope,dtype,consumer='CPT')
+        floating=(lreal_expressions.analyze(expression,self.memory,scope,dtype,consumer='CPT') or
+                  lreal_expressions.analyze(expression,self.memory,scope,dtype,consumer='CPT',precision='REAL'))
         if floating is not None:
             if execute:return lreal_expressions.evaluate(expression,self.memory,scope,floating)
             return

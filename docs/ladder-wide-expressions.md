@@ -391,3 +391,7 @@ Set Offset=100 to get 104 and 9. The existing late divisor demonstrates rollback
 Reports expose the source/common-width rules in `wide_ladder_expressions.root_power`
 and include SQR/power in `mixed_integer_arithmetic.operators`.
 See [focused mixed checks](../source/tests/test_mixed_integer_root_power.py).
+
+[Selected REAL expressions](real-expressions.md) add wide integer tags and typed
+decimal/radix constants to CPT/CMP/FAL/FSC with float32 intermediates. LREAL
+priority, exact integer consumers and existing FAL overflow/retry remain separate.

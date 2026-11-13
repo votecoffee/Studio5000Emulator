@@ -120,13 +120,13 @@ class LadderIntegerLiteralTests(unittest.TestCase):
 
     def test_matching_type_boundary_rejects_narrow_mixed_and_floating_combinations(self):
         for dtype, text in [('LINT', '1U'), ('ULINT', '1L'), ('UINT', '1U'),
-                            ('DINT', '1L'), ('REAL', '1L'), ('LREAL', '1LU'),
-                            ('LINT', '1L+1U'), ('LINT', '1L+0.5'), ('LINT', '1L+1e999L')]:
+                            ('DINT', '1L'), ('REAL', '9223372036854775808L'), ('LREAL', '1LU'),
+                            ('LINT', '1L+1U'), ('LINT', '1L+1e39'), ('LINT', '1L+1e999L')]:
             self.assertTrue(self.engine(['AFI()CPT(Dest,' + text + ');'], dtype=dtype).blockers, (dtype, text))
         self.assertTrue(self.engine(['CPT(Dest,Source+1L);'], types=('DINT', 'LINT', 'LINT')).blockers)
 
     def test_existing_function_power_bcd_and_unsigned_immediate_guards_remain(self):
-        for text in ['SQRT(1L)', 'TRN(1L)', '1L**2.0', 'FRD(1U)', 'TOD(1U)', '1L+2147483648']:
+        for text in ['SQRT(1L)', 'TRN(1L)', '1L**1e39', 'FRD(1U)', 'TOD(1U)', '1L+2147483648']:
             self.assertTrue(self.engine(['AFI()CPT(Dest,' + text + ');']).blockers, text)
 
     def test_false_calls_and_prescan_skip_domains_but_required_cmp_sides_are_eager(self):

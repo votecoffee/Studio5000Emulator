@@ -20,7 +20,8 @@ class Condition(Expression):
         from . import lreal_expressions, comparisons
         previous=memory.structural
         if comparisons.available(memory.project):memory.structural=True
-        try:return lreal_expressions.analyze(self,memory,scope,consumer='CMP')
+        try:return (lreal_expressions.analyze(self,memory,scope,consumer='CMP') or
+                    lreal_expressions.analyze(self,memory,scope,consumer='CMP',precision='REAL'))
         finally:memory.structural=previous
 
     def wide_profile(self,memory,scope):

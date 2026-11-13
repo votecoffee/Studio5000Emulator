@@ -1047,6 +1047,21 @@
       <Tag Name="RealCmpLateDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
       <Tag Name="RealCmpLateResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
       <Tag Name="RealCmpInputs" DataType="DINT" Dimensions="3" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="DINT" Dimensions="3"><Element Index="[0]" Value="1" /><Element Index="[2]" Value="999" /></Array></Data></Tag>
+      <Tag Name="MixedRealEnabled" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="MixedRealIndex" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="MixedRealWide" DataType="ULINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="ULINT" Value="16777217" /></Data></Tag>
+      <Tag Name="MixedRealReal" DataType="REAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="0.5" /></Data></Tag>
+      <Tag Name="MixedRealResult" DataType="REAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="0" /></Data></Tag>
+      <Tag Name="MixedRealDifference" DataType="REAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="0" /></Data></Tag>
+      <Tag Name="MixedRealDoubleDifference" DataType="REAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="0" /></Data></Tag>
+      <Tag Name="MixedRealSigned" DataType="REAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="0" /></Data></Tag>
+      <Tag Name="MixedRealRoot" DataType="REAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="0" /></Data></Tag>
+      <Tag Name="MixedRealInteger" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="MixedRealMatch" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="MixedRealInhibit" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="MixedRealLateDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="MixedRealLateResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="MixedRealSelected" DataType="REAL" Dimensions="3" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="REAL" Dimensions="3"><Element Index="[0]" Value="101" /><Element Index="[2]" Value="999" /></Array></Data></Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
@@ -1128,7 +1143,7 @@
               <Rung Number="25" Type="N"><Text>JSR(IntegerConstants,0);</Text></Rung>
               <Rung Number="26" Type="N"><Text>JSR(DoubleIntegerConstants,0);</Text></Rung>
               <Rung Number="27" Type="N"><Text>JSR(IntegerFileConstants,0);</Text></Rung>
-              <Rung Number="28" Type="N"><Text>JSR(NumericMoveConstants,0)JSR(RadixMoves,0)JSR(MathConstants,0)JSR(ComparisonConstants,0)JSR(RealIntegerConstants,0)JSR(IntegerOperandConstants,0)JSR(BitwiseOperandConstants,0)JSR(Binary64SourceResults,0)JSR(DintPatternConstants,0)JSR(DintWordExpressions,0)JSR(WideBcdExpressions,0)JSR(WideRootPowerExpressions,0)JSR(BinaryRadixExpressions,0)JSR(RadixMathBlocks,0)JSR(RadixComparisons,0)JSR(RealRadixBlocks,0)JSR(RealComparisonConstants,0);</Text></Rung>
+              <Rung Number="28" Type="N"><Text>JSR(NumericMoveConstants,0)JSR(RadixMoves,0)JSR(MathConstants,0)JSR(ComparisonConstants,0)JSR(RealIntegerConstants,0)JSR(IntegerOperandConstants,0)JSR(BitwiseOperandConstants,0)JSR(Binary64SourceResults,0)JSR(DintPatternConstants,0)JSR(DintWordExpressions,0)JSR(WideBcdExpressions,0)JSR(WideRootPowerExpressions,0)JSR(BinaryRadixExpressions,0)JSR(RadixMathBlocks,0)JSR(RadixComparisons,0)JSR(RealRadixBlocks,0)JSR(RealComparisonConstants,0)JSR(MixedRealExpressions,0);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="Binary64" Type="RLL">
@@ -1474,6 +1489,19 @@
               <Rung Number="10" Type="N"><Text>XIC(RealCmpEnabled)EQU(16777217U,16777216.0L)OTE(RealCmpBinary64Diff);</Text></Rung>
               <Rung Number="11" Type="N"><Text>XIC(RealCmpEnabled)EQU(16#FFFFFFFFFFFFFFFFUL,18446744073709551616.0)OTE(RealCmpUnsigned64);</Text></Rung>
               <Rung Number="12" Type="N"><Text>XIC(RealCmpEnabled)DIV(1,RealCmpLateDivisor,RealCmpLateResult);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="MixedRealExpressions" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(MixedRealEnabled)CPT(MixedRealResult,MixedRealWide+MixedRealReal);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(MixedRealEnabled)CPT(MixedRealDifference,MixedRealWide-16777216.0);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(MixedRealEnabled)CPT(MixedRealDoubleDifference,MixedRealWide-16777216.0L);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(MixedRealEnabled)CPT(MixedRealSigned,16#FFFFFFFF+MixedRealReal);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(MixedRealEnabled)CPT(MixedRealRoot,SQR(16#1000001U));</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(MixedRealEnabled)CPT(MixedRealInteger,MixedRealWide-16777215.0);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(MixedRealEnabled)CPT(MixedRealSelected[MixedRealIndex],MixedRealWide-16777216.0+MixedRealReal);</Text></Rung>
+              <Rung Number="7" Type="N"><Text>XIC(MixedRealEnabled)CMP((MixedRealWide+MixedRealReal=16777216U)&amp;&amp;!MixedRealInhibit)OTE(MixedRealMatch);</Text></Rung>
+              <Rung Number="8" Type="N"><Text>XIC(MixedRealEnabled)DIV(1,MixedRealLateDivisor,MixedRealLateResult);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

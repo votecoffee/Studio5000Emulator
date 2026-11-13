@@ -102,6 +102,11 @@ ordering beyond floating precision. See [integer operands](docs/typed-integer-op
 and seven comparisons, using declared integer ranges and existing float32
 conversion. See [REAL integer constants](docs/real-integer-literals.md).
 
+**Mixed REAL ladder expressions** now accept wide integer tags and typed
+decimal/radix constants in CPT, CMP, FAL and FSC, with float32 intermediates
+and existing file progress/retry rules. Try MixedRealEnabled in **Wide expression
+lab**; see [REAL expressions](docs/real-expressions.md).
+
 **Floating comparison constants** now select REAL across six ladder relations
 and LIM, including constant-only calls and mixed integer tags. Try
 RealCmpEnabled in **Wide expression lab**; see [REAL comparison constants](docs/real-comparison-literals.md).
