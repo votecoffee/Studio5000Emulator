@@ -39,13 +39,10 @@ class LrealComparisonRadixTests(unittest.TestCase):
                 ('EQU(16#1000001U,Source)', 'LREAL', 16777217, True),
                 ('EQU(16#1000001U,Source)', 'REAL', 16777217, True),
                 ('EQU(16#1000001U,16777217.0L)', 'DINT', 0, True),
-                ('EQU(16#1000001U,16777217.0)', 'LREAL', 0, False)]:
+                ('EQU(16#1000001U,16777217.0)', 'LREAL', 0, True)]:
             e = self.engine([call+'OTE(RunLatch);'], source=source, value=value)
-            # A REAL tag selects float32; constant-only REAL comparison stays separate.
-            if call.endswith('16777217.0)'):
-                self.assertTrue(e.blockers, call)
-            else:
-                self.assertEqual(e.blockers, []); e.step(); self.assertIs(e.memory.read('RunLatch'), expected)
+            # Unused tag types do not select precision; only these operands do.
+            self.assertEqual(e.blockers, []); e.step(); self.assertIs(e.memory.read('RunLatch'), expected)
         for dtype in ('SINT', 'INT', 'DINT', 'LINT', 'USINT', 'UINT', 'UDINT', 'ULINT', 'REAL', 'LREAL'):
             e = self.checked(['EQU(Source,1.0L)OTE(RunLatch);', 'EQU(16#1UL,1.0L)OTE(RunLatch);'], source=dtype, value=1)
             e.step(); self.assertTrue(e.memory.read('RunLatch'))

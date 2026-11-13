@@ -102,6 +102,10 @@ ordering beyond floating precision. See [integer operands](docs/typed-integer-op
 and seven comparisons, using declared integer ranges and existing float32
 conversion. See [REAL integer constants](docs/real-integer-literals.md).
 
+**Floating comparison constants** now select REAL across six ladder relations
+and LIM, including constant-only calls and mixed integer tags. Try
+RealCmpEnabled in **Wide expression lab**; see [REAL comparison constants](docs/real-comparison-literals.md).
+
 **Narrow integer math results** now share the REAL calculation profile: a REAL
 input or floating constant selects float32 math, then nearest-even conversion
 to SINT, INT or DINT with range checks. Try NarrowRealEnabled in **Integer lab**;

@@ -469,3 +469,7 @@ conversion. Integer-only, expressions/ST and native qualification remain separat
 [Selected SINT/INT/DINT results](real-narrow-results.md) extend the common REAL
 calculation profile across nineteen ladder math forms. Source precision precedes
 calculation; destination rounding/ranges and existing lazy/atomic checks remain.
+
+[Unsuffixed floating comparison constants](real-comparison-literals.md) select
+REAL relations/LIM without a REAL tag, including constant-only calls and mixed
+integer inputs. LREAL priority and exact integer-only comparisons remain separate.

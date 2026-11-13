@@ -1029,6 +1029,24 @@
       <Tag Name="RealRadixLateDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
       <Tag Name="RealRadixLateResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
       <Tag Name="RealRadixSelected" DataType="REAL" Dimensions="3" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="REAL" Dimensions="3"><Element Index="[0]" Value="101" /><Element Index="[2]" Value="999" /></Array></Data></Tag>
+      <Tag Name="RealCmpEnabled" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="RealCmpIndex" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="RealCmpValue" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="16777217" /></Data></Tag>
+      <Tag Name="RealCmpLiteralEqual" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="RealCmpMixedTag" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="RealCmpConstantWide" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="RealCmpSignedWord" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="RealCmpUnsignedWord" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="RealCmpNormal" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="RealCmpReversed" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="RealCmpCollapsed" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="RealCmpUnderflow" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="RealCmpSelected" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="RealCmpBinary64Diff" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="RealCmpUnsigned64" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="RealCmpLateDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="RealCmpLateResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="RealCmpInputs" DataType="DINT" Dimensions="3" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="DINT" Dimensions="3"><Element Index="[0]" Value="1" /><Element Index="[2]" Value="999" /></Array></Data></Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
@@ -1110,7 +1128,7 @@
               <Rung Number="25" Type="N"><Text>JSR(IntegerConstants,0);</Text></Rung>
               <Rung Number="26" Type="N"><Text>JSR(DoubleIntegerConstants,0);</Text></Rung>
               <Rung Number="27" Type="N"><Text>JSR(IntegerFileConstants,0);</Text></Rung>
-              <Rung Number="28" Type="N"><Text>JSR(NumericMoveConstants,0)JSR(RadixMoves,0)JSR(MathConstants,0)JSR(ComparisonConstants,0)JSR(RealIntegerConstants,0)JSR(IntegerOperandConstants,0)JSR(BitwiseOperandConstants,0)JSR(Binary64SourceResults,0)JSR(DintPatternConstants,0)JSR(DintWordExpressions,0)JSR(WideBcdExpressions,0)JSR(WideRootPowerExpressions,0)JSR(BinaryRadixExpressions,0)JSR(RadixMathBlocks,0)JSR(RadixComparisons,0)JSR(RealRadixBlocks,0);</Text></Rung>
+              <Rung Number="28" Type="N"><Text>JSR(NumericMoveConstants,0)JSR(RadixMoves,0)JSR(MathConstants,0)JSR(ComparisonConstants,0)JSR(RealIntegerConstants,0)JSR(IntegerOperandConstants,0)JSR(BitwiseOperandConstants,0)JSR(Binary64SourceResults,0)JSR(DintPatternConstants,0)JSR(DintWordExpressions,0)JSR(WideBcdExpressions,0)JSR(WideRootPowerExpressions,0)JSR(BinaryRadixExpressions,0)JSR(RadixMathBlocks,0)JSR(RadixComparisons,0)JSR(RealRadixBlocks,0)JSR(RealComparisonConstants,0);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="Binary64" Type="RLL">
@@ -1439,6 +1457,23 @@
               <Rung Number="9" Type="N"><Text>XIC(RealRadixEnabled)EQU(RealRadixRoundSource,16#1000001U)OTE(RealRadixRounded);</Text></Rung>
               <Rung Number="10" Type="N"><Text>XIC(RealRadixEnabled)LIM(16#FFFFFFFF,RealRadixSource,16#3U)OTE(RealRadixRange);</Text></Rung>
               <Rung Number="11" Type="N"><Text>XIC(RealRadixEnabled)DIV(1,RealRadixLateDivisor,RealRadixLateResult);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="RealComparisonConstants" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(RealCmpEnabled)EQU(0.1,0.1)OTE(RealCmpLiteralEqual);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(RealCmpEnabled)EQU(RealCmpValue,16777216.0)OTE(RealCmpMixedTag);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(RealCmpEnabled)EQU(16777217U,16777216.0)OTE(RealCmpConstantWide);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(RealCmpEnabled)EQU(16#FFFFFFFF,-1.0)OTE(RealCmpSignedWord);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(RealCmpEnabled)EQU(16#FFFFFFFFL,4294967296.0)OTE(RealCmpUnsignedWord);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(RealCmpEnabled)LIM(0L,0.5,1UL)OTE(RealCmpNormal);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(RealCmpEnabled)LIM(1U,0.5,0L)OTE(RealCmpReversed);</Text></Rung>
+              <Rung Number="7" Type="N"><Text>XIC(RealCmpEnabled)LIM(16777217U,16777216.0,16777216UL)OTE(RealCmpCollapsed);</Text></Rung>
+              <Rung Number="8" Type="N"><Text>XIC(RealCmpEnabled)EQU(1e-50,0.0)OTE(RealCmpUnderflow);</Text></Rung>
+              <Rung Number="9" Type="N"><Text>XIC(RealCmpEnabled)EQU(RealCmpInputs[RealCmpIndex],1.0)OTE(RealCmpSelected);</Text></Rung>
+              <Rung Number="10" Type="N"><Text>XIC(RealCmpEnabled)EQU(16777217U,16777216.0L)OTE(RealCmpBinary64Diff);</Text></Rung>
+              <Rung Number="11" Type="N"><Text>XIC(RealCmpEnabled)EQU(16#FFFFFFFFFFFFFFFFUL,18446744073709551616.0)OTE(RealCmpUnsigned64);</Text></Rung>
+              <Rung Number="12" Type="N"><Text>XIC(RealCmpEnabled)DIV(1,RealCmpLateDivisor,RealCmpLateResult);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

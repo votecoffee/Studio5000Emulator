@@ -69,12 +69,13 @@ def lreal_specification(memory, args, scope):
 
 
 def real_specification(memory, args, scope):
-    """Select by an actual REAL tag after the separate LREAL priority check."""
+    """Select by a REAL tag or floating immediate after the LREAL priority check."""
     selected=False
     for ref in args:
         if time_values.literal(ref) is not None or typed_literal(ref) is not None:continue
-        try:literal(ref)
+        try:value=literal(ref)
         except ValueError:selected=selected or memory.resolve(ref,scope)[2]=='REAL'
+        else:selected=selected or type(value) is float
     if not selected:return None
     for ref in args:real_math_source(memory,ref,scope,radix=True)
     return 'REAL'
@@ -211,10 +212,11 @@ def description(project):
                     excluded='Unsuffixed decimal integers outside DINT, negative-prefix radix words, other consumer/controller profiles and native parity',
                     native_runtime_parity=False),
                 real_ordering=dict(instructions=sorted((*RELATIONS,'LIM')),source_types=sorted({*INT_BITS,'REAL'}),
-                    operands='Scalar numeric tags with at least one REAL input and no LREAL input',
-                    constants='Bounded DINT/finite REAL, signed DINT radix words and decimal/radix L/U/UL integers checked at declared range before float32 conversion; an actual REAL tag is required',
-                    radix_sources=dict(bases=[2,8,16],types=['DINT','LINT','UDINT','ULINT'],selection='At least one actual REAL input after LREAL priority; constant-only REAL forms remain separate',native_runtime_parity=False),
+                    operands='Scalar numeric tags/constants with a REAL tag or unsuffixed floating immediate and no LREAL selection; constant-only comparisons execute',
+                    constants='Bounded DINT/finite REAL, signed DINT radix words and decimal/radix L/U/UL integers checked at declared range before float32 conversion; a REAL tag or unsuffixed floating immediate selects the profile',
+                    radix_sources=dict(bases=[2,8,16],types=['DINT','LINT','UDINT','ULINT'],selection='A REAL tag or unsuffixed floating immediate after LREAL priority; constant-only forms are included',native_runtime_parity=False),
                     calculation='Convert every required source to finite float32 before comparison; inclusive/reversed limits use converted bounds; large integers and literals may round',
+                    selection_by_literal='An unsuffixed floating immediate selects finite float32 for all numeric tags/constants; typed integer-only forms retain exact integer rules',
                     precedence='LREAL tags or floating L/l literals retain the separate binary64 profile; integer-only comparisons retain their existing exact rules',
                     native_runtime_parity=False),
                 typed_integer_masked_equal=dict(instruction='MEQ',constant_types=['LINT','UDINT','ULINT'],radix_bases=[2,8,16],

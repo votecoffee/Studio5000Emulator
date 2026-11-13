@@ -6,7 +6,7 @@ and UL/ul/Ul/uL (ULINT) integer constants in these selected ladder operations:
 | Selection | Instructions |
 | --- | --- |
 | Scalar REAL result | ADD, SUB, MUL, DIV, MOD, NEG, ABS, XPY, SQR, LN, LOG, DEG, RAD, SIN, COS, TAN, ASN, ACS, ATN |
-| At least one actual REAL source tag, with no LREAL selection | EQU, NEQ, LES, LEQ, GRT, GEQ, LIM |
+| A REAL source tag or unsuffixed floating immediate, with no LREAL selection | EQU, NEQ, LES, LEQ, GRT, GEQ, LIM |
 
 Both binary math/comparison operands and all three LIM operands support the
 same constant forms. Existing bounded DINT and finite REAL constants retain

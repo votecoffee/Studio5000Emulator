@@ -36,10 +36,10 @@ ULINT's largest word rounds to REAL 18446744073709551616, which cannot be stored
 back into ULINT. The representable value 16#FFFFFF0000000000UL can be stored.
 Integer-only math and comparisons retain their exact integer interpretation.
 
-EQU, NEQ, LES, LEQ, GRT, GEQ and LIM require an actual REAL tag for the REAL
-comparison profile, after LREAL priority. Both relation positions and all LIM
-positions accept words. Inclusive, reversed and collapsed limits use converted
-values. Constant-only floating comparisons retain their existing separate scope.
+EQU, NEQ, LES, LEQ, GRT, GEQ and LIM select REAL comparison from an actual REAL
+tag or [unsuffixed floating immediate](real-comparison-literals.md), after LREAL
+priority. Both relation positions and all LIM positions accept words. Inclusive,
+reversed and collapsed limits use converted values; constant-only calls are included.
 Every required input is consumed on reached calls, even under a zero product or
 already decisive bound.
 
