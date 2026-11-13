@@ -60,7 +60,7 @@ leaves the pending INC element available to retry. Completed false-rung cleanup
 clears progress for the CONTROL selected before the cleanup writes POS.
 An expression, budget or later task failure restores progress alongside values,
 timers, first scans and scheduler state. A retry cannot silently skip an element.
-A [REAL FAL overflow](file-arithmetic.md#real-overflow-and-retry) latches ER and
+A [REAL FAL calculation or result-store overflow](file-arithmetic.md#real-overflow-and-retry) latches ER and
 retains a pending retry at the attempted POS. After repair, ER clear and a new
 enable edge, that element is retried before further progress. RES clears pending
 retry; Run entry, routine replacement and transaction rollback preserve it.

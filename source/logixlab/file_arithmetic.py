@@ -9,7 +9,7 @@ INSTRUCTIONS = frozenset(('FAL',))
 
 
 class RealCalculationOverflow(OverflowError):
-    """A reached float32 FAL calculation cannot be represented as finite REAL."""
+    """A reached FAL calculation or completed result cannot fit finite REAL."""
 
 
 def mode(text):
@@ -88,7 +88,13 @@ def execute(engine, op, power, scope):
         # An address can be written repeatedly in one call. Retain its first
         # value, including an unknown value, for recovery of that call.
         writes.setdefault((key, tuple(parts)), memory.at(key, parts))
-        memory.write(op.args[4], value, scope)
+        try:
+            memory.write(op.args[4], value, scope)
+        except OverflowError as error:
+            # A finite binary64 result can overflow only at REAL storage.
+            # Memory coerces before storing, so the failing cell is intact.
+            if dtype != 'REAL':raise
+            raise RealCalculationOverflow from error
         engine._file_arithmetic_retry.discard(control_id)
 
     try:
@@ -152,7 +158,7 @@ def description():
                     excluded='Mixed typed/tag types, floating/typed radix forms, other arguments and native parity',
                     native_runtime_parity=False),
                 cursor='Last computed position retained, including exhaustion; native final-cursor parity unverified',
-                real_overflow='Reached float32 calculation overflow with a REAL destination latches ER at the attempted POS, preserves completed writes and retries that position after repair; RES clears pending retry',
+                real_overflow='Reached float32 calculation or finite binary64-to-REAL store overflow latches ER at the attempted POS, preserves completed writes and retries that position after repair; RES clears pending retry',
                 numeric='Active numeric work continues on false rungs; partial EN stays set',
                 completion='DN set at last element; false completed call clears EN/DN/POS; ER inhibits',
                 writes='Sequential live reads/writes; source/destination array overlap can propagate',

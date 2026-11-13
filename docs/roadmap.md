@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+[FAL binary64-to-REAL result overflow](file-arithmetic.md#binary64-result-narrowing)
+now preserves the failing output and earlier writes as of `26.1112.202711`. Corrected
+inputs retry that position across ALL/numeric/INC, aliases and supported RLL AOIs.
+Binary64 calculation errors and integer range errors retain whole-advance rollback.
+
 [REAL FAL overflow/retry](file-arithmetic.md#real-overflow-and-retry) retains earlier
 writes and latches ER at the attempted position as of `26.1112.195720`. ALL, numeric
 and INC modes preserve retry through rollback and routine replacement; RES clears it.

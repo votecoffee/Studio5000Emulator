@@ -10,7 +10,7 @@ XIC(Transform)FAL(Calc,?,?,INC,Output[Calc.POS],Input[Calc.POS]*Gain+Bias);
 XIC(Search)FSC(Find,?,?,INC,Input[Find.POS]>=Threshold);
 ```
 
-[REAL FAL calculation overflow](file-arithmetic.md#real-overflow-and-retry) retains
+[REAL FAL calculation/result-store overflow](file-arithmetic.md#real-overflow-and-retry) retains
 earlier writes and latches the caller's CONTROL. Retry uses its canonical storage
 address after repair; later faults restore pending retry with bindings and data.
 

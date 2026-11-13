@@ -95,11 +95,11 @@ class FileArithmeticTests(unittest.TestCase):
         self.assertEqual(candidate._file_arithmetic_retry,set());self.assertTrue(e._file_arithmetic_retry)
         self.assertTrue(e.memory.read('Ctl.ER'));self.assertEqual(e.memory.read('Queue[0]'),4)
 
-    def test_unknown_domain_and_binary64_store_failures_keep_whole_advance_rollback(self):
+    def test_unknown_domain_and_binary64_calculation_failures_keep_whole_advance_rollback(self):
         def wide(root):
             tag=E.SubElement(root.find('./Controller/Tags'),'Tag',Name='WideInput',DataType='LREAL',TagType='Base')
-            E.SubElement(E.SubElement(tag,'Data',Format='Decorated'),'DataValue',DataType='LREAL',Value='1e100')
-        for expression,mutate in (('Queue[Ctl.POS]/0.0',None),('WideInput',wide)):
+            E.SubElement(E.SubElement(tag,'Data',Format='Decorated'),'DataValue',DataType='LREAL',Value='1e200')
+        for expression,mutate in (('Queue[Ctl.POS]/0.0',None),('WideInput*WideInput',wide)):
             e=self.overflow(rungs=[f'FAL(Ctl,?,?,ALL,Queue[Ctl.POS],{expression});'],mutate=mutate)
             before=file_state(e)
             with self.assertRaises(ModelError):e.step()
@@ -135,6 +135,122 @@ class FileArithmeticTests(unittest.TestCase):
         self.assertEqual(e._file_arithmetic_retry,{('ctl',())})
         e.memory.write('Queue[1]',3);e.memory.write('Ctl.ER',False);e.step()
         self.assertEqual(e.memory.read('Queue')[:3],[4,6,12]);self.assertEqual(e._file_arithmetic_retry,set())
+
+    def store_overflow(self,mode='ALL',*,rungs=None,mutate=None):
+        def outputs(root):
+            tag=E.SubElement(root.find('./Controller/Tags'),'Tag',Name='Output',DataType='REAL',TagType='Base',Dimensions='5')
+            data=E.SubElement(E.SubElement(tag,'Data',Format='Decorated'),'Array',DataType='REAL',Dimensions='5')
+            for i,value in enumerate((11,22,33,44,999)):E.SubElement(data,'Element',Index=f'[{i}]',Value=str(value))
+            if mutate:mutate(root)
+        text=f'XIC(StartPB)FAL(Ctl,?,?,{mode},Output[Ctl.POS],Queue[Ctl.POS]*2);'
+        return self.checked(rungs or [text],dtype='LREAL',length=3,queue=(2,1e100,6,8,999),mutate=outputs)
+
+    def test_binary64_to_real_store_overflow_retains_source_and_prefix_then_retries(self):
+        e=self.store_overflow();source=e.memory.read('Queue').copy();e.memory.write('StartPB',True);e.step()
+        self.assertEqual(e.memory.read('Output'),[4,22,33,44,999]);self.assertEqual(e.memory.read('Queue'),source)
+        self.assertEqual([e.memory.read('Ctl.'+n) for n in ('EN','DN','ER','POS')],[True,False,True,1])
+        self.assertEqual(e._file_arithmetic_retry,{('ctl',())})
+        e.memory.values['queue'][0]=None;e.memory.write('Queue[1]',3);e.memory.write('Ctl.ER',False);e.step()
+        self.assertEqual(e.memory.read('Output'),[4,6,12,44,999]);self.assertTrue(e.memory.read('Ctl.DN'))
+        self.assertEqual(e._file_arithmetic_retry,set())
+
+    def test_binary64_store_overflow_numeric_false_rung_keeps_incoming_power(self):
+        text='XIC(StartPB)FAL(Ctl,?,?,1,Output[Ctl.POS],Queue[Ctl.POS]*2)OTE(RunLatch);'
+        e=self.store_overflow(rungs=[text]);e.memory.write('StartPB',True);e.step();self.assertTrue(e.memory.read('RunLatch'))
+        e.memory.write('StartPB',False);e.step();self.assertFalse(e.memory.read('RunLatch'))
+        self.assertTrue(e.memory.read('Ctl.ER'));self.assertEqual(e.memory.read('Ctl.POS'),1)
+        e.memory.write('Queue[1]',3);e.memory.write('Ctl.ER',False);e.step()
+        self.assertEqual(e.memory.read('Output'),[4,6,33,44,999]);self.assertFalse(e.memory.read('RunLatch'))
+        e.step();self.assertEqual(e.memory.read('Output'),[4,6,12,44,999]);self.assertTrue(e.memory.read('Ctl.DN'))
+        self.assertFalse(e.memory.read('Ctl.EN'));self.assertEqual(e._file_arithmetic_retry,set())
+
+    def test_binary64_store_overflow_inc_preserves_retry_through_run_and_needs_new_edge(self):
+        e=self.store_overflow('INC');e.memory.write('StartPB',True);e.step()
+        e.memory.write('StartPB',False);e.step();e.memory.write('StartPB',True);e.step()
+        self.assertTrue(e.memory.read('Ctl.ER'));pending=e._file_arithmetic_retry.copy();values=copy.deepcopy(e.memory.values)
+        e._apply_prescan(preview=True);self.assertEqual(e.memory.values,values)
+        e.enter_run();self.assertEqual(e._file_arithmetic_retry,pending)
+        e.memory.write('Queue[1]',3);e.memory.write('Ctl.ER',False);e.step()
+        self.assertEqual(e.memory.read('Output'),[4,22,33,44,999]);self.assertEqual(e._file_arithmetic_retry,pending)
+        e.memory.write('StartPB',False);e.step();e.memory.write('StartPB',True);e.step()
+        self.assertEqual(e.memory.read('Output'),[4,6,33,44,999]);self.assertEqual(e._file_arithmetic_retry,set())
+
+    def test_binary64_store_overflow_inhibits_unknown_source_until_reset(self):
+        text='XIC(RunLatch)RES(Ctl);'
+        fal='XIC(StartPB)FAL(Ctl,?,?,ALL,Output[Ctl.POS],Queue[Ctl.POS]*2);'
+        e=self.store_overflow(rungs=[text,fal]);e.memory.write('StartPB',True);e.step()
+        e.memory.values['queue'][1]=None;e.step();self.assertTrue(e.memory.read('Ctl.ER'))
+        e.memory.write('StartPB',False);e.step();self.assertEqual(e.memory.read('Ctl.POS'),1)
+        e.memory.write('RunLatch',True);e.step()
+        self.assertEqual([e.memory.read('Ctl.'+n) for n in ('EN','DN','ER','POS')],[False,False,False,0])
+        self.assertEqual(e._file_arithmetic_retry,set());self.assertEqual(e.memory.read('Output'),[4,22,33,44,999])
+
+    def test_binary64_store_overflow_rolls_back_on_later_fault_and_restores_pending_retry(self):
+        text='XIC(StartPB)FAL(Ctl,?,?,ALL,Output[Ctl.POS],Queue[Ctl.POS]*2);'
+        e=self.store_overflow(rungs=[text,'DIV(1,SpeedCommand,Outgoing);'])
+        e.memory.write('StartPB',True);e.memory.write('SpeedCommand',0);before=file_state(e)
+        with self.assertRaises(ModelError):e.step()
+        self.assertEqual(file_state(e),before)
+        e.memory.write('SpeedCommand',1);e.step();self.assertTrue(e.memory.read('Ctl.ER'))
+        e.memory.write('Queue[1]',3);e.memory.write('Ctl.ER',False);e.memory.write('SpeedCommand',0);before=file_state(e)
+        with self.assertRaises(ModelError):e.step()
+        self.assertEqual(file_state(e),before);self.assertTrue(e._file_arithmetic_retry)
+        e.memory.write('SpeedCommand',1);e.step();self.assertEqual(e.memory.read('Output'),[4,6,12,44,999])
+
+    def test_binary64_store_retry_uses_control_and_output_aliases(self):
+        def aliases(root):
+            tags=root.find('./Controller/Tags')
+            E.SubElement(tags,'Tag',Name='ControlView',DataType='CONTROL',TagType='Alias',AliasFor='Ctl')
+            E.SubElement(tags,'Tag',Name='OutputView',DataType='REAL',TagType='Alias',AliasFor='Output[1]')
+        text='XIC(StartPB)FAL(ControlView,?,?,ALL,OutputView,Queue[ControlView.POS]*2);'
+        e=self.store_overflow(rungs=[text],mutate=aliases);e.memory.write('StartPB',True);e.step()
+        self.assertEqual(e.memory.read('Output'),[11,4,33,44,999]);self.assertEqual(e._file_arithmetic_retry,{('ctl',())})
+        e.memory.write('Queue[1]',3);e.memory.write('Ctl.ER',False);e.step()
+        self.assertEqual(e.memory.read('Output'),[11,12,33,44,999]);self.assertEqual(e._file_arithmetic_retry,set())
+
+    def test_binary64_store_retry_survives_routine_replacement_independently(self):
+        from logixlab.routine_edits import prepare
+        from logixlab.routine_source import decode
+        from test_routine_source import container,xml_source
+        text='XIC(StartPB)FAL(Ctl,?,?,ALL,Output[Ctl.POS],Queue[Ctl.POS]*2);'
+        e=self.store_overflow();e.memory.write('StartPB',True);e.step()
+        source=decode(container(E.tostring(xml_source(text=text),encoding='utf-8')))
+        candidate,_=prepare(e,source,(text,),'MainProgram',0)
+        candidate.memory.write('Queue[1]',3);candidate.memory.write('Ctl.ER',False);candidate.step()
+        self.assertEqual(candidate.memory.read('Output'),[4,6,12,44,999]);self.assertEqual(candidate._file_arithmetic_retry,set())
+        self.assertEqual(e.memory.read('Output'),[4,22,33,44,999]);self.assertTrue(e._file_arithmetic_retry)
+
+    def test_binary64_to_real_store_overflow_inside_aoi_retries_caller_output(self):
+        def worker(root):
+            c=root.find('Controller')
+            a=E.SubElement(c.find('AddOnInstructionDefinitions'),'AddOnInstructionDefinition',Name='StoreWorker',Class='Standard',ExecutePrescan='false',ExecutePostscan='false',ExecuteEnableInFalse='false')
+            params=E.SubElement(a,'Parameters')
+            for name,dtype,usage,size in [('EnableIn','BOOL','Input',0),('EnableOut','BOOL','Output',0),('Data','LREAL','InOut',5),('Mapped','REAL','InOut',5),('State','CONTROL','InOut',0)]:
+                required='true' if usage=='InOut' else 'false'
+                p=E.SubElement(params,'Parameter',Name=name,DataType=dtype,TagType='Base',Usage=usage,Required=required,Visible=required)
+                if size:p.set('Dimensions',str(size))
+            E.SubElement(a,'LocalTags')
+            content=E.SubElement(E.SubElement(E.SubElement(a,'Routines'),'Routine',Name='Logic',Type='RLL'),'RLLContent')
+            E.SubElement(E.SubElement(content,'Rung',Number='0',Type='N'),'Text').text='FAL(State,?,?,ALL,Mapped[State.POS],Data[State.POS]*2);'
+            obj=E.SubElement(E.SubElement(E.SubElement(c.find('Tags'),'Tag',Name='Worker',DataType='StoreWorker',TagType='Base'),'Data',Format='Decorated'),'Structure',DataType='StoreWorker')
+            for name in ('EnableIn','EnableOut'):E.SubElement(obj,'DataValueMember',Name=name,DataType='BOOL',Value='0')
+        e=self.store_overflow(rungs=['StoreWorker(Worker,Queue,Output,Ctl);'],mutate=worker);e.step()
+        self.assertTrue(e.memory.read('Ctl.ER'));self.assertEqual(e.memory.read('Output'),[4,22,33,44,999])
+        self.assertEqual(e._file_arithmetic_retry,{('ctl',())})
+        e.memory.write('Queue[1]',3);e.memory.write('Ctl.ER',False);e.step()
+        self.assertEqual(e.memory.read('Output'),[4,6,12,44,999]);self.assertEqual(e._file_arithmetic_retry,set())
+
+    def test_binary64_store_overflow_signs_boundaries_and_integer_errors_stay_separate(self):
+        for value in (1e100,-1e100):
+            e=self.store_overflow();e.memory.write('Queue[1]',value);e.memory.write('StartPB',True);e.step()
+            self.assertTrue(e.memory.read('Ctl.ER'));self.assertEqual(e.memory.read('Output'),[4,22,33,44,999])
+            e.memory.write('Queue[1]',1.5e38 if value>0 else -1.5e38);e.memory.write('Ctl.ER',False);e.step()
+            self.assertTrue(e.memory.read('Ctl.DN'));self.assertEqual(e.memory.read('Output[1]')>0,value>0)
+        # An independently valid DINT destination still uses its existing range failure.
+        text='FAL(Ctl,?,?,ALL,SpeedCommand,Queue[Ctl.POS]);'
+        e=self.store_overflow(rungs=[text]);before=file_state(e)
+        with self.assertRaisesRegex(ModelError,'DINT overflow'):e.step()
+        self.assertEqual(file_state(e),before)
 
     def test_all_transforms_each_element_and_retains_guard(self):
         e=self.checked(['FAL(Ctl,?,?,ALL,Queue[Ctl.POS],Queue[Ctl.POS]*2+1);']);e.step()

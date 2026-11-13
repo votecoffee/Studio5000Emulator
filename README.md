@@ -484,7 +484,8 @@ indexed array transforms, scalar accumulation and arithmetic/bitwise expressions
 checked REAL and integer results. [Completed INC source controls](docs/file-incremental.md#initial-state-and-lifecycle)
 can hold their saved results and rearm from element zero after false cleanup.
 [REAL FAL overflow](docs/file-arithmetic.md#real-overflow-and-retry) retains completed
-elements, latches ER and retries the failing position after repair.
+elements, latches ER and retries the failing position after repair, including a
+[finite LREAL result that overflows REAL storage](docs/file-arithmetic.md#binary64-result-narrowing).
 
 [File search](docs/file-search.md) adds FSC ALL/numeric/INC modes, match/inhibit
 state and resumable searches using the existing comparison grammar. **Stats lab**

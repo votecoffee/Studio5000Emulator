@@ -61,11 +61,25 @@ restores pending retry along with the current call's CONTROL and writes.
 It is not reconstructed from native hidden CONTROL bits or saved partial data.
 
 Unknown values, zero divisors, array faults, budget limits, integer overflow
-and the binary64 calculation/store profile retain their existing fault policies.
+and binary64 calculation errors retain their existing fault policies.
 Native arithmetic precision, nonfinite values, exact overflow positions,
 partial result bits and math-status behavior remain unqualified. The source
 basis is installed v35 FAL help 14504 and the
 [Rockwell FAL reference](https://www.rockwellautomation.com/en-ua/docs/studio-5000-logix-designer/38-00/contents-ditamap/instruction-set/array-file-misc-instructions/file-arithmetic_logic-fal.html).
+
+### Binary64 result narrowing
+
+As of `26.1112.202711`, a finite LREAL calculation that overflows when stored into
+a REAL destination also latches ER and leaves the attempted cell unchanged.
+Completed prefix writes remain committed. Repair the source or expression and
+clear ER to retry that position under the same ALL/numeric/INC power rules.
+Aliases, selected output cells and supported RLL AOI bindings use the same policy.
+
+For example, an LREAL array value of 1e100 multiplied by two is a valid binary64
+result, but cannot be stored in REAL. The failing output keeps its prior value;
+replacing the source with 3 and clearing ER permits that output to become 6.
+This does not extend the policy to integer-result overflow, nonfinite binary64
+calculations, domain errors or native arithmetic/status acceptance.
 
 ## Expressions and destinations
 
@@ -116,8 +130,9 @@ profile. Existing integer-only and REAL FAL calculations retain their rules.
 Each iteration resolves its live operands at CONTROL.POS. Later iterations
 can see earlier writes to overlapping arrays. False or held calls that do no
 work skip the expression, while an active numeric call still continues on a
-false rung. Required unknowns, invalid references, range errors and later
-faults roll back that advance, including written cells, CONTROL progress and
+false rung. Finite [REAL result-store overflow](#binary64-result-narrowing) uses
+the ER/retry policy above. Required unknowns, invalid references, other range
+errors and later faults roll back that advance, including written cells, CONTROL progress and
 existing AOI bindings. Prior successful scans stay committed.
 
 In **Stats lab**, enable `Binary64Transform` to write the first three
