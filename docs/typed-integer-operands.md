@@ -81,8 +81,10 @@ literal type and exact decimal values only for these operand positions.
 
 REAL/LREAL or time/date sources/results combined with typed radix remain
 excluded. Existing decimal floating priority is unchanged. [Radix BCD sources](numeric-conversions.md#typed-radix-bcd-sources)
-have a separate ladder profile. Advanced math, expressions/file/ST, AOI call
-arguments and SBR/RET parsing are not extended.
+have a separate ladder profile. [Integer expressions](ladder-wide-expressions.md#typed-radix-expressions),
+[AOI inputs](aoi-constants.md#typed-radix-parameters) and
+[routine parameters](indirect-routine-calls.md#typed-radix-parameters) also have
+separate profiles. Advanced math and general ST expressions remain unextended.
 This is bounded software execution; native import, numerical/status/fault and
 controller lifecycle equivalence remain unverified.
 

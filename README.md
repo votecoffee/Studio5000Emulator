@@ -60,6 +60,10 @@ math forms. In **Integer lab**, enable `RealIntegerEnabled` and step. See
 with REAL or integer results. In **Wide expression lab**, enable
 `Binary64ResultEnabled` and step. See [REAL and integer results](docs/lreal-math-literals.md#real-and-integer-results).
 
+**Typed integer expressions** now accept binary/octal/hexadecimal L/U/UL
+constants in CPT, CMP, FAL and FSC, with exact integer values and existing
+type checks. See [radix expressions](docs/ladder-wide-expressions.md#typed-radix-expressions).
+
 **Typed conversion constants** work in FRD, TOD and TRN. Ladder FRD/TOD also accept
 [binary/octal/hexadecimal L/U/UL sources](docs/numeric-conversions.md#typed-radix-bcd-sources). In **Conversion lab**,
 enable `ImmediateConversions` and step to see a 16-digit BCD round trip and

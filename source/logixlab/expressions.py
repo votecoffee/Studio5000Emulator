@@ -30,7 +30,7 @@ PRECEDENCE = {'OR': 1, 'XOR': 2, 'AND': 3, '+': 4, '-': 4,
 
 
 class Expression:
-    def __init__(self, text, condition=False, structured=False, subscript=False, bcd=False, floating_literals=False, integer_literals=False):
+    def __init__(self, text, condition=False, structured=False, subscript=False, bcd=False, floating_literals=False, integer_literals=False, radix_literals=False):
         if len(text) > 4096: raise ModelError('Expression exceeds 4096 characters')
         self.precedence = dict(PRECEDENCE)
         self.minimum = -3 if condition else 0
@@ -49,6 +49,7 @@ class Expression:
         self.functions = set()
         self.operators = set()
         self.typed_types = set()
+        self.radix_types = set()
         self.literal_types = set()
         pos = 0
         while pos < len(text):
@@ -63,6 +64,13 @@ class Expression:
                 self.tokens.append(('string',bytes(x&255 for x in ascii_bytes(text[start:pos].replace('$I','$L').replace('$i','$L'))).decode('latin-1')))
                 continue
             if structured and text[pos]=='&':self.tokens.append(('AND','AND'));pos+=1;continue
+            if radix_literals and integer_literals and text[pos].isdigit():
+                radix = re.match(r'(?:2|8|16)#[0-9A-Fa-f_ ]+(?:[Uu][Ll]?|[Ll])(?![\w.])', text[pos:])
+                if radix:
+                    from .numeric_storage import typed_literal
+                    dtype, value = typed_literal(radix[0])
+                    self.tokens.append(('typed',(value,dtype)));self.radix_types.add(dtype)
+                    pos += len(radix[0]);continue
             typed=typed_integer(text,pos) if structured or integer_literals else None
             if typed is not None:
                 pos,value=typed;self.tokens.append(('typed',value));continue

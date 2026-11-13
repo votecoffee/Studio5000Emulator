@@ -21,7 +21,7 @@ and range-preserving integer comparisons. Mixed arithmetic must contain the
 common source type in every arithmetic subtree. See the separate
 [ladder expression profile](ladder-wide-expressions.md).
 [Binary64 FAL](file-arithmetic.md#binary64-expressions) provides a separate
-LREAL-selected profile. Other mixed promotions, typed radix, wider integer
+LREAL-selected profile. Other mixed promotions, nonmatching typed radix, wider integer
 power and additional functions remain unqualified.
 
 ## Iteration and state
@@ -110,5 +110,7 @@ arithmetic, scan, fault or Studio compatibility.
 [Decimal L/U/UL constants in FAL/FSC](file-integer-literals.md) now cover
 matching LINT/UDINT/ULINT expressions, with exact arithmetic/comparisons and
 existing ALL/numeric/INC progress, lazy selection and whole-advance rollback.
-Other mixed typed forms, floating/radix/file-argument expansion and native parity
+[Matching typed radix constants](ladder-wide-expressions.md#typed-radix-expressions)
+also preserve the same integer types, ALL/numeric/INC state and rollback.
+Other mixed typed forms, floating/radix mixtures, file-argument expansion and native parity
 remain separate.

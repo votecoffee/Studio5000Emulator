@@ -115,7 +115,7 @@ class LadderIntegerLiteralTests(unittest.TestCase):
 
     def test_malformed_radix_and_other_typed_forms_remain_blocked(self):
         for text in ['1LU', '1ULL', '1ULgarbage', '1L2', '1 U', '1_000L',
-                     '16#FFU', '2#11UL', '8#77L', 'LINT#1', '1.0UL', '1e3U']:
+                     '16#FFU', '2#11UL', '8#8L', 'LINT#1', '1.0UL', '1e3U']:
             self.assertTrue(self.engine(['AFI()CPT(Dest,' + text + ');']).blockers, text)
 
     def test_matching_type_boundary_rejects_narrow_mixed_and_floating_combinations(self):

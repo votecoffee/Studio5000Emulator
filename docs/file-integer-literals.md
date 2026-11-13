@@ -48,7 +48,9 @@ Explicit parser/cache options isolate FAL/FSC integer literals from generic and
 array-index parsing. Direct CPT/CMP and ST retain their own profiles. This does
 not add typed literals to mode, length, position or other instruction arguments.
 
-Mixed typed/tag integers, narrowing, floating/LREAL forms, typed radix forms,
+[Typed radix constants](ladder-wide-expressions.md#typed-radix-expressions)
+now share the integer file grammar and existing progress/rollback rules.
+Nonmatching typed/tag combinations, narrowing, floating/radix mixtures, decimal
 separators and additional functions remain blocked. Existing mixed-tag FSC
 conditions remain a separate profile. Saved active INC state, native CONTROL
 layout, final cursor/math/status/fault/partial-effect behavior and Studio/controller

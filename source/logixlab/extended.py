@@ -20,9 +20,9 @@ class Extensions:
         self.expressions={}
         self.conditions={}
 
-    def condition(self,text,*,allow_wide=False,bcd=False,lreal=False,integer_literals=False):
-        key=(text,allow_wide,bcd,lreal,integer_literals)
-        if key not in self.conditions:self.conditions[key]=Condition(text,allow_wide=allow_wide,bcd=bcd,lreal=lreal,integer_literals=integer_literals)
+    def condition(self,text,*,allow_wide=False,bcd=False,lreal=False,integer_literals=False,radix_literals=False):
+        key=(text,allow_wide,bcd,lreal,integer_literals,radix_literals)
+        if key not in self.conditions:self.conditions[key]=Condition(text,allow_wide=allow_wide,bcd=bcd,lreal=lreal,integer_literals=integer_literals,radix_literals=radix_literals)
         return self.conditions[key]
 
     def wide_mask_profile(self,args,scope):
@@ -85,14 +85,14 @@ class Extensions:
         except ModelError:return False
         finally:self.memory.structural=previous
 
-    def expression(self,text,*,bcd=False,floating_literals=False,integer_literals=False):
-        key=(text,bcd,floating_literals,integer_literals)
-        if key not in self.expressions:self.expressions[key]=Expression(text,bcd=bcd,floating_literals=floating_literals,integer_literals=integer_literals)
+    def expression(self,text,*,bcd=False,floating_literals=False,integer_literals=False,radix_literals=False):
+        key=(text,bcd,floating_literals,integer_literals,radix_literals)
+        if key not in self.expressions:self.expressions[key]=Expression(text,bcd=bcd,floating_literals=floating_literals,integer_literals=integer_literals,radix_literals=radix_literals)
         return self.expressions[key]
 
     def compute(self,args,scope,execute=False):
         dtype=self.numeric_destination(args[0],scope,wide=True)
-        expression=self.expression(args[1],bcd=True,floating_literals=True,integer_literals=True)
+        expression=self.expression(args[1],bcd=True,floating_literals=True,integer_literals=True,radix_literals=True)
         floating=lreal_expressions.analyze(expression,self.memory,scope,dtype,consumer='CPT')
         if floating is not None:
             if execute:return lreal_expressions.evaluate(expression,self.memory,scope,floating)
@@ -159,7 +159,7 @@ class Extensions:
         previous=self.memory.structural
         self.memory.structural=True
         try:
-            expression=self.expression(op.args[1],bcd=True,floating_literals=True,integer_literals=True) if op.name=='CPT' else self.condition(op.args[0],allow_wide=True,bcd=True,lreal=True)
+            expression=self.expression(op.args[1],bcd=True,floating_literals=True,integer_literals=True,radix_literals=True) if op.name=='CPT' else self.condition(op.args[0],allow_wide=True,bcd=True,lreal=True,radix_literals=True)
             for ref in expression.refs:
                 dtype=self.memory.resolve(ref,scope)[2]
                 if dtype not in {*INT_BITS,'REAL','LREAL','BOOL'}:return False
@@ -186,7 +186,7 @@ class Extensions:
                 for ref in a:
                     if string_operations.string_literal(ref) is None:text(ref)
             elif n=='CMP':
-                condition=self.condition(a[0],allow_wide=True,bcd=True,lreal=True)
+                condition=self.condition(a[0],allow_wide=True,bcd=True,lreal=True,radix_literals=True)
                 strings=[ref for ref in condition.refs if self.is_string(ref,scope)]
                 if not strings:return False
                 for ref in condition.refs:
@@ -223,7 +223,7 @@ class Extensions:
         if n not in EXTENDED:return False
         if self.calculation_preflight(op,scope):return True
         if n in ('SIZE','TRN') and size_truncate.handle(self.engine,op,scope):return True
-        if n=='CMP':self.condition(a[0],allow_wide=True,bcd=True,lreal=True).validate(self.memory,scope)
+        if n=='CMP':self.condition(a[0],allow_wide=True,bcd=True,lreal=True,radix_literals=True).validate(self.memory,scope)
         elif n=='MEQ':
             dtype=self.wide_mask_profile(a,scope)
             for arg in a:self.masked(arg,scope,dtype)
@@ -279,7 +279,7 @@ class Extensions:
         if n not in EXTENDED:return None
         if not power:return power
         if n in ('SIZE','TRN') and size_truncate.handle(self.engine,op,scope,execute=True):return power
-        if n=='CMP':return self.condition(a[0],allow_wide=True,bcd=True,lreal=True).evaluate(self.memory,scope)
+        if n=='CMP':return self.condition(a[0],allow_wide=True,bcd=True,lreal=True,radix_literals=True).evaluate(self.memory,scope)
         if n=='MEQ':
             dtype=self.wide_mask_profile(a,scope)
             source,mask,compare=(self.masked(x,scope,dtype) for x in a)

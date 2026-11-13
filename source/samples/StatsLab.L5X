@@ -691,10 +691,10 @@
           </Routine>
           <Routine Name="WideFileOperations" Type="RLL">
             <RLLContent>
-              <Rung Number="0" Type="N"><Text>XIC(WideFiles)FAL(WideMapControl,?,?,ALL,WideMapped[WideMapControl.POS],WideInput[WideMapControl.POS]*WideFactor+WideFileDelta+0L);</Text></Rung>
-              <Rung Number="1" Type="N"><Text>XIC(WideFiles)FAL(UnsignedMapControl,?,?,ALL,UnsignedMapped[UnsignedMapControl.POS],UnsignedInput[UnsignedMapControl.POS] XOR 1);</Text></Rung>
-              <Rung Number="2" Type="N"><Text>XIC(WideFiles)FSC(WideFindControl,?,?,ALL,WideInput[WideFindControl.POS]&gt;=WideThreshold);</Text></Rung>
-              <Rung Number="3" Type="N"><Text>XIC(WideFiles)FSC(UnsignedFindControl,?,?,ALL,UnsignedInput[UnsignedFindControl.POS]&lt;UnsignedThreshold);</Text></Rung>
+              <Rung Number="0" Type="N"><Text>XIC(WideFiles)FAL(WideMapControl,?,?,ALL,WideMapped[WideMapControl.POS],WideInput[WideMapControl.POS]*WideFactor+WideFileDelta+16#0L);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(WideFiles)FAL(UnsignedMapControl,?,?,ALL,UnsignedMapped[UnsignedMapControl.POS],UnsignedInput[UnsignedMapControl.POS] XOR 2#1UL);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(WideFiles)FSC(WideFindControl,?,?,ALL,WideInput[WideFindControl.POS]&gt;=WideThreshold+8#0L);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(WideFiles)FSC(UnsignedFindControl,?,?,ALL,UnsignedInput[UnsignedFindControl.POS]&lt;UnsignedThreshold+16#0UL);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

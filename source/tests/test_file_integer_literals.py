@@ -121,7 +121,7 @@ class FileIntegerLiteralTests(unittest.TestCase):
     def test_narrow_mixed_floating_radix_and_other_arguments_remain_guarded(self):
         for dtype, text in [('LINT', '1U'), ('ULINT', '1L'), ('DINT', '1L'), ('REAL', '1L'),
                             ('LINT', '1L+1U'), ('LINT', '1L+0.5'), ('LINT', '1e999L'),
-                            ('LINT', '16#FFL'), ('LINT', '1_000L'), ('LINT', 'SQR(1L)')]:
+                            ('LINT', '16#FF_L'), ('LINT', '1_000L'), ('LINT', 'SQR(1L)')]:
             self.assertTrue(self.engine(['AFI()FAL(Ctl,?,?,ALL,Queue[Ctl.POS],' + text + ');'], dtype=dtype).blockers)
         for mode in ['1L', '1U', '1UL']:
             self.assertTrue(self.engine(['FAL(Ctl,?,?,' + mode + ',Queue[Ctl.POS],1L);']).blockers)

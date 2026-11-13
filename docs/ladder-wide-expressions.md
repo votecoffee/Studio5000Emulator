@@ -154,7 +154,7 @@ a false rung. Every intermediate and final result must fit.
 
 All existing operators, eager Boolean comparisons, file modes/cursors, exact
 AOI bindings, instruction budgets and whole-advance rollback remain. Other
-typed mixtures/radix forms, implicit promotion, independent lower-width
+typed mixtures, nonmatching radix forms, implicit promotion, independent lower-width
 intermediates and new ST/index forms remain excluded. LREAL selectors retain
 their separate binary64 profile. Native type promotion, math status, partial
 effects and lifecycle equivalence remain unqualified.
@@ -166,6 +166,43 @@ and [file constants](file-integer-literals.md). The source baseline is installed
 v35 Immediate values14454, CPT14597, CMP14592 and FAL/FSC14504/14515;
 [Rockwell literal suffixes](https://www.rockwellautomation.com/en-pl/docs/studio-5000-logix-designer/38-01/contents-ditamap/instruction-set/structured-text-attributes/character-string-literals.html)
 provide additional syntax context. The bounded rules above define this software model.
+
+## Typed radix expressions
+
+App `26.1113.065404` accepts attached binary/octal/hexadecimal L/l, U/u and
+UL/ul/Ul/uL constants in the qualified integer CPT/CMP/FAL/FSC profiles.
+LINT/ULINT use 64-bit patterns, UDINT uses 32, and short patterns zero-fill.
+The signed LINT top bit is interpreted before arithmetic; a full all-ones L
+is -1, while a shorter `16#FFFFFFFFL` is positive 4294967295. Expression unary
+signs apply to that value. Invalid digits, widths and suffix groups block even
+false instructions; every intermediate retains the existing range checks.
+
+```text
+CPT(Unsigned,16#FFFFFFFFFFFFFFFFUL/2#11UL);
+CMP(16#0020000000000000L<16#0020000000000001L)OTE(Exact);
+FAL(Calc,?,?,ALL,Output[Calc.POS],Input[Calc.POS]+16#0020000000000001L);
+FSC(Find,?,?,INC,Input[Find.POS]>=8#37777777777U);
+```
+
+The literal type must match the selected integer type. Mixed source tags retain
+the common-actual-tag and arithmetic-subtree rules above; constants cannot
+promote tags or replace a required common-type source. REAL/LREAL mixtures,
+wide BCD/root/power functions, general ST expressions and array-index arithmetic
+remain outside this grammar extension. Default parser instances and general
+memory literal reads are unchanged. This profile is integer-only, including
+when another operand or the destination could otherwise select binary64.
+
+False/prescan paths skip live values/indices, reached expressions consume all
+required sources and Boolean sides, and complete writes establish unknown cells.
+File ALL/numeric/INC state, eager FSC tests, AOI bindings and whole-advance
+rollback retain their existing contracts. Native import, numerical/status/fault
+and lifecycle parity remain unverified.
+
+In **Wide expression lab**, enable ILitEnabled. IntegerConstants now uses all
+three bases while retaining its exact results, selected guard, overflow gate
+and late-divisor retry. In **Stats lab**, enable WideFiles for radix constants
+in the existing mixed LINT transform, unsigned XOR and two searches. Their
+previous results and dormant gates are unchanged.
 
 ## Scans and faults
 

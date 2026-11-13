@@ -58,7 +58,7 @@ def validate(engine, op, scope):
         raise ModelError('FAL LEN/POS use neutral-text ?,? and saved CONTROL values')
     controls.control(memory, op.args[0], scope)
     count = mode(op.args[3])
-    expression = engine.extensions.expression(op.args[5], bcd=True, floating_literals=True, integer_literals=True)
+    expression = engine.extensions.expression(op.args[5], bcd=True, floating_literals=True, integer_literals=True, radix_literals=True)
     if count=='INC':incremental.validate(engine,op,scope)
     previous = memory.structural
     try:
@@ -157,13 +157,13 @@ def description():
                     selection='Highest-ranked actual source tag type covers all source ranges; destination matches; each arithmetic subtree contains that common type',
                     modes=['ALL','positive DINT immediate','INC'],
                     operators=['+','-','*','/','MOD','unary +','unary -','ABS'],
-                    constants='Signed DINT values representable in the common source type or matching decimal L/U/UL constants; no constant-driven promotion',
+                    constants='Signed DINT values representable in the common source type or matching decimal/radix L/U/UL constants; no constant-driven promotion',
                     execution='Exact checked intermediates with existing progress, lazy references, AOI bindings and whole-advance rollback',
                     native_runtime_parity=False), expressions='Existing bounded CPT grammar including qualified narrow FRD/TOD, destination-indexed per iteration',
-                typed_integer_literals=dict(types=['LINT','UDINT','ULINT'],suffixes=['L/l','U/u','UL/ul/Ul/uL'],
+                typed_integer_literals=dict(types=['LINT','UDINT','ULINT'],suffixes=['L/l','U/u','UL/ul/Ul/uL'],radix_bases=[2,8,16],
                     range='One matching numeric type or qualified mixed tags with literal type matching the common actual source type; check range with its unary sign before execution',
                     precision='Exact integers at declared width; every numeric intermediate must fit',
-                    excluded='Nonmatching typed constants, floating/typed radix forms, other arguments and native parity',
+                    excluded='Nonmatching typed constants, floating/radix mixtures, other arguments and native parity',
                     native_runtime_parity=False),
                 cursor='Last computed position retained, including exhaustion; native final-cursor parity unverified',
                 real_overflow='Reached float32 calculation or finite binary64-to-REAL store overflow latches ER at the attempted POS, preserves completed writes and retries that position after repair; RES clears pending retry',

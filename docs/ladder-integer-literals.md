@@ -43,8 +43,10 @@ literal support. Generic and array-index consumers retain their restrictions. ST
 separate [integer constant profile](st-integer-literals.md). Other instruction
 arguments do not acquire suffix support through this change.
 
-Typed radix forms, separators, alternate typed spellings, mixed typed/tag
-integers and nonmatching destinations remain blocked in the exact integer profile.
+[Typed radix expressions](ladder-wide-expressions.md#typed-radix-expressions)
+now add binary/octal/hexadecimal L/U/UL values with declared-width signs and
+existing exact integer checks. Decimal separators, alternate typed spellings,
+nonmatching typed/tag combinations and nonmatching destinations remain blocked.
 An LREAL selector uses the separate [binary64 constant profile](lreal-integer-literals.md);
 it can mix numeric types and convert final results under its existing rules.
 For example, 1L is LINT, while 1.0L is a distinct

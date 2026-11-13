@@ -25,7 +25,7 @@ def validate(engine, op, scope):
         raise ModelError('FSC LEN/POS use neutral-text ?,? and saved CONTROL values')
     controls.control(memory, op.args[0], scope)
     count = mode(op.args[3])
-    expression = engine.extensions.condition(op.args[4], allow_wide=True, bcd=True, lreal=True, integer_literals=True)
+    expression = engine.extensions.condition(op.args[4], allow_wide=True, bcd=True, lreal=True, integer_literals=True, radix_literals=True)
     if count=='INC':incremental.validate(engine,op,scope)
     # Type-check dynamic subscripts at a structural position, without consuming
     # unknown data or rejecting a saved final cursor before execution begins.
@@ -95,10 +95,10 @@ def description():
                     native_runtime_parity=False),
                 found='FD/IN set and POS identifies matching element; clear IN to resume after it',
                 array_recovery='Type 4 Code 20 restores CONTROL from before the current whole-project call',
-                typed_integer_literals=dict(types=['LINT','UDINT','ULINT'],suffixes=['L/l','U/u','UL/ul/Ul/uL'],
+                typed_integer_literals=dict(types=['LINT','UDINT','ULINT'],suffixes=['L/l','U/u','UL/ul/Ul/uL'],radix_bases=[2,8,16],
                     range='One matching numeric type or qualified mixed tags with literal type matching the common actual source type; check range with its unary sign before execution',
                     precision='Exact integers at declared width; every numeric intermediate must fit',
-                    excluded='Nonmatching typed constants, floating/typed radix forms, other arguments and native parity',
+                    excluded='Nonmatching typed constants, floating/radix mixtures, other arguments and native parity',
                     native_runtime_parity=False),
                 cursor='Last compared position retained, including exhaustion; native final-cursor parity unverified',
                 numeric='Active numeric searches continue on false rungs; partial EN stays set',
@@ -107,5 +107,5 @@ def description():
                 aoi='RLL exact-type/dimension InOut and represented local operands; frame-scoped indices and canonical per-CONTROL progress',
                 native_fault_classification=False, native_cursor_parity=False,
                 incremental=incremental.description(),
-                remaining=['Saved active INC controls and native internal edge state', 'Typed radix, numeric bitwise/BCD within binary64 and additional expression types/functions',
+                remaining=['Saved active INC controls and native internal edge state', 'Typed radix and numeric bitwise/BCD within binary64; additional expression types/functions',
                            'Broader AOI lifecycle/schema and native faults/status/invalid-state parity'])

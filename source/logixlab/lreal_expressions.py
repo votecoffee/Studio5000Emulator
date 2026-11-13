@@ -32,6 +32,8 @@ def analyze(expression, memory, scope='', destination_type=None, *, consumer='CP
     declared = {ref: memory.resolve(ref, scope)[2] for ref in expression.refs}
     if destination_type != 'LREAL' and 'LREAL' not in declared.values() and 'LREAL' not in expression.literal_types:
         return None
+    if getattr(expression,'radix_types',()):
+        raise ModelError('Typed radix expressions require an integer-only profile')
     if not available(memory.project):
         raise ModelError('LREAL expressions require the v35 ControlLogix 5580 profile')
     if consumer != 'CMP' and destination_type not in NUMERIC:

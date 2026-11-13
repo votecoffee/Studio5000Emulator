@@ -1047,14 +1047,14 @@
           </Routine>
           <Routine Name="IntegerConstants" Type="RLL">
             <RLLContent>
-              <Rung Number="0" Type="N"><Text>XIC(ILitEnabled)CPT(ILitSigned,-9223372036854775808L+ILitOffset);</Text></Rung>
-              <Rung Number="1" Type="N"><Text>XIC(ILitEnabled)CPT(ILitUnsigned,18446744073709551615UL);</Text></Rung>
-              <Rung Number="2" Type="N"><Text>XIC(ILitEnabled)CPT(ILitDword,4294967295u);</Text></Rung>
-              <Rung Number="3" Type="N"><Text>XIC(ILitEnabled)CPT(ILitNot,NOT 0uL);</Text></Rung>
-              <Rung Number="4" Type="N"><Text>XIC(ILitEnabled)CPT(ILitQuotient,18446744073709551615UL/3UL);</Text></Rung>
-              <Rung Number="5" Type="N"><Text>XIC(ILitEnabled)CMP(9007199254740992L&lt;9007199254740993L)OTE(ILitExact);</Text></Rung>
-              <Rung Number="6" Type="N"><Text>XIC(ILitEnabled)CPT(ILitSelected[ILitIndex],ILitInputs[ILitIndex]+9007199254740993L);</Text></Rung>
-              <Rung Number="7" Type="N"><Text>XIC(ILitEnabled)XIC(ILitOverflow)CPT(ILitSigned,9223372036854775807L+1L);</Text></Rung>
+              <Rung Number="0" Type="N"><Text>XIC(ILitEnabled)CPT(ILitSigned,16#8000000000000000L+ILitOffset);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(ILitEnabled)CPT(ILitUnsigned,16#FFFFFFFFFFFFFFFFUL);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(ILitEnabled)CPT(ILitDword,8#37777777777u);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(ILitEnabled)CPT(ILitNot,NOT 2#0uL);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(ILitEnabled)CPT(ILitQuotient,16#FFFFFFFFFFFFFFFFUL/2#11UL);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(ILitEnabled)CMP(16#0020000000000000L&lt;16#0020000000000001L)OTE(ILitExact);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(ILitEnabled)CPT(ILitSelected[ILitIndex],ILitInputs[ILitIndex]+16#0020000000000001L);</Text></Rung>
+              <Rung Number="7" Type="N"><Text>XIC(ILitEnabled)XIC(ILitOverflow)CPT(ILitSigned,16#7FFFFFFFFFFFFFFFL+2#1L);</Text></Rung>
               <Rung Number="8" Type="N"><Text>XIC(ILitEnabled)DIV(1,ILitLateDivisor,ILitLateResult);</Text></Rung>
             </RLLContent>
           </Routine>
