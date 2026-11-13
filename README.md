@@ -464,6 +464,10 @@ skips out-of-bounds timer and counter selections and continues initialization.
 lengths and indices until reached. **Byte copy lab** includes an indexed ladder
 byte round trip with unknown inputs and outputs, alongside its ST examples.
 
+[Radix constants in LREAL expressions](docs/lreal-integer-literals.md#radix-constants)
+add binary, octal and hexadecimal DINT/LINT/UDINT/ULINT words to CPT/CMP/FAL/FSC
+under the existing declared-range and binary64 conversion rules.
+
 [Mixed integer roots and powers](docs/ladder-wide-expressions.md#mixed-integer-roots-and-powers)
 also allow compatible tag widths, such as a LINT base with a DINT exponent,
 while retaining full-range type checks and exact integer calculations.

@@ -88,7 +88,7 @@ class LrealIntegerLiteralTests(unittest.TestCase):
                 self.assertTrue(self.engine([rung]).blockers, rung)
 
     def test_malformed_typed_radix_and_untyped_range_guards_remain(self):
-        for text in ['1LU', '1ULU', '1L2', '1 UL', '16#FFUL', '1_000L',
+        for text in ['1LU', '1ULU', '1L2', '1 UL', '16#10000000000000000UL', '1_000L',
                      'LINT#1', '1.0UL', '2147483648', '-2147483649']:
             self.assertTrue(self.engine(['AFI()CPT(Results[1],' + text + '+0.0L);']).blockers, text)
 

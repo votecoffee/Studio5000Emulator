@@ -30,8 +30,9 @@ negative DINT literal is supported. [Floating constants](lreal-literals.md)
 without a suffix use finite REAL precision before promotion; a floating L/l
 suffix retains binary64. Explicit LREAL literals can select this profile.
 Decimal [L/U/UL integer constants](lreal-integer-literals.md) check their declared
-range before binary64 conversion. Typed radix forms, separators, numeric bitwise
-operators, FRD/TOD and newer mnemonic aliases remain separate forms.
+range before binary64 conversion. [Radix words](lreal-integer-literals.md#radix-constants)
+use the same conversion after declared-width decoding. Other separators, numeric
+bitwise operators, FRD/TOD and newer mnemonic aliases remain separate forms.
 
 Stored REAL tags retain their float32 precision before conversion to binary64.
 Integer tags convert directly to binary64, so values beyond its exact integer

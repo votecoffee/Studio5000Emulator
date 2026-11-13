@@ -448,3 +448,7 @@ ST/index expansion and native arithmetic/status parity remain excluded.
 qualify compatible common-range tags in CPT/CMP/FAL/FSC, including LINT bases
 with DINT exponents. Full source ranges, common-type arithmetic subtrees and
 checked exponent/result bounds remain required; native parity is unverified.
+
+[LREAL radix constants](lreal-integer-literals.md#radix-constants) qualify existing
+binary/octal/hex DINT and typed L/U/UL words in CPT/CMP/FAL/FSC. Declared ranges
+precede binary64 conversion; default/ST/index parsing and native parity remain separate.

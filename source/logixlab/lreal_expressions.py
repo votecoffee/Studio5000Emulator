@@ -32,8 +32,6 @@ def analyze(expression, memory, scope='', destination_type=None, *, consumer='CP
     declared = {ref: memory.resolve(ref, scope)[2] for ref in expression.refs}
     if destination_type != 'LREAL' and 'LREAL' not in declared.values() and 'LREAL' not in expression.literal_types:
         return None
-    if getattr(expression,'radix_types',()):
-        raise ModelError('Typed radix expressions require an integer-only profile')
     if not available(memory.project):
         raise ModelError('LREAL expressions require the v35 ControlLogix 5580 profile')
     if consumer != 'CMP' and destination_type not in NUMERIC:
@@ -160,11 +158,16 @@ def description(project):
                 consumers=['CPT', 'CMP', 'FAL', 'FSC'], types=sorted(NUMERIC), destination='CPT/FAL numeric scalar', destination_types=sorted(NUMERIC),
                 destination_conversion='Convert once after finite binary64 evaluation; nearest-even integer results must fit; REAL rounds to finite binary32',
                 selection='Any LREAL tag/literal or CPT/FAL LREAL destination selects binary64 for every numeric node',
-                constants='Bounded DINT integers; decimal L/U/UL constants checked at declared width then converted to binary64; unsuffixed floating literals round to finite REAL before promotion; floating L/l suffix retains finite binary64',
-                typed_integer_literals=dict(types=['LINT','UDINT','ULINT'],suffixes=['L/l','U/u','UL/ul/Ul/uL'],
+                constants='Bounded DINT integers; decimal/radix L/U/UL constants checked at declared width then converted to binary64; unsuffixed floating literals round to finite REAL before promotion; floating L/l suffix retains finite binary64',
+                typed_integer_literals=dict(types=['LINT','UDINT','ULINT'],suffixes=['L/l','U/u','UL/ul/Ul/uL'],radix_bases=[2,8,16],
                     range='Check declared integer range with its immediate unary sign before binary64 conversion',
                     selection='Requires an LREAL tag/literal or CPT/FAL LREAL destination; suffix alone retains the integer profile',
                     precision='Same binary64 conversion as integer tags; integers beyond 53 significant bits may round',
+                    native_runtime_parity=False),
+                radix_literals=dict(bases=[2,8,16],types=['DINT','LINT','UDINT','ULINT'],
+                    interpretation='Zero-fill declared 32/64-bit words, decode signed DINT/LINT, apply immediate unary/range checks, then convert to binary64',
+                    selection='Existing LREAL tag/literal or CPT/FAL LREAL destination; integer suffix alone does not select binary64',
+                    precision='Same conversion as decimal integer literals/tags, including rounding beyond 53 significant bits',
                     native_runtime_parity=False),
                 operators=sorted(ARITHMETIC), functions=sorted(MATH), exponent_limit=1024,
                 arithmetic='Finite binary64 intermediates; REAL tags retain their stored float32 precision; integer tags convert to binary64',
@@ -172,6 +175,6 @@ def description(project):
                 references='Existing structural/lazy scalar, alias, member, array and AOI bindings; full unknown destination writes',
                 failures='Required unknowns, bounds, nonfinite/domain/zero/late faults roll back the modeled advance',
                 native_runtime_parity=False, native_math_status=False,
-                remaining=['Typed radix/separators and other typed forms; FRD/TOD and numeric bitwise forms',
+                remaining=['Other separators/typed forms; FRD/TOD and numeric bitwise forms',
                            'ST/FBD/SFC consumers and other controller profiles',
                            'Native numerical, status, fault, packed-layout and lifecycle parity'])

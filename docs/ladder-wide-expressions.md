@@ -288,8 +288,9 @@ source is consumed; unknown values, bounds, overflow and later faults roll back
 the modeled advance. False/prescan paths skip live values and dynamic indices,
 while malformed words, permissions and static type errors remain blockers.
 
-A word that decodes negative selects an integer-only profile; REAL/LREAL mixes
-are blocked. Default literal parsing, ST, array-index syntax and other instruction
+A word that decodes negative keeps the integer profile by default. An explicit
+[LREAL selector](lreal-integer-literals.md#radix-constants) now permits binary64
+promotion; REAL-only mixes remain blocked. Default literal parsing, ST, array-index syntax and other instruction
 consumers retain their separate contracts. This does not establish native
 promotion, status, overflow or partial-effect parity.
 
