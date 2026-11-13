@@ -157,7 +157,7 @@ def specification(memory, op, scope):
             source = time_values.operand_type(memory, ref, scope, include_lint=dtype in time_values.TYPES)
             if dtype in time_values.TYPES or source in time_values.TYPES:
                 if not time_values.move_allowed(source, dtype):
-                    raise ModelError('Time/date MOV requires one time family or the LINT/LDT bridge')
+                    raise ModelError('Time/date MOV requires one time family or a LINT/timestamp bridge')
                 return source
         return source_type(memory, op.args[0], scope)
     finally:
@@ -209,8 +209,8 @@ def description(project):
                 instructions=sorted(INSTRUCTIONS), types=sorted(TYPES),
                 operands='One numeric scalar element; bounded DINT/finite REAL or typed L/U/UL integer and floating L/l MOV immediates; aliases and existing AOI bindings',
                 time_date=dict(types=sorted(time_values.TYPES), instructions=['MOV', 'CLR'],
-                    operands='Same-family scalar tags or typed literals, plus LINT/LDT tag bridge; CLR writes zero ticks',
-                    conversion='Exact tick scaling; reject fractional destination ticks or out-of-range results; LINT/LDT copies nanosecond ticks',
+                    operands='Same-family scalar tags or typed literals, plus raw LINT/DT and LINT/LDT timestamp bridges; CLR writes zero ticks',
+                    conversion='Exact same-family tick scaling; reject fractional destination ticks or out-of-range results; LINT/DT copies raw microseconds and LINT/LDT copies raw nanoseconds',
                     representation='Exact decimal ticks in the declared microsecond or nanosecond unit',
                     native_runtime_parity=False),
                 typed_mov_literals=dict(integer_types=['LINT','UDINT','ULINT'],floating_type='LREAL',

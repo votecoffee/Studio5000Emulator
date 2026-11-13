@@ -16,6 +16,14 @@
     <Modules />
     <AddOnInstructionDefinitions />
     <Tags>
+      <Tag Name="MicrosecondBridge" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="MicrosecondIndex" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="MicrosecondTicks" DataType="LINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="LINT" Value="1767225600000001" /></Data></Tag>
+      <Tag Name="MicrosecondReadback" DataType="LINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="LINT" Value="-1" /></Data></Tag>
+      <Tag Name="LiteralMicrosecondTicks" DataType="LINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="LINT" Value="-1" /></Data></Tag>
+      <Tag Name="MicrosecondDivisor" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="MicrosecondGuard" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="MicrosecondStamps" DataType="DT" Dimensions="3" TagType="Base"><Data Format="Decorated"><Array DataType="DT" Dimensions="3"><Element Index="[0]" Value="101" /><Element Index="[2]" Value="999" /></Array></Data></Tag>
       <Tag Name="ClipRecordSources" TagType="Base" DataType="ZeroFillCell" Dimensions="3" Constant="false" ExternalAccess="Read/Write">
         <Data Format="Decorated"><Array DataType="ZeroFillCell" Dimensions="3">
             <Element Index="[0]"><Structure DataType="ZeroFillCell"><DataValueMember Name="Count" DataType="DINT" Value="10" /></Structure></Element>
@@ -658,6 +666,7 @@
                 <Text>LBL(Finish)XIC(EarlyReturn)TND();</Text>
               </Rung>
               <Rung Number="40" Type="N"><Text>XIC(TimeDateDemo)JSR(TimeAndDate,0);</Text></Rung>
+              <Rung Number="41" Type="N"><Text>XIC(MicrosecondBridge)JSR(MicrosecondTimestamps,0);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="ClippedFill" Type="RLL">
@@ -671,6 +680,14 @@
               <Rung Number="0" Type="N"><Text>XIC(ClipRecordFill)FLL(0,ClipRecordSources[ClipRecordIndex],ClipRecordLength);</Text></Rung>
               <Rung Number="1" Type="N"><Text>XIC(ClipRecordCopy)COP(ClipRecordSources[ClipRecordIndex],ClipRecordCopies[1],ClipRecordLength);</Text></Rung>
               <Rung Number="2" Type="N"><Text>XIC(ClipRecordCopy)CPS(ClipRecordSources[ClipRecordIndex],ClipRecordSync[1],ClipRecordLength);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="MicrosecondTimestamps" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>MOV(MicrosecondTicks,MicrosecondStamps[MicrosecondIndex]);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>MOV(MicrosecondStamps[MicrosecondIndex],MicrosecondReadback);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>MOV(DT#2026-01-01-00:00:00.000_001,LiteralMicrosecondTicks);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>DIV(1,MicrosecondDivisor,MicrosecondGuard);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="TimeAndDate" Type="RLL">

@@ -120,7 +120,8 @@ def same_family(source, dest):
 
 
 def move_allowed(source, dest):
-    return same_family(source, dest) or (source, dest) in (('LINT', 'LDT'), ('LDT', 'LINT'))
+    return (same_family(source, dest) or source == 'LINT' and dest in DATE_TYPES
+            or dest == 'LINT' and source in DATE_TYPES)
 
 
 def ns_per_tick(dtype):
@@ -135,6 +136,10 @@ def exact_ticks(nanoseconds, dest, operation):
 
 
 def convert_move(value, source, dest):
+    # Legacy timestamp bridges retain raw ticks in the selected date precision.
+    # LINT has no unit metadata: DT microseconds must not be scaled as LDT ns.
+    if source == 'LINT' and dest in DATE_TYPES or dest == 'LINT' and source in DATE_TYPES:
+        return value
     return exact_ticks(value * ns_per_tick(source), dest, f'{source} to {dest} MOV')
 
 

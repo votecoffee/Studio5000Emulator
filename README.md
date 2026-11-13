@@ -33,9 +33,10 @@ query through the existing MAC-matched DHCP and pinned SSH fallback. Startup
 keeps its bounded retry window and version checks; see
 [appliance startup](docs/vmware-appliance.md).
 
-**Ladder time and date tags** support exact ADD/SUB, moves, comparisons and a
-raw LINT/LDT nanosecond bridge. In **Data Lab**, enable `TimeDateDemo` and step
-to see signed duration arithmetic and a one-nanosecond timestamp difference.
+**Ladder time and date tags** support exact ADD/SUB, moves, comparisons and raw
+LINT timestamp bridges for DT microseconds and LDT nanoseconds. In **Data Lab**,
+enable `TimeDateDemo` for duration arithmetic, or set `MicrosecondIndex=1` and
+enable `MicrosecondBridge` for an exact legacy timestamp round trip.
 [Time and date storage](docs/time-date-storage.md)
 
 **Literal ladder CONTROL settings** initialize LEN/POS when importing supported

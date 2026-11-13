@@ -39,7 +39,7 @@ Choose **Data lab** and enable `MoveNumeric`. Inspect `MoveByte`, `MoveWord`,
 and the homogeneous wide arithmetic profile. The report exposes `numeric_storage`.
 
 [Time and date operands](time-date-storage.md) use exact same-family conversions
-and a raw LINT/LDT timestamp bridge. [Ladder string MOV](string-operations.md#ladder-string-mov)
+and raw LINT/DT microsecond and LINT/LDT nanosecond timestamp bridges. [Ladder string MOV](string-operations.md#ladder-string-mov)
 has a separate tag/literal and capacity-clipping profile. Lossy time/date
 conversions, non-string aggregate MOV/CLR, string CLR and native status,
 fault and lifecycle parity remain unfinished.

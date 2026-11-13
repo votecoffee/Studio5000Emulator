@@ -40,9 +40,20 @@ multiple of 1000. Out-of-range or fractional results fault on a reached rung
 and preserve the modeled advance. The exact-only rule is the emulator's
 conversion policy.
 
-A LINT tag can supply raw nanosecond ticks to LDT. An LDT tag or literal can
-copy its ticks to LINT. No unit change occurs on this bridge, and LDT range
-checks still apply. Installed v35 help 414477 documents LINT/LDT interoperability.
+A LINT tag can supply raw microsecond ticks to DT or raw nanosecond ticks to
+LDT. A DT or LDT tag or typed date literal can copy its raw ticks to LINT.
+No unit change occurs on either bridge: LINT has no stored unit metadata. For
+example, LINT 1767225600000001 moves to DT as 2026-01-01 00:00:00.000001 UTC
+and moves back unchanged. Moving that same number to LDT instead interprets it
+as nanoseconds. Ordinary DT/LDT moves still scale units exactly. DT/LDT calendar
+range checks remain in force; invalid raw timestamps roll back the advance.
+
+This is a ladder MOV profile for declared LINT and date tags, selected elements,
+UDT members and aliases, plus typed DT/LDT source literals. It adds no typed LINT
+immediates, duration/LINT bridge, ST time expressions or temporal COP/CPS forms.
+Installed v35 help 14688 and 414477 document the timestamp interoperability and
+the direct DT bridge for legacy microsecond tags. Native overflow/status and
+fault continuation remain unverified.
 See [Rockwell's LINT and time guidance](https://www.rockwellautomation.com/en-za/docs/studio-5000-logix-designer/37-01/contents-ditamap/instruction-set/time-and-date-data-types.html).
 
 Comparisons within one family use exact nanoseconds, so a one-nanosecond
@@ -89,6 +100,23 @@ DurationMatches is true. TimestampTicks and BridgedStamp retain the exact
 LongStamp ticks. PromotedWallStamp reads 1767225600000001000. DurationTotal
 reads 1248506 microseconds and DurationDelta reads -749993 microseconds.
 NextStamp is one nanosecond after WallStamp, and NanoDelta reads 1.
+
+## Legacy microsecond timestamp example
+
+In **Data Lab**, MicrosecondBridge starts false and MicrosecondIndex starts at
+99. Set the index to 1, enable the gate and step. MicrosecondTicks moves into
+MicrosecondStamps[1] as DT and back to MicrosecondReadback without scaling.
+Both read 1767225600000001; the neighboring DT guard ticks remain 101 and 999.
+LiteralMicrosecondTicks receives the same value from a typed DT literal.
+The first complete move establishes the initially unknown array element.
+
+MicrosecondDivisor=0 faults after the moves and restores the entire advance;
+restore 1 to retry. An enabled index of 99, an unknown input, or a negative or
+out-of-calendar-range raw LINT timestamp likewise faults transactionally.
+Disable the gate before returning its index to 99. Source and destination
+selection retains normal false/prescan behavior and destination permissions.
+See [the fixture](../source/samples/DataLab.L5X) and
+[focused cases](../source/tests/test_time_mov_bridge.py).
 
 ## Reading timestamps and durations with GSV
 
