@@ -6,8 +6,8 @@ Execute supported ladder, Structured Text and FBD signal logic, inspect scan
 traces and connect external device simulators. The app and executable use the
 name **LogixLab**.
 
-**Current app version: `26.1105.094954`.** Versions use `YY.MMDD.HHmmss`; the
-browser title, page header, Windows tray and executable properties match.
+Versions use `YY.MMDD.HHmmss`. The running version appears in the browser title,
+page header, Windows tray and executable properties; all use the same value.
 
 **Development focus: full ladder support, then Structured Text, then FBD, then SFC.**
 Complete and qualify ladder and ST before adding new FBD/SFC features. Full
@@ -1076,9 +1076,10 @@ from the project root:
 node --test source/tests/web/*.test.cjs
 ```
 
-The `26.1112.165951` regression milestone exercised 6,287 Python tests,
-with two platform skips. The 34 failed cases passed after fixes and 1,004
-focused checks across affected modules. All 51 viewer tests passed.
+The `26.1112.231317` regression milestone exercised 6,478 Python tests,
+with two platform skips. Two outdated HTTP expectations failed; after correction,
+all 14 focused checks passed. All 51 viewer tests passed. The complete suite
+was followed by affected-case checks rather than a second full run.
 See the [validation details](docs/development.md#run-and-test) and
 [viewer architecture and planned graph editor](docs/logic-viewer.md).
 

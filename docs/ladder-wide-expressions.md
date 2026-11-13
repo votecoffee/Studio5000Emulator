@@ -56,7 +56,8 @@ composition in the v35 5580 profile. The highest-ranked numeric tag type in the
 Rank order is SINT, USINT, INT, UINT, DINT, UDINT, LINT, ULINT. No larger type is
 invented and positive saved values do not justify signed-to-unsigned conversion.
 BOOL tags do not select the numeric type. Integer immediates must be signed-DINT
-values representable in the chosen type.
+values or matching decimal L/U/UL constants representable in the chosen type;
+see [matching typed constants](#matching-typed-constants).
 
 For example, `CMP((WideCount>SmallCount)&&Enabled)` can compare LINT and DINT tags
 without losing the sign or exact 64-bit values. Numeric relations `=`, `<>`, `<`,
@@ -67,7 +68,7 @@ invalid index faults rather than being hidden by a known logical operand.
 
 Direct tag/constant comparisons use this profile; arithmetic uses the bounded
 profile below. Numeric bitwise mixtures, other functions, REAL/LREAL mixtures,
-wider/typed literals and lossy type combinations remain blocked even on false
+nonmatching typed or untyped larger literals and lossy type combinations remain blocked even on false
 rungs. Homogeneous and narrow/REAL calculations, ST and MEQ remain separate. Expression-wide qualification is deliberately conservative; independently
 safe subexpressions do not bypass an incompatible whole-expression type set.
 
@@ -106,8 +107,9 @@ ABS remain unqualified. Existing homogeneous expressions keep their prior rules.
 
 Every result must fit the selected type. Calculations use exact integers, quotient
 truncation toward zero and dividend-sign remainders. A later operation does not
-cancel an earlier overflow. Constants remain signed-DINT integers representable
-in the selected type, including existing radix spellings within that value range.
+cancel an earlier overflow. Constants may be signed-DINT integers representable
+in the selected type, including existing radix spellings within that value range,
+or matching decimal L/U/UL constants as described below.
 Nonmatching typed, untyped larger or REAL constants, REAL/LREAL mixtures, narrowing and destination-only
 promotion remain outside this mixed profile. [FAL](integer-files.md#mixed-integer-fal)
 now shares these rules. ST and index consumers do not expand. Native intermediate, flags, fault and partial-effect parity are unverified.
@@ -210,10 +212,16 @@ or native import acceptance of the public fixture.
 
 ## Remaining work
 
-Additional arithmetic intermediates and expression conversions, wide immediate
-syntax, LREAL/time expressions, power and other functions, wide file-expression
-consumers and wide array indices remain unsupported. General ladder and ST
-coverage is still incomplete. No new FBD/SFC forms are included.
+Remaining integer forms include lower-type-only mixed arithmetic subtrees,
+additional conversions, nonmatching typed and untyped larger constants, typed
+radix, mixed numeric bitwise, power and functions beyond ABS. Time/date
+expressions and wide arithmetic inside array indices remain unsupported.
+
+[Integer FAL/FSC](integer-files.md), [LREAL CPT/CMP/FAL/FSC](lreal-expressions.md)
+and [single wide tag indices](array-index-expressions.md) have separate bounded
+profiles. Their support does not establish general numeric promotion or native
+status/fault/lifecycle parity. General ladder and ST coverage is still incomplete;
+no new FBD/SFC forms are included.
 
 The operand families and operator grammar were checked against the installed
 v35 help topics Compute (CPT), Compare (CMP) and Mask Equal To (MEQ), alongside

@@ -4299,7 +4299,7 @@ class ApplicationLifecycleTests(unittest.TestCase):
         for key in ('tags','routines','scan','ms','task_schedule','routine_edits','trace'):self.assertEqual(after[key],before[key])
         self.post('write',{'tag':'ExpressionDelta','value':3});row=values(self.post('step',{'dt':10}));self.assertEqual({name:row[name] for name in expected},expected)
         self.post('write',{'tag':'MixedExpressionMath','value':False});self.post('write',{'tag':'ExpressionDelta','value':0});row=values(self.post('step',{'dt':10}));self.assertEqual({name:row[name] for name in expected},expected);self.assertFalse(row['MixedExpressionMatches'])
-        report=self.post('report',{})['wide_ladder_expressions']['mixed_integer_arithmetic'];self.assertEqual(report['instructions'],['CPT','CMP']);self.assertEqual(len(report['types']),8);self.assertFalse(report['native_runtime_parity'])
+        report=self.post('report',{})['wide_ladder_expressions']['mixed_integer_arithmetic'];self.assertEqual(report['instructions'],['CPT','CMP','FAL','FSC']);self.assertEqual(len(report['types']),8);self.assertFalse(report['native_runtime_parity'])
 
     def test_string_lab_indexed_unknown_operands_gate_rollback_and_recovery_through_http(self):
         state=self.post('demo',{'sample':'StringLab'});self.assertEqual(state['blockers'],[])
@@ -4391,7 +4391,7 @@ class ApplicationLifecycleTests(unittest.TestCase):
         row=values(step());self.assertIsNone(row['ZeroRecords[1].Enabled']);self.assertIsNone(row['ZeroTimers[1].ACC']);write('FillAggregates',True);fault('Unknown');write('AggregateLength[0]',1);fault('outside bounds');write('AggregateIndex',1);fault('Unknown');write('AggregateSource[0]',0)
         row=values(step());self.assertIs(row['ZeroRecords[1].Enabled'],False);self.assertEqual(row['ZeroRecords[1].Count'],0);self.assertIs(type(row['ZeroRecords[1].Measure']),float);self.assertEqual(row['ZeroRecords[1].Measure'],0.0);self.assertIs(row['ZeroRecords[1].Timer.EN'],False);self.assertIs(row['ZeroRecords[1].Counter.CU'],False)
         self.assertEqual(row['ZeroTimers[1].ACC'],0);self.assertIs(row['ZeroTimers[1].EN'],False);self.assertIs(row['ZeroCounters[1].CU'],False);self.assertEqual(row['ZeroStrings[1]'],'');self.assertEqual(row['ZeroStrings[1].DATA[81]'],0);self.assertEqual((row['ZeroRecords[0].Count'],row['ZeroRecords[2].Count']),(111,999));self.assertIsNone(row['ZeroTimers[0].ACC'])
-        write('FillAggregates',False);write('AggregateIndex',99);row=values(step());self.assertEqual(row['ZeroRecords[1].Count'],0);write('AggregateIndex',1);write('AggregateSource[0]',1);write('FillAggregates',True);fault('integer zero only');write('AggregateSource[0]',0);step()
+        write('FillAggregates',False);write('AggregateIndex',99);row=values(step());self.assertEqual(row['ZeroRecords[1].Count'],0);write('AggregateIndex',1);write('AggregateSource[0]',1);write('FillAggregates',True);fault('integer zero or -1 only');write('AggregateSource[0]',0);step()
         report=self.post('report',{})['aggregate_fill'];self.assertTrue(report['available']);self.assertFalse(report['native_runtime_parity'])
 
     def test_data_lab_matching_aggregate_copies_lazy_references_and_recovery_through_http(self):

@@ -132,10 +132,10 @@ def ladder_description(project):
                 mixed_integer_comparisons=dict(instructions=['CMP'],types=list(INTEGER_RANK),
                     operands='Highest-ranked actual numeric tag type covers every complete declared numeric tag range in the expression',
                     operators='Direct numeric relations and BOOL composition, including BOOL equality, eager AND/OR/XOR/NOT and symbolic forms',
-                    constants='Signed-DINT integers representable in the common tag type; no invented larger type or value-based tag conversion',
+                    constants='Signed-DINT values or matching decimal L/U/UL constants representable in the actual common tag type; no invented larger type or value-based tag conversion',
                     selection='Structural preflight; false/prescan skip live values and indices; true expressions consume both logical operands',
                     arithmetic='Bounded mixed arithmetic is described in mixed_integer_arithmetic',
-                    excluded='Numeric bitwise mixtures, other functions, REAL/LREAL, typed/larger constants, CPT comparison results, ST and native parity',
+                    excluded='Numeric bitwise mixtures, other functions, REAL/LREAL, nonmatching typed or untyped larger constants, CPT comparison results, ST and native parity',
                     native_runtime_parity=False),
                 mixed_integer_arithmetic=dict(instructions=['CPT','CMP','FAL','FSC'],types=list(INTEGER_RANK),
                     operators=['+','-','*','/','MOD','unary +','unary -','ABS'],
@@ -159,7 +159,7 @@ def ladder_description(project):
                 failures='Required unknown data, bounds, division and overflow faults roll back the whole advance',
                 native_runtime_parity=False,
                 remaining=['Other mixed arithmetic intermediates and typed/radix literal combinations','Numeric bitwise mixtures, power and functions beyond ABS',
-                           'LREAL/time types, file-expression and array-index consumers','Native status/fault/intermediate/partial-effect parity'])
+                           'Time/date expressions and additional file/index forms; LREAL and simple wide tag indices use separate qualified profiles','Native status/fault/intermediate/partial-effect parity'])
 
 
 def description(project):

@@ -35,23 +35,19 @@ shared behavior justify broader checks:
 py -3.13 -X utf8 -m unittest discover -s tests -v
 ```
 
-The 2026-11-12 milestone for app `26.1112.165951` ran 6,287 Python tests
-with two platform skips. The initial run reported 24 failures and 10 errors.
-After correction, all 34 cases passed within 867 tests across the affected
-model modules and 137 upload-related tests. All 51 viewer tests also passed.
+The 2026-11-12 milestone for app `26.1112.231317` ran 6,478 Python tests
+against an unchanged source baseline, with two platform skips. Two HTTP checks
+had outdated expectations: aggregate FLL's rejected-source message now lists
+zero and -1, and the mixed-integer expression report now includes FAL/FSC.
+After aligning those expectations, all 14 affected HTTP and mixed typed-integer
+checks passed. All 51 viewer tests also passed. No execution algorithm needed
+correction in this milestone; the full baseline was followed by focused checks,
+not a second full-suite run.
 
-The upload verifier's partial-export reader now supplies the message
-configuration map and scalar parser required by the shared Project parser.
-Valid targeted controller tags and Program-local values can be checked
-again, allowing uploaded L5X reconstruction and the guarded save workflow
-to reach their existing validation stages. The checks retain malformed,
-changed, incomplete and unverified export rejection.
-
-The other corrections update 22 instruction-count assertions to 108,
-align numeric guard tests with existing supported forms, restore literal
-CONTROL initialization in an MCR fixture and check TOF's prescan accumulator
-against its preset. Validation used software tests and local HTTP APIs.
-The complete suite was followed by focused reruns of every affected module.
+Coverage descriptions now include qualified PID record copies, zero fills and
+queue snapshots, matching typed mixed-integer constants, integer file operations
+and the separate LREAL/simple-wide-index profiles. These software results do
+not establish native Studio or physical-controller equivalence.
 
 The bundled Conveyor, Data, AOI, Call, Text, Network, Structure, Layout and Flag
 labs are public L5X fixtures. Native ACD inputs and generated ACD variants remain
