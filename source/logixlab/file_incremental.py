@@ -37,8 +37,9 @@ def execute(engine,op,power,scope,obj,operation,*,search=False):
         if not power:
             obj.update(EN=False,DN=False,POS=0)
             engine._file_incremental.discard(key)
+            engine._file_arithmetic_retry.discard(key)
         return power
-    if key not in engine._file_incremental and completed_source(source_control(engine,key)) and controls.integer(obj,'POS') != 0:
+    if key not in engine._file_incremental and key not in engine._file_arithmetic_retry and completed_source(source_control(engine,key)) and controls.integer(obj,'POS') != 0:
         raise ModelError('Imported completed INC requires completed false cleanup or RES before nonzero resume; saved hidden progress is unavailable')
     enabled=controls.flag(obj,'EN')
     if not power:
@@ -47,7 +48,7 @@ def execute(engine,op,power,scope,obj,operation,*,search=False):
     length,position=controls.file_cursor(obj,op.name+' INC')
     if length>controls.MAX_ELEMENTS:raise ModelError(op.name+' INC exceeds the 4096-element software limit')
     if enabled:return True
-    start=position+int(key in engine._file_incremental)
+    start=position+int(key in engine._file_incremental and key not in engine._file_arithmetic_retry)
     obj['EN']=True
     if search:obj['FD']=False
     if start>=length:
@@ -58,6 +59,7 @@ def execute(engine,op,power,scope,obj,operation,*,search=False):
     if engine.budget<0:raise ModelError(op.name+' INC instruction budget exceeded')
     result=operation()
     engine._file_incremental.add(key)
+    engine._file_arithmetic_retry.discard(key)
     if search and result:obj.update(FD=True,IN=True)
     if start==length-1:obj['DN']=True
     return True

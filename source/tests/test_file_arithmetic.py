@@ -7,10 +7,134 @@ import test_array_statistics as fixtures
 from logixlab.model import ModelError
 
 
+def real_overflow_logic(mode='ALL'):
+    return f'XIC(StartPB)FAL(Ctl,?,?,{mode},Queue[Ctl.POS],Queue[Ctl.POS]*2);'
+
+
+def file_state(engine):
+    return copy.deepcopy((engine.memory.values,engine.memory.frames,engine.memory._resolved,
+                          engine.addons.instances,engine.scan_count,engine.time_ms,engine.last_timer,
+                          engine.trace,engine.scheduler_description(),engine._file_incremental,
+                          engine._file_arithmetic_retry))
+
+
 class FileArithmeticTests(unittest.TestCase):
     setUp=fixtures.ArrayStatisticsTests.setUp
     engine=fixtures.ArrayStatisticsTests.engine
     checked=fixtures.ArrayStatisticsTests.checked
+
+    def overflow(self,mode='ALL',*,rungs=None,mutate=None):
+        return self.checked(rungs or [real_overflow_logic(mode)],dtype='REAL',length=3,
+                            queue=(2,3e38,6,8,999),mutate=mutate)
+
+    def test_real_all_overflow_preserves_prefix_and_retries_failing_element(self):
+        e=self.overflow(rungs=[real_overflow_logic()[:-1]+'OTE(RunLatch);'])
+        source=copy.deepcopy(e.memory.read('Queue'));e.memory.write('StartPB',True);e.step()
+        self.assertEqual(e.memory.read('Queue'),[4,source[1],6,8,999])
+        self.assertEqual([e.memory.read('Ctl.'+n) for n in ('EN','DN','ER','POS')],[True,False,True,1])
+        self.assertTrue(e.memory.read('RunLatch'));self.assertEqual(len(e._file_arithmetic_retry),1)
+        e.memory.write('Queue[1]',3);e.memory.write('Ctl.ER',False);e.step()
+        self.assertEqual(e.memory.read('Queue'),[4,6,12,8,999])
+        self.assertTrue(e.memory.read('Ctl.DN'));self.assertEqual(e._file_arithmetic_retry,set())
+
+    def test_real_numeric_overflow_retries_while_active_rung_is_false(self):
+        e=self.overflow('1');e.memory.write('StartPB',True);e.step()
+        e.memory.write('StartPB',False);e.step()
+        self.assertTrue(e.memory.read('Ctl.ER'));self.assertEqual(e.memory.read('Ctl.POS'),1)
+        e.memory.write('Queue[1]',3);e.memory.write('Ctl.ER',False);e.step()
+        self.assertEqual(e.memory.read('Queue')[:3],[4,6,6]);self.assertEqual(e.memory.read('Ctl.POS'),1)
+        e.step();self.assertEqual(e.memory.read('Queue')[:3],[4,6,12])
+        self.assertTrue(e.memory.read('Ctl.DN'));self.assertFalse(e.memory.read('Ctl.EN'))
+        self.assertEqual(e._file_arithmetic_retry,set())
+
+    def test_real_incremental_overflow_retains_retry_across_prescan_and_requires_new_edge(self):
+        e=self.overflow('INC');e.memory.write('StartPB',True);e.step()
+        e.memory.write('StartPB',False);e.step();e.memory.write('StartPB',True);e.step()
+        self.assertTrue(e.memory.read('Ctl.ER'));self.assertEqual(e.memory.read('Ctl.POS'),1)
+        pending=e._file_arithmetic_retry.copy();values=copy.deepcopy(e.memory.values)
+        e._apply_prescan(preview=True)
+        self.assertEqual(e.memory.values,values);self.assertEqual(e._file_arithmetic_retry,pending)
+        e.enter_run();self.assertEqual(e._file_arithmetic_retry,pending)
+        e.memory.write('Queue[1]',3);e.memory.write('Ctl.ER',False);e.step()
+        self.assertEqual(e.memory.read('Queue')[:3],[4,3,6]);self.assertEqual(e._file_arithmetic_retry,pending)
+        e.memory.write('StartPB',False);e.step();e.memory.write('StartPB',True);e.step()
+        self.assertEqual(e.memory.read('Queue')[:3],[4,6,6]);self.assertEqual(e._file_arithmetic_retry,set())
+        e.memory.write('StartPB',False);e.step();e.memory.write('StartPB',True);e.step()
+        self.assertEqual(e.memory.read('Queue')[:3],[4,6,12]);self.assertTrue(e.memory.read('Ctl.DN'))
+
+    def test_real_overflow_and_prefix_roll_back_on_a_later_fault(self):
+        e=self.overflow(rungs=[real_overflow_logic(),'DIV(1,0,SpeedCommand);'])
+        e.memory.write('StartPB',True);before=file_state(e)
+        with self.assertRaises(ModelError):e.step()
+        self.assertEqual(file_state(e),before)
+
+    def test_reset_retry_state_is_transactional_and_clears_on_success(self):
+        e=self.overflow(rungs=['XIC(RunLatch)RES(Ctl);',real_overflow_logic(),
+                               'DIV(1,SpeedCommand,Outgoing);'])
+        e.memory.write('SpeedCommand',1);e.memory.write('StartPB',True);e.step()
+        self.assertTrue(e._file_arithmetic_retry)
+        e.memory.write('StartPB',False);e.memory.write('RunLatch',True);e.memory.write('SpeedCommand',0)
+        before=file_state(e)
+        with self.assertRaises(ModelError):e.step()
+        self.assertEqual(file_state(e),before)
+        e.memory.write('SpeedCommand',1);e.step()
+        self.assertFalse(e.memory.read('Ctl.ER'));self.assertEqual(e.memory.read('Ctl.POS'),0)
+        self.assertEqual(e._file_arithmetic_retry,set())
+
+    def test_routine_replacement_copies_retry_without_mutating_active_engine(self):
+        from logixlab.routine_edits import prepare
+        from logixlab.routine_source import decode
+        from test_routine_source import container,xml_source
+        text=real_overflow_logic();e=self.overflow();e.memory.write('StartPB',True);e.step()
+        source=decode(container(E.tostring(xml_source(text=text),encoding='utf-8')))
+        candidate,_=prepare(e,source,(text,),'MainProgram',0)
+        self.assertEqual(candidate._file_arithmetic_retry,e._file_arithmetic_retry)
+        self.assertIsNot(candidate._file_arithmetic_retry,e._file_arithmetic_retry)
+        candidate.memory.write('Queue[1]',3);candidate.memory.write('Ctl.ER',False);candidate.step()
+        self.assertEqual(candidate.memory.read('Queue')[:3],[4,6,12])
+        self.assertEqual(candidate._file_arithmetic_retry,set());self.assertTrue(e._file_arithmetic_retry)
+        self.assertTrue(e.memory.read('Ctl.ER'));self.assertEqual(e.memory.read('Queue[0]'),4)
+
+    def test_unknown_domain_and_binary64_store_failures_keep_whole_advance_rollback(self):
+        def wide(root):
+            tag=E.SubElement(root.find('./Controller/Tags'),'Tag',Name='WideInput',DataType='LREAL',TagType='Base')
+            E.SubElement(E.SubElement(tag,'Data',Format='Decorated'),'DataValue',DataType='LREAL',Value='1e100')
+        for expression,mutate in (('Queue[Ctl.POS]/0.0',None),('WideInput',wide)):
+            e=self.overflow(rungs=[f'FAL(Ctl,?,?,ALL,Queue[Ctl.POS],{expression});'],mutate=mutate)
+            before=file_state(e)
+            with self.assertRaises(ModelError):e.step()
+            self.assertEqual(file_state(e),before)
+        e=self.overflow();e.memory.write('StartPB',True);e.memory.values['queue'][1]=None;before=file_state(e)
+        with self.assertRaises(ModelError):e.step()
+        self.assertEqual(file_state(e),before)
+
+    def test_real_overflow_retry_uses_canonical_control_alias(self):
+        def alias(root):E.SubElement(root.find('./Controller/Tags'),'Tag',Name='ControlView',DataType='CONTROL',TagType='Alias',AliasFor='Ctl')
+        e=self.overflow(rungs=[real_overflow_logic().replace('Ctl','ControlView')],mutate=alias)
+        e.memory.write('StartPB',True);e.step()
+        self.assertEqual(e._file_arithmetic_retry,{('ctl',())})
+        e.memory.write('Queue[1]',3);e.memory.write('Ctl.ER',False);e.step()
+        self.assertEqual(e.memory.read('Queue')[:3],[4,6,12])
+
+    def test_real_overflow_inside_aoi_preserves_prefix_and_retries_caller_data(self):
+        def worker(root):
+            c=root.find('Controller')
+            a=E.SubElement(c.find('AddOnInstructionDefinitions'),'AddOnInstructionDefinition',Name='OverflowWorker',Class='Standard',ExecutePrescan='false',ExecutePostscan='false',ExecuteEnableInFalse='false')
+            params=E.SubElement(a,'Parameters')
+            for name,dtype,usage,size in [('EnableIn','BOOL','Input',0),('EnableOut','BOOL','Output',0),('Data','REAL','InOut',5),('State','CONTROL','InOut',0)]:
+                required='true' if usage=='InOut' else 'false'
+                p=E.SubElement(params,'Parameter',Name=name,DataType=dtype,TagType='Base',Usage=usage,Required=required,Visible=required)
+                if size:p.set('Dimensions',str(size))
+            E.SubElement(a,'LocalTags')
+            content=E.SubElement(E.SubElement(E.SubElement(a,'Routines'),'Routine',Name='Logic',Type='RLL'),'RLLContent')
+            E.SubElement(E.SubElement(content,'Rung',Number='0',Type='N'),'Text').text='FAL(State,?,?,ALL,Data[State.POS],Data[State.POS]*2);'
+            obj=E.SubElement(E.SubElement(E.SubElement(c.find('Tags'),'Tag',Name='Worker',DataType='OverflowWorker',TagType='Base'),'Data',Format='Decorated'),'Structure',DataType='OverflowWorker')
+            for name in ('EnableIn','EnableOut'):E.SubElement(obj,'DataValueMember',Name=name,DataType='BOOL',Value='0')
+        e=self.overflow(rungs=['OverflowWorker(Worker,Queue,Ctl);'],mutate=worker)
+        e.step();self.assertEqual(e.memory.read('Queue[0]'),4);self.assertTrue(e.memory.read('Ctl.ER'))
+        self.assertEqual(e._file_arithmetic_retry,{('ctl',())})
+        e.memory.write('Queue[1]',3);e.memory.write('Ctl.ER',False);e.step()
+        self.assertEqual(e.memory.read('Queue')[:3],[4,6,12]);self.assertEqual(e._file_arithmetic_retry,set())
 
     def test_all_transforms_each_element_and_retains_guard(self):
         e=self.checked(['FAL(Ctl,?,?,ALL,Queue[Ctl.POS],Queue[Ctl.POS]*2+1);']);e.step()

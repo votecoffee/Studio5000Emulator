@@ -37,9 +37,35 @@ parity remains unverified. A handler can
 in a whole-project scan after the emulator restores the CONTROL and every
 destination from the current call. A reached negative LEN or POS can be
 [cleared as Type 4 Code 21](controller-handlers.md#recover-a-negative-file-cursor).
-Unrecovered faults, other cursor errors and arithmetic errors roll back
-the advance. Native fault records, ER overflow classification and native
-partial effects remain unqualified.
+Unrecovered faults, other cursor errors and arithmetic errors outside the
+[REAL overflow profile](#real-overflow-and-retry) roll back the advance. Native
+fault records, complete overflow classification and partial effects remain unqualified.
+
+## REAL overflow and retry
+
+App `26.1112.195720` latches ER and clears DN when a reached float32 expression
+calculation overflows with a REAL destination. POS identifies the attempted
+iteration. Earlier writes from that call remain, the failing destination is
+unchanged and the rung continues with its incoming power. The profile applies
+to ALL, numeric and INC modes, including supported AOI bodies and aliases.
+
+Repair the input/expression and clear ER to retry the attempted position. ALL
+and numeric calls retain their existing power rules; INC also needs an observed
+false-to-true enable edge. Retrying does not recompute an earlier completed
+prefix or skip the failing element. CONTROL RES clears the pending retry.
+
+Pending retry is private simulator state keyed by the captured CONTROL address.
+Run entry, prescan preview and routine replacement preserve it. A later fault
+rolls it back with tag data and ordinary INC progress. A cleared array fault
+restores pending retry along with the current call's CONTROL and writes.
+It is not reconstructed from native hidden CONTROL bits or saved partial data.
+
+Unknown values, zero divisors, array faults, budget limits, integer overflow
+and the binary64 calculation/store profile retain their existing fault policies.
+Native arithmetic precision, nonfinite values, exact overflow positions,
+partial result bits and math-status behavior remain unqualified. The source
+basis is installed v35 FAL help 14504 and the
+[Rockwell FAL reference](https://www.rockwellautomation.com/en-ua/docs/studio-5000-logix-designer/38-00/contents-ditamap/instruction-set/array-file-misc-instructions/file-arithmetic_logic-fal.html).
 
 ## Expressions and destinations
 
@@ -65,8 +91,8 @@ destination overlapping its own CONTROL record is rejected on each iteration.
 Array accesses remain within the selected member/dimension.
 
 [INC mode](file-incremental.md) now supports one iteration per enable edge for
-idle-source controls, with separate transactional progress and RES integration.
-Saved active INC controls and ST/FBD FAL calls remain blocked.
+idle or completed source controls, with separate transactional progress and RES
+integration. Saved partial INC controls and ST/FBD FAL calls remain blocked.
 [RLL AOI execution](aoi-file-operations.md) now supports exact InOut and
 represented local operands with the same bounded expressions and modes.
 No private native edge state or target-specific fault behavior is fabricated.

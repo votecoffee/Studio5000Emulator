@@ -221,6 +221,21 @@ class IncrementalFileTests(unittest.TestCase):
                 with self.assertRaises(ModelError):e.step()
                 self.assertEqual(e.memory.values,before);self.assertEqual(e._file_incremental,set())
 
+    def test_late_fault_after_successful_real_retry_restores_pending_element_and_edge(self):
+        from test_file_arithmetic import real_overflow_logic,file_state
+        e=self.checked([real_overflow_logic('INC'),'DIV(1,SpeedCommand,Outgoing);'],
+                       dtype='REAL',length=3,queue=(2,3e38,6,8,999))
+        e.memory.write('SpeedCommand',1);e.memory.write('StartPB',True);e.step()
+        e.memory.write('StartPB',False);e.step();e.memory.write('StartPB',True);e.step()
+        self.assertTrue(e._file_arithmetic_retry)
+        e.memory.write('Queue[1]',3);e.memory.write('Ctl.ER',False);e.memory.write('StartPB',False);e.step()
+        e.memory.write('StartPB',True);e.memory.write('SpeedCommand',0);before=file_state(e)
+        with self.assertRaises(ModelError):e.step()
+        self.assertEqual(file_state(e),before)
+        e.memory.write('SpeedCommand',1);e.step()
+        self.assertEqual(e.memory.read('Queue')[:3],[4,6,6])
+        self.assertEqual(e._file_arithmetic_retry,set())
+
     def test_control_aliases_share_one_progress_record(self):
         def alias(root):E.SubElement(root.find('./Controller/Tags'),'Tag',Name='AliasCtl',TagType='Alias',DataType='CONTROL',AliasFor='Ctl')
         for kind in ('FAL','FSC'):

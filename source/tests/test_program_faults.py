@@ -1933,6 +1933,21 @@ class ProgramFaultTests(unittest.TestCase):
                 self.assertEqual((engine.scan_count, engine.time_ms), (0, 0))
                 self.assertIsNone(engine.last_cleared_program_fault)
 
+    def test_cleared_fal_array_fault_restores_pending_arithmetic_retry(self):
+        def configure(root):
+            ladder_fault_fixture(root)
+            add_array_calculation_tags(root)
+            set_fault_instruction(root,'FAL(LabRecords[0],?,?,ALL,LabStats[LabRecords[0].POS],LabQueue[LabRecords[0].POS])')
+        engine=self.engine(mutate=configure)
+        self.assertEqual(engine.blockers,[])
+        key,parts,_=engine.memory.resolve('LabRecords[0]');identity=(key,tuple(parts))
+        engine._file_arithmetic_retry.add(identity)
+        engine.memory.write('StartPB',True);engine.step()
+        fault=engine.last_cleared_program_fault
+        self.assertEqual((fault['type'],fault['code'],fault['instruction']),(4,20,'FAL'))
+        self.assertEqual(engine.memory.read('LabStats'),[11,22])
+        self.assertEqual(engine._file_arithmetic_retry,{identity})
+
     def test_fal_all_restores_repeated_and_indirect_writes_before_handler(self):
         from logixlab.control_operations import default
 

@@ -8,6 +8,10 @@ from .model import ArrayBoundsError, ModelError, coerce, literal
 INSTRUCTIONS = frozenset(('FAL',))
 
 
+class RealCalculationOverflow(OverflowError):
+    """A reached float32 FAL calculation cannot be represented as finite REAL."""
+
+
 def mode(text):
     if text.upper() == 'ALL':return None
     if text.upper() == 'INC':return 'INC'
@@ -68,31 +72,48 @@ def execute(engine, op, power, scope):
     memory = engine.memory
     obj = controls.control(memory, op.args[0], scope)
     previous = obj.copy()
+    control_id = incremental.identity(engine,op.args[0],scope)
+    previous_retry = control_id in engine._file_arithmetic_retry
     writes = {}
 
     def write_element():
         key, parts, dtype = destination(memory, op, scope)
-        value = calculate(engine, expression, scope, dtype, execute=True)
+        try:
+            value = calculate(engine, expression, scope, dtype, execute=True)
+        except OverflowError as error:
+            # Binary64 evaluation already reports its own ModelError. Keep
+            # integer, domain, unknown-value and reference failures separate.
+            if dtype != 'REAL':raise
+            raise RealCalculationOverflow from error
         # An address can be written repeatedly in one call. Retain its first
         # value, including an unknown value, for recovery of that call.
         writes.setdefault((key, tuple(parts)), memory.at(key, parts))
         memory.write(op.args[4], value, scope)
+        engine._file_arithmetic_retry.discard(control_id)
 
     try:
         if count == 'INC':
             return incremental.execute(engine, op, power, scope, obj, write_element)
-        return _execute(engine, power, obj, count, write_element)
+        return _execute(engine, power, obj, count, write_element, control_id)
+    except RealCalculationOverflow:
+        obj.update(ER=True, DN=False)
+        engine._file_arithmetic_retry.add(control_id)
+        return power
     except ArrayBoundsError:
         for (key, parts), value in writes.items():
             memory.store(key, parts, value)
         obj.update(previous)
+        if previous_retry:engine._file_arithmetic_retry.add(control_id)
+        else:engine._file_arithmetic_retry.discard(control_id)
         raise
 
 
-def _execute(engine, power, obj, count, write_element):
+def _execute(engine, power, obj, count, write_element, control_id):
     if controls.flag(obj, 'ER'):return power
     if controls.flag(obj, 'DN'):
-        if not power:obj.update(EN=False, DN=False, ER=False, POS=0)
+        if not power:
+            obj.update(EN=False, DN=False, ER=False, POS=0)
+            engine._file_arithmetic_retry.discard(control_id)
         return power
     enabled = controls.flag(obj, 'EN')
     if not power and (count is None or not enabled):
@@ -101,7 +122,7 @@ def _execute(engine, power, obj, count, write_element):
     length, position = controls.file_cursor(obj, 'FAL')
     if length > controls.MAX_ELEMENTS:
         raise ModelError('FAL exceeds the 4096-element software limit')
-    start = position + int(enabled)
+    start = position + int(enabled and control_id not in engine._file_arithmetic_retry)
     obj['EN'] = True
     if start >= length:
         obj.update(EN=bool(power), DN=True)
@@ -131,6 +152,7 @@ def description():
                     excluded='Mixed typed/tag types, floating/typed radix forms, other arguments and native parity',
                     native_runtime_parity=False),
                 cursor='Last computed position retained, including exhaustion; native final-cursor parity unverified',
+                real_overflow='Reached float32 calculation overflow with a REAL destination latches ER at the attempted POS, preserves completed writes and retries that position after repair; RES clears pending retry',
                 numeric='Active numeric work continues on false rungs; partial EN stays set',
                 completion='DN set at last element; false completed call clears EN/DN/POS; ER inhibits',
                 writes='Sequential live reads/writes; source/destination array overlap can propagate',

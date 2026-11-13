@@ -82,6 +82,7 @@ class Engine:
         self.time_ms = 0
         self.last_timer = {}
         self._file_incremental = set()
+        self._file_arithmetic_retry = set()
         self._st_counter_edges = {}
         self._st_oneshot_edges = {}
         self.trace = []
@@ -292,11 +293,11 @@ class Engine:
         # Preserve bindings and execution context as well as values on failure.
         before=copy.deepcopy((self.memory.values,self.memory.frames,self.memory._resolved,
                               self.addons.instances,self.calls.stack,self.last_timer,
-                              self.memory.first_scan,self.trace,self.budget,self._file_incremental,self._st_counter_edges,self._st_oneshot_edges,
+                              self.memory.first_scan,self.trace,self.budget,self._file_incremental,self._file_arithmetic_retry,self._st_counter_edges,self._st_oneshot_edges,
                               self.memory.message_cache))
         def restore():
             (self.memory.values,self.memory.frames,self.memory._resolved,self.addons.instances,
-             self.calls.stack,self.last_timer,self.memory.first_scan,self.trace,self.budget,self._file_incremental,self._st_counter_edges,self._st_oneshot_edges,
+             self.calls.stack,self.last_timer,self.memory.first_scan,self.trace,self.budget,self._file_incremental,self._file_arithmetic_retry,self._st_counter_edges,self._st_oneshot_edges,
              self.memory.message_cache)=before
         self.budget=self.instruction_limit
         self.last_timer={}
@@ -758,7 +759,7 @@ class Engine:
         message_cache = self.memory.message_cache.copy()
         module_modes = self._module_modes.copy()
         bindings = copy.deepcopy((self.memory.frames,self.memory._resolved,self.addons.instances)) if self.project.aois else None
-        previous = (self.time_ms, copy.deepcopy(self.last_timer), self.memory.first_scan, self.trace, set(self._file_incremental), dict(self._st_counter_edges), dict(self._st_oneshot_edges))
+        previous = (self.time_ms, copy.deepcopy(self.last_timer), self.memory.first_scan, self.trace, set(self._file_incremental), set(self._file_arithmetic_retry), dict(self._st_counter_edges), dict(self._st_oneshot_edges))
         previous_program_clear = self.last_cleared_program_fault
         end_ms=self.time_ms+dt
         batch=self._task_scheduler.prepare(end_ms) if self._task_scheduler is not None else None
@@ -854,7 +855,7 @@ class Engine:
                 self._task_scheduler.periods=batch.periods
                 self._task_scheduler.priorities=list(batch.priorities)
                 self._task_scheduler.watchdog_overrides=watchdog_overrides
-            self.time_ms, self.last_timer, self.memory.first_scan, self.trace, self._file_incremental, self._st_counter_edges, self._st_oneshot_edges = previous
+            self.time_ms, self.last_timer, self.memory.first_scan, self.trace, self._file_incremental, self._file_arithmetic_retry, self._st_counter_edges, self._st_oneshot_edges = previous
             self._executing_task=None
             self.last_cleared_program_fault = previous_program_clear
             self.fault = str(e) or type(e).__name__
@@ -1080,6 +1081,7 @@ class Engine:
             if p:
                 identity = control_operations.reset(self.memory,a[0],scope)
                 self._file_incremental.discard(identity)
+                self._file_arithmetic_retry.discard(identity)
             return p
         if n in numeric_storage.INSTRUCTIONS and numeric_storage.available(self.project):return numeric_storage.execute(self,op,p,scope)
         if n in bit_logic.INSTRUCTIONS and bit_logic.available(self.project):return bit_logic.execute(self.memory,op,p,scope)

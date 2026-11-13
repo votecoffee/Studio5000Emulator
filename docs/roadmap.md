@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+[REAL FAL overflow/retry](file-arithmetic.md#real-overflow-and-retry) retains earlier
+writes and latches ER at the attempted position as of `26.1112.195720`. ALL, numeric
+and INC modes preserve retry through rollback and routine replacement; RES clears it.
+
 [Completed INC source controls](file-incremental.md#initial-state-and-lifecycle)
 can hold completed FAL/FSC results and rearm on false cleanup as of `26.1112.193956`.
 Saved partial or unknown hidden progress remains excluded.
