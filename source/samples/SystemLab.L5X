@@ -20,6 +20,16 @@
     <WallClockTime TimeZone="0" LocalTimeAdjustment="0" />
     <AddOnInstructionDefinitions />
     <Tags>
+      <Tag Name="ReadSyncClock" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="SyncIndex" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="SyncDivisor" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="SyncGuard" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="SyncMicros" DataType="DT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DT" Value="0" /></Data></Tag>
+      <Tag Name="SyncNanos" DataType="LDT" TagType="Base"><Data Format="Decorated"><DataValue DataType="LDT" Value="0" /></Data></Tag>
+      <Tag Name="SyncNanoTicks" DataType="LINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="LINT" Value="0" /></Data></Tag>
+      <Tag Name="StSyncMicros" DataType="LINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="LINT" Value="0" /></Data></Tag>
+      <Tag Name="StSyncNanos" DataType="LDT" TagType="Base"><Data Format="Decorated"><DataValue DataType="LDT" Value="0" /></Data></Tag>
+      <Tag Name="SyncWords" DataType="DINT" Dimensions="4" TagType="Base"><Data Format="Decorated"><Array DataType="DINT" Dimensions="4"><Element Index="[0]" Value="101" /><Element Index="[3]" Value="999" /></Array></Data></Tag>
       <Tag Name="SetClockDateTime" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="SetClockLocalTime" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="ClockCalendarIndex" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
@@ -670,6 +680,7 @@
               <Rung Number="23" Type="N"><Text>GSV(Task,SlowTask,Priority,LiveSlowPriority);</Text></Rung>
               <Rung Number="24" Type="N"><Text>XIC(ApplyWatchdog)SSV(Task,THIS,Watchdog,WatchdogCommandUs);</Text></Rung>
               <Rung Number="25" Type="N"><Text>GSV(Task,THIS,Watchdog,LiveWatchdogUs);</Text></Rung>
+              <Rung Number="26" Type="N"><Text>XIC(ReadSyncClock)JSR(ReadSyncTime,0);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="ReadTypedClock" Type="RLL">
@@ -723,7 +734,17 @@
               <Line Number="14">IF ReadControllerDevice THEN GSV(ControllerDevice,,Type,DeviceType); GSV(ControllerDevice,,Vendor,DeviceVendor); GSV(ControllerDevice,,Status,StDeviceStatus); END_IF;</Line>
               <Line Number="15">IF ReadControllerFlags THEN GSV(Controller,,KeepTestEditsOnSwitchover,RetainTestEdits); GSV(Controller,,InhibitAutomaticFirmwareUpdate,FirmwareUpdateInhibit); END_IF;</Line>
               <Line Number="16">IF ReadModuleStatus THEN GSV(Module,,ForceStatus,IoForceStatus); END_IF;</Line>
+              <Line Number="17">IF ReadSyncClock THEN GSV(TimeSynchronize,,CurrentTimeMicroseconds,StSyncMicros); GSV(TimeSynchronize,,CurrentTimeNanoseconds,StSyncNanos); END_IF;</Line>
             </STContent>
+          </Routine>
+          <Routine Name="ReadSyncTime" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>GSV(TimeSynchronize,,CurrentTimeMicroseconds,SyncMicros);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>GSV(TimeSynchronize,,CurrentTimeNanoseconds,SyncNanos);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>GSV(TimeSynchronize,,CurrentTimeNanoseconds,SyncNanoTicks);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>GSV(TimeSynchronize,,CurrentTimeMicroseconds,SyncWords[SyncIndex]);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>DIV(1,SyncDivisor,SyncGuard);</Text></Rung>
+            </RLLContent>
           </Routine>
           <Routine Name="ReadClockValues" Type="RLL">
             <RLLContent>

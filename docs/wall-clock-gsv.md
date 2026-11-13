@@ -57,6 +57,45 @@ scalar TIME range. An invalid sample or destination range faults the
 advance and restores both words.
 [Rockwell CST reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/37-01/contents-ditamap/instruction-set/input-output-instructions/access-the-cst-object.html)
 
+## TimeSynchronize clock reads
+
+Ladder and existing ST GSV calls can read the software controller's UTC counters:
+
+```text
+GSV(TimeSynchronize,,CurrentTimeMicroseconds,MicrosecondStamp);
+GSV(TimeSynchronize,,CurrentTimeNanoseconds,NanosecondStamp);
+```
+
+CurrentTimeMicroseconds accepts a scalar DT, scalar LINT or two contiguous DINT
+cells, low word first. CurrentTimeNanoseconds accepts a scalar LDT or LINT;
+a DINT window is outside this nanosecond profile. Both use exact integers from
+the same software UTC provider as the corresponding EtherNet/IP attributes.
+Nanosecond reads preserve the host sample's sub-microsecond remainder. DT/LDT
+destinations also check their supported calendar ranges. These are per-call
+samples, so separate reads need not represent exactly the same instant.
+
+Reads do not require a TimeSynchronize source element or an enabled PTP setting.
+The software clock remains free-running and unsynchronized. Pending SSV clock
+adjustments are visible within the same advance; external CIP reads use the
+committed adjustment. Project reload retains the application clock as before.
+This adds no PTP exchange, master/accuracy claim, synchronization setter or other
+TimeSynchronize GSV attribute. SSV of either current-time attribute is blocked.
+
+Structural destination checks, lazy indices, full writes to unknown cells,
+aliases, existing AOI bindings, ST FOR protection and whole-advance rollback
+follow the common clock-read rules. An unavailable or unrepresentable sample,
+invalid live reference, invalid typed range or later fault retains the prior
+modeled advance. Native sampling, status and fault/lifecycle parity remain
+unverified. The source basis is installed v35 accessing_the_time_sync_object
+and 449397 and [Rockwell's TimeSynchronize reference](https://www.rockwellautomation.com/en-dk/docs/studio-5000-logix-designer/37-02/contents-ditamap/instruction-set/input-output-instructions/access-the-timesynchronize-object.html).
+
+In **System lab**, ReadSyncClock starts false and SyncIndex starts at 99. Set
+SyncIndex to 1 and enable the gate. SyncMicros (DT), SyncNanos (LDT), SyncNanoTicks
+(LINT) and SyncWords[1..2] receive ladder samples; guard cells 0 and 3 retain 101 and 999.
+StSyncMicros and StSyncNanos receive ST samples when the existing ReadConfig gate
+is enabled and FastTask runs. Set SyncDivisor=0 to fault after the ladder reads,
+then restore 1 to retry. Disable ReadSyncClock before returning SyncIndex to 99.
+
 ## Calendar records
 
 Pass the first member of an explicitly declared user-defined record.

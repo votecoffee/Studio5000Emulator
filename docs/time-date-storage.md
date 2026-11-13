@@ -121,7 +121,9 @@ See [the fixture](../source/samples/DataLab.L5X) and
 ## Reading timestamps and durations with GSV
 
 [WallClockTime.CurrentValue](wall-clock-gsv.md) and [Task.StartTime](task-start-gsv.md)
-can write DT directly. Task.MinimumInterval and Task.MaximumInterval can
+can write DT directly. [TimeSynchronize clock reads](wall-clock-gsv.md#timesynchronize-clock-reads)
+add CurrentTimeMicroseconds into DT and CurrentTimeNanoseconds into LDT,
+without reducing nanosecond precision. Task.MinimumInterval and Task.MaximumInterval can
 write TIME. [Program and Task scan durations](scan-time-gsv.md) can write
 TIME32. These reads use integer microseconds, check the destination range
 and keep the existing clock and measurement sources. In **System lab**,

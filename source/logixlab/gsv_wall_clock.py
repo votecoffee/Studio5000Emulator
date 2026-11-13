@@ -8,12 +8,16 @@ from .numeric_copy import static_reference
 
 CST_CURRENT = None  # The software CST object has no CIP attribute number.
 CST_OFFSET = 3
+SYNC_MICRO = "TimeSynchronize.CurrentTimeMicroseconds"
+SYNC_NANO = "TimeSynchronize.CurrentTimeNanoseconds"
+SYNC_ATTRIBUTES = {"currenttimemicroseconds": (SYNC_MICRO, 2),
+                   "currenttimenanoseconds": (SYNC_NANO, 2)}
 ATTRIBUTES = {'currentvalue': (6, 2), 'datetime': (7, 7), 'localdatetime': (5, 7),
               'cstoffset': (CST_OFFSET, 2)}
 
 
 def matches(op):
-    return bool(op.args and isinstance(op.args[0],str) and op.args[0].casefold() in ('wallclocktime', 'cst'))
+    return bool(op.args and isinstance(op.args[0],str) and op.args[0].casefold() in ('wallclocktime', 'cst', 'timesynchronize'))
 
 
 def specification(engine,op):
@@ -24,6 +28,10 @@ def specification(engine,op):
         raise ModelError('Clock GSV requires four neutral-text operands')
     if op.args[1]:raise ModelError('Clock GSV requires an empty instance operand')
     attribute=op.args[2].casefold()
+    if op.args[0].casefold() == 'timesynchronize':
+        if attribute not in SYNC_ATTRIBUTES:
+            raise ModelError('TimeSynchronize GSV supports CurrentTimeMicroseconds and CurrentTimeNanoseconds')
+        return SYNC_ATTRIBUTES[attribute]
     if op.args[0].casefold() == 'cst':
         if attribute != 'currentvalue':
             raise ModelError('CST GSV supports CurrentValue')
@@ -71,6 +79,11 @@ def destination(memory,ref,scope,count,scalar_types=('LINT','DT'),*,word_types=(
 
 
 def _clock_destination(memory, ref, scope, number, count):
+    if number == SYNC_NANO:
+        key,parts,dtype=memory.check_writable(ref,scope)
+        if dtype not in ('LINT','LDT') or isinstance(memory.at(key,parts),(dict,list)):
+            raise ModelError('TimeSynchronize CurrentTimeNanoseconds requires a scalar LINT or LDT destination')
+        return key,[parts],dtype
     if number in (CST_CURRENT, CST_OFFSET):
         return destination(memory, ref, scope, count, scalar_types=('TIME',), word_types=('DINT', 'TIME32'))
     return destination(memory, ref, scope, count)
@@ -141,15 +154,20 @@ def execute(engine,op,scope):
         if ticks is None:
             raise ModelError('CST CurrentValue is unavailable from the software coordinated clock')
         raw = struct.pack('<q', ticks)
+    elif number in (SYNC_MICRO, SYNC_NANO):
+        attributes=engine.project.time_sync.cip_attributes(read_time=True,clock_state=engine.wall_clock_state)
+        raw=attributes.get(3 if number == SYNC_MICRO else 4)
     else:
         clock = engine.coordinated_clock if number == CST_OFFSET else None
         raw = engine.project.wall_clock.attributes(read_time=True, coordinated_clock=clock, clock_state=engine.wall_clock_state).get(number)
     if raw is None or len(raw)!=count*4:
+        if number in (SYNC_MICRO, SYNC_NANO):
+            raise ModelError('TimeSynchronize GSV value is unavailable from the software UTC clock')
         if number == CST_OFFSET:
             raise ModelError('WallClockTime CSTOffset is unavailable from the software clocks')
         raise ModelError('WallClockTime GSV value is unavailable from the host UTC clock')
-    if dtype in ('DT', 'TIME'):
-        values = (coerce(struct.unpack('<q' if dtype == 'DT' else '<Q', raw)[0], dtype),)
+    if dtype in ('DT', 'LDT', 'TIME'):
+        values = (coerce(struct.unpack('<Q' if dtype == 'TIME' else '<q', raw)[0], dtype),)
     else:
         values = struct.unpack('<q' if dtype == 'LINT' else '<' + 'i' * count, raw)
         if dtype == 'TIME32':
@@ -173,6 +191,12 @@ def description():
     return dict(profile='v35-5580-WallClockTime-GSV',languages=['RLL','ST'],
                 attributes=['CurrentValue','DateTime','LocalDateTime and CSTOffset (explicit UTC local policy)'],
                 destinations='CurrentValue: scalar DT, scalar LINT or two DINT cells; calendars: seven DINT array cells or the first seven DINT members of a declared UDT',
+                time_synchronize=dict(attributes=['CurrentTimeMicroseconds','CurrentTimeNanoseconds'],
+                    microseconds='Scalar DT, scalar LINT or two contiguous DINT cells',
+                    nanoseconds='Scalar LDT or scalar LINT; retain sub-microsecond host precision',
+                    source='Same software UTC and pending/committed adjustment as CIP and WallClockTime',
+                    sampling='One sample per reached instruction; separate calls may differ',
+                    read_only=True,ptp=False,native_runtime_parity=False),
                 coordinated_time='CST CurrentValue and WallClockTime CSTOffset: scalar TIME, two DINT or two TIME32 cells',
                 source='Host time.time_ns UTC plus committed or pending controller adjustment; independent of simulated scan time; microseconds since 1970-01-01',
                 sampling='One sample per reached GSV; separate calls may differ; no scan-wide snapshot',
