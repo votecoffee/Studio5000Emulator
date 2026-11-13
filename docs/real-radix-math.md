@@ -8,9 +8,9 @@ floating calculation solely because an integer constant has a suffix.
 The math forms are ADD, SUB, MUL, DIV, MOD, NEG, ABS, XPY, SQR, LN, LOG, DEG,
 RAD, SIN, COS, TAN, ASN, ACS and ATN. A scalar REAL destination selects float32
 calculation. A REAL source tag or unsuffixed floating constant also selects
-float32 for the existing LINT/unsigned integer destination profile. An LREAL
-source or floating L/l literal retains binary64 priority. Other narrow integer
-result forms retain their separate rules.
+float32 for [all eight integer destination types](real-narrow-results.md). An LREAL
+source or floating L/l literal retains binary64 priority. Integer-only forms
+retain their separate calculation and type rules.
 
 ```text
 ADD(RealValue,16#FFFFFFFF,RealResult);

@@ -716,6 +716,23 @@
       <Tag Name="ExactPowerSelected" TagType="Base" DataType="ULINT" Dimensions="3" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="ULINT" Dimensions="3"><Element Index="[2]" Value="903" /></Array></Data></Tag>
       <Tag Name="ExactPowerLateDivisor" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
       <Tag Name="ExactPowerLateResult" TagType="Base" DataType="DINT" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="NarrowRealEnabled" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="NarrowRealIndex" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="NarrowRealInput" DataType="REAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="2.5" /></Data></Tag>
+      <Tag Name="NarrowRealBase" DataType="ULINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="ULINT" Value="4" /></Data></Tag>
+      <Tag Name="NarrowRealSINT" DataType="SINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="SINT" Value="0" /></Data></Tag>
+      <Tag Name="NarrowRealINT" DataType="INT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="INT" Value="0" /></Data></Tag>
+      <Tag Name="NarrowRealDINT" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="NarrowRealRoot" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="NarrowRealPower" DataType="INT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="INT" Value="0" /></Data></Tag>
+      <Tag Name="NarrowRealRadix" DataType="SINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="SINT" Value="0" /></Data></Tag>
+      <Tag Name="NarrowRealRoundedEven" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="NarrowRealBoundaryEnabled" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="NarrowRealBoundarySource" DataType="REAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="127.5" /></Data></Tag>
+      <Tag Name="NarrowRealBoundaryResult" DataType="SINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="SINT" Value="0" /></Data></Tag>
+      <Tag Name="NarrowRealLateDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="NarrowRealLateResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="NarrowRealSelected" DataType="DINT" Dimensions="3" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="DINT" Dimensions="3"><Element Index="[0]" Value="101" /><Element Index="[2]" Value="999" /></Array></Data></Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard">
@@ -892,7 +909,7 @@
               <Rung Number="57" Type="N"><Text>JSR(DoubleResults,0);</Text></Rung>
               <Rung Number="58" Type="N"><Text>JSR(RealCompare,0);</Text></Rung>
               <Rung Number="59" Type="N"><Text>JSR(RealResults,0);</Text></Rung>
-              <Rung Number="60" Type="N"><Text>JSR(RealIntegerOutputs,0);</Text></Rung>
+              <Rung Number="60" Type="N"><Text>JSR(RealIntegerOutputs,0)JSR(NarrowRealOutputs,0);</Text></Rung>
               <Rung Number="61" Type="N"><Text>JSR(ExactRootPower,0);</Text></Rung>
             </RLLContent>
           </Routine>
@@ -1089,6 +1106,20 @@
               <Line Number="13">StLiteralQuotient:=18446744073709551615UL/StLiteralDivisor;</Line>
               <Line Number="14">StLiteralCheck:=StLiteralSigned=-9223372036854775808L;</Line>
             </STContent>
+          </Routine>
+          <Routine Name="NarrowRealOutputs" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(NarrowRealEnabled)ADD(NarrowRealInput,0UL,NarrowRealSINT);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(NarrowRealEnabled)DIV(7.0,2U,NarrowRealINT);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(NarrowRealEnabled)SUB(16777217U,16777216.0,NarrowRealDINT);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(NarrowRealEnabled)SQR(NarrowRealInput,NarrowRealRoot);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(NarrowRealEnabled)XPY(NarrowRealBase,0.5,NarrowRealPower);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(NarrowRealEnabled)ADD(16#FFFFFFFF,NarrowRealInput,NarrowRealRadix);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(NarrowRealEnabled)ADD(NarrowRealInput,0UL,NarrowRealSelected[NarrowRealIndex]);</Text></Rung>
+              <Rung Number="7" Type="N"><Text>XIC(NarrowRealEnabled)EQU(NarrowRealSINT,2)OTE(NarrowRealRoundedEven);</Text></Rung>
+              <Rung Number="8" Type="N"><Text>XIC(NarrowRealEnabled)XIC(NarrowRealBoundaryEnabled)ADD(NarrowRealBoundarySource,0UL,NarrowRealBoundaryResult);</Text></Rung>
+              <Rung Number="9" Type="N"><Text>XIC(NarrowRealEnabled)DIV(1,NarrowRealLateDivisor,NarrowRealLateResult);</Text></Rung>
+            </RLLContent>
           </Routine>
         </Routines>
       </Program>

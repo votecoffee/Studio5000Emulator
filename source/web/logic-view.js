@@ -69,7 +69,7 @@
     const args = node?.operands || [], sources = args.slice(0, -1);
     if (!String(ref).includes('#') || !sources.includes(ref) || !['ADD','SUB','MUL','DIV','MOD','NEG','ABS','XPY','SQR','LN','LOG','DEG','RAD','SIN','COS','TAN','ASN','ACS','ATN'].includes(node?.opcode)) return false;
     const destination = read?.(args.at(-1))?.type;
-    return destination === 'REAL' || ['LINT','USINT','UINT','UDINT','ULINT'].includes(destination) && sources.some(arg => read?.(arg)?.type === 'REAL' || /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[Ee][+-]?\d+)?$/.test(arg) && /[.Ee]/.test(arg));
+    return destination === 'REAL' || ['SINT','INT','DINT','LINT','USINT','UINT','UDINT','ULINT'].includes(destination) && sources.some(arg => read?.(arg)?.type === 'REAL' || /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[Ee][+-]?\d+)?$/.test(arg) && /[.Ee]/.test(arg));
   }
   function parameterRadix(node, ref, definitions = {}) {
     if (!String(ref).includes('#')) return false;

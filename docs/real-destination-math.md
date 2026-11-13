@@ -87,8 +87,9 @@ SUB(16777217.0L,16777216.0,DoubleResidual);
 
 These produce 2, 4, 0 and 1. In the third example, both inputs become
 16777216 in float32. The LREAL source in the fourth selects binary64.
-Integer-only arithmetic retains its exact calculation rules. Earlier
-SINT/INT/DINT forms retain their existing profiles.
+Integer-only arithmetic retains its exact calculation rules.
+[Selected SINT/INT/DINT results](real-narrow-results.md) now follow these same
+REAL calculation and destination-conversion rules.
 
 Enable `RealIntegerEnabled` in **Integer lab** and step through
 **RealIntegerOutputs**. Set `RealIntegerIndex` to 1 to write the next

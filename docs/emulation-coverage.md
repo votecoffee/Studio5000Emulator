@@ -465,3 +465,7 @@ see [radix comparison constants](lreal-comparison-literals.md#radix-integer-thre
 [REAL radix sources](real-radix-math.md) extend nineteen standalone ladder math
 forms and REAL-tag relations/LIM with declared-width decoding before float32
 conversion. Integer-only, expressions/ST and native qualification remain separate.
+
+[Selected SINT/INT/DINT results](real-narrow-results.md) extend the common REAL
+calculation profile across nineteen ladder math forms. Source precision precedes
+calculation; destination rounding/ranges and existing lazy/atomic checks remain.

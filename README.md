@@ -102,6 +102,11 @@ ordering beyond floating precision. See [integer operands](docs/typed-integer-op
 and seven comparisons, using declared integer ranges and existing float32
 conversion. See [REAL integer constants](docs/real-integer-literals.md).
 
+**Narrow integer math results** now share the REAL calculation profile: a REAL
+input or floating constant selects float32 math, then nearest-even conversion
+to SINT, INT or DINT with range checks. Try NarrowRealEnabled in **Integer lab**;
+see [narrow REAL results](docs/real-narrow-results.md).
+
 **REAL radix sources** now work in nineteen ladder math forms and REAL-tag
 comparisons/LIM, with declared sign/width before float32 rounding. Try
 RealRadixEnabled in **Wide expression lab**; see [REAL radix math](docs/real-radix-math.md).

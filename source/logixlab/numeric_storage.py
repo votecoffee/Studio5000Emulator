@@ -117,7 +117,7 @@ def floating_math_profile(memory, op, scope, *, radix=False):
     sources = op.args[:-1]
     source_types = () if dtype == 'LREAL' else tuple(math_source_type(memory, ref, scope, radix=radix) for ref in sources)
     binary64 = dtype == 'LREAL' or 'LREAL' in source_types
-    single = dtype == 'REAL' or (dtype in WIDE_TYPES and 'REAL' in source_types)
+    single = dtype == 'REAL' or (dtype in INT_BITS and 'REAL' in source_types)
     if not (binary64 or single):
         return None
     if isinstance(memory.at(key, parts), (list, dict)):

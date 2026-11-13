@@ -14,7 +14,7 @@ from logixlab.runtime import Engine
 TYPES=(*INT_BITS,'REAL')
 EXPECTED=fixtures.EXPECTED
 CASES=unary.CASES
-INTEGER_DESTINATIONS = ('LINT', 'USINT', 'UINT', 'UDINT', 'ULINT')
+INTEGER_DESTINATIONS = ('SINT', 'INT', 'DINT', 'LINT', 'USINT', 'UINT', 'UDINT', 'ULINT')
 INTEGER_CASES = (
     ('ADD', '2.5,2', 4), ('SUB', '5.5,2', 4), ('MUL', '1.5,2', 3),
     ('DIV', '7.0,2U', 4), ('MOD', '7.5,2L', 2), ('NEG', '-2.5', 2),
@@ -147,7 +147,7 @@ class RealDestinationMathTests(unittest.TestCase):
         self.assertEqual(set(a['integer_destinations']), set(INTEGER_DESTINATIONS))
         self.assertEqual(set(u['integer_destinations']), set(INTEGER_DESTINATIONS))
 
-    def test_real_literals_cover_all_nineteen_forms_and_five_integer_destinations(self):
+    def test_real_literals_cover_all_nineteen_forms_and_eight_integer_destinations(self):
         for dtype, (name, args, expected) in itertools.product(INTEGER_DESTINATIONS, INTEGER_CASES):
             with self.subTest(dtype=dtype, name=name):
                 engine = self.checked([f'{name}({args},Results[1]);'], dest=dtype)
