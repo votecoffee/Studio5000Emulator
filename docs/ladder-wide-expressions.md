@@ -109,8 +109,8 @@ truncation toward zero and dividend-sign remainders. A later operation does not
 cancel an earlier overflow. Constants remain signed-DINT integers representable
 in the selected type, including existing radix spellings within that value range.
 Larger/typed/REAL constants, REAL/LREAL mixtures, narrowing and destination-only
-promotion remain outside this mixed profile. ST and file/index consumers do not
-expand. Native intermediate, flags, fault and partial-effect parity are unverified.
+promotion remain outside this mixed profile. [FAL](integer-files.md#mixed-integer-fal)
+now shares these rules. ST and index consumers do not expand. Native intermediate, flags, fault and partial-effect parity are unverified.
 
 Structural preflight and false/prescan selection follow the rules below. Enabled
 expressions consume every required source, including a source multiplied by zero

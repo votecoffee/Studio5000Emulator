@@ -15,6 +15,11 @@ DINT immediate selects the number of iterations per scan in numeric mode. LEN
 is bounded to 4096 and each iteration also consumes the global instruction budget.
 See [implementation](../source/logixlab/file_arithmetic.py).
 
+[Mixed integer FAL](integer-files.md#mixed-integer-fal) also accepts compatible
+source tag types under the existing common-range/subtree rules. The destination
+matches the source-selected type; ALL/numeric/INC, lazy reads, exact arithmetic
+and transactional failures retain their separate contracts.
+
 ## Scan state
 
 Prescan has no initialization. The bounded software profile starts at saved POS

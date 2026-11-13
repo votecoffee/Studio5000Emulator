@@ -140,7 +140,7 @@ class MixedExpressionMathTests(unittest.TestCase):
         for processor,revision in [('1756-L75','35'),('1756-L85E','34')]:
             def target(root):root.find('Controller').set('ProcessorType',processor);root.find('Controller').set('MajorRev',revision)
             self.assertTrue(self.engine(['AFI()CPT(Dest,Source+Mask);'],mutate=target).blockers)
-        report=self.checked(['CPT(Dest,Source+Mask);']).report()['wide_ladder_expressions'];self.assertTrue(report['mixed_numeric_types']);self.assertEqual(report['mixed_integer_arithmetic']['instructions'],['CPT','CMP']);self.assertFalse(report['mixed_integer_arithmetic']['native_runtime_parity'])
+        report=self.checked(['CPT(Dest,Source+Mask);']).report()['wide_ladder_expressions'];self.assertTrue(report['mixed_numeric_types']);self.assertEqual(report['mixed_integer_arithmetic']['instructions'],['CPT','CMP','FAL']);self.assertFalse(report['mixed_integer_arithmetic']['native_runtime_parity'])
 
 
 if __name__=='__main__':unittest.main()

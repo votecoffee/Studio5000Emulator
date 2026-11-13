@@ -46,10 +46,45 @@ incremental progress, time and scheduler state. These are simulator faults;
 native status bits, partial effects, precision/cursor/lifecycle and packed-layout
 parity remain unverified.
 
+## Mixed integer FAL
+
+App `26.1112.223602` extends the existing CPT mixed-integer software rules to FAL
+ALL, numeric and qualified INC modes. An actual numeric source tag selects the
+highest-ranked type: SINT, USINT, INT, UINT, DINT, UDINT, LINT, ULINT. That type
+must represent every complete source tag range, and the destination must match
+it. Saved positive values do not justify signed-to-unsigned conversions; neither
+the destination nor a constant invents a wider source type.
+
+```text
+FAL(Calc,?,?,ALL,Result[Calc.POS],Wide[Calc.POS]+DintDelta);
+FAL(Calc,?,?,1,Result[Calc.POS],(Wide[Calc.POS]*DintGain)+DintDelta);
+```
+
+Supported mixed operations are +, -, *, /, MOD, unary signs and ABS. Every
+arithmetic subtree must contain an actual source of the common type, matching
+[CPT's existing rule](ladder-wide-expressions.md#mixed-integer-arithmetic).
+For LINT Wide and DINT Small, `(Wide+Small)+1` is supported while
+`Wide+(Small+1)` is excluded. Integer division truncates toward zero; remainder
+keeps the dividend sign. Every intermediate must fit, even when a later operation
+would cancel an overflow. Results above 2^53 remain integer-exact.
+
+Signed-DINT constants must fit the selected type. Mixed numeric bitwise,
+typed/larger/REAL literals, independent lower-type arithmetic subtrees, other
+functions/powers, narrowing and additional ST/index forms remain excluded.
+Homogeneous typed constants and binary64 expressions retain their separate rules.
+
+Structural preflight checks types without saved values or dynamic indices.
+False/held/completed calls retain existing lazy behavior; active numeric work
+can continue on a false rung. Sequential reads/writes, exact AOI bindings,
+CONTROL progress, work budgets and whole-advance rollback remain. Integer
+overflow still follows rollback; the separate REAL ER/retry profile is unchanged.
+Native intermediate widths, status/faults, partial effects, cursor and lifecycle
+parity remain unqualified. See [focused cases](../source/tests/test_mixed_integer_files.py).
+
 ## Stats lab
 
 Enable WideFiles and Step. WideFileOperations transforms two LINT values above
-2^53 with matching WideFactor=2 and adds one, producing
+2^53 with LINT WideFactor=2 and DINT WideFileDelta=1, producing
 18014398509481987 and 18014398509481989. Its unsigned XOR example preserves the
 ULINT maximum's low-bit change as 18446744073709551614 and transforms
 9007199254740993 to 9007199254740992. Values remain exact in the runtime and
@@ -57,7 +92,8 @@ browser's integer-string transport. Third destination elements remain unknown.
 
 The two FSC examples find the second element, distinguishing adjacent 64-bit
 values and the ULINT maximum. Their IN/DN latches retain the existing behavior.
-Held completed transforms skip new operands; disable WideFiles and Step to
+Change WideFileDelta to adjust the mixed-integer result on the next rearmed
+transform. Held completed transforms skip new operands; disable WideFiles and Step to
 rearm them. Search IN must be cleared separately before its normal cleanup.
 
 The operand baseline is the installed v35 FAL/FSC help, pages 14504/14515,

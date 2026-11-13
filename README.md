@@ -480,6 +480,9 @@ The [six ladder string relations](docs/string-operations.md#ladder-string-compar
 also accept literals on either side. Enabled instructions can populate unknown string destinations while retaining
 unused bytes; false rungs skip dynamic indices and saved operand values.
 
+[Mixed integer FAL](docs/integer-files.md#mixed-integer-fal) adds exact compatible
+source types, including LINT arrays with DINT adjustments. Stats Lab exposes
+WideFileDelta for this profile.
 [File arithmetic](docs/file-arithmetic.md) adds FAL ALL/numeric/INC modes for
 indexed array transforms, scalar accumulation and arithmetic/bitwise expressions.
 **Stats lab** demonstrates full-array, scan-distributed and

@@ -14,7 +14,7 @@ def analyze(expression,memory,scope='',destination_type=None,*,consumer='ST'):
     if memory.project.version!='35' or memory.project.processor.upper() not in CONTROLLERS:
         raise ModelError(label+' requires the v35 ControlLogix 5580 profile')
     numeric=set(declared.values())-{'BOOL'}
-    mixed=consumer in ('CPT','CMP') and len(numeric)>1 and not expression.typed_types
+    mixed=consumer in ('CPT','CMP','FAL') and len(numeric)>1 and not expression.typed_types
     if mixed:
         dtype=ordering_type(numeric)
     else:
@@ -123,7 +123,7 @@ def evaluate(expression,memory,scope,profile):
 def ladder_description(project):
     return dict(profile='v35-5580-integer-ladder-expressions',types=list(INTEGER_RANK),
                 available=project.version=='35' and project.processor.upper() in CONTROLLERS,
-                instructions=['CPT','CMP','MEQ'],mixed_numeric_types=True,
+                instructions=['CPT','CMP','MEQ'],file_consumers=['FAL'],mixed_numeric_types=True,
                 arithmetic='Exact declared-width integers; every intermediate must fit; quotient truncates toward zero',
                 operators=['+','-','*','/','MOD','AND','OR','XOR','NOT','ABS','comparisons'],
                 cmp_logic=['&&','||','^^','!','BOOL AND/OR/XOR/NOT'],eager_cmp=True,
@@ -135,9 +135,9 @@ def ladder_description(project):
                     arithmetic='Bounded mixed arithmetic is described in mixed_integer_arithmetic',
                     excluded='Numeric bitwise mixtures, other functions, REAL/LREAL, typed/larger constants, CPT comparison results, ST and native parity',
                     native_runtime_parity=False),
-                mixed_integer_arithmetic=dict(instructions=['CPT','CMP'],types=list(INTEGER_RANK),
+                mixed_integer_arithmetic=dict(instructions=['CPT','CMP','FAL'],types=list(INTEGER_RANK),
                     operators=['+','-','*','/','MOD','unary +','unary -','ABS'],
-                    operands='Highest-ranked actual source tag type covers every complete numeric source range; CPT destination matches that type',
+                    operands='Highest-ranked actual source tag type covers every complete numeric source range; CPT/FAL destination matches that type',
                     intermediates='Every arithmetic subexpression contains an actual source tag of the selected common type; every result must fit',
                     constants='Signed-DINT integers representable in the common type; destination and constants do not invent a wider source type',
                     arithmetic='Exact integers; quotient toward zero; remainder has dividend sign; all required sources consumed',

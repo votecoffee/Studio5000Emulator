@@ -2,6 +2,7 @@
 from . import control_operations as controls
 from . import file_incremental as incremental
 from .integer_math import CONTROLLERS, WIDE_TYPES
+from .comparisons import INTEGER_RANK
 from . import lreal_expressions, wide_st
 from .model import ArrayBoundsError, ModelError, coerce, literal
 
@@ -151,7 +152,14 @@ def description():
                     modes=['ALL','positive DINT immediate','INC'],
                     calculation='Use the bounded binary64 ladder evaluator per reached iteration; convert only the completed result to the destination type',
                     native_runtime_parity=False),
-                wide_expressions='Matching declared numeric tag/result type; exact intermediates, ABS/basic arithmetic/bitwise, representable signed-DINT or matching decimal L/U/UL literals', expressions='Existing bounded CPT grammar including qualified narrow FRD/TOD, destination-indexed per iteration',
+                wide_expressions='Matching declared numeric tag/result type or qualified range-preserving mixed integer tags; exact intermediates, ABS/basic arithmetic and homogeneous bitwise rules',
+                mixed_integer_arithmetic=dict(types=list(INTEGER_RANK),
+                    selection='Highest-ranked actual source tag type covers all source ranges; destination matches; each arithmetic subtree contains that common type',
+                    modes=['ALL','positive DINT immediate','INC'],
+                    operators=['+','-','*','/','MOD','unary +','unary -','ABS'],
+                    constants='Signed DINT values representable in the common source type; typed literals retain separate matching-type rules',
+                    execution='Exact checked intermediates with existing progress, lazy references, AOI bindings and whole-advance rollback',
+                    native_runtime_parity=False), expressions='Existing bounded CPT grammar including qualified narrow FRD/TOD, destination-indexed per iteration',
                 typed_integer_literals=dict(types=['LINT','UDINT','ULINT'],suffixes=['L/l','U/u','UL/ul/Ul/uL'],
                     range='Matching numeric tag/literal/result type; check declared literal range with its unary sign before execution',
                     precision='Exact integers at declared width; every numeric intermediate must fit',

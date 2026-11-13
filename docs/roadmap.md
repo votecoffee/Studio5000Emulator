@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+[Mixed integer FAL](integer-files.md#mixed-integer-fal) adds compatible source
+tag arithmetic in ALL/numeric/INC as of `26.1112.223602`. The common actual source
+type covers all ranges, matches the destination and appears in every arithmetic
+subtree. Exact values, AOI bindings and rollback remain. Stats Lab adds WideFileDelta.
+
 [PID queue snapshots](record-queues.md#pid-payloads) support matching
 FFL/FFU/LFL/LFU and PID-containing UDTs as of `26.1112.222351`. Represented unknowns,
 deep copies, typed clearing, lazy references and rollback follow the queue profile;
