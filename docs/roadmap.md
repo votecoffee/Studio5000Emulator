@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+[Typed AOI input constants](aoi-constants.md) add exact LINT/unsigned and finite
+LREAL scalar Inputs as of `26.1112.213355`. Required parameter types must match,
+and existing copied-input lifecycle and rollback remain. A dedicated example
+is available as **AOI constants lab** in the Examples menu.
+
 [Typed routine constants](indirect-routine-calls.md#typed-numeric-constants)
 add exact decimal LINT/unsigned and finite LREAL immediate JSR/RET values as of
 `26.1112.211906`. Formal/result types must match; caller address capture, lazy

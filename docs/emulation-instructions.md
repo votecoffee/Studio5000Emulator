@@ -138,6 +138,11 @@ seven basic operations and XPY without requiring an actual LREAL source.
 [REAL comparison promotion](mixed-real-comparisons.md) additionally covers
 all nine numeric source types, constants and converted-limit behavior.
 
+[Typed AOI input constants](aoi-constants.md) add exact decimal LINT, UDINT,
+ULINT and finite LREAL values to required scalar Inputs as of `26.1112.213355`.
+Copied input/prescan/false-mode behavior is retained; Output and InOut operands
+still require writable tags. **AOI constants lab** demonstrates all four types.
+
 ## Remaining forms of existing instructions
 
 | Existing family | Remaining semantic/operand work |

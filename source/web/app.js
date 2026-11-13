@@ -237,6 +237,7 @@ $('file').onchange=async()=>{
   try{const content=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result.split(',')[1]);reader.onerror=reject;reader.readAsDataURL(file);});selected='';await accept(await api('load',{name:file.name,content}),true);$('mode').value='project';render();if(state.blockers.length)selectTab('coverage');}catch(e){error(e);}finally{$('busy').hidden=true;}
 };
 $('demo').onclick=()=>loadDemo();$('welcome-demo').onclick=()=>loadDemo();$('data-demo').onclick=()=>loadDemo('DataLab');$('task-demo').onclick=()=>loadDemo('TaskLab');$('system-demo').onclick=()=>loadDemo('SystemLab');$('module-status-demo').onclick=()=>loadDemo('ModuleStatusLab');$('message-demo').onclick=()=>loadDemo('MessageLab');$('timer-demo').onclick=()=>loadDemo('TimerLab');$('counter-demo').onclick=()=>loadDemo('CounterLab');$('pulse-demo').onclick=()=>loadDemo('PulseLab');$('scale-demo').onclick=()=>loadDemo('ScaleLab');$('signal-demo').onclick=()=>loadDemo('SignalLab');$('rate-demo').onclick=()=>loadDemo('RateLab');$('event-demo').onclick=()=>loadDemo('EventLab');$('aoi-demo').onclick=()=>loadDemo('AOILab');
+$('aoi-constants-demo').onclick=()=>loadDemo('AOIConstantsLab');
 $('call-demo').onclick=()=>loadDemo('CallLab');
 $('loop-demo').onclick=()=>loadDemo('LoopLab');
 $('moving-demo').onclick=()=>loadDemo('MovingLab');

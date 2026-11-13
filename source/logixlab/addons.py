@@ -4,6 +4,12 @@ Local values absent from the export remain unknown. Definition DefaultData is
 not evidence of the saved state of an existing instance.
 """
 from .model import ModelError, coerce, dimensions, literal, operations
+from .numeric_storage import available as numeric_available, typed_literal
+
+
+def typed_input(project,argument):
+    """Keep typed numeric AOI inputs local to the qualified v35 profile."""
+    return typed_literal(argument) if numeric_available(project) and '#' not in argument else None
 
 
 def shape(value):
@@ -44,10 +50,15 @@ class AddOns:
                 if t!=expected or isinstance(self.memory.at(k,p),(dict,list)):
                     raise ModelError(parameter.get('Name')+': Output destination type must match exactly')
             else:
-                try:value=literal(argument);source_type='BOOL' if isinstance(value,bool) else 'REAL' if isinstance(value,float) else 'DINT'
-                except ValueError:
-                    k,p,source_type=self.memory.resolve(argument,scope)
-                    value=self.memory.at(k,p) if not any(isinstance(x,tuple) for x in p) else False
+                typed=typed_input(self.engine.project,argument)
+                if typed is not None:
+                    source_type,value=typed
+                    if source_type!=expected:raise ModelError('Typed AOI Input constant must match its declared parameter type')
+                else:
+                    try:value=literal(argument);source_type='BOOL' if isinstance(value,bool) else 'REAL' if isinstance(value,float) else 'DINT'
+                    except ValueError:
+                        k,p,source_type=self.memory.resolve(argument,scope)
+                        value=self.memory.at(k,p) if not any(isinstance(x,tuple) for x in p) else False
                 if isinstance(value,(dict,list)):raise ModelError('Input requires a scalar value')
                 if expected=='BOOL' and source_type!='BOOL' and argument.strip().upper() not in ('0','1'):
                     raise ModelError('BOOL Input requires BOOL or literal 0/1')
@@ -98,12 +109,16 @@ class AddOns:
         self.memory.write('EnableOut',bool(power) if not prescan else False,frame)
         for parameter,argument in zip(definition.required,op.args[1:]):
             if parameter.get('Usage')=='Input':
-                value=self.memory.read(argument,scope)
-                if isinstance(value,float):
-                    try:literal(argument)
-                    except ValueError:source_type=self.memory.resolve(argument,scope)[2]
-                    else:source_type='REAL'
-                    value=coerce(value,source_type)
+                typed=typed_input(self.engine.project,argument)
+                if typed is not None:
+                    value=typed[1]
+                else:
+                    value=self.memory.read(argument,scope)
+                    if isinstance(value,float):
+                        try:literal(argument)
+                        except ValueError:source_type=self.memory.resolve(argument,scope)[2]
+                        else:source_type='REAL'
+                        value=coerce(value,source_type)
                 self.memory.write(parameter.get('Name'),value,frame)
         if prescan:
             self.engine._prescan_routine(definition.routines['logic'],frame,depth+1)
@@ -125,6 +140,10 @@ class AddOns:
         project=self.engine.project
         return {'definitions':len(project.aois),'active_definitions':sorted(self.active),
                 'instances':self.instances,
+                'typed_inputs':dict(available=numeric_available(project),types=['LINT','UDINT','ULINT','LREAL'],
+                    syntax='Decimal L/l, U/u and UL/ul/Ul/uL integers; finite floating L/l values',
+                    contract='Required scalar Input parameters only; exact declared type and literal range; ordinary copied-input lifecycle',
+                    excluded='Typed radix/time/date/aggregate literals, numeric promotion, Output/InOut constants and other controller profiles',native_runtime_parity=False),
                 'local_state_policy':'Hidden saved local values remain unknown; Prescan or normal writes must establish them before reads',
                 'definition_issues':{a.name:a.problems for a in project.aois.values() if a.problems},
                 'instructions':{a.name:dict(__import__('collections').Counter(op.name for r in a.routines.values()
