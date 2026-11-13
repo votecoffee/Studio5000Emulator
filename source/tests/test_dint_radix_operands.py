@@ -69,8 +69,7 @@ class DintRadixTests(unittest.TestCase):
             self.assertTrue(self.engine([f'AFI()ADD(Source,{token},Results[1]);']).blockers,token)
         for dtype in ('REAL','LREAL'):
             engine=self.engine(['AFI()ADD(Source,16#FFFFFFFF,Results[1]);'],source=dtype,dest=dtype)
-            if dtype=='LREAL':self.assertEqual(engine.blockers,[])
-            else:self.assertTrue(engine.blockers)
+            self.assertEqual(engine.blockers,[])
         def constant(root):root.find('./Controller/Tags/Tag[@Name="Results"]').set('Constant','true')
         self.assertTrue(self.engine(['AFI()ADD(Source,16#FFFFFFFF,Results[1]);'],mutate=constant).blockers)
         for field,value in [('MajorRev','34'),('ProcessorType','1756-L75')]:

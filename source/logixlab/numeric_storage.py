@@ -100,12 +100,12 @@ def math_source_type(memory, ref, scope, *, radix=False):
     return 'REAL' if type(value) is float else None
 
 
-def real_math_source(memory, ref, scope, *, execute=False):
+def real_math_source(memory, ref, scope, *, execute=False, radix=False):
     """Selected REAL input; validate its declared type before float32 conversion."""
-    dtype=lreal_math_source(memory,ref,scope)
+    dtype=lreal_math_source(memory,ref,scope,radix=radix)
     if dtype=='LREAL':raise ModelError('REAL math source narrowing from LREAL is not qualified')
     if not execute:return dtype
-    typed=typed_literal(ref) if '#' not in ref else None
+    typed=typed_literal(ref) if radix or '#' not in ref else None
     return real(typed[1] if typed is not None else memory.read(ref,scope))
 
 
@@ -117,7 +117,6 @@ def floating_math_profile(memory, op, scope, *, radix=False):
     sources = op.args[:-1]
     source_types = () if dtype == 'LREAL' else tuple(math_source_type(memory, ref, scope, radix=radix) for ref in sources)
     binary64 = dtype == 'LREAL' or 'LREAL' in source_types
-    if radix and not binary64:return None
     single = dtype == 'REAL' or (dtype in WIDE_TYPES and 'REAL' in source_types)
     if not (binary64 or single):
         return None
@@ -125,7 +124,7 @@ def floating_math_profile(memory, op, scope, *, radix=False):
         raise ModelError('Floating math requires one scalar numeric destination')
     for ref in sources:
         if binary64:lreal_math_source(memory, ref, scope, radix=radix)
-        else:real_math_source(memory, ref, scope)
+        else:real_math_source(memory, ref, scope, radix=radix)
     return 'LREAL' if binary64 else 'REAL'
 
 

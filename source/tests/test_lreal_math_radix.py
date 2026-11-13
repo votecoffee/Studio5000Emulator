@@ -54,7 +54,7 @@ class LrealMathRadixTests(unittest.TestCase):
 
     def test_real_integer_comparison_bitwise_and_default_helpers_keep_their_scope(self):
         for call in ['ADD(16#1U,1U,Results[1]);', 'SQR(16#1U,Results[1]);', 'LN(16#1U,Results[1]);']:
-            self.assertTrue(self.engine(['AFI()'+call], dest='REAL').blockers, call)
+            self.assertEqual(self.engine(['AFI()'+call], dest='REAL').blockers, [], call)
         self.assertTrue(self.engine(['AFI()SQR(16#1L,Results[1]);'], dest='LINT').blockers)
         self.assertEqual(self.engine(['AFI()EQU(Source,16#1L)OTE(RunLatch);'], source='LREAL').blockers,[])
         e = self.checked(['ADD(1L,1L,Results[1]);'])

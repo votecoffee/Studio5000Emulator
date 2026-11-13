@@ -74,11 +74,11 @@ class RadixIntegerOperandTests(unittest.TestCase):
         for source,value in [('REAL',1.0),('LREAL',1.0),('TIME',1),('BOOL',True)]:
             for call in ('ADD(Source,16#1L,Results[1]);','EQU(Source,16#1L)OTE(RunLatch);'):
                 engine=self.engine(['AFI()'+call],source=source,value=value)
-                if source=='LREAL':self.assertEqual(engine.blockers,[])
+                if source in ('REAL','LREAL'):self.assertEqual(engine.blockers,[])
                 else:self.assertTrue(engine.blockers,(source,call))
         for dest in ('REAL','LREAL','TIME','SINT'):
             engine=self.engine(['AFI()ADD(16#1L,1L,Results[1]);'],dest=dest)
-            if dest=='LREAL':self.assertEqual(engine.blockers,[])
+            if dest in ('REAL','LREAL'):self.assertEqual(engine.blockers,[])
             else:self.assertTrue(engine.blockers,dest)
 
     def test_invalid_and_overwide_literals_block_both_math_and_ordering(self):

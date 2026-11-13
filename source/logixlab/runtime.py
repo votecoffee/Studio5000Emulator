@@ -1125,8 +1125,9 @@ class Engine:
         if extra is not None:return extra
         if p and n in integer_math.INSTRUCTIONS:
             scalar = n in scalar_math.ARITHMETIC and scalar_math.available(self.project)
-            if scalar and numeric_storage.floating_math_profile(self.memory,op,scope,radix=True):
-                return scalar_math.execute_lreal(self,op,scope)
+            floating=numeric_storage.floating_math_profile(self.memory,op,scope,radix=True) if scalar else None
+            if floating=='LREAL':return scalar_math.execute_lreal(self,op,scope)
+            if floating=='REAL':return scalar_math.execute_real(self,op,scope)
             radix = integer_math.radix_profile(self,op,scope,arithmetic=True) if scalar else None
             if scalar and not radix and scalar_math.time_arithmetic(self, op, scope, execute=True):
                 return True

@@ -53,9 +53,9 @@ remainder, fractional division, typed thresholds and collapsed limits.
 RealIntSelected retains an unknown neighbor and a 903.25 guard. RangeFault and
 a zero LateDivisor demonstrate separate atomic fault/retry paths.
 
-Other integer-result, bitwise, MEQ, expression/file/ST/FBD, typed-radix and
-controller/firmware profiles remain separate. Existing radix operands must fit
-the signed DINT numeric range; [MOV radix patterns](radix-mov-literals.md) retain
+Other integer-result, bitwise, MEQ, expression/file/ST/FBD and
+controller/firmware profiles remain separate. Selected REAL forms also admit
+[declared-width radix sources](real-radix-math.md); [MOV radix patterns](radix-mov-literals.md) retain
 their separate contract. Native numerical/status/minor-fault/lifecycle parity
 remains unverified. The source basis is installed v35 Immediate values (14454),
 ADD (14623), XPY (14478), EQU (14589), LIM (14610), Data conversions (14451) and

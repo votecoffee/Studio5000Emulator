@@ -114,7 +114,7 @@ def execute(memory, op, power, scope):
         values=[lreal_math_source(memory,ref,scope,execute=True,radix=True) for ref in op.args[:-1]]
     elif profile=='REAL':
         from .numeric_storage import real_math_source
-        values=[real_math_source(memory,ref,scope,execute=True) for ref in op.args[:-1]]
+        values=[real_math_source(memory,ref,scope,execute=True,radix=True) for ref in op.args[:-1]]
     else:
         values = [real(memory.read(ref, scope)) for ref in op.args[:-1]]
     try:
@@ -151,8 +151,9 @@ def description():
                     destination='Scalar REAL tag selects float32 sources and result, including constant-only calls',
                     integer_destinations=sorted(WIDE_TYPES),
                     selection_by_source='A REAL tag or floating immediate selects float32 for LINT and unsigned results',
+                    radix_sources=dict(bases=[2,8,16],types=['DINT','LINT','UDINT','ULINT'],selection='Existing REAL calculation selectors; decode declared word before float32 conversion',native_runtime_parity=False),
                     integer_conversion='Convert the float32 result to the declared integer by nearest-even rounding with range checks',
-                    constants='Bounded DINT/finite REAL and decimal L/U/UL integer constants; declared range before float32 conversion',
+                    constants='Bounded DINT/finite REAL and decimal/radix L/U/UL integer constants and signed DINT radix words; declared range before float32 conversion',
                     calculation='All required sources convert to finite float32 before the existing unary/power solver; result rounds to float32',
                     boundaries='LREAL inputs select the binary64 path before final destination conversion',
                     native_runtime_parity=False),

@@ -1012,6 +1012,23 @@
       <Tag Name="RadixCompareLateDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
       <Tag Name="RadixCompareLateResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
       <Tag Name="RadixCompareInputs" DataType="LREAL" Dimensions="3" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="LREAL" Dimensions="3"><Element Index="[0]" Value="-1" /><Element Index="[2]" Value="999" /></Array></Data></Tag>
+      <Tag Name="RealRadixEnabled" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="RealRadixIndex" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="RealRadixSource" DataType="REAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="3" /></Data></Tag>
+      <Tag Name="RealRadixRoundSource" DataType="REAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="16777216" /></Data></Tag>
+      <Tag Name="RealRadixSum" DataType="REAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="0" /></Data></Tag>
+      <Tag Name="RealRadixUnsigned" DataType="REAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="0" /></Data></Tag>
+      <Tag Name="RealRadixSigned" DataType="REAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="0" /></Data></Tag>
+      <Tag Name="RealRadixLoss" DataType="REAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="0" /></Data></Tag>
+      <Tag Name="RealRadixRoot" DataType="REAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="0" /></Data></Tag>
+      <Tag Name="RealRadixPower" DataType="LINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="0" /></Data></Tag>
+      <Tag Name="RealRadixQuotient" DataType="REAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="REAL" Value="0" /></Data></Tag>
+      <Tag Name="RealRadixMatch" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="RealRadixRounded" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="RealRadixRange" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="RealRadixLateDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="RealRadixLateResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="RealRadixSelected" DataType="REAL" Dimensions="3" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="REAL" Dimensions="3"><Element Index="[0]" Value="101" /><Element Index="[2]" Value="999" /></Array></Data></Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
@@ -1093,7 +1110,7 @@
               <Rung Number="25" Type="N"><Text>JSR(IntegerConstants,0);</Text></Rung>
               <Rung Number="26" Type="N"><Text>JSR(DoubleIntegerConstants,0);</Text></Rung>
               <Rung Number="27" Type="N"><Text>JSR(IntegerFileConstants,0);</Text></Rung>
-              <Rung Number="28" Type="N"><Text>JSR(NumericMoveConstants,0)JSR(RadixMoves,0)JSR(MathConstants,0)JSR(ComparisonConstants,0)JSR(RealIntegerConstants,0)JSR(IntegerOperandConstants,0)JSR(BitwiseOperandConstants,0)JSR(Binary64SourceResults,0)JSR(DintPatternConstants,0)JSR(DintWordExpressions,0)JSR(WideBcdExpressions,0)JSR(WideRootPowerExpressions,0)JSR(BinaryRadixExpressions,0)JSR(RadixMathBlocks,0)JSR(RadixComparisons,0);</Text></Rung>
+              <Rung Number="28" Type="N"><Text>JSR(NumericMoveConstants,0)JSR(RadixMoves,0)JSR(MathConstants,0)JSR(ComparisonConstants,0)JSR(RealIntegerConstants,0)JSR(IntegerOperandConstants,0)JSR(BitwiseOperandConstants,0)JSR(Binary64SourceResults,0)JSR(DintPatternConstants,0)JSR(DintWordExpressions,0)JSR(WideBcdExpressions,0)JSR(WideRootPowerExpressions,0)JSR(BinaryRadixExpressions,0)JSR(RadixMathBlocks,0)JSR(RadixComparisons,0)JSR(RealRadixBlocks,0);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="Binary64" Type="RLL">
@@ -1406,6 +1423,22 @@
               <Rung Number="6" Type="N"><Text>XIC(RadixCompareEnabled)EQU(16#FFFFFFFFFFFFFFFFUL,18446744073709551616.0L)OTE(RadixCompareConstantOnly);</Text></Rung>
               <Rung Number="7" Type="N"><Text>XIC(RadixCompareEnabled)EQU(RadixCompareInputs[RadixCompareIndex],8#37777777777)OTE(RadixCompareSelected);</Text></Rung>
               <Rung Number="8" Type="N"><Text>XIC(RadixCompareEnabled)DIV(1,RadixCompareLateDivisor,RadixCompareLateResult);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="RealRadixBlocks" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(RealRadixEnabled)ADD(RealRadixSource,16#1L,RealRadixSum);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(RealRadixEnabled)ADD(16#FFFFFFFFFFFFFFFFUL,0.0,RealRadixUnsigned);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(RealRadixEnabled)ADD(16#FFFFFFFF,0.0,RealRadixSigned);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(RealRadixEnabled)SUB(16#1000001U,16777216.0,RealRadixLoss);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(RealRadixEnabled)SQR(16#1000001U,RealRadixRoot);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(RealRadixEnabled)XPY(16#4U,0.5,RealRadixPower);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(RealRadixEnabled)DIV(16#3L,2#10U,RealRadixQuotient);</Text></Rung>
+              <Rung Number="7" Type="N"><Text>XIC(RealRadixEnabled)ADD(8#37777777777,RealRadixSource,RealRadixSelected[RealRadixIndex]);</Text></Rung>
+              <Rung Number="8" Type="N"><Text>XIC(RealRadixEnabled)EQU(RealRadixSource,16#3UL)OTE(RealRadixMatch);</Text></Rung>
+              <Rung Number="9" Type="N"><Text>XIC(RealRadixEnabled)EQU(RealRadixRoundSource,16#1000001U)OTE(RealRadixRounded);</Text></Rung>
+              <Rung Number="10" Type="N"><Text>XIC(RealRadixEnabled)LIM(16#FFFFFFFF,RealRadixSource,16#3U)OTE(RealRadixRange);</Text></Rung>
+              <Rung Number="11" Type="N"><Text>XIC(RealRadixEnabled)DIV(1,RealRadixLateDivisor,RealRadixLateResult);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

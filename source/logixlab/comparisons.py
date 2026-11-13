@@ -27,9 +27,9 @@ def validate(engine, op, scope):
         if op.name == 'MEQ':
             masked_values(engine, op.args, scope)
         else:
-            if lreal_specification(memory,op.args,scope):return True
+            if lreal_specification(memory,op.args,scope) or real_specification(memory,op.args,scope):return True
             if integer_math.radix_profile(engine,op,scope):return True
-            if (time_specification(memory, op, scope) or real_specification(memory,op.args,scope)):return True
+            if time_specification(memory, op, scope):return True
             if integer_math.typed_profile(engine,op,scope):return True
             for arg in op.args:
                 value = memory.read(arg, scope)
@@ -72,11 +72,11 @@ def real_specification(memory, args, scope):
     """Select by an actual REAL tag after the separate LREAL priority check."""
     selected=False
     for ref in args:
-        if '#' not in ref and typed_literal(ref) is not None:continue
+        if time_values.literal(ref) is not None or typed_literal(ref) is not None:continue
         try:literal(ref)
         except ValueError:selected=selected or memory.resolve(ref,scope)[2]=='REAL'
     if not selected:return None
-    for ref in args:real_math_source(memory,ref,scope)
+    for ref in args:real_math_source(memory,ref,scope,radix=True)
     return 'REAL'
 
 
@@ -89,9 +89,9 @@ def ordering_profile(engine, op, scope):
     """
     if not available(engine.project):return integer_math.profile(engine, op, scope)
     if lreal_specification(engine.memory,op.args,scope):return 'LREAL'
+    if real_specification(engine.memory,op.args,scope):return 'REAL'
     radix=integer_math.radix_profile(engine,op,scope)
     if radix:return radix
-    if real_specification(engine.memory,op.args,scope):return 'REAL'
     typed=integer_math.typed_profile(engine,op,scope)
     if typed:return typed
     types, constants = [], []
@@ -158,16 +158,16 @@ def execute(engine, op, power, scope):
     if op.name == 'MEQ':
         source, mask, compare = masked_values(engine, op.args, scope)
         return (source & mask) == (compare & mask)
-    binary64=lreal_specification(memory,op.args,scope)
-    radix=None if binary64 else integer_math.radix_profile(engine,op,scope)
-    temporal = None if binary64 or radix else time_specification(memory, op, scope)
+    floating=lreal_specification(memory,op.args,scope) or real_specification(memory,op.args,scope)
+    radix=None if floating else integer_math.radix_profile(engine,op,scope)
+    temporal = None if floating or radix else time_specification(memory, op, scope)
     if temporal:
         ticks = [time_values.read_operand(memory, ref, scope) * time_values.ns_per_tick(dtype)
                  for ref, dtype in zip(op.args, temporal)]
         return RELATIONS[op.name](*ticks)
-    profile=binary64 or radix or ordering_profile(engine,op,scope)
+    profile=floating or radix or ordering_profile(engine,op,scope)
     if profile=='LREAL':values=[lreal_math_source(memory,arg,scope,execute=True,radix=True) for arg in op.args]
-    elif profile=='REAL':values=[real_math_source(memory,arg,scope,execute=True) for arg in op.args]
+    elif profile=='REAL':values=[real_math_source(memory,arg,scope,execute=True,radix=True) for arg in op.args]
     else:values = [integer_math.read_source(memory,arg,scope,radix=bool(radix),signed_dint=bool(radix)) for arg in op.args]
     if op.name == 'LIM':
         low, value, high = values
@@ -212,7 +212,8 @@ def description(project):
                     native_runtime_parity=False),
                 real_ordering=dict(instructions=sorted((*RELATIONS,'LIM')),source_types=sorted({*INT_BITS,'REAL'}),
                     operands='Scalar numeric tags with at least one REAL input and no LREAL input',
-                    constants='Bounded DINT/finite REAL and decimal L/U/UL integer constants checked at their declared range before float32 conversion; an actual REAL tag is required',
+                    constants='Bounded DINT/finite REAL, signed DINT radix words and decimal/radix L/U/UL integers checked at declared range before float32 conversion; an actual REAL tag is required',
+                    radix_sources=dict(bases=[2,8,16],types=['DINT','LINT','UDINT','ULINT'],selection='At least one actual REAL input after LREAL priority; constant-only REAL forms remain separate',native_runtime_parity=False),
                     calculation='Convert every required source to finite float32 before comparison; inclusive/reversed limits use converted bounds; large integers and literals may round',
                     precedence='LREAL tags or floating L/l literals retain the separate binary64 profile; integer-only comparisons retain their existing exact rules',
                     native_runtime_parity=False),

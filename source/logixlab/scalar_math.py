@@ -94,7 +94,7 @@ def execute_real(engine,op,scope):
     """Calculate from finite REAL sources and round before destination conversion."""
     memory=engine.memory
     from .numeric_storage import real_math_source
-    values=[real_math_source(memory,ref,scope,execute=True) for ref in op.args[:-1]]
+    values=[real_math_source(memory,ref,scope,execute=True,radix=True) for ref in op.args[:-1]]
     a=values[0]
     if op.name in ('NEG','ABS'):result=-a if op.name=='NEG' else abs(a)
     else:
@@ -271,8 +271,9 @@ def description(project):
                     destination='Scalar REAL tag; no REAL source is required; constant-only calls execute',
                     integer_destinations=sorted(WIDE_TYPES),
                     selection_by_source='A REAL tag or floating immediate selects float32 for LINT and unsigned results',
+                    radix_sources=dict(bases=[2,8,16],types=['DINT','LINT','UDINT','ULINT'],selection='Existing REAL calculation selectors; decode declared word before float32 conversion',native_runtime_parity=False),
                     integer_conversion='Convert the float32 result to the declared integer by nearest-even rounding with range checks',
-                    constants='Bounded DINT/finite REAL and decimal L/U/UL integer constants; declared integer range checked before float32 conversion',
+                    constants='Bounded DINT/finite REAL and decimal/radix L/U/UL integer constants and signed DINT radix words; declared integer range checked before float32 conversion',
                     calculation='Convert every required source to finite float32 before calculation; round the result to float32; stored inputs remain unchanged',
                     boundaries='LREAL inputs select binary64 before final destination conversion',
                     native_runtime_parity=False),

@@ -120,7 +120,7 @@ class RealMathTests(unittest.TestCase):
         for dtype in ('LINT','USINT','UINT','UDINT','ULINT','LREAL'):
             e=self.checked(['SQR(Source,Dest);'],types=(dtype,'REAL','REAL'),values=(4,2,7));e.step();self.assertEqual(e.memory.read('Dest'),2)
         self.assertTrue(self.engine(['SQR(Source,Dest);'],types=('REAL','REAL','BOOL'),values=(0.5,2,0)).blockers)
-        for text in ('SQR(TRUE,Dest);','SQR(2147483648,Dest);','SQR(16#FFFF_FFFF,Dest);',
+        for text in ('SQR(TRUE,Dest);','SQR(2147483648,Dest);','SQR(16#1_0000_0000,Dest);',
                      'SQR(1e40,Dest);','SQR(1e309,Dest);','SQR(Source);','XPY(Source,Dest);',
                      'SQRT(Source,Dest);','EXPT(Source,Mask,Dest);','ACOS(Source,Dest);'):
             self.assertTrue(self.engine([text]).blockers,text)

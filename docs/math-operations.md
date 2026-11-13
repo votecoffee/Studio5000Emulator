@@ -202,3 +202,7 @@ checked exponent/result bounds remain required; native parity is unverified.
 binary/octal/hex DINT and typed L/U/UL words in nineteen math forms. An explicit
 binary64 selector is required; REAL/integer-only and other consumers retain
 their contracts. Declared ranges precede conversion; native parity is unverified.
+
+[REAL radix sources](real-radix-math.md) extend nineteen standalone ladder math
+forms and REAL-tag relations/LIM with declared-width decoding before float32
+conversion. Integer-only, expressions/ST and native qualification remain separate.

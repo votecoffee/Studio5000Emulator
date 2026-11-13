@@ -37,12 +37,12 @@ class LrealComparisonRadixTests(unittest.TestCase):
         for call, source, value, expected in [('EQU(16#FFFFFFFF,Source)', 'LREAL', -1, True),
                 ('GRT(16#FFFFFFFFFFFFFFFFUL,0.0L)', 'DINT', 0, True),
                 ('EQU(16#1000001U,Source)', 'LREAL', 16777217, True),
-                ('EQU(16#1000001U,Source)', 'REAL', 16777217, False),
+                ('EQU(16#1000001U,Source)', 'REAL', 16777217, True),
                 ('EQU(16#1000001U,16777217.0L)', 'DINT', 0, True),
                 ('EQU(16#1000001U,16777217.0)', 'LREAL', 0, False)]:
             e = self.engine([call+'OTE(RunLatch);'], source=source, value=value)
-            # The last two calls distinguish explicit binary64 selection from a REAL-only call.
-            if call.endswith('16777217.0)') or source == 'REAL':
+            # A REAL tag selects float32; constant-only REAL comparison stays separate.
+            if call.endswith('16777217.0)'):
                 self.assertTrue(e.blockers, call)
             else:
                 self.assertEqual(e.blockers, []); e.step(); self.assertIs(e.memory.read('RunLatch'), expected)
@@ -81,7 +81,7 @@ class LrealComparisonRadixTests(unittest.TestCase):
 
     def test_real_integer_temporal_and_default_helpers_remain_separate(self):
         for call in ('EQU(Source,16#1L)', 'LIM(16#0UL,Source,16#2U)'):
-            self.assertTrue(self.engine([call+'OTE(RunLatch);'], source='REAL', value=1).blockers)
+            e=self.checked([call+'OTE(RunLatch);'], source='REAL', value=1);e.step();self.assertTrue(e.memory.read('RunLatch'))
         e = self.checked(['GRT(16#0020000000000001L,16#0020000000000000L)OTE(RunLatch);']); e.step(); self.assertTrue(e.memory.read('RunLatch'))
         self.assertTrue(self.engine(['LIM(0L,16#1UL,2L)OTE(RunLatch);']).blockers)
         from logixlab.numeric_storage import lreal_math_source

@@ -461,3 +461,7 @@ their contracts. Declared ranges precede conversion; native parity is unverified
 Explicit LREAL ladder relations and LIM also accept declared-width binary/octal/
 hexadecimal integer thresholds. Integer-only and REAL-only profiles stay separate;
 see [radix comparison constants](lreal-comparison-literals.md#radix-integer-thresholds).
+
+[REAL radix sources](real-radix-math.md) extend nineteen standalone ladder math
+forms and REAL-tag relations/LIM with declared-width decoding before float32
+conversion. Integer-only, expressions/ST and native qualification remain separate.

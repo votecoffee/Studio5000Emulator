@@ -102,6 +102,10 @@ ordering beyond floating precision. See [integer operands](docs/typed-integer-op
 and seven comparisons, using declared integer ranges and existing float32
 conversion. See [REAL integer constants](docs/real-integer-literals.md).
 
+**REAL radix sources** now work in nineteen ladder math forms and REAL-tag
+comparisons/LIM, with declared sign/width before float32 rounding. Try
+RealRadixEnabled in **Wide expression lab**; see [REAL radix math](docs/real-radix-math.md).
+
 **LREAL comparison constants** now include binary, octal and hexadecimal integer
 thresholds with declared signed widths across six relations and LIM. An LREAL
 tag or floating L/l constant selects binary64, with declared source precision
