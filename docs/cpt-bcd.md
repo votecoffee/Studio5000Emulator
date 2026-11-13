@@ -81,3 +81,37 @@ FRD/TOD expressions; exponents remain in 0..31 with checked DINT results.
 
 [Integer SQR nodes](ladder-integer-roots.md) now retain narrow integer arithmetic
 in eligible ladder expressions, including composition with these operations.
+
+## Wide integer expressions
+
+The separate homogeneous v35 5580 profile now accepts FRD/TOD in ladder CPT,
+CMP, FAL and FSC with USINT, UINT, UDINT, LINT or ULINT numeric operands.
+Numeric tags and results must have one matching declared type. BOOL condition
+tags remain allowed. Compatible constants retain the existing signed-DINT or
+matching L/U/UL literal rules. Mixed numeric tag widths stay excluded for BCD.
+
+The selected type supplies every intermediate width: 8, 16, 32 or 64 bits.
+FRD weights all nibbles, including A-F, in that width. TOD accepts nonnegative
+values up to 99, 9999, 99999999 or 9999999999999999, respectively. Packed
+patterns use the result type's signed interpretation. For example, LINT
+TOD(9999999999999999L) is -7378697629483820647; decoding it gives the exact
+original decimal value. FRD(-1L) is 16666666666666665. These reuse the existing
+standalone conversion software model; native expression widths, status and
+precision remain unverified. Narrow SINT/INT/DINT still use DINT intermediates.
+
+Nested FRD/TOD, ABS, supported integer arithmetic/bitwise operators and eager
+Boolean comparisons compose under the existing per-intermediate range checks.
+Unknown operands, invalid indices, conversion ranges and later faults roll back
+the modeled advance. Structural preflight and false/prescan lazy reads remain.
+REAL/LREAL combinations, other math functions, ST and index syntax are unchanged.
+
+In **Wide expression lab**, set WideBcdIndex=1 and WideBcdEnabled=true. Packed
+becomes -7378697629483820647, Roundtrip=9999999999999999, AllNibbles=
+16666666666666665 and BytePacked=153. Match is true and Selected[1] contains
+the packed LINT, with guards 101/999. The gate starts false with index99 dormant.
+Input=10000000000000000 or LateDivisor=0 exercises rollback; restore the input
+to 9999999999999999 or divisor to 1 before retrying.
+
+The report publishes `wide_ladder_expressions.bcd`. The source basis is installed
+v35 CPT/CMP/FAL/FSC operator tables (14597/14592/14504/14515) and FRD/TOD
+operand references (14675/14674). See [focused checks](../source/tests/test_wide_bcd_expressions.py).

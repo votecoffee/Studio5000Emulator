@@ -464,6 +464,10 @@ skips out-of-bounds timer and counter selections and continues initialization.
 lengths and indices until reached. **Byte copy lab** includes an indexed ladder
 byte round trip with unknown inputs and outputs, alongside its ST examples.
 
+[Wide BCD expressions](docs/cpt-bcd.md#wide-integer-expressions) add FRD/TOD
+to homogeneous LINT and unsigned CPT/CMP/FAL/FSC expressions, retaining exact
+64-bit values and the existing file progress and rollback rules.
+
 [Signed DINT radix expressions](docs/ladder-wide-expressions.md#unsuffixed-dint-radix-expressions)
 add full 32-bit binary, octal and hexadecimal words to ladder CPT, CMP, FAL
 and FSC integer expressions. For example, `7+16#FFFFFFFF` evaluates to 6.

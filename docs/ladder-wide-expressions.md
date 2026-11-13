@@ -302,3 +302,8 @@ The report publishes `wide_ladder_expressions.signed_dint_radix_expressions`.
 Source basis: installed v35 Immediate values (14454), CPT (14597), CMP (14592),
 FAL (14504) and FSC (14515). See the existing [scalar-word profile](typed-integer-operands.md)
 and [focused expression checks](../source/tests/test_dint_radix_expressions.py).
+
+[Homogeneous wide BCD expressions](cpt-bcd.md#wide-integer-expressions) separately
+qualify FRD/TOD in CPT/CMP/FAL/FSC for USINT, UINT, UDINT, LINT and ULINT, using
+their selected 8/16/32/64-bit software conversion widths. Mixed numeric tag
+widths, REAL/LREAL, ST/index expansion and native parity remain excluded.

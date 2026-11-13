@@ -104,3 +104,8 @@ acceptance remain unverified. See [FAL](../source/logixlab/file_arithmetic.py),
 
 [Integer SQR nodes](ladder-integer-roots.md) now retain narrow integer arithmetic
 in eligible ladder expressions, including composition with these operations.
+
+[Homogeneous wide BCD expressions](cpt-bcd.md#wide-integer-expressions) separately
+qualify FRD/TOD in CPT/CMP/FAL/FSC for USINT, UINT, UDINT, LINT and ULINT, using
+their selected 8/16/32/64-bit software conversion widths. Mixed numeric tag
+widths, REAL/LREAL, ST/index expansion and native parity remain excluded.

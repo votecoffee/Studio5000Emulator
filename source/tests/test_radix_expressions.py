@@ -102,7 +102,7 @@ class RadixExpressionTests(unittest.TestCase):
         self.assertEqual(enabled.radix_types,{'LINT'})
         with self.assertRaises(ModelError):e.extensions.expression('16#FFL',integer_literals=True)
         for dtype,text in [('LREAL','16#1L'),('LINT','16#1L+1.0L'),('REAL','16#1L'),('LINT','SQR(16#1L)'),
-                           ('LINT','FRD(16#1L)'),('LINT','16#1L**2')]:
+                           ('LINT','FRD(16#1L)+1.0'),('LINT','16#1L**2')]:
             self.assertTrue(self.engine([f'AFI()CPT(Dest,{text});'],dtype=dtype,checked=False).blockers,(dtype,text))
 
     def test_fal_all_numeric_and_inc_keep_exact_progress_lazy_holds_and_retry(self):

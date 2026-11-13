@@ -163,7 +163,10 @@ class FileBcdTests(unittest.TestCase):
     def test_other_types_real_functions_readonly_results_and_profiles_stay_guarded(self):
         for dtype in ('BOOL','REAL','LREAL','LINT','USINT','UINT','UDINT','ULINT'):
             for call in ('FAL(Ctl,?,?,ALL,Results[Ctl.POS],FRD(Queue[Ctl.POS]));','FSC(Ctl,?,?,ALL,TOD(Queue[Ctl.POS])>0);'):
-                self.assertTrue(self.engine(['AFI()'+call],source_type=dtype,values=(1,1,1,1,1)).blockers,(dtype,call))
+                engine=self.engine(['AFI()'+call],source_type=dtype,values=(1,1,1,1,1))
+                if dtype in ('LINT','USINT','UINT','UDINT','ULINT') and call.startswith('FSC'):
+                    self.assertEqual(engine.blockers,[],(dtype,call))
+                else:self.assertTrue(engine.blockers,(dtype,call))
             self.assertTrue(self.engine(['AFI()FAL(Ctl,?,?,ALL,Results[Ctl.POS],TOD(Queue[Ctl.POS]));'],dest_type=dtype,values=(1,1,1,1,1)).blockers,dtype)
         def constant(root):root.find('./Controller/Tags/Tag[@Name="Results"]').set('Constant','true')
         self.assertTrue(self.engine(mutate=constant).blockers)

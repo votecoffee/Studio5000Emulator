@@ -299,3 +299,8 @@ radix forms and native parity remain separate.
 Ladder CPT/CMP/FAL/FSC also support [signed DINT radix words in integer expressions](ladder-wide-expressions.md#unsuffixed-dint-radix-expressions),
 with existing integer ranges, file progress and transactional rollback. Default,
 ST and index parsing are unchanged; native arithmetic/status parity is unverified.
+
+[Homogeneous wide BCD expressions](cpt-bcd.md#wide-integer-expressions) separately
+qualify FRD/TOD in CPT/CMP/FAL/FSC for USINT, UINT, UDINT, LINT and ULINT, using
+their selected 8/16/32/64-bit software conversion widths. Mixed numeric tag
+widths, REAL/LREAL, ST/index expansion and native parity remain excluded.

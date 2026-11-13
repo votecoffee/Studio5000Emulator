@@ -2,7 +2,7 @@
 from .conditions import RELATIONS
 from .comparisons import ordering_type, INTEGER_RANK
 from .integer_math import CONTROLLERS,WIDE_TYPES,bit_value,quotient
-from .model import ModelError,coerce
+from .model import INT_BITS,ModelError,coerce
 
 
 def analyze(expression,memory,scope='',destination_type=None,*,consumer='ST'):
@@ -25,8 +25,9 @@ def analyze(expression,memory,scope='',destination_type=None,*,consumer='ST'):
         dtype=next(iter(wide))
     if destination_type not in (None,'BOOL',dtype):
         raise ModelError(label+' numeric destination must match the expression type')
-    if expression.functions-{'ABS'} or '**' in expression.operators:
-        raise ModelError(label+' supports ABS and basic arithmetic/bitwise operators; other functions/power remain unqualified')
+    bcd = {'FRD','TOD'} if expression.bcd and consumer in ('CPT','CMP','FAL') and not mixed else set()
+    if expression.functions-{'ABS'}-bcd or '**' in expression.operators:
+        raise ModelError(label+' supports ABS, qualified homogeneous FRD/TOD and basic arithmetic/bitwise operators; other functions/power remain unqualified')
     types={ref:'bool' if kind=='BOOL' else 'number' for ref,kind in declared.items()}
     for ref in declared:
         if isinstance(memory.read(ref,scope),(list,dict)):
@@ -68,7 +69,7 @@ def analyze(expression,memory,scope='',destination_type=None,*,consumer='ST'):
                 require_common(node)
             return 'number'
         if kind=='call':
-            if infer(node[2])!='number':raise ModelError('Wide ST ABS requires a numeric operand')
+            if infer(node[2])!='number':raise ModelError(label+' functions require a numeric operand')
             if mixed:require_common(node)
             return 'number'
         left,right=infer(node[2]),infer(node[3])
@@ -104,7 +105,11 @@ def evaluate(expression,memory,scope,profile):
             item=visit(node[2])
             if value in ('NOT','!') and type(item) is bool:return not item
             return number(item if value=='+' else -item if value=='-' else bit_value(~item,dtype))
-        if kind=='call':return number(abs(visit(node[2])))
+        if kind=='call':
+            item=visit(node[2])
+            if value=='ABS':return number(abs(item))
+            from .numeric_conversions import from_bcd,to_bcd
+            return number(from_bcd(item,INT_BITS[dtype]) if value=='FRD' else to_bcd(item,dtype))
         left,right=visit(node[2]),visit(node[3])
         if value in RELATIONS:return RELATIONS[value](left,right)
         if value in ('AND','OR','XOR','&&','||','^^') and type(left) is type(right) is bool:
@@ -130,6 +135,11 @@ def ladder_description(project):
                     interpretation='Unsuffixed words with bit31 set decode as signed DINT before expression unary operators',
                     arithmetic='Narrow integer or existing compatible wide profile; existing per-intermediate range checks',
                     excluded='REAL/LREAL mixtures, default/ST/index parser expansion and native parity',
+                    native_runtime_parity=False),
+                bcd=dict(instructions=['CPT','CMP','FAL','FSC'],functions=['FRD','TOD'],types=sorted(WIDE_TYPES),
+                    widths={'USINT':8,'UINT':16,'UDINT':32,'LINT':64,'ULINT':64},
+                    interpretation='Homogeneous selected integer width; FRD weights all nibbles including A-F; TOD packs 2/4/8/16 digits',
+                    excluded='Mixed numeric tag types, REAL/LREAL, ST/index expansion and native parity',
                     native_runtime_parity=False),
                 arithmetic='Exact declared-width integers; every intermediate must fit; quotient truncates toward zero',
                 operators=['+','-','*','/','MOD','AND','OR','XOR','NOT','ABS','comparisons'],
@@ -163,7 +173,7 @@ def ladder_description(project):
                     native_runtime_parity=False),
                 failures='Required unknown data, bounds, division and overflow faults roll back the whole advance',
                 native_runtime_parity=False,
-                remaining=['Other mixed arithmetic intermediates and nonmatching typed/radix literal combinations','Numeric bitwise mixtures, power and functions beyond ABS',
+                remaining=['Other mixed arithmetic intermediates and nonmatching typed/radix literal combinations','Numeric bitwise mixtures, power and functions beyond ABS and qualified homogeneous FRD/TOD',
                            'Time/date expressions and additional file/index forms; LREAL and simple wide tag indices use separate qualified profiles','Native status/fault/intermediate/partial-effect parity'])
 
 

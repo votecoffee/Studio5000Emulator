@@ -941,6 +941,18 @@
       <Tag Name="DintExprMatch" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
       <Tag Name="DintExprNegative" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
       <Tag Name="DintExprSelected" DataType="DINT" Dimensions="3" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="DINT" Dimensions="3"><Element Index="[0]" Value="101" /><Element Index="[2]" Value="999" /></Array></Data></Tag>
+      <Tag Name="WideBcdEnabled" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="WideBcdIndex" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="WideBcdInput" DataType="LINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="9999999999999999" /></Data></Tag>
+      <Tag Name="WideBcdSmall" DataType="USINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="USINT" Value="99" /></Data></Tag>
+      <Tag Name="WideBcdLateDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="WideBcdLateResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="WideBcdPacked" DataType="LINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="0" /></Data></Tag>
+      <Tag Name="WideBcdRoundtrip" DataType="LINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="0" /></Data></Tag>
+      <Tag Name="WideBcdAllNibbles" DataType="LINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="0" /></Data></Tag>
+      <Tag Name="WideBcdBytePacked" DataType="USINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="USINT" Value="0" /></Data></Tag>
+      <Tag Name="WideBcdMatch" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="WideBcdSelected" DataType="LINT" Dimensions="3" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="LINT" Dimensions="3"><Element Index="[0]" Value="101" /><Element Index="[2]" Value="999" /></Array></Data></Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
@@ -1022,7 +1034,7 @@
               <Rung Number="25" Type="N"><Text>JSR(IntegerConstants,0);</Text></Rung>
               <Rung Number="26" Type="N"><Text>JSR(DoubleIntegerConstants,0);</Text></Rung>
               <Rung Number="27" Type="N"><Text>JSR(IntegerFileConstants,0);</Text></Rung>
-              <Rung Number="28" Type="N"><Text>JSR(NumericMoveConstants,0)JSR(RadixMoves,0)JSR(MathConstants,0)JSR(ComparisonConstants,0)JSR(RealIntegerConstants,0)JSR(IntegerOperandConstants,0)JSR(BitwiseOperandConstants,0)JSR(Binary64SourceResults,0)JSR(DintPatternConstants,0)JSR(DintWordExpressions,0);</Text></Rung>
+              <Rung Number="28" Type="N"><Text>JSR(NumericMoveConstants,0)JSR(RadixMoves,0)JSR(MathConstants,0)JSR(ComparisonConstants,0)JSR(RealIntegerConstants,0)JSR(IntegerOperandConstants,0)JSR(BitwiseOperandConstants,0)JSR(Binary64SourceResults,0)JSR(DintPatternConstants,0)JSR(DintWordExpressions,0)JSR(WideBcdExpressions,0);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="Binary64" Type="RLL">
@@ -1270,6 +1282,17 @@
               <Rung Number="8" Type="N"><Text>XIC(DintExprEnabled)CMP(16#80000000&lt;0)OTE(DintExprNegative);</Text></Rung>
               <Rung Number="9" Type="N"><Text>XIC(DintExprEnabled)CPT(DintExprSelected[DintExprIndex],DintExprSource+16#FFFFFFFF);</Text></Rung>
               <Rung Number="10" Type="N"><Text>XIC(DintExprEnabled)DIV(1,DintExprLateDivisor,DintExprLateResult);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="WideBcdExpressions" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(WideBcdEnabled)CPT(WideBcdPacked,TOD(WideBcdInput));</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(WideBcdEnabled)CPT(WideBcdRoundtrip,FRD(WideBcdPacked));</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(WideBcdEnabled)CPT(WideBcdAllNibbles,FRD(16#FFFFFFFFFFFFFFFFL));</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(WideBcdEnabled)CPT(WideBcdBytePacked,TOD(WideBcdSmall));</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(WideBcdEnabled)CMP(FRD(WideBcdPacked)=WideBcdInput)OTE(WideBcdMatch);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(WideBcdEnabled)CPT(WideBcdSelected[WideBcdIndex],TOD(WideBcdInput));</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(WideBcdEnabled)DIV(1,WideBcdLateDivisor,WideBcdLateResult);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>
