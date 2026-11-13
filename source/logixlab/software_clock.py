@@ -85,7 +85,7 @@ def description_attributes():
     return values
 
 
-def attributes(*, read_time=False, instance_id=None, ptp_enabled=None):
+def attributes(*, read_time=False, instance_id=None, ptp_enabled=None, clock_state=None):
     # No PTP engine means no synchronized master and no emulated PTP ports.
     # Port arrays contain their UINT count, without invented entries.
     values = {2: b'\0', **{number: bytes(2) for number in PORT_ATTRIBUTES},
@@ -94,6 +94,9 @@ def attributes(*, read_time=False, instance_id=None, ptp_enabled=None):
     if read_time:
         try:
             nanoseconds = time.time_ns()
+            if (clock_state is not None and type(nanoseconds) is int
+                    and 0 <= nanoseconds//1000 <= 0x7FFFFFFFFFFFFFFF):
+                nanoseconds += clock_state.offset_us*1000
             if type(nanoseconds) is int and nanoseconds >= 0:
                 microseconds = nanoseconds // 1000
                 if microseconds <= 0x7FFFFFFFFFFFFFFF:

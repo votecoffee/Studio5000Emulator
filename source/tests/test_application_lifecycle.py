@@ -4599,7 +4599,7 @@ class ApplicationLifecycleTests(unittest.TestCase):
         for name,last in [('ClockWords',3),('ClockUtc',8),('ClockLocal',8)]:self.assertEqual((row[f'{name}[0]'],row[f'{name}[{last}]']),(101,999))
         retained={k:v for k,v in row.items() if k.startswith(('Clock','StClock'))}
         write('ReadClock',False);row=values(step());self.assertEqual({k:v for k,v in row.items() if k in retained},retained)
-        report=self.post('report',{})['system_values']['wall_clock'];self.assertIn('time.time_ns',report['source']);self.assertFalse(report['clock_setters']);self.assertFalse(report['native_runtime_parity'])
+        report=self.post('report',{})['system_values']['wall_clock'];self.assertIn('time.time_ns',report['source']);self.assertTrue(report['clock_setters']);self.assertFalse(report['native_runtime_parity'])
 
     def test_system_lab_activates_imported_standby_on_next_scheduled_invocation(self):
         state=self.post('demo',{'sample':'SystemLab'})

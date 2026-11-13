@@ -134,8 +134,8 @@ def _shelf_deadline(now, deadline, *, minutes, cancel):
     return deadline if deadline is not None and now < deadline else None
 
 
-def _event_time(obj):
-    stamp = obj['ProgTime'] if obj['UseProgTime'] else current_value_microseconds()
+def _event_time(obj, engine=None):
+    stamp = obj['ProgTime'] if obj['UseProgTime'] else (engine.wall_time(current_value_microseconds) if engine is not None else current_value_microseconds())
     if type(stamp) is not int or not 0 <= stamp <= MAX_LINT:
         raise ModelError('ALMD requires a nonnegative LINT UTC timestamp from ProgTime or WallClockTime')
     return stamp
@@ -205,7 +205,7 @@ def execute(engine, op, power, scope):
     changed = [field for field, reached in events if reached]
     timestamps = {}
     if detecting or changed:
-        stamp = _event_time(obj)
+        stamp = _event_time(obj, engine)
         timestamps = dict.fromkeys(changed, stamp)
         if detecting:
             detected_at = stamp

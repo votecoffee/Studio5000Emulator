@@ -20,6 +20,11 @@
     <WallClockTime TimeZone="0" LocalTimeAdjustment="0" />
     <AddOnInstructionDefinitions />
     <Tags>
+      <Tag Name="SetClock" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="ClockSetpoint" DataType="LINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="LINT" Value="1893456000000000" /></Data></Tag>
+      <Tag Name="ClockSetReadback" DataType="LINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="LINT" Value="0" /></Data></Tag>
+      <Tag Name="ClockSetDivisor" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="ClockSetGuard" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
       <Tag Name="ReadTaskStarts" TagType="Base" DataType="BOOL"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="ResetTaskIntervals" TagType="Base" DataType="BOOL"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="IntervalResetTime" TagType="Base" DataType="TIME"><Data Format="Decorated"><DataValue DataType="TIME" Value="0" /></Data></Tag>
@@ -725,6 +730,7 @@
               <Rung Number="5" Type="N"><Text>XIC(ReadClock)GSV(CST,,CurrentValue,ClockCst);</Text></Rung>
               <Rung Number="6" Type="N"><Text>XIC(ReadClock)GSV(CST,,CurrentValue,ClockCstWords[1]);</Text></Rung>
               <Rung Number="7" Type="N"><Text>XIC(ReadClock)GSV(WallClockTime,,CSTOffset,ClockCstOffset[0]);</Text></Rung>
+              <Rung Number="8" Type="N"><Text>XIC(SetClock)SSV(WallClockTime,,CurrentValue,ClockSetpoint)GSV(WallClockTime,,CurrentValue,ClockSetReadback)DIV(1,ClockSetDivisor,ClockSetGuard)OTU(SetClock);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="ReadCurrentInstances" Type="RLL">

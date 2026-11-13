@@ -85,3 +85,13 @@ updates. The elapsed counter continues across modes and project reload, while
 the original demo is restored to stopped Program mode with zero scan/audit
 state. All four native cases confirm actual Offline/cleanup and no reported
 SDK fault. Webpage, executable and appliance versions match `.156`.
+
+## Instruction clock setting
+
+[SSV WallClockTime CurrentValue](wall-clock-set.md) now applies a controller UTC
+adjustment after a successful simulation advance. The CIP clock object remains
+read-only; its UTC counters, calendars and CST offset use the committed
+adjustment. Time Sync software timestamps use the same adjustment, without
+adding PTP synchronization or network clock setters. Project reload/reset
+retains the adjustment; an explicit stopped-controller API command returns it
+to host UTC. Timers, scheduled releases and the CST origin remain independent.

@@ -1,7 +1,8 @@
 # Wall-clock GSV reads
 
 The v35 ControlLogix 5580 software profile lets ladder and existing ST GSV calls
-read the emulator's host UTC clock. It shares the `WallClock` implementation
+read the emulator's software UTC clock, which defaults to host UTC and accepts
+[transactional CurrentValue settings](wall-clock-set.md). It shares the `WallClock` implementation
 used by the CIP endpoint; separate calls have separate sampling times.
 
 ```text
@@ -129,5 +130,5 @@ committed [Task](task-start-gsv.md) and [Program](scan-time-gsv.md) measurements
 Installed v35 help 14645 and Rockwell's published
 [WallClockTime object reference](https://www.rockwellautomation.com/en-be/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/input-output-instructions/access-the-wallclocktime-object.html)
 define the counter/calendar formats. The installed version determines this
-profile. Built-in DATETIMESTRUCT layout, other attributes, SSV clock setters,
+profile. Built-in DATETIMESTRUCT layout, other attributes, remaining SSV clock setters,
 non-UTC/DST policies, CST status, chassis synchronization and broader profiles remain separate.

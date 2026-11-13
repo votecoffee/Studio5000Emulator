@@ -45,9 +45,9 @@ class TimeSync:
         values = ((1, self.ptp_enabled), (16, self.priority1), (17, self.priority2))
         return {number: bytes((value,)) for number, value in values if value is not None}
 
-    def cip_attributes(self, *, read_time=False, instance_id=None):
+    def cip_attributes(self, *, read_time=False, instance_id=None, clock_state=None):
         return {**self.attributes(), **software_clock.attributes(read_time=read_time, instance_id=instance_id,
-                                                                 ptp_enabled=self.ptp_enabled)}
+                                                                 ptp_enabled=self.ptp_enabled, clock_state=clock_state)}
 
     def description(self, *, instance_id=None, native_compatibility=False):
         clock = software_clock.description(instance_id=instance_id, ptp_enabled=self.ptp_enabled)

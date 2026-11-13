@@ -342,7 +342,7 @@ class GsvWallClockTests(unittest.TestCase):
         for text in ('GSV(WallClockTime,This,CurrentValue,ClockWide);','GSV(WallClockTime,,CSTOffset,ClockWide);',
                      'GSV(WallClockTime,,ApplyDST,Out);','GSV(WallClockTime,,DateTime,ClockWide);','GSV(WallClockTime,,DateTime,DateUnknown[0]);',
                      'GSV(WallClockTime,,CurrentValue,ClockWide.0);','GSV(WallClockTime,,DateTime,ClockWords[6]);',
-                     'SSV(WallClockTime,,CurrentValue,ClockWide);'):
+                     'SSV(WallClockTime,,DateTime,ClockWide);'):
             self.assertTrue(self.engine([text]).blockers,text)
         def constant(root):root.find('./Controller/Tags/Tag[@Name="ClockWords"]').set('Constant','true')
         self.assertTrue(self.engine(['GSV(WallClockTime,,DateTime,ClockWords[0]);'],mutate=constant).blockers)
@@ -353,4 +353,4 @@ class GsvWallClockTests(unittest.TestCase):
     def test_report_states_time_source_sampling_and_native_limits(self):
         e=self.checked(['NOP();']);report=e.report()['system_values']['wall_clock']
         self.assertIn('time.time_ns',report['source']);self.assertIn('separate calls',report['sampling'])
-        self.assertFalse(report['clock_setters']);self.assertFalse(report['native_runtime_parity']);self.assertFalse(report['ptp'])
+        self.assertTrue(report['clock_setters']);self.assertFalse(report['native_runtime_parity']);self.assertFalse(report['ptp'])

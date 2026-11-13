@@ -939,12 +939,12 @@ def _generic_reply(engine, request, numbers, status_word):
         if request.class_id == wall_clock.CLASS_ID:
             values = project.wall_clock.attributes(
                 read_time=any(number in wall_clock.TIME_ATTRIBUTES for number in requested),
-                coordinated_clock=engine.coordinated_clock,
+                coordinated_clock=engine.coordinated_clock, clock_state=engine.wall_clock_state,
             )
         else:
             values = project.time_sync.cip_attributes(
                 read_time=any(number in software_clock.TIME_ATTRIBUTES for number in requested),
-                instance_id=engine.application_instance_id,
+                instance_id=engine.application_instance_id, clock_state=engine.wall_clock_state,
             )
     if request.service == 0x03:
         return _attribute_list_reply(numbers, values)

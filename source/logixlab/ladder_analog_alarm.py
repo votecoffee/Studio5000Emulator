@@ -264,7 +264,7 @@ def execute(engine, op, power, scope):
         events.add('UnshelveTime')
     new_detections = detecting - detections.keys()
     if new_detections or events:
-        stamp = current_value_microseconds()
+        stamp = engine.wall_time(current_value_microseconds)
         if stamp is None:
             raise ModelError('ALMA requires a UTC WallClockTime timestamp for an alarm event')
         detections.update(dict.fromkeys(new_detections, stamp))

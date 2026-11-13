@@ -1,11 +1,11 @@
-"""Read-only software Wall Clock Time with explicit UTC and legacy epochs.
+"""Software Wall Clock Time with explicit UTC and legacy epochs.
 
 UTC counters use the host clock. Legacy local reads require complete source
 with explicit zero legacy adjustments. That source profile selects the
 emulator's UTC local-time policy, independently of saved extended DST settings.
 A software coordinated counter supplies offsets without physical/PTP state.
 """
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 import struct
 import time
@@ -21,10 +21,46 @@ UTC_POLICY_ATTRIBUTES = (8, 9, 10)
 UTC_ZONE = b'UTC+00:00 Coordinated Universal Time'
 
 
+SET_INTERVAL_MICROSECONDS = 15_000_000
+MAX_SET_MICROSECONDS = (datetime(2068, 12, 30)-datetime(1970, 1, 1)).days*86_400_000_000-1
+
+
+@dataclass(frozen=True)
+class ClockAdjustment:
+    offset_us: int = 0
+    last_set_cst_us: int | None = None
+
+
+@dataclass
+class UTCClock:
+    state: ClockAdjustment = field(default_factory=ClockAdjustment)
+
+
+def adjusted_microseconds(value, state):
+    if (type(value) is not int or not 0 <= value <= 0x7FFFFFFFFFFFFFFF
+            or not isinstance(state, ClockAdjustment) or type(state.offset_us) is not int):
+        return None
+    value += state.offset_us
+    return value if 0 <= value <= 0x7FFFFFFFFFFFFFFF else None
+
+
 @dataclass(frozen=True)
 class CoordinatedClock:
     """Elapsed monotonic microseconds within one application lifetime."""
     origin_ns: int | None = None
+    utc: UTCClock = field(default_factory=UTCClock, compare=False, repr=False)
+
+    def reset_utc(self):
+        self.utc.state = ClockAdjustment()
+
+    def utc_description(self):
+        state = self.utc.state
+        return dict(source='adjusted UTC' if state.offset_us else 'host UTC',
+                    adjustment_microseconds=str(state.offset_us),
+                    last_set_cst_microseconds=None if state.last_set_cst_us is None else str(state.last_set_cst_us),
+                    minimum_set_interval_ms=SET_INTERVAL_MICROSECONDS//1000,
+                    scope='application lifetime', reset_on_project_load=False)
+
 
     @classmethod
     def start(cls):
@@ -82,7 +118,7 @@ class WallClock:
                        node.get('Use') not in (None, 'Target') or len(node) or (node.text or '').strip()) and
                    node.get('TimeZone') == '0' and node.get('LocalTimeAdjustment') == '0')
 
-    def attributes(self, *, read_time=False, coordinated_clock=None):
+    def attributes(self, *, read_time=False, coordinated_clock=None, clock_state=None):
         values = {2: bytes(2), 4: bytes(2)} if self.legacy_utc else {}
         if self.legacy_utc:
             # This is explicit runtime policy, not an inference about saved
@@ -91,12 +127,15 @@ class WallClock:
                            9: bytes(2), 10: bytes(1)})
         if not read_time:return values
         try:
-            microseconds = current_value_microseconds()
+            state = clock_state if isinstance(clock_state, ClockAdjustment) else (
+                coordinated_clock.utc.state if isinstance(coordinated_clock, CoordinatedClock) else ClockAdjustment())
+            microseconds = adjusted_microseconds(current_value_microseconds(), state)
             if microseconds is None:return values
             values[6] = values[11] = struct.pack('<q', microseconds)
             if self.legacy_utc and isinstance(coordinated_clock,CoordinatedClock):
                 elapsed = coordinated_clock.microseconds()
-                if elapsed is not None and 0 <= microseconds-elapsed <= 0x7FFFFFFFFFFFFFFF:
+                if (elapsed is not None and -(1<<63) <= microseconds-elapsed <= 0x7FFFFFFFFFFFFFFF
+                        and (microseconds >= elapsed or state.last_set_cst_us is not None)):
                     # The offset relates CST to the modern 1970 UTC value,
                     # not to legacy attribute 1's separate 1972 epoch.
                     values[3] = struct.pack('<q',microseconds-elapsed)

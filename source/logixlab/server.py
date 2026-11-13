@@ -259,6 +259,7 @@ class Application:
     def state(self):
         from .routine_edits import description as routine_edit_description
         metadata = {'app_version': __version__, 'desktop': dict(self.desktop),
+                    'wall_clock':self.coordinated_clock.utc_description(),
                     'routine_edits':routine_edit_description(self),
                     'native_tag_writes':{'enabled':self.allow_native_tag_writes,'scope':'installed_scalar_program_mode'},
                     'instance_id': self.instance_id, 'project_generation': self.generation, 'execution_environment': self.execution_environment,
@@ -304,6 +305,14 @@ class Application:
             self._io_dirty = False
 
     def command(self, action, data):
+        if action == 'clock-configure':
+            with self.lock:
+                if set(data) != {'use_host_utc'} or data.get('use_host_utc') is not True:
+                    raise ModelError('Clock configuration supports only use_host_utc=true')
+                if self.running or self.busy:
+                    raise ModelError('Stop the controller and finish import before resetting its clock')
+                self.coordinated_clock.reset_utc()
+                return self.state()
         if action.startswith('connectivity-'):
             with self.connectivity_lock:
                 if action=='connectivity-stop':

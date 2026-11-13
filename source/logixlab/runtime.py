@@ -10,7 +10,7 @@ from . import gsv_configuration, immediate_output, ladder_message, program_contr
 from .gsv_timing import TimingAdvance
 from . import task_runtime
 from .task_scheduler import TaskScheduler
-from .wall_clock import CoordinatedClock, current_value_microseconds
+from .wall_clock import CoordinatedClock, ClockAdjustment, adjusted_microseconds, current_value_microseconds, MAX_SET_MICROSECONDS, SET_INTERVAL_MICROSECONDS
 from .runtime_references import RuntimeReferences
 from .change_detection import ChangeDetection
 from . import event_status, system_values, integer_math, scalar_math, numeric_storage, bit_logic, bit_transfer, numeric_fill, size_truncate, comparisons, string_operations, control_operations, sequencer_operations, numeric_conversions, real_math, array_statistics, array_sort, file_search, file_arithmetic, string_conversions, event_tasks, file_incremental, wide_st, st_cases, task_inhibit, mcr, data_transition, file_bit_compare, st_timers, st_counter, st_oneshot, st_scale, st_signal, st_rate, st_moving, st_capture, st_filter, st_digital, st_accumulate, st_select, st_derivative, st_curves, st_pi, st_bit_moves, numeric_copy, aggregate_copy, ladder_pid, ladder_alarm, ladder_analog_alarm, lreal_expressions
@@ -68,6 +68,7 @@ class Engine:
         self.application_instance_id = application_instance_id
         self.network_binding = network_binding
         self.coordinated_clock = coordinated_clock if coordinated_clock is not None else CoordinatedClock.start()
+        self._wall_clock_pending = None
         self.change_detection=ChangeDetection(project.sha256,project.controller_configuration.changes_to_detect)
         self.runtime_references = RuntimeReferences(project)
         self.mode = mode
@@ -753,7 +754,39 @@ class Engine:
         self.validate_interval(dt)
         if self._initial_prescan_pending:self.enter_run()
 
+    @property
+    def wall_clock_state(self):
+        return self._wall_clock_pending if self._wall_clock_pending is not None else self.coordinated_clock.utc.state
+
+    def wall_time(self, sample=None):
+        return adjusted_microseconds((sample or current_value_microseconds)(), self.wall_clock_state)
+
+    def set_wall_clock(self, requested):
+        if self._wall_clock_pending is None:
+            raise ModelError('Clock setting requires an active simulation advance')
+        if type(requested) is not int or not 0 <= requested <= MAX_SET_MICROSECONDS:
+            raise ModelError('WallClockTime CurrentValue setting requires UTC microseconds in 1970..2068-12-29')
+        elapsed = self.coordinated_clock.microseconds()
+        raw = current_value_microseconds()
+        if elapsed is None or type(raw) is not int or raw < 0:
+            raise ModelError('Clock setting requires available host UTC and software coordinated clocks')
+        previous = self.wall_clock_state.last_set_cst_us
+        if previous is not None and elapsed-previous < SET_INTERVAL_MICROSECONDS:
+            raise ModelError('WallClockTime setting requires 15 seconds between accepted updates')
+        self._wall_clock_pending = ClockAdjustment(requested-raw, elapsed)
+
     def step(self, dt=10, *, running=False):
+        if self._wall_clock_pending is not None:
+            raise ModelError('Nested simulation advances cannot set controller time')
+        self._wall_clock_pending = self.coordinated_clock.utc.state
+        try:
+            result = self._step(dt, running=running)
+            self.coordinated_clock.utc.state = self._wall_clock_pending
+            return result
+        finally:
+            self._wall_clock_pending = None
+
+    def _step(self, dt=10, *, running=False):
         self.prepare_step(dt)
         before = copy.deepcopy(self.memory.values)
         message_cache = self.memory.message_cache.copy()
@@ -782,7 +815,7 @@ class Engine:
             self._scan_controller_status = controller_status_word(self.controller_mode(running=running))
             # Service at the committed boundary, before any task release in this advance.
             ladder_message.service(self, self._scan_controller_status)
-            task_wall_time=current_value_microseconds() if single_timing else None
+            task_wall_time=self.wall_time() if single_timing else None
             task_start=task_runtime.perf_counter_ns() if single_timing else None
             programs=self._program_advance
             def run_task(due,task,entries):
@@ -791,7 +824,7 @@ class Engine:
                 previous_calls=self.calls.stack;self.calls.stack=[]
                 measured_task=task.casefold() if isinstance(task,str) else None
                 measure_invocation = not single_timing and measured_task in task_timings
-                task_scan_wall=current_value_microseconds() if measure_invocation else None
+                task_scan_wall=self.wall_time() if measure_invocation else None
                 task_scan_start=task_runtime.perf_counter_ns() if measure_invocation else None
                 try:
                     for entry in entries:
@@ -894,7 +927,7 @@ class Engine:
             return None
         routine = self._executing_routine.key
         fault = {'type':4, 'code':code, 'program':scope, 'routine':routine,
-                 'instruction':op.name, 'detail':str(error), 'timestamp_us':current_value_microseconds()}
+                 'instruction':op.name, 'detail':str(error), 'timestamp_us':self.wall_time()}
         self._program_fault = fault
         handler = program_handler
         profile = 'Program fault routine'
@@ -930,7 +963,7 @@ class Engine:
             return
         fault = self.module_major_fault
         result = {'routine': self.project.routines[key].key, 'status': 'completed'}
-        fault['timestamp_us'] = current_value_microseconds()
+        fault['timestamp_us'] = self.wall_time()
         fault['handler'] = result
         before = copy.deepcopy(self.memory.values)
         message_cache = self.memory.message_cache.copy()

@@ -60,6 +60,10 @@ math forms. In **Integer lab**, enable `RealIntegerEnabled` and step. See
 with REAL or integer results. In **Wide expression lab**, enable
 `Binary64ResultEnabled` and step. See [REAL and integer results](docs/lreal-math-literals.md#real-and-integer-results).
 
+**Controller UTC setting** now supports SSV WallClockTime CurrentValue with
+transactional clock changes and consistent clock reads. In **System lab**, set
+SetClock to apply ClockSetpoint once. See [controller clock setting](docs/wall-clock-set.md).
+
 **Typed integer expressions** now accept binary/octal/hexadecimal L/U/UL
 constants in CPT, CMP, FAL and FSC, with exact integer values and existing
 type checks. See [radix expressions](docs/ladder-wide-expressions.md#typed-radix-expressions).

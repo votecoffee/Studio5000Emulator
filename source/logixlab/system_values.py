@@ -84,6 +84,7 @@ def validate_set(engine, op, scope, *, kind='RLL'):
     if gsv_configuration.matches_major_fault_record(op):
         return gsv_configuration.write_major_fault_record(engine, op, scope, executing=False)
     if program_control.matches(op):return program_control.validate(engine,op,scope)
+    if gsv_wall_clock.matches(op):return gsv_wall_clock.validate_set(engine,op,scope)
     if gsv_timing.matches(op):return gsv_timing.validate_reset(engine,op,scope)
     if event_status.matches(op):return event_status.validate(engine,op,scope)
     if gsv_configuration.matches_module_set(op):return gsv_configuration.validate_module_set(engine,op,scope)
@@ -100,6 +101,9 @@ def execute_set(engine, op, power, scope):
         return power
     if program_control.matches(op):
         program_control.execute(engine,op,scope)
+        return power
+    if gsv_wall_clock.matches(op):
+        gsv_wall_clock.execute_set(engine,op,scope)
         return power
     if gsv_timing.matches(op):
         gsv_timing.execute_reset(engine,op,scope)
