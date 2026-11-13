@@ -10,8 +10,9 @@ MOV accepts any pairing of those ten source/destination types. CLR writes a
 typed zero. Operands are scalar tags, selected array elements, members or aliases,
 including existing AOI InOut/local bindings. MOV immediates are bounded DINT or
 finite REAL values. [Typed MOV constants](typed-mov-literals.md) now add decimal
-L/U/UL integers and finite floating L/l values. Unsigned radix patterns above
-signed DINT range, typed radix forms and other spellings remain separate.
+L/U/UL integers and finite floating L/l values. [Radix MOV sources](radix-mov-literals.md)
+support unsuffixed DINT and attached L/U/UL bit patterns with declared-width
+zero fill and signed interpretation. Other spellings/consumers remain separate.
 
 Integer moves preserve the low destination bits. Widening sign-extends signed
 sources and zero-extends unsigned sources. For example, DINT 16#12345678 becomes

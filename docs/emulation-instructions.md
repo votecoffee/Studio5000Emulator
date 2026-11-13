@@ -292,4 +292,6 @@ remain separate.
 [Typed MOV constants](typed-mov-literals.md) now use decimal L/U/UL integer
 sources or finite LREAL floating constants, checked before existing numeric
 conversion. The viewer retains integer digits and declared literal types.
-Other arguments/consumers, typed radix forms and native parity remain separate.
+[Typed radix MOV sources](radix-mov-literals.md#typed-radix-mov-sources) also
+select LINT/UDINT/ULINT bit patterns. Other arguments/consumers, explicit signed
+radix forms and native parity remain separate.

@@ -87,8 +87,9 @@ and floating L/l constants preserve their source precision; see
 [LREAL math constants](docs/lreal-math-literals.md).
 
 **Radix MOV constants** now interpret binary, octal and hexadecimal values as
-32-bit DINT patterns, including signed top bits, zero-filled short constants and
-exact source values in the ladder viewer. See [radix moves](docs/radix-mov-literals.md).
+32-bit DINT patterns when unsuffixed; attached L/U/UL selects LINT, UDINT or
+ULINT widths. Short patterns are zero filled, signed top bits are interpreted,
+and the ladder viewer retains exact values. See [radix moves](docs/radix-mov-literals.md).
 
 **Typed MOV constants** now support decimal L/U/UL integers and finite LREAL
 floating constants, with declared source precision and existing numeric conversion.

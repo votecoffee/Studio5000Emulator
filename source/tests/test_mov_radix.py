@@ -64,7 +64,7 @@ class MovRadixTests(unittest.TestCase):
             self.assertTrue(e.blockers, text); self.assertIn('32-bit', str(e.blockers))
 
     def test_invalid_digits_and_excluded_suffix_expression_forms_stay_blocked(self):
-        for text in ('2#2','8#8','16#G','16#','16#___','16#FFU','16#FFFFFFFFL',
+        for text in ('2#2','8#8','16#G','16#','16#___','16#FFLU','16#FFFFFFFFLL',
                      '16#FF+1','(16#FF)','DINT#16#FF','+16#FF','2147483648'):
             self.assertTrue(self.engine(['AFI()MOV(' + text + ',Results[1]);']).blockers, text)
 

@@ -66,7 +66,7 @@
     let inspection = '';
     function read(ref, node) {
       if (node?.literalValues && Object.hasOwn(node.literalValues, ref)) return node.literalValues[ref];
-      return snapshot?.read(ref, {dintRadix: node?.opcode === 'MOV' && node.operands?.[0] === ref}) || null;
+      return snapshot?.read(ref, {movRadix: node?.opcode === 'MOV' && node.operands?.[0] === ref}) || null;
     }
     function operandDisplay(field, node, power) {
       const sample = power?.operandSamples?.[field.argument];

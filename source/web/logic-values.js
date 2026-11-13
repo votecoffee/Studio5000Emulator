@@ -142,13 +142,16 @@
     function read(ref, options = {}) {
       const name = String(ref).trim(), row = at(resolve(name));
       if (row) return row;
-      const word = options.dintRadix && name.match(/^(2|8|16)#([\da-fA-F_ ]+)$/);
+      const word = (options.movRadix || options.dintRadix) && name.match(/^(2|8|16)#([\da-fA-F_ ]+?)(UL|U|L)?$/i);
       if (word) {
         try {
-          let value = BigInt(({'2': '0b', '8': '0o', '16': '0x'})[word[1]] + word[2].replaceAll('_', '').replaceAll(' ', ''));
-          if (value >= 0x100000000n) return null;
-          if (value >= 0x80000000n) value -= 0x100000000n;
-          return {name, type: 'DINT radix literal', value: value.toString()};
+          const suffix = (word[3] || '').toUpperCase(), digits = word[2];
+          if (suffix && (!options.movRadix || !/^[\da-fA-F](?:[\da-fA-F_ ]*[\da-fA-F])?$/.test(digits))) return null;
+          const type = {'': 'DINT', L: 'LINT', U: 'UDINT', UL: 'ULINT'}[suffix], bits = BigInt(widths[type]);
+          let value = BigInt(({'2': '0b', '8': '0o', '16': '0x'})[word[1]] + digits.replaceAll('_', '').replaceAll(' ', ''));
+          if (value >= (1n << bits)) return null;
+          if (!type.startsWith('U') && value >= (1n << (bits - 1n))) value -= 1n << bits;
+          return {name, type: type + ' radix literal', value: value.toString()};
         } catch (_) {return null;}
       }
       const integer = name.match(/^([+-]?\d+)(UL|U|L)$/i);

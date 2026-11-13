@@ -35,6 +35,8 @@ zero are retained within binary64 representation. A negative unsigned zero is
 integer zero. Unsuffixed decimal inputs retain their existing DINT/finite REAL
 rules. [Unsuffixed radix MOV constants](radix-mov-literals.md) use a separate
 32-bit DINT pattern rule, including zero-fill and a signed top bit.
+Attached [radix L/U/UL suffixes](radix-mov-literals.md#typed-radix-mov-sources)
+now select LINT, UDINT or ULINT source patterns before destination conversion.
 
 ## Selection and failure behavior
 
@@ -60,8 +62,9 @@ for execution; runtime support is scoped by each instruction profile.
 
 This parser is local to MOV's source operand. It does not change general memory
 reads, expression parsing, AOI call arguments or other instruction parameters.
-Expressions, parentheses, typed radix forms, separators and alternate typed
-spellings remain blocked as MOV immediates. Existing CPT/CMP, file and ST
+Expressions, parentheses, decimal separators and alternate typed spellings
+remain blocked as MOV immediates. Radix constants permit their documented digit
+grouping and attached L/U/UL suffixes. Existing CPT/CMP, file and ST
 literal profiles retain their own rules. Other controllers are not extended.
 
 ## Wide expression lab

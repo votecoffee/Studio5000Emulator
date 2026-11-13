@@ -801,6 +801,12 @@
       <Tag Name="MovLitSelected" DataType="LINT" TagType="Base" Dimensions="3" ExternalAccess="Read/Write">
         <Data Format="Decorated"><Array DataType="LINT" Dimensions="3" Radix="Decimal"><Element Index="[2]" Value="903" /></Array></Data>
       </Tag>
+      <Tag Name="RadixLongShort" DataType="LINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="0" /></Data></Tag>
+      <Tag Name="RadixLongNegative" DataType="LINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="0" /></Data></Tag>
+      <Tag Name="RadixDwordMax" DataType="UDINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="UDINT" Value="0" /></Data></Tag>
+      <Tag Name="RadixUlongMax" DataType="ULINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="ULINT" Value="0" /></Data></Tag>
+      <Tag Name="RadixBinaryMin" DataType="LINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="0" /></Data></Tag>
+      <Tag Name="RadixOctalMax" DataType="ULINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="ULINT" Value="0" /></Data></Tag>
       <Tag Name="RadixEnabled" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
       <Tag Name="RadixIndex" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
       <Tag Name="RadixSigned" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
@@ -1104,6 +1110,12 @@
               <Rung Number="4" Type="N"><Text>XIC(RadixEnabled)MOV(16#7FFF_FFFF,RadixReal);</Text></Rung>
               <Rung Number="5" Type="N"><Text>XIC(RadixEnabled)MOV(16#FFFF FFFF,RadixSelected[RadixIndex]);</Text></Rung>
               <Rung Number="6" Type="N"><Text>XIC(RadixEnabled)DIV(1,RadixLateDivisor,RadixLateResult);</Text></Rung>
+              <Rung Number="7" Type="N"><Text>XIC(RadixEnabled)MOV(16#FFFF_FFFFL,RadixLongShort);</Text></Rung>
+              <Rung Number="8" Type="N"><Text>XIC(RadixEnabled)MOV(16#FFFF_FFFF_FFFF_FFFFl,RadixLongNegative);</Text></Rung>
+              <Rung Number="9" Type="N"><Text>XIC(RadixEnabled)MOV(16#FFFF_FFFFu,RadixDwordMax);</Text></Rung>
+              <Rung Number="10" Type="N"><Text>XIC(RadixEnabled)MOV(16#FFFF_FFFF_FFFF_FFFFuL,RadixUlongMax);</Text></Rung>
+              <Rung Number="11" Type="N"><Text>XIC(RadixEnabled)MOV(2#1000000000000000000000000000000000000000000000000000000000000000L,RadixBinaryMin);</Text></Rung>
+              <Rung Number="12" Type="N"><Text>XIC(RadixEnabled)MOV(8#1777777777777777777777UL,RadixOctalMax);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="MathConstants" Type="RLL">

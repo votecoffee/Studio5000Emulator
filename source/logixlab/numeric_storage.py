@@ -28,12 +28,17 @@ def destination(memory, ref, scope, *, allow_time=False, allow_string=False):
 def typed_literal(ref):
     """One MOV immediate; never widen general memory/expression parsing."""
     text=ref.strip()
-    radix=re.fullmatch(r'(2|8|16)#([0-9A-Fa-f_ ]+)',text)
+    radix=re.fullmatch(r'(2|8|16)#([0-9A-Fa-f_ ]+?)([Uu][Ll]?|[Ll])?',text)
     if radix:
-        try:value=int(radix[2].replace('_','').replace(' ',''),int(radix[1]))
+        suffix=radix[3] or '';digits=radix[2]
+        dtype={'':'DINT','L':'LINT','U':'UDINT','UL':'ULINT'}[suffix.upper()]
+        if suffix and not re.fullmatch(r'[0-9A-Fa-f](?:[0-9A-Fa-f_ ]*[0-9A-Fa-f])?',digits):
+            raise ModelError('Typed MOV radix requires digit groups and an attached suffix')
+        try:value=int(digits.replace('_','').replace(' ',''),int(radix[1]))
         except ValueError as error:raise ModelError('MOV radix immediate has invalid digits') from error
-        if value>=1<<32:raise ModelError('MOV radix immediate exceeds its 32-bit DINT pattern')
-        return 'DINT',bit_value(value,'DINT')
+        bits=INT_BITS[dtype]
+        if value>=1<<bits:raise ModelError(f'MOV radix immediate exceeds its {bits}-bit {dtype} pattern')
+        return dtype,bit_value(value,dtype)
     offset=int(text[:1] in ('+','-'))
     token=typed_integer(text,offset)
     if token is not None and token[0]==len(text):
@@ -211,12 +216,15 @@ def description(project):
                 typed_mov_literals=dict(integer_types=['LINT','UDINT','ULINT'],floating_type='LREAL',
                     range='Declared source range and precision checked structurally, before existing destination conversion',
                     conversion='Same integer pattern, floating precision and checked nearest-even conversion as a source tag',
-                    scope='MOV source only; decimal typed forms and separate unsuffixed DINT radix patterns; no typed radix, expressions, other arguments/consumers or native parity',
+                    scope='MOV source only; decimal typed forms and radix L/U/UL bit patterns; no expressions, other arguments/consumers or native parity',
                     native_runtime_parity=False),
                 radix_mov_literals=dict(bases=[2,8,16],source_type='DINT',bits=32,
-                    interpretation='Zero-fill unspecified bits; reinterpret bit 31 as the signed DINT top bit before existing MOV conversion',
+                    interpretation='Zero-fill unspecified bits; unsuffixed bit 31 is signed DINT before existing MOV conversion',
+                    typed_suffixes=dict(L=dict(source_type='LINT',bits=64,signed=True),
+                        U=dict(source_type='UDINT',bits=32,signed=False),UL=dict(source_type='ULINT',bits=64,signed=False)),
+                    typed_interpretation='Attached case-insensitive L/U/UL selects declared width; signed LINT bit 63 is the sign bit; exact integral source before conversion',
                     grouping='Interior spaces or underscores; case-insensitive hexadecimal digits',
-                    scope='Unsuffixed nonnegative radix MOV source only; other consumers retain their contracts',
+                    scope='MOV source only; base fields describe unsuffixed DINT, typed_suffixes describes attached typed forms; no explicit sign, other consumers or native parity',
                     native_runtime_parity=False),
                 integers='Preserve low destination bits; sign-extend signed sources and zero-extend unsigned sources when widening',
                 real='Finite REAL binary32 and LREAL binary64; source precision retained before destination conversion; nearest-even integer results must fit',
@@ -225,5 +233,5 @@ def description(project):
                 clearing='CLR writes typed zero without reading the old scalar value',
                 failures='Reached unknown source, invalid indices, excluded REAL ranges and later faults roll back the advance',
                 native_math_status=False, native_runtime_parity=False,
-                remaining=['Lossy or cross-family time/date conversion, string CLR and non-string aggregate MOV/CLR; typed radix/other consumers/controllers',
+                remaining=['Lossy or cross-family time/date conversion, string CLR and non-string aggregate MOV/CLR; typed radix in other consumers/controllers',
                            'REAL overflow result bits, native status/fault/lifecycle/packed layout parity'])
