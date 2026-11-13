@@ -26,6 +26,7 @@ def validate(engine, op, scope):
     memory.structural = True
     try:
         if op.name in ARITHMETIC:
+            if floating_math_profile(memory,op,scope,radix=True):return True
             if radix_profile(engine,op,scope,arithmetic=True):return True
             if time_arithmetic(engine, op, scope):
                 return True
@@ -78,7 +79,7 @@ def time_arithmetic(engine, op, scope, *, execute=False):
 
 def execute_lreal(engine,op,scope):
     memory=engine.memory
-    values=[lreal_math_source(memory,ref,scope,execute=True) for ref in op.args[:-1]]
+    values=[lreal_math_source(memory,ref,scope,execute=True,radix=True) for ref in op.args[:-1]]
     a=values[0]
     if op.name in ('NEG','ABS'):result=-a if op.name=='NEG' else abs(a)
     else:
@@ -112,6 +113,8 @@ def arithmetic_profile(engine, op, scope):
     """
     if op.name not in ARITHMETIC or not available(engine.project):
         return profile(engine, op, scope)
+    floating = floating_math_profile(engine.memory,op,scope,radix=True)
+    if floating:return floating
     radix = radix_profile(engine,op,scope,arithmetic=True)
     if radix:return radix
     floating = floating_math_profile(engine.memory, op, scope)
@@ -252,12 +255,13 @@ def description(project):
                     scope='RLL v35 5580; typed radix selects integer-only sources/results; decimal floating priority, bitwise/MEQ and other consumers retain separate profiles; native parity remains unverified',
                     native_runtime_parity=False),
                 lreal_arithmetic=dict(instructions=sorted(ARITHMETIC),types=['LREAL'],
-                    operands='Scalar numeric tags, bounded DINT/finite REAL and decimal typed L/U/UL integer or floating L/l constants; no LREAL source is required when the destination is LREAL',
+                    operands='Scalar numeric tags, DINT radix words, bounded DINT/finite REAL and decimal/radix typed L/U/UL integer or floating L/l constants; no LREAL source is required when the destination is LREAL',
                     selection_by_destination='The scalar LREAL result selects binary64 inputs and calculation, including constant-only calls and NEG/ABS',
                     selection_by_source='An LREAL tag or floating L/l constant also selects binary64, including with REAL or integer results',
                     destination_types=sorted({*INT_BITS, 'REAL', 'LREAL'}),
                     result_conversion='Convert the finite binary64 result to the declared destination once; integer destinations round ties to even and require range',
-                    constants='Bounded DINT, finite REAL, decimal L/U/UL integers and finite floating L/l LREAL; declared precision checked before binary64 promotion; existing radix must fit signed DINT',
+                    constants='Bounded DINT, finite REAL, decimal/radix L/U/UL integers and finite floating L/l LREAL; radix words decode at declared width before binary64 promotion',
+                    radix_sources=dict(bases=[2,8,16],types=['DINT','LINT','UDINT','ULINT'],selection='Explicit binary64 math only; default conversion helpers and other consumers remain separate',native_runtime_parity=False),
                     source_types=sorted({*INT_BITS,'REAL','LREAL'}),
                     promotion='Convert every required source to binary64 before calculation; signed/unsigned values retain their numeric sign, REAL retains its stored precision',
                     calculation='Finite host binary64; MOD uses fmod with dividend sign; zero divisors and nonfinite results fault atomically',

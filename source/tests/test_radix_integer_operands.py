@@ -73,9 +73,13 @@ class RadixIntegerOperandTests(unittest.TestCase):
     def test_floating_time_and_boolean_mixes_do_not_enter_the_radix_integer_profile(self):
         for source,value in [('REAL',1.0),('LREAL',1.0),('TIME',1),('BOOL',True)]:
             for call in ('ADD(Source,16#1L,Results[1]);','EQU(Source,16#1L)OTE(RunLatch);'):
-                self.assertTrue(self.engine(['AFI()'+call],source=source,value=value).blockers,(source,call))
+                engine=self.engine(['AFI()'+call],source=source,value=value)
+                if source=='LREAL' and call.startswith('ADD'):self.assertEqual(engine.blockers,[])
+                else:self.assertTrue(engine.blockers,(source,call))
         for dest in ('REAL','LREAL','TIME','SINT'):
-            self.assertTrue(self.engine(['AFI()ADD(16#1L,1L,Results[1]);'],dest=dest).blockers,dest)
+            engine=self.engine(['AFI()ADD(16#1L,1L,Results[1]);'],dest=dest)
+            if dest=='LREAL':self.assertEqual(engine.blockers,[])
+            else:self.assertTrue(engine.blockers,dest)
 
     def test_invalid_and_overwide_literals_block_both_math_and_ordering(self):
         for token in ('16#100000000U','16#10000000000000000L','2#2UL','8#8L','16#FF U','16#FFLU','-16#FFL'):

@@ -452,3 +452,8 @@ checked exponent/result bounds remain required; native parity is unverified.
 [LREAL radix constants](lreal-integer-literals.md#radix-constants) qualify existing
 binary/octal/hex DINT and typed L/U/UL words in CPT/CMP/FAL/FSC. Declared ranges
 precede binary64 conversion; default/ST/index parsing and native parity remain separate.
+
+[Standalone LREAL radix sources](lreal-math-literals.md#radix-sources) qualify
+binary/octal/hex DINT and typed L/U/UL words in nineteen math forms. An explicit
+binary64 selector is required; REAL/integer-only and other consumers retain
+their contracts. Declared ranges precede conversion; native parity is unverified.

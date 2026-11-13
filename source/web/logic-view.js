@@ -60,6 +60,11 @@
     return tokens;
   }
 
+  function lrealMathRadix(node, ref, read) {
+    const args = node?.operands || [];
+    if (!String(ref).includes('#') || !args.slice(0, -1).includes(ref) || !['ADD','SUB','MUL','DIV','MOD','NEG','ABS','XPY','SQR','LN','LOG','DEG','RAD','SIN','COS','TAN','ASN','ACS','ATN'].includes(node?.opcode)) return false;
+    return args.some(arg => {const type = read?.(arg)?.type;return type === 'LREAL' || type === 'LREAL literal';});
+  }
   function parameterRadix(node, ref, definitions = {}) {
     if (!String(ref).includes('#')) return false;
     const args = node?.operands || [], index = args.indexOf(ref);
@@ -75,7 +80,7 @@
     function read(ref, node) {
       if (node?.literalValues && Object.hasOwn(node.literalValues, ref)) return node.literalValues[ref];
       const bitwiseRadix = node?.opcode === 'MEQ' || ['AND','OR','XOR','NOT'].includes(node?.opcode) && node.operands?.slice(0,-1).includes(ref);
-      const integerRadix = ['EQU','NEQ','LES','LEQ','GRT','GEQ','LIM'].includes(node?.opcode) || ['ADD','SUB','MUL','DIV','MOD','NEG','ABS'].includes(node?.opcode) && node.operands?.slice(0,-1).includes(ref);
+      const integerRadix = lrealMathRadix(node, ref, arg => snapshot?.read(arg)) || ['EQU','NEQ','LES','LEQ','GRT','GEQ','LIM'].includes(node?.opcode) || ['ADD','SUB','MUL','DIV','MOD','NEG','ABS'].includes(node?.opcode) && node.operands?.slice(0,-1).includes(ref);
       const bcdRadix = ['FRD','TOD'].includes(node?.opcode) && node.operands?.[0] === ref;
       return snapshot?.read(ref, {movRadix: node?.opcode === 'MOV' && node.operands?.[0] === ref, bitwiseRadix, integerRadix, dintRadix: integerRadix, bcdRadix, callRadix: parameterRadix(node, ref, current.state.aoi_definitions)}) || null;
     }
@@ -389,5 +394,5 @@
       dispose() {documents = [];current = null;}
     };
   }
-  return {create, tokenizeST, labelTarget, parameterRadix};
+  return {create, tokenizeST, labelTarget, parameterRadix, lrealMathRadix};
 });

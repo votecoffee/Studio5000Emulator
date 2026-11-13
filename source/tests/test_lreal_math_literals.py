@@ -81,7 +81,7 @@ class LrealMathLiteralTests(unittest.TestCase):
     def test_invalid_ranges_digits_and_expression_forms_remain_structural(self):
         bad=['9223372036854775808L','-9223372036854775809L','4294967296U','-1U',
              '18446744073709551616UL','-1UL','1e309L','1e39','2147483648',
-             '16#FFFFFFFF','16#FFU','1LU','1_000L','LREAL#1.0','1.0UL','1e3U',
+             '16#100000000','16#100000000U','1LU','1_000L','LREAL#1.0','1.0UL','1e3U',
              '(1L)','1L+1L','ABS(1L)','TRUE','Inputs']
         for text in bad:
             for name in ('ADD','XPY','SQR'):

@@ -39,8 +39,8 @@ Large integer constants round when promoted: 9007199254740993L becomes binary64
 3 is 1. This profile does not provide exact integer calculation beyond binary64
 precision. Typed decimal ranges are checked before conversion, including on
 false rungs. Boolean, aggregate, malformed, out-of-range and nonfinite constants
-are blocked structurally. Existing radix operands must still fit the signed
-DINT numeric range; [MOV radix patterns](radix-mov-literals.md) remain separate.
+are blocked structurally. [Radix sources](#radix-sources) now use their declared
+32/64-bit word widths; [MOV radix patterns](radix-mov-literals.md) remain a separate consumer.
 
 Structural checks use declared types and permissions without saved values or
 live indirect indices. False rungs and prescan skip those values and calculations.
@@ -58,8 +58,8 @@ division, power and unary math. MathLitSelected retains an unknown neighbor and
 a 903.25 guard; change MathLitIndex to 1 to fill the next element. DomainFault,
 RangeFault and a zero LateDivisor demonstrate independent atomic fault/retry.
 
-Standalone comparisons, bitwise/file/ST/FBD consumers,
-typed radix forms and broader controller/firmware profiles remain separate.
+Standalone comparisons, bitwise/file/ST/FBD consumers and broader
+controller/firmware profiles remain separate.
 Existing host binary64 functions and finite-result guards provide a software
 model; native numerical/status/minor-fault/lifecycle parity remains unverified.
 The source basis is installed v35 Immediate values (14454), ADD (14623), XPY
@@ -98,3 +98,47 @@ See [shared source conversion](../source/logixlab/numeric_storage.py),
 [arithmetic](../source/logixlab/scalar_math.py),
 [advanced math](../source/logixlab/real_math.py) and
 [focused cases](../source/tests/test_lreal_math_literals.py).
+
+## Radix sources
+
+The same nineteen v35 5580 math forms now accept binary, octal and hexadecimal
+integer sources when an LREAL destination, source tag or floating L/l source
+selects binary64. Unsuffixed words use signed 32-bit DINT storage; attached
+L/U/UL suffixes select LINT/UDINT/ULINT widths. Zero-fill, declared sign bits,
+digits and word ranges are checked before binary64 conversion. Typed interior
+space/underscore groups retain their existing syntax.
+
+```text
+ADD(DoubleInput,16#FFFFFFFF,DoubleResult);
+DIV(16#3L,2#10U,DoubleQuotient);
+SQR(16#1000001U,DoubleRoot);
+XPY(16#4U,0.5L,IntegerResult);
+```
+
+The first two require a DoubleInput or destination of type LREAL. The third
+uses an LREAL destination to retain source integer 16777217 before taking its
+binary64 root. The fourth selects binary64 with 0.5L and writes integer 2.
+An integer radix suffix alone does not select this profile. REAL-only math,
+integer-only SQR/XPY, comparisons, bitwise and default helper calls retain their
+previous rules. Earlier scalar integer arithmetic radix forms remain available.
+
+`16#FFFFFFFF` promotes as -1.0; `16#FFFFFFFFL` is positive 4294967295.0;
+`16#FFFFFFFFFFFFFFFFUL` rounds to 2^64. Every required source is consumed before
+calculation, followed by one checked result conversion. Range, unknown, bounds,
+domain, zero-divisor, nonfinite and later faults roll back the advance. False/
+prescan lazy selection and existing alias, UDT, AOI and unknown-write rules remain.
+No literal expression syntax or additional languages are added. Native numerical,
+status, fault, partial-effect and import parity remain unverified.
+
+In **Wide expression lab**, set RadixMathIndex=1 and RadixMathEnabled=true.
+Sum=4, Unsigned=18446744073709551616, Signed=9223372036854775808,
+Loss=0, Root is approximately 4096.000122070311, Power=2 and Quotient=1.5.
+Selected[1]=2 with guards 101/999; Match is true. Source=5 changes Sum to 6,
+Selected[1] to 4 and Match to false. The gate starts false with index99 dormant.
+LateDivisor=0 exercises rollback; restore 1 before retrying. Instruction cards
+retain authored radix spelling and show declared signed integer source values.
+
+The report publishes `scalar_math.lreal_arithmetic.radix_sources`, with the
+existing advanced-math LREAL metadata. Source basis: installed v35 Immediate
+values 14454, Data conversions 14451, ADD 14623, SQR 14617 and XPY 14478.
+See [focused checks](../source/tests/test_lreal_math_radix.py).

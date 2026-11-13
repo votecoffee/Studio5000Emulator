@@ -303,3 +303,8 @@ ULINT 9223372041149743102. The typed ULINT XOR and UDINT AND show their
 result widths. For rollback, set MixedFloatInput to 2.5 and
 MixedFloatLrealInput to 9223372036854775808. The last instruction faults and
 the earlier three results retain their previous values.
+
+[Standalone LREAL radix sources](lreal-math-literals.md#radix-sources) qualify
+binary/octal/hex DINT and typed L/U/UL words in nineteen math forms. An explicit
+binary64 selector is required; REAL/integer-only and other consumers retain
+their contracts. Declared ranges precede conversion; native parity is unverified.

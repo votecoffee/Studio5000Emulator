@@ -984,6 +984,20 @@
       <Tag Name="BinaryRadixLateDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
       <Tag Name="BinaryRadixLateResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
       <Tag Name="BinaryRadixSelected" DataType="LREAL" Dimensions="3" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="LREAL" Dimensions="3"><Element Index="[0]" Value="101" /><Element Index="[2]" Value="999" /></Array></Data></Tag>
+      <Tag Name="RadixMathEnabled" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="RadixMathIndex" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="RadixMathSource" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="3" /></Data></Tag>
+      <Tag Name="RadixMathSum" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0" /></Data></Tag>
+      <Tag Name="RadixMathUnsigned" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0" /></Data></Tag>
+      <Tag Name="RadixMathSigned" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0" /></Data></Tag>
+      <Tag Name="RadixMathLoss" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0" /></Data></Tag>
+      <Tag Name="RadixMathRoot" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0" /></Data></Tag>
+      <Tag Name="RadixMathPower" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="RadixMathQuotient" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0" /></Data></Tag>
+      <Tag Name="RadixMathMatch" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="RadixMathLateDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="RadixMathLateResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="RadixMathSelected" DataType="LREAL" Dimensions="3" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="LREAL" Dimensions="3"><Element Index="[0]" Value="101" /><Element Index="[2]" Value="999" /></Array></Data></Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
@@ -1065,7 +1079,7 @@
               <Rung Number="25" Type="N"><Text>JSR(IntegerConstants,0);</Text></Rung>
               <Rung Number="26" Type="N"><Text>JSR(DoubleIntegerConstants,0);</Text></Rung>
               <Rung Number="27" Type="N"><Text>JSR(IntegerFileConstants,0);</Text></Rung>
-              <Rung Number="28" Type="N"><Text>JSR(NumericMoveConstants,0)JSR(RadixMoves,0)JSR(MathConstants,0)JSR(ComparisonConstants,0)JSR(RealIntegerConstants,0)JSR(IntegerOperandConstants,0)JSR(BitwiseOperandConstants,0)JSR(Binary64SourceResults,0)JSR(DintPatternConstants,0)JSR(DintWordExpressions,0)JSR(WideBcdExpressions,0)JSR(WideRootPowerExpressions,0)JSR(BinaryRadixExpressions,0);</Text></Rung>
+              <Rung Number="28" Type="N"><Text>JSR(NumericMoveConstants,0)JSR(RadixMoves,0)JSR(MathConstants,0)JSR(ComparisonConstants,0)JSR(RealIntegerConstants,0)JSR(IntegerOperandConstants,0)JSR(BitwiseOperandConstants,0)JSR(Binary64SourceResults,0)JSR(DintPatternConstants,0)JSR(DintWordExpressions,0)JSR(WideBcdExpressions,0)JSR(WideRootPowerExpressions,0)JSR(BinaryRadixExpressions,0)JSR(RadixMathBlocks,0);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="Binary64" Type="RLL">
@@ -1351,6 +1365,20 @@
               <Rung Number="6" Type="N"><Text>XIC(BinaryRadixEnabled)CMP((16#0020000000000001L=9007199254740992L+0.0L)&amp;&amp;(BinaryRadixSource&gt;16#FFFFFFFF))OTE(BinaryRadixMatch);</Text></Rung>
               <Rung Number="7" Type="N"><Text>XIC(BinaryRadixEnabled)CPT(BinaryRadixSelected[BinaryRadixIndex],16#FFFFFFFFU+BinaryRadixSource);</Text></Rung>
               <Rung Number="8" Type="N"><Text>XIC(BinaryRadixEnabled)DIV(1,BinaryRadixLateDivisor,BinaryRadixLateResult);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="RadixMathBlocks" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(RadixMathEnabled)ADD(RadixMathSource,16#1L,RadixMathSum);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(RadixMathEnabled)ADD(16#FFFFFFFFFFFFFFFFUL,0.0L,RadixMathUnsigned);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(RadixMathEnabled)NEG(2#1000000000000000000000000000000000000000000000000000000000000000L,RadixMathSigned);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(RadixMathEnabled)SUB(16#0020000000000001L,9007199254740992L,RadixMathLoss);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(RadixMathEnabled)SQR(16#1000001U,RadixMathRoot);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(RadixMathEnabled)XPY(16#4U,0.5L,RadixMathPower);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(RadixMathEnabled)DIV(16#3L,2#10U,RadixMathQuotient);</Text></Rung>
+              <Rung Number="7" Type="N"><Text>XIC(RadixMathEnabled)ADD(8#37777777777,RadixMathSource,RadixMathSelected[RadixMathIndex]);</Text></Rung>
+              <Rung Number="8" Type="N"><Text>XIC(RadixMathEnabled)EQU(RadixMathSum,4.0L)OTE(RadixMathMatch);</Text></Rung>
+              <Rung Number="9" Type="N"><Text>XIC(RadixMathEnabled)DIV(1,RadixMathLateDivisor,RadixMathLateResult);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

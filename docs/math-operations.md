@@ -197,3 +197,8 @@ ST/index expansion and native arithmetic/status parity remain excluded.
 qualify compatible common-range tags in CPT/CMP/FAL/FSC, including LINT bases
 with DINT exponents. Full source ranges, common-type arithmetic subtrees and
 checked exponent/result bounds remain required; native parity is unverified.
+
+[Standalone LREAL radix sources](lreal-math-literals.md#radix-sources) qualify
+binary/octal/hex DINT and typed L/U/UL words in nineteen math forms. An explicit
+binary64 selector is required; REAL/integer-only and other consumers retain
+their contracts. Declared ranges precede conversion; native parity is unverified.

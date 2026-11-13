@@ -66,9 +66,9 @@ def source_type(memory, ref, scope):
     raise ModelError('MOV immediate requires bounded DINT or finite REAL')
 
 
-def lreal_math_source(memory, ref, scope, *, execute=False):
-    """Selected LREAL math input; keep MOV radix and other consumers separate."""
-    typed=typed_literal(ref) if '#' not in ref else None
+def lreal_math_source(memory, ref, scope, *, execute=False, radix=False):
+    """Selected math input; radix decoding requires the binary64 consumer opt-in."""
+    typed=typed_literal(ref) if radix or '#' not in ref else None
     if typed is not None:
         dtype,value=typed
     else:
@@ -86,9 +86,9 @@ def lreal_math_source(memory, ref, scope, *, execute=False):
     return coerce(value,'LREAL') if execute else dtype
 
 
-def math_source_type(memory, ref, scope):
+def math_source_type(memory, ref, scope, *, radix=False):
     """Identify a declared math source type without consuming a tag value."""
-    typed = typed_literal(ref) if '#' not in ref else None
+    typed = typed_literal(ref) if radix or '#' not in ref else None
     if typed is not None:
         return typed[0]
     try:
@@ -109,22 +109,23 @@ def real_math_source(memory, ref, scope, *, execute=False):
     return real(typed[1] if typed is not None else memory.read(ref,scope))
 
 
-def floating_math_profile(memory, op, scope):
+def floating_math_profile(memory, op, scope, *, radix=False):
     """Select a ladder math calculation type from declared operands."""
     key, parts, dtype = memory.check_writable(op.args[-1], scope)
     if dtype not in TYPES:
         return None
     sources = op.args[:-1]
-    source_types = () if dtype == 'LREAL' else tuple(math_source_type(memory, ref, scope) for ref in sources)
+    source_types = () if dtype == 'LREAL' else tuple(math_source_type(memory, ref, scope, radix=radix) for ref in sources)
     binary64 = dtype == 'LREAL' or 'LREAL' in source_types
+    if radix and not binary64:return None
     single = dtype == 'REAL' or (dtype in WIDE_TYPES and 'REAL' in source_types)
     if not (binary64 or single):
         return None
     if isinstance(memory.at(key, parts), (list, dict)):
         raise ModelError('Floating math requires one scalar numeric destination')
-    validate_source = lreal_math_source if binary64 else real_math_source
     for ref in sources:
-        validate_source(memory, ref, scope)
+        if binary64:lreal_math_source(memory, ref, scope, radix=radix)
+        else:real_math_source(memory, ref, scope)
     return 'LREAL' if binary64 else 'REAL'
 
 

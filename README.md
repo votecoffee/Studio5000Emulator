@@ -464,6 +464,10 @@ skips out-of-bounds timer and counter selections and continues initialization.
 lengths and indices until reached. **Byte copy lab** includes an indexed ladder
 byte round trip with unknown inputs and outputs, alongside its ST examples.
 
+[Radix sources in standalone LREAL math](docs/lreal-math-literals.md#radix-sources)
+extend the same declared-width decoding to nineteen math instructions, including
+source-selected binary64 calculations with checked REAL/integer results.
+
 [Radix constants in LREAL expressions](docs/lreal-integer-literals.md#radix-constants)
 add binary, octal and hexadecimal DINT/LINT/UDINT/ULINT words to CPT/CMP/FAL/FSC
 under the existing declared-range and binary64 conversion rules.

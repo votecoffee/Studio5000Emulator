@@ -59,7 +59,7 @@ def validate(memory, op, scope):
     if memory.project.version != '35' or memory.project.processor.upper() not in CONTROLLERS:
         raise ModelError('Standalone math requires the v35 ControlLogix 5580 software profile')
     from .numeric_storage import floating_math_profile, math_source_type
-    profile = floating_math_profile(memory, op, scope)
+    profile = floating_math_profile(memory,op,scope,radix=True) or floating_math_profile(memory,op,scope)
     if profile:
         return profile
     key, parts, dtype = memory.check_writable(op.args[-1], scope)
@@ -111,7 +111,7 @@ def execute(memory, op, power, scope):
         return True
     if profile=='LREAL':
         from .numeric_storage import lreal_math_source, write_lreal_math_result
-        values=[lreal_math_source(memory,ref,scope,execute=True) for ref in op.args[:-1]]
+        values=[lreal_math_source(memory,ref,scope,execute=True,radix=True) for ref in op.args[:-1]]
     elif profile=='REAL':
         from .numeric_storage import real_math_source
         values=[real_math_source(memory,ref,scope,execute=True) for ref in op.args[:-1]]
@@ -158,12 +158,12 @@ def description():
                     native_runtime_parity=False),
                 lreal=dict(instructions=sorted(INSTRUCTIONS),sources='Scalar numeric tags for unary forms; XPY uses its separate profile',destination='Scalar LREAL tag',
                     unary=dict(instructions=sorted(FUNCTIONS),source_types=sorted(LREAL_SOURCE_TYPES),
-                        constants='Bounded DINT/finite REAL and decimal L/U/UL integer or floating L/l constants; source range/precision checked before binary64 promotion',
+                        constants='DINT radix words, bounded DINT/finite REAL and decimal/radix L/U/UL integer or floating L/l constants; source range/precision checked before binary64 promotion',
                         selection='A scalar LREAL destination selects finite binary64 input and result; sources retain their declared numeric values and stored REAL precision',
                         native_runtime_parity=False),
                     power=dict(instruction='XPY',source_types=sorted({*INT_BITS,'REAL','LREAL'}),
                         operands='Scalar numeric sources and bounded integer constants with a LREAL result; no LREAL source is required',
-                        constants='Bounded DINT/finite REAL and decimal L/U/UL integer or floating L/l constants in either source position; declared precision before binary64 promotion',
+                        constants='DINT radix words, bounded DINT/finite REAL and decimal/radix L/U/UL integer or floating L/l constants in either source position; declared precision before binary64 promotion',
                         promotion='Convert all required numeric tag sources to finite binary64; stored REAL precision and wide integer rounding are retained',
                         native_runtime_parity=False),
                     arithmetic='Finite host binary64 sources/results; same math functions without a REAL intermediate',
