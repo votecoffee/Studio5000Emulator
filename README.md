@@ -481,7 +481,8 @@ indexed array transforms, scalar accumulation and arithmetic/bitwise expressions
 **Stats lab** demonstrates full-array, scan-distributed and
 [incremental transforms](docs/file-incremental.md), including
 [binary64 FAL with LREAL](docs/file-arithmetic.md#binary64-expressions) and
-checked REAL and integer results.
+checked REAL and integer results. [Completed INC source controls](docs/file-incremental.md#initial-state-and-lifecycle)
+can hold their saved results and rearm from element zero after false cleanup.
 
 [File search](docs/file-search.md) adds FSC ALL/numeric/INC modes, match/inhibit
 state and resumable searches using the existing comparison grammar. **Stats lab**

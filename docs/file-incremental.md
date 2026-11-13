@@ -36,10 +36,16 @@ operations. Zero LEN completes without reading expression data.
 
 ## Initial state and lifecycle
 
-This bounded profile requires an idle CONTROL in the source: POS zero and all
-public flags false. Saved active/nonzero records are rejected, even on a false
-rung. The exported public fields cannot reconstruct native hidden progress.
-ALL/numeric modes retain their existing saved-state profiles.
+App `26.1112.193956` accepts either an idle source CONTROL (POS zero and all
+flags false) or a known completed source: DN true, ER false, known Boolean flags
+and known nonnegative LEN/POS with POS no greater than LEN. A held completed call
+consumes no expression data. A completed false call clears EN/DN/POS, so the next
+enable edge starts at zero. FSC IN still inhibits cleanup until cleared.
+
+Clearing imported DN alone does not authorize a nonzero resume without observed
+simulator progress. Use completed false cleanup or CONTROL RES first. Saved
+partial, error or unknown controls remain blocked; no native hidden progress is
+reconstructed. ALL/numeric modes retain their existing saved-state profiles.
 
 The simulator keeps INC progress separately from public CONTROL flags, keyed
 by the resolved CONTROL identity. Aliases share progress; selected array/member
@@ -74,11 +80,11 @@ their progress, preserving LEN and the arrays. See
 
 ## Qualification limits
 
-Native hidden-bit encoding, restoration from a saved active snapshot, copying
+Native hidden-bit encoding, restoration from a saved partial snapshot, copying
 hidden progress through aggregate transfers, mixed consumers of one CONTROL,
 final-cursor parity, native status/fault records and partial-write behavior
 remain unqualified. [RLL AOI execution](aoi-file-operations.md) now shares
-the same idle-source gate and canonical progress. ST/FBD instruction calls,
+the same idle/completed-source gate and canonical progress. ST/FBD instruction calls,
 additional types/expressions and broader AOI lifecycle/schema remain unfinished. These are software-model checks; native
 controller and Studio acceptance are separate.
 

@@ -14,6 +14,12 @@ class IncrementalFileTests(unittest.TestCase):
     checked=fixtures.ArrayStatisticsTests.checked
 
     @staticmethod
+    def completed(root,name='Ctl',position=3,length=4):
+        obj=root.find(f'./Controller/Tags/Tag[@Name="{name}"]/Data/Structure')
+        for member,value in dict(POS=position,LEN=length,EN=1,DN=1,ER=0).items():
+            obj.find(f'DataValueMember[@Name="{member}"]').set('Value',str(value))
+
+    @staticmethod
     def call(kind,control='Ctl'):
         expression=f'Queue[{control}.POS]>Incoming' if kind=='FSC' else f'Queue[{control}.POS],Incoming'
         return f'{kind}({control},?,?,INC,{expression});'
@@ -91,10 +97,78 @@ class IncrementalFileTests(unittest.TestCase):
     def test_saved_active_or_nonzero_controls_block_even_on_false_rungs(self):
         for kind in ('FAL','FSC'):
             self.assertTrue(self.engine(['AFI()'+self.call(kind)],position=1).blockers)
-            for flag in FLAGS:
+            for flag in (flag for flag in FLAGS if flag != 'DN'):
                 def saved(root):root.find(f'./Controller/Tags/Tag[@Name="Ctl"]/Data/Structure/DataValueMember[@Name="{flag}"]').set('Value','1')
                 e=self.engine(['AFI()'+self.call(kind)],mutate=saved)
                 self.assertTrue(e.blockers,(kind,flag));self.assertIn('saved hidden progress',str(e.blockers))
+
+    def test_saved_completed_controls_hold_then_false_cleanup_starts_at_element_zero(self):
+        for kind in ('FAL','FSC'):
+            with self.subTest(kind=kind):
+                e=self.checked(['XIC(StartPB)'+self.call(kind)],mutate=self.completed)
+                e.memory.write('StartPB',True);e.memory.values['incoming']=None
+                before=copy.deepcopy(e.memory.values)
+                e.step();self.assertEqual(e.memory.values,before)
+                self.assertEqual(e._file_incremental,set())
+                e.memory.write('StartPB',False);e.step()
+                self.assertEqual([e.memory.read('Ctl.'+n) for n in ('EN','DN','POS')],[False,False,0])
+                e.memory.write('Incoming',20);e.memory.write('StartPB',True);e.step()
+                self.assertEqual(e.memory.read('Ctl.POS'),0)
+                self.assertFalse(e.memory.read('Ctl.DN'))
+                self.assertEqual(len(e._file_incremental),1)
+                if kind=='FAL':self.assertEqual(e.memory.read('Queue[0]'),20)
+
+    def test_saved_completed_boundary_positions_need_no_expression_or_hidden_state(self):
+        for kind in ('FAL','FSC'):
+            for length,position in ((0,0),(4,0),(4,4)):
+                def saved(root):self.completed(root,position=position,length=length)
+                e=self.checked([self.call(kind)],mutate=saved)
+                e.memory.values['incoming']=None;e.step()
+                self.assertTrue(e.memory.read('Ctl.DN'))
+                self.assertEqual(e.memory.read('Ctl.POS'),position)
+                self.assertEqual(e._file_incremental,set())
+
+    def test_completed_search_inhibit_requires_clear_before_false_cleanup(self):
+        def saved(root):
+            self.completed(root)
+            obj=root.find('./Controller/Tags/Tag[@Name="Ctl"]/Data/Structure')
+            for name in ('IN','FD'):obj.find(f'DataValueMember[@Name="{name}"]').set('Value','1')
+        e=self.checked(['XIC(StartPB)'+self.call('FSC')],mutate=saved)
+        e.step();self.assertTrue(e.memory.read('Ctl.DN'));self.assertEqual(e.memory.read('Ctl.POS'),3)
+        e.memory.write('Ctl.IN',False);e.step()
+        self.assertFalse(e.memory.read('Ctl.DN'));self.assertEqual(e.memory.read('Ctl.POS'),0)
+        self.assertTrue(e.memory.read('Ctl.FD'))
+
+    def test_clearing_imported_done_alone_cannot_resume_an_unknown_nonzero_element(self):
+        for kind in ('FAL','FSC'):
+            e=self.checked(['XIC(RunLatch)RES(Ctl);','XIC(StartPB)'+self.call(kind)],mutate=self.completed)
+            e.memory.write('Ctl.DN',False);e.memory.write('Ctl.EN',False);e.memory.write('StartPB',True)
+            before=copy.deepcopy(e.memory.values)
+            with self.assertRaisesRegex(ModelError,'false cleanup or RES'):e.step()
+            self.assertEqual(e.memory.values,before)
+            e.memory.write('RunLatch',True);e.memory.write('StartPB',False);e.step()
+            e.memory.write('RunLatch',False);e.memory.write('StartPB',True);e.step()
+            self.assertEqual(e.memory.read('Ctl.POS'),0)
+            self.assertEqual(len(e._file_incremental),1)
+
+    def test_later_fault_rolls_back_imported_completed_cleanup(self):
+        e=self.checked(['XIC(StartPB)'+self.call('FAL'),'DIV(1,SpeedCommand,Outgoing);'],mutate=self.completed)
+        e.memory.write('SpeedCommand',0);before=copy.deepcopy(e.memory.values)
+        with self.assertRaises(ModelError):e.step()
+        self.assertEqual(e.memory.values,before);self.assertEqual(e._file_incremental,set())
+        e.memory.write('SpeedCommand',1);e.step()
+        self.assertEqual(e.memory.read('Ctl.POS'),0);self.assertFalse(e.memory.read('Ctl.DN'))
+        e.memory.write('StartPB',True);e.step()
+        self.assertEqual(e.memory.read('Ctl.POS'),0);self.assertEqual(len(e._file_incremental),1)
+
+    def test_invalid_or_unknown_completed_source_controls_remain_blocked(self):
+        for field,value in (('POS','5'),('POS','-1'),('LEN','-1'),('ER','1'),('LEN',None),('DN',None)):
+            def saved(root):
+                self.completed(root)
+                member=root.find(f'./Controller/Tags/Tag[@Name="Ctl"]/Data/Structure/DataValueMember[@Name="{field}"]')
+                if value is None:member.attrib.pop('Value')
+                else:member.set('Value',value)
+            self.assertTrue(self.engine(['AFI()'+self.call('FAL')],mutate=saved).blockers)
 
     def test_source_guards_remain_bound_to_original_initial_values_after_runtime_progress(self):
         for kind in ('FAL','FSC'):

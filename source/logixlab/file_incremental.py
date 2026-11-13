@@ -8,13 +8,26 @@ def identity(engine,ref,scope):
     return key,tuple(parts)
 
 
-def validate(engine,op,scope):
-    key,parts=identity(engine,op.args[0],scope)
-    saved=engine.project.initial[key]
+def source_control(engine,key):
+    name,parts=key
+    saved=engine.project.initial[name]
     for part in parts:saved=saved[part]
+    return saved
+
+
+def completed_source(saved):
+    return (saved['DN'] is True and saved['ER'] is False
+            and all(type(saved[flag]) is bool for flag in controls.FLAGS)
+            and type(saved['LEN']) is int and type(saved['POS']) is int
+            and 0 <= saved['POS'] <= saved['LEN'])
+
+
+def validate(engine,op,scope):
+    saved=source_control(engine,identity(engine,op.args[0],scope))
+    if completed_source(saved):return
     if (type(saved['POS']) is not int or saved['POS']!=0
             or any(saved[flag] is not False for flag in controls.FLAGS)):
-        raise ModelError('INC requires an idle source CONTROL: POS zero and all flags false; saved hidden progress is unavailable')
+        raise ModelError('INC requires an idle source CONTROL or a known completed one; saved hidden progress is unavailable')
 
 
 def execute(engine,op,power,scope,obj,operation,*,search=False):
@@ -25,6 +38,8 @@ def execute(engine,op,power,scope,obj,operation,*,search=False):
             obj.update(EN=False,DN=False,POS=0)
             engine._file_incremental.discard(key)
         return power
+    if key not in engine._file_incremental and completed_source(source_control(engine,key)) and controls.integer(obj,'POS') != 0:
+        raise ModelError('Imported completed INC requires completed false cleanup or RES before nonzero resume; saved hidden progress is unavailable')
     enabled=controls.flag(obj,'EN')
     if not power:
         obj['EN']=False
@@ -50,7 +65,7 @@ def execute(engine,op,power,scope,obj,operation,*,search=False):
 
 def description():
     return dict(edge='One element per observed false-to-true EN transition; held true does not iterate',
-                startup='Idle source CONTROL only: POS zero and all public flags false; no saved hidden-state import',
+                startup='Idle source CONTROL or known completed DN with ER clear, known flags and 0 <= POS <= LEN; no saved partial/hidden-state import',
                 progress='Canonical CONTROL identity, including aliases/selected members; separate from public flags',
                 lifecycle='False partial clears EN; false completed with no inhibit clears DN/POS/progress; RES clears progress',
                 persistence='Transactional simulator state retained across Run entry and routine replacement; not serialized as native CONTROL bits',

@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+[Completed INC source controls](file-incremental.md#initial-state-and-lifecycle)
+can hold completed FAL/FSC results and rearm on false cleanup as of `26.1112.193956`.
+Saved partial or unknown hidden progress remains excluded.
+
 [All-ones record fills](aggregate-fill.md#all-ones-record-fills) support `FLL(-1,...)`
 for integral/Boolean structures as of `26.1112.192411`. Nested records, exact unsigned
 patterns, selected windows, AOI bindings and existing rollback are included.

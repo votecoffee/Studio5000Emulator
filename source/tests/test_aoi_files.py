@@ -111,6 +111,21 @@ class AOIFileTests(unittest.TestCase):
                 else:node.set('Value',value)
             self.assertTrue(any('idle source' in b for b in self.engine(active).blockers))
 
+    def test_saved_completed_inout_controls_hold_and_rearm_independently(self):
+        from test_file_incremental import IncrementalFileTests
+        def saved(root):
+            for name in ('CalcA','FindA'):IncrementalFileTests.completed(root,name=name)
+        e=self.checked(saved)
+        output=copy.deepcopy(e.memory.read('OutputA'))
+        self.write(e,Transform=True,Search=True);e.step()
+        self.assertEqual(e.memory.read('OutputA'),output)
+        self.assertTrue(e.memory.read('CalcA.DN'));self.assertEqual(e.memory.read('CalcA.POS'),3)
+        self.assertTrue(e.memory.read('FindA.DN'))
+        self.pulse(e)
+        self.assertFalse(e.memory.read('CalcA.DN'));self.assertEqual(e.memory.read('CalcA.POS'),0)
+        self.assertEqual(e.memory.read('OutputA[0]'),5)
+        self.assertEqual(e.memory.read('CalcB.POS'),1)
+
     def test_all_saved_position_profile_is_retained_inside_aoi(self):
         def saved(root):
             obj=root.find('./Controller/Tags/Tag[@Name="CalcA"]/Data/Structure');obj.find('DataValueMember[@Name="POS"]').set('Value','1');obj.find('DataValueMember[@Name="EN"]').set('Value','1')

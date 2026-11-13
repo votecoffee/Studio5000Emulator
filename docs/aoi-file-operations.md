@@ -2,7 +2,7 @@
 
 App `26.1102.085455` adds `FAL` and `FSC` inside supported RLL AOIs for the
 Standard v35 ControlLogix 5580 profile. ALL, positive immediate numeric and
-idle-source INC modes use the same bounded algorithms and expressions as
+INC from idle or [completed source controls](file-incremental.md#initial-state-and-lifecycle) uses the same bounded algorithms and expressions as
 ordinary ladder routines.
 
 ```text
