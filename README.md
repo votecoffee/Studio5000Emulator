@@ -482,7 +482,8 @@ unused bytes; false rungs skip dynamic indices and saved operand values.
 
 [Mixed integer FAL](docs/integer-files.md#mixed-integer-fal) adds exact compatible
 source types, including LINT arrays with DINT adjustments. Stats Lab exposes
-WideFileDelta for this profile.
+WideFileDelta for this profile. [Matching typed constants](docs/ladder-wide-expressions.md#matching-typed-constants)
+also work with compatible mixed source tags in CPT/CMP and FAL/FSC.
 [File arithmetic](docs/file-arithmetic.md) adds FAL ALL/numeric/INC modes for
 indexed array transforms, scalar accumulation and arithmetic/bitwise expressions.
 **Stats lab** demonstrates full-array, scan-distributed and

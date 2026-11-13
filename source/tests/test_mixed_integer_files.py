@@ -109,7 +109,7 @@ class MixedIntegerFileTests(unittest.TestCase):
 
     def test_source_ranges_destination_and_typed_literal_limits_remain_explicit(self):
         self.assertTrue(self.engine(dtype='ULINT', small_type='DINT', small=1).blockers)
-        self.assertTrue(self.engine('Queue[Ctl.POS]+Small+1L').blockers)
+        self.assertTrue(self.engine('Queue[Ctl.POS]+Small+1U').blockers)
         self.assertTrue(self.engine('Queue[Ctl.POS]+Small+2147483648').blockers)
         def narrow_dest(root):root.find('./Controller/Tags/Tag[@Name="Outgoing"]').set('DataType', 'DINT')
         self.assertTrue(self.engine(rungs=['FAL(Ctl,?,?,ALL,Outgoing,Queue[Ctl.POS]+Small);'], mutate=narrow_dest).blockers)

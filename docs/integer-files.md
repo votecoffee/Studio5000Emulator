@@ -69,7 +69,7 @@ keeps the dividend sign. Every intermediate must fit, even when a later operatio
 would cancel an overflow. Results above 2^53 remain integer-exact.
 
 Signed-DINT constants must fit the selected type. Mixed numeric bitwise,
-typed/larger/REAL literals, independent lower-type arithmetic subtrees, other
+nonmatching typed or untyped larger/REAL literals, independent lower-type arithmetic subtrees, other
 functions/powers, narrowing and additional ST/index forms remain excluded.
 Homogeneous typed constants and binary64 expressions retain their separate rules.
 
@@ -80,6 +80,10 @@ CONTROL progress, work budgets and whole-advance rollback remain. Integer
 overflow still follows rollback; the separate REAL ER/retry profile is unchanged.
 Native intermediate widths, status/faults, partial effects, cursor and lifecycle
 parity remain unqualified. See [focused cases](../source/tests/test_mixed_integer_files.py).
+
+[Matching typed constants](ladder-wide-expressions.md#matching-typed-constants)
+can also accompany mixed integer source tags. They must match the actual common
+source type and do not replace the common-tag requirement for each subtree.
 
 ## Stats lab
 
@@ -106,5 +110,5 @@ arithmetic, scan, fault or Studio compatibility.
 [Decimal L/U/UL constants in FAL/FSC](file-integer-literals.md) now cover
 matching LINT/UDINT/ULINT expressions, with exact arithmetic/comparisons and
 existing ALL/numeric/INC progress, lazy selection and whole-advance rollback.
-Mixed typed forms, floating/radix/file-argument expansion and native parity
+Other mixed typed forms, floating/radix/file-argument expansion and native parity
 remain separate.

@@ -108,7 +108,7 @@ Every result must fit the selected type. Calculations use exact integers, quotie
 truncation toward zero and dividend-sign remainders. A later operation does not
 cancel an earlier overflow. Constants remain signed-DINT integers representable
 in the selected type, including existing radix spellings within that value range.
-Larger/typed/REAL constants, REAL/LREAL mixtures, narrowing and destination-only
+Nonmatching typed, untyped larger or REAL constants, REAL/LREAL mixtures, narrowing and destination-only
 promotion remain outside this mixed profile. [FAL](integer-files.md#mixed-integer-fal)
 now shares these rules. ST and index consumers do not expand. Native intermediate, flags, fault and partial-effect parity are unverified.
 
@@ -125,6 +125,45 @@ results and one arithmetic condition: sums, differences, products, exact minimum
 LINT quotient/remainder, unsigned subtraction, ABS and nested arithmetic. Set
 `ExpressionDelta` to zero while enabled to test rollback, then restore it to 3.
 Disabling the gate retains numeric outputs and clears `MixedExpressionMatches`.
+
+## Matching typed constants
+
+App `26.1112.224640` extends mixed integer CPT/CMP and FAL/FSC expressions with
+decimal L/l, U/u and UL/ul/Ul/uL constants **matching the common actual source
+tag type**. The highest-ranked actual source type must still cover all source
+ranges. Every arithmetic subtree must contain a source tag of that common type,
+and a CPT/FAL destination must match. A literal does not satisfy that subtree
+rule, select a wider common type, or permit a signed-to-unsigned conversion.
+
+```text
+CPT(Result,Wide+Small+9007199254740993L);
+CMP(Wide+Small=9007199254740996L)OTE(Matches);
+FAL(Calc,?,?,ALL,Out[Calc.POS],WideArray[Calc.POS]+Small+1L);
+FSC(Find,?,?,INC,WideArray[Find.POS]+Small>=9007199254740996L);
+```
+
+With Wide/Result LINT and Small DINT, the first expression remains exact above
+2^53. A U or UL constant is excluded even if its value would fit LINT. Likewise,
+`Wide+(Small+1L)` is excluded because its inner arithmetic has no LINT tag.
+LINT minimum, UDINT maximum and ULINT maximum use their declared integer ranges;
+immediate unary signs participate in the preflight check. Unknown and invalid
+live operands remain lazy, but a malformed/out-of-range constant blocks even
+a false rung. Every intermediate and final result must fit.
+
+All existing operators, eager Boolean comparisons, file modes/cursors, exact
+AOI bindings, instruction budgets and whole-advance rollback remain. Other
+typed mixtures/radix forms, implicit promotion, independent lower-width
+intermediates and new ST/index forms remain excluded. LREAL selectors retain
+their separate binary64 profile. Native type promotion, math status, partial
+effects and lifecycle equivalence remain unqualified.
+
+Stats Lab's WideFiles FAL now includes a matching `0L` constant, preserving its
+existing default results and WideFileDelta adjustment. Focused cases also use
+full-width nonzero constants. See [tests](../source/tests/test_mixed_integer_literals.py)
+and [file constants](file-integer-literals.md). The source baseline is installed
+v35 Immediate values14454, CPT14597, CMP14592 and FAL/FSC14504/14515;
+[Rockwell literal suffixes](https://www.rockwellautomation.com/en-pl/docs/studio-5000-logix-designer/38-01/contents-ditamap/instruction-set/structured-text-attributes/character-string-literals.html)
+provide additional syntax context. The bounded rules above define this software model.
 
 ## Scans and faults
 

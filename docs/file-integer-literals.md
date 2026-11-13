@@ -2,7 +2,9 @@
 
 The bounded v35 ControlLogix 5580 file evaluator accepts decimal L/l (LINT),
 U/u (UDINT) and UL/ul/Ul/uL (ULINT) constants in FAL expressions and FSC search
-conditions. Numeric tags, typed constants and FAL destinations must match.
+conditions. The homogeneous profile requires matching numeric tags, typed constants
+and FAL destinations. [Matching constants in mixed expressions](ladder-wide-expressions.md#matching-typed-constants)
+also allow compatible tags when the literal matches the common actual source type.
 Representable signed-DINT constants may participate. Every integer intermediate
 must fit the selected type; values above 2^53 remain exact.
 

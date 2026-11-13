@@ -14,9 +14,11 @@ def analyze(expression,memory,scope='',destination_type=None,*,consumer='ST'):
     if memory.project.version!='35' or memory.project.processor.upper() not in CONTROLLERS:
         raise ModelError(label+' requires the v35 ControlLogix 5580 profile')
     numeric=set(declared.values())-{'BOOL'}
-    mixed=consumer in ('CPT','CMP','FAL') and len(numeric)>1 and not expression.typed_types
+    mixed=consumer in ('CPT','CMP','FAL') and len(numeric)>1
     if mixed:
         dtype=ordering_type(numeric)
+        if expression.typed_types - {dtype}:
+            raise ModelError(label+' typed constants must match the common source tag type')
     else:
         if len(wide)!=1 or set(declared.values())-wide-{'BOOL'}:
             raise ModelError(label+' numeric tag operands must have one matching declared type')
@@ -123,7 +125,7 @@ def evaluate(expression,memory,scope,profile):
 def ladder_description(project):
     return dict(profile='v35-5580-integer-ladder-expressions',types=list(INTEGER_RANK),
                 available=project.version=='35' and project.processor.upper() in CONTROLLERS,
-                instructions=['CPT','CMP','MEQ'],file_consumers=['FAL'],mixed_numeric_types=True,
+                instructions=['CPT','CMP','MEQ'],file_consumers=['FAL','FSC'],mixed_numeric_types=True,
                 arithmetic='Exact declared-width integers; every intermediate must fit; quotient truncates toward zero',
                 operators=['+','-','*','/','MOD','AND','OR','XOR','NOT','ABS','comparisons'],
                 cmp_logic=['&&','||','^^','!','BOOL AND/OR/XOR/NOT'],eager_cmp=True,
@@ -135,13 +137,16 @@ def ladder_description(project):
                     arithmetic='Bounded mixed arithmetic is described in mixed_integer_arithmetic',
                     excluded='Numeric bitwise mixtures, other functions, REAL/LREAL, typed/larger constants, CPT comparison results, ST and native parity',
                     native_runtime_parity=False),
-                mixed_integer_arithmetic=dict(instructions=['CPT','CMP','FAL'],types=list(INTEGER_RANK),
+                mixed_integer_arithmetic=dict(instructions=['CPT','CMP','FAL','FSC'],types=list(INTEGER_RANK),
                     operators=['+','-','*','/','MOD','unary +','unary -','ABS'],
                     operands='Highest-ranked actual source tag type covers every complete numeric source range; CPT/FAL destination matches that type',
                     intermediates='Every arithmetic subexpression contains an actual source tag of the selected common type; every result must fit',
-                    constants='Signed-DINT integers representable in the common type; destination and constants do not invent a wider source type',
+                    constants='Signed-DINT values or decimal L/U/UL constants matching the actual common source type; destination and constants do not invent a wider source type',
+                    typed_constants=dict(types=['LINT','UDINT','ULINT'],matching_common_source_type=True,
+                        range='Declared range checked in preflight with the immediate unary sign; exact values above 2^53',
+                        no_source_promotion=True),
                     arithmetic='Exact integers; quotient toward zero; remainder has dividend sign; all required sources consumed',
-                    excluded='Lower-type-only arithmetic subtrees, mixed numeric bitwise, other functions/power, REAL/LREAL, typed/larger constants, ST and native parity',
+                    excluded='Lower-type-only arithmetic subtrees, mixed numeric bitwise, other functions/power, REAL/LREAL, nonmatching typed or untyped larger constants, ST and native parity',
                     native_runtime_parity=False),
                 meq='All eight integer tag types may mix with bounded plain and typed immediates; homogeneous LINT immediate compatibility is retained',
                 meq_mixed_integer_tags=True,
@@ -149,7 +154,7 @@ def ladder_description(project):
                 typed_integer_literals=dict(instructions=['CPT','CMP'],types=['LINT','UDINT','ULINT'],
                     suffixes=['L/l','U/u','UL/ul/Ul/uL'],matching_numeric_types=True,
                     range='Declared literal range checked in preflight with its immediate unary sign; exact integer evaluation',
-                    excluded='Mixed literal/tag types, typed radix forms, other consumers, LREAL combinations and native parity',
+                    excluded='Other literal/tag mixtures, typed radix forms, other consumers, LREAL combinations and native parity',
                     native_runtime_parity=False),
                 failures='Required unknown data, bounds, division and overflow faults roll back the whole advance',
                 native_runtime_parity=False,

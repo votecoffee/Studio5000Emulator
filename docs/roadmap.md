@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+[Matching typed constants](ladder-wide-expressions.md#matching-typed-constants)
+extend mixed integer CPT/CMP/FAL/FSC as of `26.1112.224640`. L/U/UL constants must
+match the common actual source tag type; no new promotion or subtree inference.
+Exact ranges, all file modes, AOI bindings and rollback remain.
+
 [Mixed integer FAL](integer-files.md#mixed-integer-fal) adds compatible source
 tag arithmetic in ALL/numeric/INC as of `26.1112.223602`. The common actual source
 type covers all ranges, matches the destination and appears in every arithmetic

@@ -15,8 +15,9 @@ CMP(9007199254740992L<9007199254740993L)OTE(Exact);
 
 ## Types and arithmetic
 
-All numeric tags, typed constants and the CPT destination must have one matching
-type. An unsuffixed signed-DINT constant may participate when its value fits that
+In the homogeneous profile, numeric tags, typed constants and the CPT destination
+have one matching type. The [mixed profile](ladder-wide-expressions.md#matching-typed-constants)
+also accepts compatible source tags when the literal matches their common type. An unsuffixed signed-DINT constant may participate when its value fits that
 type. Typed constants can select the profile without a numeric source tag, as
 in the examples above. Lowercase suffixes, leading decimal zeroes, unary signs
 and parentheses are accepted. Negative unsigned values remain out of range;

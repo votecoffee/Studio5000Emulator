@@ -128,7 +128,7 @@ class MixedExpressionMathTests(unittest.TestCase):
     def test_unqualified_types_destinations_operators_and_permissions_stay_blocked(self):
         for types in [('LINT','DINT','DINT'),('LINT','ULINT','LINT'),('DINT','UINT','LINT')]:
             self.assertTrue(self.engine(['AFI()CPT(Dest,Source+Mask);'],types=types,values=(1,1,0)).blockers)
-        for expr in ('Source AND Mask','(NOT Source)+Mask','SQR(Source)+Mask','Source**2+Mask','Source+Mask+2147483648','Source+Mask+1.0','Source+Mask+1L'):
+        for expr in ('Source AND Mask','(NOT Source)+Mask','SQR(Source)+Mask','Source**2+Mask','Source+Mask+2147483648','Source+Mask+1.0','Source+Mask+1U'):
             self.assertTrue(self.engine(['AFI()CPT(Dest,'+expr+');']).blockers,expr)
         def constant(root):root.find('./Controller/Tags/Tag[@Name="Results"]').set('Constant','true')
         self.assertTrue(self.engine(['AFI()CPT(Results[0],Source+Mask);'],mutate=constant).blockers)
@@ -140,7 +140,7 @@ class MixedExpressionMathTests(unittest.TestCase):
         for processor,revision in [('1756-L75','35'),('1756-L85E','34')]:
             def target(root):root.find('Controller').set('ProcessorType',processor);root.find('Controller').set('MajorRev',revision)
             self.assertTrue(self.engine(['AFI()CPT(Dest,Source+Mask);'],mutate=target).blockers)
-        report=self.checked(['CPT(Dest,Source+Mask);']).report()['wide_ladder_expressions'];self.assertTrue(report['mixed_numeric_types']);self.assertEqual(report['mixed_integer_arithmetic']['instructions'],['CPT','CMP','FAL']);self.assertFalse(report['mixed_integer_arithmetic']['native_runtime_parity'])
+        report=self.checked(['CPT(Dest,Source+Mask);']).report()['wide_ladder_expressions'];self.assertTrue(report['mixed_numeric_types']);self.assertEqual(report['mixed_integer_arithmetic']['instructions'],['CPT','CMP','FAL','FSC']);self.assertFalse(report['mixed_integer_arithmetic']['native_runtime_parity'])
 
 
 if __name__=='__main__':unittest.main()
