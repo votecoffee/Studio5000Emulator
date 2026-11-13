@@ -690,7 +690,8 @@ enabled in the emulator.
 
 [String and UDT queues](docs/record-queues.md) extend FIFO/LIFO to complete
 matching records, including custom strings, arrays and exact 64-bit fields.
-Choose **Record lab** to try part tracking, a stack and a text FIFO.
+Choose **Record lab** to try part tracking, a stack and a text FIFO, including
+[LREAL positions and exact time/date UDT fields](docs/record-queues.md#precise-positions-and-timestamps).
 
 [Paired MCR zones](docs/master-control.md) add controlled false scanning in
 ladder and supported RLL AOIs. **Control lab** shows output clearing, retained

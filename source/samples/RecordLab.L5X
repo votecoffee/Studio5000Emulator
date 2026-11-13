@@ -11,6 +11,8 @@
       </DataType>
       <DataType Name="PartRecord" Family="NoFamily" Class="User">
         <Members>
+          <Member Name="Position" DataType="LREAL" Dimension="0" Hidden="false" ExternalAccess="Read/Write" />
+          <Member Name="Timestamp" DataType="LDT" Dimension="0" Hidden="false" ExternalAccess="Read/Write" />
           <Member Name="Id" DataType="DINT" Dimension="0" Hidden="false" ExternalAccess="Read/Write" />
           <Member Name="Lot" DataType="LINT" Dimension="0" Hidden="false" ExternalAccess="Read/Write" />
           <Member Name="Accepted" DataType="BOOL" Dimension="0" Hidden="false" ExternalAccess="Read/Write" />
@@ -50,6 +52,8 @@
       <Tag Name="IncomingPart" TagType="Base" DataType="PartRecord" Constant="false" ExternalAccess="Read/Write">
         <Data Format="Decorated">
           <Structure DataType="PartRecord">
+            <DataValueMember Name="Position" DataType="LREAL" Value="0.0" />
+            <DataValueMember Name="Timestamp" DataType="LDT" Value="0" />
             <DataValueMember Name="Id" DataType="DINT" Value="101" />
             <DataValueMember Name="Lot" DataType="LINT" Value="9007199254740993" />
             <DataValueMember Name="Accepted" DataType="BOOL" Value="1" />
@@ -84,6 +88,8 @@
       <Tag Name="OutgoingPart" TagType="Base" DataType="PartRecord" Constant="false" ExternalAccess="Read/Write">
         <Data Format="Decorated">
           <Structure DataType="PartRecord">
+            <DataValueMember Name="Position" DataType="LREAL" Value="0.0" />
+            <DataValueMember Name="Timestamp" DataType="LDT" Value="0" />
             <DataValueMember Name="Id" DataType="DINT" Value="0" />
             <DataValueMember Name="Lot" DataType="LINT" Value="0" />
             <DataValueMember Name="Accepted" DataType="BOOL" Value="0" />
@@ -118,6 +124,8 @@
       <Tag Name="PoppedPart" TagType="Base" DataType="PartRecord" Constant="false" ExternalAccess="Read/Write">
         <Data Format="Decorated">
           <Structure DataType="PartRecord">
+            <DataValueMember Name="Position" DataType="LREAL" Value="0.0" />
+            <DataValueMember Name="Timestamp" DataType="LDT" Value="0" />
             <DataValueMember Name="Id" DataType="DINT" Value="0" />
             <DataValueMember Name="Lot" DataType="LINT" Value="0" />
             <DataValueMember Name="Accepted" DataType="BOOL" Value="0" />
@@ -154,6 +162,8 @@
           <Array DataType="PartRecord" Dimensions="4">
             <Element Index="[0]">
               <Structure DataType="PartRecord">
+                <DataValueMember Name="Position" DataType="LREAL" Value="0.0" />
+                <DataValueMember Name="Timestamp" DataType="LDT" Value="0" />
                 <DataValueMember Name="Id" DataType="DINT" Value="0" />
                 <DataValueMember Name="Lot" DataType="LINT" Value="0" />
                 <DataValueMember Name="Accepted" DataType="BOOL" Value="0" />
@@ -186,6 +196,8 @@
             </Element>
             <Element Index="[1]">
               <Structure DataType="PartRecord">
+                <DataValueMember Name="Position" DataType="LREAL" Value="0.0" />
+                <DataValueMember Name="Timestamp" DataType="LDT" Value="0" />
                 <DataValueMember Name="Id" DataType="DINT" Value="0" />
                 <DataValueMember Name="Lot" DataType="LINT" Value="0" />
                 <DataValueMember Name="Accepted" DataType="BOOL" Value="0" />
@@ -218,6 +230,8 @@
             </Element>
             <Element Index="[2]">
               <Structure DataType="PartRecord">
+                <DataValueMember Name="Position" DataType="LREAL" Value="0.0" />
+                <DataValueMember Name="Timestamp" DataType="LDT" Value="0" />
                 <DataValueMember Name="Id" DataType="DINT" Value="0" />
                 <DataValueMember Name="Lot" DataType="LINT" Value="0" />
                 <DataValueMember Name="Accepted" DataType="BOOL" Value="0" />
@@ -250,6 +264,8 @@
             </Element>
             <Element Index="[3]">
               <Structure DataType="PartRecord">
+                <DataValueMember Name="Position" DataType="LREAL" Value="0.0" />
+                <DataValueMember Name="Timestamp" DataType="LDT" Value="0" />
                 <DataValueMember Name="Id" DataType="DINT" Value="999" />
                 <DataValueMember Name="Lot" DataType="LINT" Value="0" />
                 <DataValueMember Name="Accepted" DataType="BOOL" Value="0" />
@@ -288,6 +304,8 @@
           <Array DataType="PartRecord" Dimensions="4">
             <Element Index="[0]">
               <Structure DataType="PartRecord">
+                <DataValueMember Name="Position" DataType="LREAL" Value="0.0" />
+                <DataValueMember Name="Timestamp" DataType="LDT" Value="0" />
                 <DataValueMember Name="Id" DataType="DINT" Value="0" />
                 <DataValueMember Name="Lot" DataType="LINT" Value="0" />
                 <DataValueMember Name="Accepted" DataType="BOOL" Value="0" />
@@ -320,6 +338,8 @@
             </Element>
             <Element Index="[1]">
               <Structure DataType="PartRecord">
+                <DataValueMember Name="Position" DataType="LREAL" Value="0.0" />
+                <DataValueMember Name="Timestamp" DataType="LDT" Value="0" />
                 <DataValueMember Name="Id" DataType="DINT" Value="0" />
                 <DataValueMember Name="Lot" DataType="LINT" Value="0" />
                 <DataValueMember Name="Accepted" DataType="BOOL" Value="0" />
@@ -352,6 +372,8 @@
             </Element>
             <Element Index="[2]">
               <Structure DataType="PartRecord">
+                <DataValueMember Name="Position" DataType="LREAL" Value="0.0" />
+                <DataValueMember Name="Timestamp" DataType="LDT" Value="0" />
                 <DataValueMember Name="Id" DataType="DINT" Value="0" />
                 <DataValueMember Name="Lot" DataType="LINT" Value="0" />
                 <DataValueMember Name="Accepted" DataType="BOOL" Value="0" />
@@ -384,6 +406,8 @@
             </Element>
             <Element Index="[3]">
               <Structure DataType="PartRecord">
+                <DataValueMember Name="Position" DataType="LREAL" Value="0.0" />
+                <DataValueMember Name="Timestamp" DataType="LDT" Value="0" />
                 <DataValueMember Name="Id" DataType="DINT" Value="888" />
                 <DataValueMember Name="Lot" DataType="LINT" Value="0" />
                 <DataValueMember Name="Accepted" DataType="BOOL" Value="0" />

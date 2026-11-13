@@ -2,7 +2,7 @@
 import copy
 from .integer_math import CONTROLLERS
 from .model import ModelError,coerce,INT_BITS
-from . import numeric_storage
+from . import numeric_storage, time_values
 
 NUMERIC=frozenset(('SINT','INT','DINT','REAL'))
 BASIC_RECORDS=frozenset(('TIMER','COUNTER','CONTROL'))
@@ -21,7 +21,7 @@ def record_type(project,dtype,seen=()):
     if (name in seen or definition is None or definition.get('Class','User')!='User'
             or name in ('timer','counter','control') or any(name==item.casefold()
             for item in (*project.data_only_types,*project.aois))):return False
-    return all(member.get('DataType','').upper() in (*INT_BITS,'BOOL','REAL','BIT')
+    return all(member.get('DataType','').upper() in (*INT_BITS,*time_values.TYPES,'BOOL','REAL','LREAL','BIT')
                or record_type(project,member.get('DataType',''),seen+(name,))
                for member in definition.findall('./Members/Member') if member.get('Hidden','false')!='true')
 

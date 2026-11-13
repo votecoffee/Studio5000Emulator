@@ -410,6 +410,7 @@ def description():
                 load_position='v35 5580 FFL/LFL check only start + POS in the selected array or member on the load edge; a reached missing slot raises Type 4 Code 20',
                 aggregate_values='Whole logical basic records/strings/UDTs including backing bytes; unknown represented fields remain unknown; no private instruction histories or native byte-layout claim',
                 basic_record_payloads=['TIMER','COUNTER','CONTROL'],
+                udt_scalar_fields=['BOOL','SINT','INT','DINT','LINT','USINT','UINT','UDINT','ULINT','REAL','LREAL','TIME32','TIME','LTIME','DT','LDT'],
                 lifo='LFL writes current POS then increments; LFU pops and zeroes POS-1 without shifting other elements',
                 starting_references='v35 5580 shifts/FIFO/LIFO accept aliases and bounded indirect array starts; resolved on a data-moving edge',
                 skipped_references='v35 5580 structural preflight; false/latched calls skip live array starts and payload indices until needed',

@@ -13,7 +13,7 @@ XIC(PopPart)LFU(PartStack[0],PoppedPart,StackControl,?,?);
 
 Source/destination and queue element must have the exact same declared type.
 STRING and explicit custom LEN/DATA string types are supported. Qualified UDTs
-can contain represented integer/REAL/BOOL fields, arrays, strings and nested
+can contain represented integer/REAL/LREAL/BOOL and time/date fields, arrays, strings and nested
 explicit UDTs. Nested 64-bit values stay exact because the operation copies
 logical values without numeric conversion.
 
@@ -26,6 +26,25 @@ numeric immediates retain their earlier rules. These are ladder forms; ST/FBD
 forms remain unfinished. [One-dimensional AOI queues](aoi-queues.md) now accept
 exact InOut arrays and represented local arrays with disjoint instance storage. [Alias and indirect starts](queue-references.md)
 now use the same typed payload copies in the v35 5580 ladder queue profile.
+
+## Precise positions and timestamps
+
+App `26.1112.205241` adds LREAL and TIME32/TIME/LTIME/DT/LDT members inside
+explicit UDT queue payloads. Matching FFL/FFU/LFL/LFU copies retain binary64
+positions and exact timestamp/duration ticks, including nested records and arrays.
+No float32 or integer-width conversion occurs inside these logical copies.
+Unknown represented fields remain unknown; clearing establishes typed zeros.
+
+The **Record lab** PartRecord now includes Position (LREAL) and Timestamp (LDT).
+Set IncomingPart.Position to 1.0000000000000002 and its Timestamp to
+1794483000000000123 nanosecond ticks, then pulse LoadPart/UnloadPart. The output
+retains both values. Timestamps are exposed as exact decimal text in the API.
+Position remains binary64. Guard records and the independent stack retain their
+existing bounds and edge rules.
+
+This extends represented UDT contents; scalar wide/time/date queues, implicit
+type conversion, operational/AOI record payloads and native packed ABI remain
+outside this profile. Native queue timing/status/layout acceptance is separate.
 
 ## Copying and clearing
 
@@ -73,7 +92,7 @@ established by these logical transfers.
 
 Choose **Record lab**, then step once to rearm. Pulse LoadPart to enqueue
 IncomingPart, or PushPart to put it on the independent stack. Edit Id, Lot,
-Accepted, Name or Readings between pulses. Pulse UnloadPart for FIFO order and
+Accepted, Name, Readings, Position or Timestamp between pulses. Pulse UnloadPart for FIFO order and
 PopPart for reverse order. Each pulse requires a false scan before the next true
 scan. Guard records at element 3 retain IDs 999 and 888.
 

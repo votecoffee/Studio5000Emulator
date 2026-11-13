@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+[Precise UDT queue payloads](record-queues.md#precise-positions-and-timestamps)
+add LREAL positions and TIME32/TIME/LTIME/DT/LDT fields as of `26.1112.205241`.
+FIFO/LIFO preserve exact values through matching records, nested arrays, typed
+clearing and supported AOI bindings. Native layouts and scalar wide queues remain open.
+
 [Ladder PID derivative smoothing](pid-dynamics.md#derivative-smoothing) adds a
 bounded first-order software filter as of `26.1112.203745`. NDF selects smoothed
 or unsmoothed D; compatible per-record history survives skipped calls and routine

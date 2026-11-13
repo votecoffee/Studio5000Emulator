@@ -4,7 +4,8 @@ App `26.1102.083150` adds `BSL`, `BSR`, `FFL`, `FFU`, `LFL` and `LFU` execution
 inside supported RLL AOIs for the Standard v35 ControlLogix 5580 profile.
 Starting operands select an element of a **one-dimensional** exact-type InOut
 array or a represented saved local array. Existing numeric, custom-string and
-explicit UDT queue payload rules remain in force.
+explicit UDT queue payload rules remain in force, including
+[represented LREAL and time/date members](record-queues.md#precise-positions-and-timestamps).
 
 ## Scope and storage
 
