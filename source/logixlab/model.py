@@ -1214,6 +1214,18 @@ class Memory:
             raise ModelError('MID range exceeds source LEN or declared DATA bounds')
         return self._decode_string_data(data[first:end])
 
+    def string_find(self, ref, search_ref, start, scope=''):
+        """Search a captured active suffix without consuming earlier DATA bytes."""
+        data, length = self._string_data(ref, scope)
+        if not 1 <= start <= len(data):
+            raise ModelError('FIND start must be 1..source DATA capacity')
+        search = self.string(search_ref, scope)
+        if not length or not search:
+            raise ModelError('FIND requires nonempty source and search strings in this model')
+        suffix = self._decode_string_data(data[start - 1:length])
+        position = suffix.find(search)
+        return start + position if position >= 0 else 0
+
     def string_without(self, ref, start, count, scope=''):
         """Capture DELETE's retained bytes without consuming its removed window."""
         data, length = self._string_data(ref, scope)

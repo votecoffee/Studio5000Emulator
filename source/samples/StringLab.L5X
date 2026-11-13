@@ -1147,6 +1147,35 @@
           </ArrayMember>
         </Structure></Data>
       </Tag>
+      <Tag Name="FindWindow" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data>
+      </Tag>
+      <Tag Name="FindStart" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="DINT" Value="5" /></Data>
+      </Tag>
+      <Tag Name="FindResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data>
+      </Tag>
+      <Tag Name="FindSource" DataType="LabText32" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><Structure DataType="LabText32">
+          <DataValueMember Name="LEN" DataType="DINT" Value="8" />
+          <ArrayMember Name="DATA" DataType="SINT" Dimensions="32">
+            <Element Index="[4]" Value="65" />
+            <Element Index="[5]" Value="66" />
+            <Element Index="[6]" Value="65" />
+            <Element Index="[7]" Value="66" />
+          </ArrayMember>
+        </Structure></Data>
+      </Tag>
+      <Tag Name="FindNeedle" DataType="LabText32" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><Structure DataType="LabText32">
+          <DataValueMember Name="LEN" DataType="DINT" Value="2" />
+          <ArrayMember Name="DATA" DataType="SINT" Dimensions="32">
+            <Element Index="[0]" Value="65" />
+            <Element Index="[1]" Value="66" />
+          </ArrayMember>
+        </Structure></Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard">
@@ -1212,6 +1241,7 @@
               <Rung Number="23" Type="N"><Text>XIC(Convert)STOD(NumericText,ParsedInteger);</Text></Rung>
               <Rung Number="24" Type="N"><Text>XIC(MidWindow)MID(MidSource,MidQty,MidStart,MidDest);</Text></Rung>
               <Rung Number="25" Type="N"><Text>XIC(DeleteWindow)DELETE(DeleteSource,DeleteQty,DeleteStart,DeleteResult);</Text></Rung>
+              <Rung Number="26" Type="N"><Text>XIC(FindWindow)FIND(FindSource,FindNeedle,FindStart,FindResult);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="EditText" Type="ST">

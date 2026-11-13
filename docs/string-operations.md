@@ -48,7 +48,8 @@ Unknown LEN, active DATA, numeric inputs and dynamic index values can remain
 at import. False rungs and prescan skip those operands. Reached calls still
 resolve actual addresses and require every consumed source value, including
 active string bytes, numeric conversions, positions and quantities. MID reads
-its source LEN and the selected DATA bytes. String comparisons do not fold identical
+its source LEN and the selected DATA bytes; FIND captures the active suffix
+from Start. String comparisons do not fold identical
 references; CMP consumes both logical operands even when one determines the result.
 
 Full logical string writes establish unknown LEN/active DATA and preserve unused
@@ -60,6 +61,26 @@ use this selection. A cleared Type 4 Code 20 in a reached ladder string call
 Other errors follow scan rollback, which restores earlier writes, AOI bindings
 and the modeled advance. AOI call-argument binding retains its separate contract.
 The software profile uses single-byte strings. Native fault and status handling remains separate.
+
+## FIND search suffixes
+
+App `26.1112.232348` captures only the active source suffix beginning at Start
+in existing ladder and ST FIND calls. Source bytes before Start and inactive
+DATA may be unknown. Source LEN must still be known, valid and nonzero; the
+complete active search string and every byte of the selected source suffix
+must be known. An unknown later suffix byte still faults even if an earlier
+match exists. Empty search strings remain unqualified.
+
+Results are one-based positions in the original source, not offsets into the
+suffix. A valid Start beyond active LEN returns zero without reading source
+DATA; Start must still fit the declared source capacity. Result permissions,
+range conversion, false/prescan selection and whole-advance rollback are unchanged.
+This is a bounded unknown-data policy, not native fault or execution parity.
+
+Enable `FindWindow` in **String lab** and step. FindSource has four unknown
+prefix bytes followed by `ABAB`; FindNeedle is `AB`. With FindStart at 5,
+FindResult is 5. Set FindStart to 6 for result 7, or 9 for result zero. Setting
+it to 1 reaches the unknown prefix and rolls back; restore 5 to retry.
 
 ## DELETE retained windows
 

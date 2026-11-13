@@ -80,14 +80,11 @@ def execute(memory, op, scope):
         result = memory.string_without(a[0], start, quantity, scope)
         memory.write_string(a[3], result, scope)
         return
-    source = memory.string(a[0], scope)
     if op.name == 'FIND':
-        search = memory.string(a[1], scope)
-        if not source or not search:
-            raise ModelError('FIND requires nonempty source and search strings in this model')
-        result = source.find(search, start - 1) + 1
+        result = memory.string_find(a[0], a[1], start, scope)
         memory.write(a[3], result, scope)
         return
+    source = memory.string(a[0], scope)
     if start > len(source) + 1:
         raise ModelError(f'{op.name} start exceeds the modeled active string boundary')
     addition = memory.string(a[1], scope)
@@ -101,6 +98,12 @@ def description():
                 positions='One-based SINT/INT/DINT tag or bounded DINT immediate; no expression operands',
                 search='Case-sensitive; first match at/after Start, zero when absent',
                 mid='Start within declared DATA; exact window within LEN; only selected DATA bytes are consumed',
+                find=dict(languages=['RLL','ST'],
+                    selection='Known nonempty source/search LEN; Start within source DATA capacity',
+                    reads='Capture all active source DATA at/after Start and all active search DATA; earlier source and inactive bytes may remain unknown',
+                    result='First one-based position in the original source, or zero when absent; valid Start beyond LEN consumes no source DATA',
+                    excluded='Empty source/search, unknown consumed bytes, invalid LEN/Start and result-type overflow retain existing guards',
+                    native_runtime_parity=False),
                 delete=dict(languages=['RLL','ST'],
                     selection='Known LEN, Start and positive Qty; deletion window within active source and Start within DATA capacity',
                     reads='Only retained prefix/suffix bytes; removed and inactive DATA may remain unknown',

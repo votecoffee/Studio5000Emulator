@@ -634,7 +634,9 @@ through two instances.
 
 [String search and editing](docs/string-operations.md) add FIND, INSERT and
 DELETE in ladder and ST, including explicit user strings and in-place edits.
-Choose **String lab** for a combined ladder/ST example.
+Choose **String lab** for a combined ladder/ST example. Enable `FindWindow` to
+[search a known suffix](docs/string-operations.md#find-search-suffixes) after an
+unknown prefix; `FindResult` starts at 5 and moves to 7 when `FindStart` is 6.
 
 [Masked moves and bit fields](docs/bit-transfer.md) add ladder MVM/BTD for
 SINT/INT/DINT values, including mixed widths and scalar/member/array operands.
