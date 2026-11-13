@@ -4,7 +4,7 @@ import operator
 
 from . import time_values
 from .bit_transfer import operand, unsigned
-from .integer_math import CONTROLLERS, WIDE_TYPES, bit_value, bitwise_immediate_widths, profile, typed_profile, pattern
+from .integer_math import CONTROLLERS, WIDE_TYPES, bit_value, bitwise_immediate_widths, profile, typed_profile, typed_integer, pattern
 from .model import INT_BITS, UNSIGNED_BITS, ModelError, coerce, literal
 from .numeric_storage import floating_math_profile, lreal_math_source, typed_literal, write_lreal_math_result
 from .real_math import real
@@ -147,7 +147,7 @@ def bitwise_specification(engine, op, scope):
     for index, ref in enumerate(op.args):
         destination = index == len(op.args) - 1
         if not destination:
-            typed = typed_literal(ref) if '#' not in ref else None
+            typed = typed_literal(ref) if '#' not in ref else typed_integer(ref,radix=True)
             if typed is not None:
                 dtype, _ = typed
                 widths.append(INT_BITS[BITWISE_FLOATS.get(dtype, dtype)])
@@ -193,7 +193,7 @@ def execute_bitwise(engine, op, scope):
             rounded = coerce(number, BITWISE_FLOATS[kind])
             values.append(rounded & ((1 << width) - 1))
         else:
-            values.append(pattern(memory, ref, scope, width))
+            values.append(pattern(memory, ref, scope, width, radix=True))
     value = ~values[0] if op.name == 'NOT' else {
         'AND': operator.and_, 'OR': operator.or_, 'XOR': operator.xor}[op.name](*values)
     result_type = dtype
@@ -271,9 +271,9 @@ def description(project):
                                     native_precision=False),
                 bitwise=dict(types=list(INT_BITS), instructions=sorted(BITWISE),
                              promotion='Zero-extend declared source patterns; NOT inverts after promotion; keep destination low bits',
-                             immediates='Narrow forms retain signed DINT/32-bit radix patterns; any wide operand with an immediate retains homogeneous, representable signed-DINT rules',
+                             immediates='Unsuffixed DINT/32-bit radix patterns retain their compatibility rules; typed decimal and radix L/U/UL sources use declared widths',
                              destination='Keep destination low bits and reinterpret signed/unsigned; full writes establish unknowns without floating-point conversion',
-                             wide='All eight integer tag types may mix with bounded DINT or 32-bit radix immediates', native_precision=False),
+                             wide='All eight integer tag types may mix with bounded DINT/32-bit radix or declared-width typed L/U/UL immediates', native_precision=False),
                 mixed_integer_immediates=dict(instructions=sorted(BITWISE), width=32,
                     sources='Signed DINT decimal and existing 32-bit binary, octal and hexadecimal patterns with any integer tag type',
                     compatibility='Previously accepted homogeneous LINT calls retain signed DINT immediate promotion',
@@ -290,14 +290,14 @@ def description(project):
                     inputs='REAL, LREAL and integer tags or supported immediates combine as declared-width integer bit patterns.',
                     destination='All integer types keep their low bits. Floating destinations accept signed and floating sources only.',
                     native_runtime_parity=False),
-                typed_integer_bitwise=dict(instructions=sorted(BITWISE),constant_types=['LINT','UDINT','ULINT'],
-                    operands='At least one decimal L/U/UL source; integer and floating sources, and bounded DINT/32-bit radix patterns may mix',
+                typed_integer_bitwise=dict(instructions=sorted(BITWISE),constant_types=['LINT','UDINT','ULINT'],radix_bases=[2,8,16],
+                    operands='Decimal or attached radix L/U/UL sources; integer and floating sources, and bounded DINT/32-bit radix patterns may mix',
                     conversion='Preserve each declared-width bit pattern, zero-extend before combining; NOT inverts after promotion and result keeps destination low bits',
                     range='Typed source bounds checked structurally; integer destinations may truncate or reinterpret complete bit patterns',
-                    scope='RLL v35 5580 only; unsigned inputs to floating destinations, BOOL, typed radix, MVM/BTD/other consumers and native status/fault/lifecycle parity remain separate',
+                    scope='RLL v35 5580 only; unsigned inputs to floating destinations, BOOL, MVM/BTD/other consumers and native status/fault/lifecycle parity remain separate',
                     native_runtime_parity=False),
                 bindings='Aliases, selected elements/members and existing AOI InOut/local bindings',
                 failures='Reached unknowns, invalid indices, zero divisors, excluded ranges and later faults roll back the advance',
                 native_runtime_parity=False, native_math_status=False,
-                remaining=['Other arithmetic destination conversions/mixed signed-to-unsigned forms, larger/typed arithmetic constants, typed radix bitwise immediates, unsigned bitwise sources for floating destinations, and other wide/unsigned/LREAL remainder mixtures',
+                remaining=['Other arithmetic destination conversions/mixed signed-to-unsigned forms, larger/typed arithmetic constants, unsigned bitwise sources for floating destinations, and other wide/unsigned/LREAL remainder mixtures',
                            'Native overflow/status/fault/lifecycle/packed layout and broader controller qualification'])

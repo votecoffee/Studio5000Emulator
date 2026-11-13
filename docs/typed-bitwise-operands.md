@@ -48,6 +48,43 @@ Load **Wide expression lab**, enable TypedBitsEnabled and step to run
 shows NOT/truncation/MEQ, and retains an unknown selected neighbor plus a 903
 guard. A zero TypedBitsLateDivisor demonstrates atomic fault/retry.
 
+## Typed radix masks
+
+App `26.1112.235605` accepts attached L/l, U/u and UL/ul/Ul/uL suffixes on
+binary, octal and hexadecimal constants in AND, OR, XOR, NOT and MEQ. They use
+the [MOV radix source widths](radix-mov-literals.md#typed-radix-mov-sources):
+LINT64, UDINT32 and ULINT64. Short patterns zero-fill to that width; the LINT
+top bit selects a negative source value. Each operand then contributes its
+declared bit pattern, zero-extended for combination. Arithmetic range-preserving
+promotion is not used for these bit operations.
+
+```text
+AND(Input,16#FFFF_FFFFu,LowWord);
+NOT(16#FFFF_FFFFU,WideComplement);
+XOR(Input,16#8000_0000_0000_0000L,ToggleTopBit);
+MEQ(Input,2#1000000000000000000000000000000000000000000000000000000000000000UL,16#8000000000000000L)OTE(TopBitSet);
+```
+
+Patterns work in either binary position and all three read-only MEQ positions.
+All eight integer result types retain low-bit truncation/reinterpretation.
+Existing finite REAL/LREAL conversion rules remain: signed inputs may produce
+floating results, unsigned inputs to floating destinations stay excluded, and
+MEQ remains integer-only. Overwide/invalid words block even false rungs.
+Required unknowns, indices, zero masks, full writes and AOI/advance rollback
+retain their existing contracts. Explicit radix signs and alternate syntax
+remain excluded. Arithmetic, ordinary relations/LIM, BCD, expression/file/ST,
+AOI call arguments and SBR/RET parsing are not extended.
+
+The viewer interprets typed radix only for these source operands and MOV.
+Unsuffixed bitwise patterns retain their prior monitoring and execution rules.
+In **Bit lab**, enable WideMaskEnabled. Existing AND/OR/XOR/NOT/MEQ examples now
+use three-base typed masks with their original results. WideMaskFull preserves
+the complete input through a signed 64-bit all-ones mask; WideMaskTopMatch tests
+bit 63 using unsigned mask and signed comparison patterns. Set WideMaskDivisor
+to zero to exercise rollback after all results, then restore one to retry.
+This is bounded software execution; native typed-radix import, status/fault and
+controller lifecycle acceptance remain unverified.
+
 ## Plain immediates with wide tags
 
 App 26.1105.170122 accepts unsuffixed signed DINT decimal constants and
@@ -74,7 +111,7 @@ fault. Restore it to one and step to retry.
 
 [Mixed floating operands](scalar-math.md#mixed-floating-and-integer-bitwise-operands)
 can use these constants in AND, OR, XOR and NOT. MEQ retains integer operands.
-BOOL bitwise forms, typed radix, MVM/BTD, expression/file/ST/FBD and other
+BOOL bitwise forms, MVM/BTD, expression/file/ST/FBD and other
 controller profiles remain separate. Native numerical/status/fault/lifecycle
 parity remains unverified. The source basis is installed v35 AND (14670), OR
 (14687), XOR (14683), NOT (14669), MEQ (14602), Immediate values (14454), and the

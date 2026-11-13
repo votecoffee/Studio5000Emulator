@@ -142,10 +142,11 @@ def profile(engine, op, scope):
     return dtype
 
 
-def typed_integer(ref):
-    """One decimal L/U/UL source; preserve all other literal consumers."""
+def typed_integer(ref, *, radix=False):
+    """Decimal L/U/UL source, or opt-in typed radix for pattern consumers."""
     from .numeric_storage import typed_literal
-    value=typed_literal(ref) if '#' not in ref else None
+    allowed='#' not in ref or radix and ref.rstrip().upper().endswith(('L','U'))
+    value=typed_literal(ref) if allowed else None
     return value if value is not None and value[0] in INT_BITS else None
 
 
@@ -200,9 +201,9 @@ def read_source(memory, ref, scope):
     return typed[1] if typed is not None else memory.read(ref,scope)
 
 
-def pattern_width(memory, ref, scope):
-    """Declared integer width, or the existing 32-bit immediate pattern."""
-    typed=typed_integer(ref)
+def pattern_width(memory, ref, scope, *, radix=False):
+    """Declared integer width; typed radix requires an explicit consumer opt-in."""
+    typed=typed_integer(ref,radix=radix)
     if typed is not None:return INT_BITS[typed[0]]
     try:literal(ref)
     except ValueError:
@@ -219,8 +220,8 @@ def bitwise_immediate_widths(widths, types, immediates):
     return widths
 
 
-def pattern(memory, ref, scope, width):
-    typed=typed_integer(ref)
+def pattern(memory, ref, scope, width, *, radix=False):
+    typed=typed_integer(ref,radix=radix)
     if typed is not None:return typed[1]&((1<<width)-1)
     from .bit_transfer import unsigned
     return unsigned(memory,ref,scope,width)

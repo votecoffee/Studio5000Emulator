@@ -66,7 +66,8 @@
     let inspection = '';
     function read(ref, node) {
       if (node?.literalValues && Object.hasOwn(node.literalValues, ref)) return node.literalValues[ref];
-      return snapshot?.read(ref, {movRadix: node?.opcode === 'MOV' && node.operands?.[0] === ref}) || null;
+      const bitwiseRadix = node?.opcode === 'MEQ' || ['AND','OR','XOR','NOT'].includes(node?.opcode) && node.operands?.slice(0,-1).includes(ref);
+      return snapshot?.read(ref, {movRadix: node?.opcode === 'MOV' && node.operands?.[0] === ref, bitwiseRadix}) || null;
     }
     function operandDisplay(field, node, power) {
       const sample = power?.operandSamples?.[field.argument];

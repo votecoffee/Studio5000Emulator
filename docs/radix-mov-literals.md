@@ -64,9 +64,10 @@ last digit. Explicit plus/minus radix signs, decimal points, malformed suffixes,
 other bases, expressions and alternate typed prefixes remain excluded.
 
 The MOV viewer uses the same width/sign interpretation and displays integer
-values as exact decimal strings. Other instruction views and the legacy DINT
-viewer option retain their existing behavior. General memory/ST/expression,
-arithmetic/bitwise, AOI argument and SBR/RET literal parsers are not extended.
+values as exact decimal strings. The legacy DINT viewer option retains its
+existing behavior. [Bitwise/MEQ masks](typed-bitwise-operands.md#typed-radix-masks)
+have a separate qualified profile. General memory/ST/expression, arithmetic,
+AOI argument and SBR/RET literal parsers are not extended.
 
 Enable RadixEnabled in **Wide expression lab** and step. RadixLongShort gives
 4294967295, RadixLongNegative gives -1, RadixDwordMax gives 4294967295,

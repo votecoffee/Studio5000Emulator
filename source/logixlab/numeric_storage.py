@@ -26,18 +26,18 @@ def destination(memory, ref, scope, *, allow_time=False, allow_string=False):
 
 
 def typed_literal(ref):
-    """One MOV immediate; never widen general memory/expression parsing."""
+    """One declared immediate; each caller selects its admitted forms."""
     text=ref.strip()
     radix=re.fullmatch(r'(2|8|16)#([0-9A-Fa-f_ ]+?)([Uu][Ll]?|[Ll])?',text)
     if radix:
         suffix=radix[3] or '';digits=radix[2]
         dtype={'':'DINT','L':'LINT','U':'UDINT','UL':'ULINT'}[suffix.upper()]
         if suffix and not re.fullmatch(r'[0-9A-Fa-f](?:[0-9A-Fa-f_ ]*[0-9A-Fa-f])?',digits):
-            raise ModelError('Typed MOV radix requires digit groups and an attached suffix')
+            raise ModelError('Typed radix requires digit groups and an attached suffix')
         try:value=int(digits.replace('_','').replace(' ',''),int(radix[1]))
-        except ValueError as error:raise ModelError('MOV radix immediate has invalid digits') from error
+        except ValueError as error:raise ModelError('Radix immediate has invalid digits') from error
         bits=INT_BITS[dtype]
-        if value>=1<<bits:raise ModelError(f'MOV radix immediate exceeds its {bits}-bit {dtype} pattern')
+        if value>=1<<bits:raise ModelError(f'Radix immediate exceeds its {bits}-bit {dtype} pattern')
         return dtype,bit_value(value,dtype)
     offset=int(text[:1] in ('+','-'))
     token=typed_integer(text,offset)

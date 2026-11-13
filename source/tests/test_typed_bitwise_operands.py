@@ -108,7 +108,7 @@ class TypedBitwiseOperandTests(unittest.TestCase):
         e.memory.write('EnabledA',False);e.memory.write('IndexA',999);e.step()
 
     def test_literal_ranges_types_shapes_permissions_and_profiles_stay_explicit(self):
-        for token in (*integers.BAD,'Inputs'):
+        for token in [value for value in integers.BAD if value != '16#FFU'] + ['16#FFLU','Inputs']:
             self.assertTrue(self.engine(['AFI()AND('+token+',0UL,Results[1]);']).blockers,token)
             self.assertTrue(self.engine(['AFI()MEQ('+token+',0UL,0L)OTE(RunLatch);']).blockers,token)
         for token in ('1.0L','1.5'):

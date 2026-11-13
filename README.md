@@ -65,7 +65,8 @@ enable `ImmediateConversions` and step to see a 16-digit BCD round trip and
 compare REAL and LREAL truncation. See [BCD conversions](docs/numeric-conversions.md#typed-source-immediates)
 and [LREAL truncation](docs/lreal-truncate.md).
 
-**Typed bit patterns** now work in AND, OR, XOR, NOT and MEQ. Decimal L/U/UL
+**Typed bit patterns** now work in AND, OR, XOR, NOT and MEQ. Decimal and
+[binary/octal/hexadecimal L/U/UL](docs/typed-bitwise-operands.md#typed-radix-masks)
 constants retain their declared widths when combined with integer tags and
 legacy patterns; see [typed bitwise operands](docs/typed-bitwise-operands.md).
 
