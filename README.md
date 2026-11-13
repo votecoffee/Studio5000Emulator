@@ -773,6 +773,8 @@ and zero-crossing output holds.
 [Numeric operands and tieback](docs/pid-operands.md) add integer PV/CV and hardware
 manual mode. [PID record copies](docs/aggregate-copies.md#pid-records) support
 matching COP/CPS, including nested UDTs, with independent destination solver history.
+[PID zero fills](docs/aggregate-fill.md#pid-zero-fills) clear represented fields before
+configuration or preset loading.
 Choose **PID lab** for independent REAL/INT loops, preset/snapshot copies and Boolean mode
 controls. [PV tracking and inhold](docs/pid-restart.md) add manual SP tracking and
 explicit output-readback initialization. [One-way PID cascade](docs/pid-cascade.md)

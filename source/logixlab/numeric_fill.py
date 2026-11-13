@@ -95,8 +95,8 @@ def write_effects(engine,op,scope):
 
 def aggregate_template(project,dtype,seen=(),*,instruction="FLL"):
     """Use declared schemas, never the Python types of unknown saved values."""
-    if dtype.upper() == 'PID' and instruction == 'COP/CPS':
-        if 'pid' in project.udts:raise ModelError('Aggregate COP/CPS excludes redefined PID records')
+    if dtype.upper() == 'PID' and instruction in ('COP/CPS', 'FLL'):
+        if 'pid' in project.udts:raise ModelError('Aggregate '+instruction+' excludes redefined PID records')
         return project.default('PID')
     if dtype.upper() in ('TIMER','COUNTER','CONTROL','STRING'):return project.default(dtype)
     name=dtype.lower();definition=project.udts.get(name)
@@ -128,6 +128,7 @@ def all_ones_value(project, dtype, template):
     if kind in ('BOOL','BIT'):return True
     if kind in ('TIMER','COUNTER','CONTROL'):
         return {name:True if type(value) is bool else -1 for name,value in template.items()}
+    if kind == 'PID':raise ModelError('All-ones FLL excludes PID records with floating-point fields')
     if kind in ('REAL','LREAL') or project.string_capacity(dtype) is not None:
         raise ModelError('All-ones FLL excludes floating-point and string members')
     if kind in time_values.TYPES:
@@ -150,7 +151,7 @@ def aggregate_handle(engine,op,scope,*,execute=False):
     memory=engine.memory;previous=memory.structural;memory.structural=True
     try:
         _,_,dtype=memory.check_writable(op.args[1],scope)
-        if dtype not in ('TIMER','COUNTER','CONTROL','STRING') and dtype.lower() not in project.udts:return False
+        if dtype not in ('TIMER','COUNTER','CONTROL','STRING','PID') and dtype.lower() not in project.udts:return False
         template=aggregate_template(project,dtype)
         pattern=template if dtype=='CONTROL' else zero_value(template)
         ones_pattern=None
@@ -187,8 +188,12 @@ def aggregate_handle(engine,op,scope,*,execute=False):
 def aggregate_description(project):
     return dict(available=project.version=='35' and project.processor.upper() in CONTROLLERS,language='RLL',instructions=['FLL'],
                 source='Scalar SINT/INT/DINT zero or -1, or matching immediate; length SINT/INT/DINT or bounded DINT immediate',
-                destinations='TIMER/COUNTER/CONTROL/STRING and explicit nested basic UDTs, selected arrays, aliases and existing AOI bindings',
+                destinations='TIMER/COUNTER/CONTROL/STRING/PID and explicit nested qualified UDTs, selected arrays, aliases and existing AOI bindings',
                 zero='Typed values built from declared schema; full records establish unknowns, including BOOL/REAL/LREAL/time/date members and unused string DATA',
+                pid=dict(pattern='Zero only: CTL and every represented REAL field/DATA element receive typed zero',
+                    history='Retain private solver history until ordinary INI/Run reinitialization; cleared INI resets it on the next PID invocation',
+                    configuration='Zero record needs valid scaling and UPD before an enabled PID calculation',
+                    native_runtime_parity=False),
                 udt_scalar_fields=sorted(AGGREGATE_SCALARS-{'BIT'}),
                 all_ones='-1 fills exact signed/unsigned integer and Boolean fields, arrays, TIMER/COUNTER/CONTROL and nested integral UDTs; floating/time/date/string members excluded',
                 control='Top-level CONTROL zero retains its existing logical-default reset; nested zero CONTROL members are zeroed; -1 sets flags and signed fields to all ones',
@@ -197,7 +202,7 @@ def aggregate_description(project):
                 clipping=True,clipping_boundary='Selected logical array/member or scalar; no crossing sibling members',
                 st_for_effects='Complete clipped static windows; changing/alias/AOI selections conservatively cover the enclosing array',
                 work='One instruction-budget unit per actual scalar member filled; logical clipping, no native byte clipping',
-                remaining=['Other nonzero/REAL/wider source patterns, all-ones floating/time/date/string fields, operational/AOI aggregate records, packed ABI and native faults/partial effects',
+                remaining=['Other nonzero/REAL/wider source patterns, all-ones PID/floating/time/date/string fields, other operational/AOI aggregate records, packed ABI and native faults/partial effects',
                            'Native scan/lifecycle/clock/internal-history reset parity and other profiles/languages'],native_runtime_parity=False)
 
 

@@ -306,6 +306,9 @@
           </Structure>
         </Data>
       </Tag>
+      <Tag Name="ClearLoop" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
@@ -314,22 +317,26 @@
           <Routine Name="MainRoutine" Type="RLL">
             <RLLContent>
               <Rung Number="0" Type="N">
+                <Comment>Zero every represented PID field. Disable Execute before clearing, or load a valid LoopPreset in the following rung before PID runs.</Comment>
+                <Text>XIC(ClearLoop)FLL(0,Loop,1);</Text>
+              </Rung>
+              <Rung Number="1" Type="N">
                 <Comment>Copy the complete LoopPreset record before PID execution. Pulse LoadTuning for one step; leaving it true reloads CTL, settings and DATA every scan.</Comment>
                 <Text>XIC(LoadTuning)CPS(LoopPreset,Loop,1);</Text>
               </Rung>
-              <Rung Number="1" Type="N">
+              <Rung Number="2" Type="N">
                 <Comment>PID software profile. MO uses Tieback; PVTracking follows PV in manual. Inhold copies Readback to CV. NDF disables the modeled derivative smoothing filter.</Comment>
                 <Text>XIC(Execute)PID(Loop,PV,Tieback,CV,0,Inhold,Readback);</Text>
               </Rung>
-              <Rung Number="2" Type="N">
+              <Rung Number="3" Type="N">
                 <Comment>Optional INT process and control values. Set IntExecute; inspect RawPV, RawCV and IntLoop. Both loops share the external Tieback input.</Comment>
                 <Text>XIC(IntExecute)PID(IntLoop,RawPV,Tieback,RawCV,Loop,IntInhold,IntReadback);</Text>
               </Rung>
-              <Rung Number="3" Type="N">
+              <Rung Number="4" Type="N">
                 <Comment>Copy the loop's represented fields after both PID calls. This does not copy internal solver history.</Comment>
                 <Text>XIC(CaptureLoop)COP(Loop,LoopSnapshot,1);</Text>
               </Rung>
-              <Rung Number="4" Type="N">
+              <Rung Number="5" Type="N">
                 <Comment>Set FaultDivisor to zero to verify transactional rollback, then correct it and retry.</Comment>
                 <Text>DIV(1,FaultDivisor,Quotient);</Text>
               </Rung>

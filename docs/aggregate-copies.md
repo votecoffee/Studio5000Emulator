@@ -29,7 +29,8 @@ unknown destinations, and nested arrays are detached from source storage.
 Both instructions retain captured addresses/counts, logical clipping, forward
 overlap, per-scalar work limits, existing ST FOR protections and whole-advance
 rollback. A zero count resolves both addresses without reading record values.
-The shared FLL schema validator still excludes PID, including inside UDTs.
+[Zero FLL](aggregate-fill.md#pid-zero-fills) also supports PID, including inside UDTs;
+all-ones patterns remain excluded.
 Other operational/AOI records and redefined PID schemas remain unqualified.
 
 The destination keeps its own private solver history; no copy transfers, shares

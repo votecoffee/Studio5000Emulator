@@ -182,8 +182,8 @@ class PIDCopyTests(unittest.TestCase):
         self.assertEqual(e.memory.read('LoopSnapshot.KP'), 9)
         e.memory.write('Loop.KP', 4);self.assertEqual(e.memory.read('LoopSnapshot.KP'), 9)
 
-    def test_pid_fill_mixed_types_and_other_operational_schemas_stay_excluded(self):
-        for text in ('FLL(0,SourceBundle,1);', 'COP(Loop,CV,1);', 'COP(Loop,SourceBundle,1);'):
+    def test_pid_nonzero_fill_mixed_types_and_other_operational_schemas_stay_excluded(self):
+        for text in ('FLL(-1,SourceBundle,1);', 'COP(Loop,CV,1);', 'COP(Loop,SourceBundle,1);'):
             self.assertTrue(self.engine([text]).blockers)
         def other(root):root.find('./Controller/DataTypes/DataType[@Name="PIDBundle"]/Members/Member[@Name="Loop"]').set('DataType', 'MESSAGE')
         self.assertTrue(self.engine(['COP(SourceBundle,DestBundle,1);'], mutate=other).blockers)

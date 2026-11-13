@@ -1,7 +1,7 @@
 # Aggregate zero fills
 
 The v35 ControlLogix 5580 L81E–L85E ladder profile supports bounded FLL zero
-fills of TIMER, COUNTER, CONTROL, STRING and explicit nested basic UDT records.
+fills of TIMER, COUNTER, CONTROL, STRING, PID and explicit nested qualified UDT records.
 Zero values come from declared schemas, so omitted saved BOOLs become false
 and REAL members become 0.0. Unknown values do not determine output types.
 See [implementation](../source/logixlab/numeric_fill.py) and
@@ -54,13 +54,50 @@ No other nonzero pattern, scalar wide/time fill, packed ABI or native lifecycle
 behavior is added. The [matching COP/CPS profile](aggregate-copies.md#precise-udt-fields)
 preserves these fields without conversion.
 
+## PID zero fills
+
+App `26.1112.221244` extends zero FLL to logical PID records, including arrays,
+selected/aliased elements, explicit nested UDTs and existing AOI local/InOut
+bindings. CTL becomes DINT zero, and every modeled REAL field and DATA[17] element
+becomes floating zero. Missing saved fields do not determine these types. Full
+writes establish unknown records, and each filled element owns its own DATA array.
+
+The existing structural/lazy operand checks, captured source/count/window,
+logical clipping, scalar work limits, existing ST FOR protections and whole-advance
+rollback apply. Zero length resolves the destination without consuming the source
+value. Integer source tags must evaluate to zero on a data-moving call. An
+all-ones pattern is excluded for PID and any UDT containing PID; other nonzero,
+floating, wide or Boolean sources retain their existing exclusions. A constant
+invalid pattern blocks preflight; dynamic unused sources remain lazy.
+
+FLL does not clear private PID history directly. Zero CTL clears INI, so the next
+PID invocation follows its ordinary initialization path. The zero record has no
+valid scaling spans or positive UPD: configure it or load a valid
+[PID preset](aggregate-copies.md#pid-records) before an enabled calculation.
+Clearing a record is not a reset of unrelated CV tags or other loop instances.
+Native packed layouts, internal-state reset, synchronization, math status and
+partial-fault parity remain unqualified. Existing emulator ST FLL calls share the
+model; this does not establish native ST instruction availability.
+
+In **PID lab**, set Execute false, enable ClearLoop and Step. Loop's fields become
+zero while CV retains its prior value. Clear ClearLoop, enable LoadTuning and
+Execute, and Step to calculate CV=90 from the bundled preset. Clear LoadTuning
+before the next step. ClearLoop precedes LoadTuning, so enabling both can also
+clear and then restore the preset before PID runs. The clear gate defaults false.
+FaultDivisor=0 rolls back the clear, preset load and loop calculation together.
+
+The source basis is installed v35 FLL help 14512 and Rockwell's
+[FLL reference](https://www.rockwellautomation.com/en-mde/docs/studio-5000-logix-designer/37-02/contents-ditamap/instruction-set/array-file-misc-instructions/file-fill-fll.html),
+which describes zeroing structures. Typed logical records and the history policy
+above define this emulator profile. See [focused cases](../source/tests/test_pid_fill.py).
+
 ## Record contents and selection
 
 Supported explicit UDTs can contain BOOL, signed/unsigned integer, REAL, LREAL
 and time/date members, their arrays, basic TIMER/COUNTER/CONTROL/string records and other
 explicit basic UDTs. Explicit DINT LEN/SINT DATA user strings are included.
-Operational records such as PID, AOI instance aggregates and unresolved member
-schemas remain excluded. Schema nesting is limited to 32 levels.
+PID is included only in the zero profile above. Other operational records, AOI
+instance aggregates and unresolved member schemas remain excluded. Schema nesting is limited to 32 levels.
 
 Fills replace complete logical records, including all string DATA entries.
 TIMER/COUNTER fields receive typed zero/false values. Top-level CONTROL retains

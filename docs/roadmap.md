@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+[PID zero fills](aggregate-fill.md#pid-zero-fills) initialize represented PID
+records and nested UDTs as of `26.1112.221244`, with aliases, arrays and AOI bindings.
+Private history follows the ordinary INI/Run lifecycle; scaling and UPD must be
+configured before calculation. **PID lab** adds a clear-before-preset gate.
+
 [PID record copies](aggregate-copies.md#pid-records) use structural/lazy matching
 COP/CPS as of `26.1112.220217`, including nested UDTs, aliases and AOI bindings.
 Represented fields copy independently; the destination retains its private solver

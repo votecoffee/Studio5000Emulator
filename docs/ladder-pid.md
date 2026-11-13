@@ -10,6 +10,8 @@ unqualified. The separate [ST PI regulator](st-pi-regulation.md) uses `PROP_INT`
 including CTL and DATA. They preserve each destination's private solver history;
 the ordinary INI/Run lifecycle controls reinitialization. PID Lab provides gated
 preset loading before calculation and snapshot copying afterward.
+[PID zero FLL](aggregate-fill.md#pid-zero-fills) clears represented fields; configure
+valid scaling and UPD before the next enabled PID call.
 
 ## Operands and represented data
 
