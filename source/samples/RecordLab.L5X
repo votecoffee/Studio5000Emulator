@@ -11,6 +11,7 @@
       </DataType>
       <DataType Name="PartRecord" Family="NoFamily" Class="User">
         <Members>
+          <Member Name="Tuning" DataType="PID" Dimension="0" Hidden="false" ExternalAccess="Read/Write" />
           <Member Name="Position" DataType="LREAL" Dimension="0" Hidden="false" ExternalAccess="Read/Write" />
           <Member Name="Timestamp" DataType="LDT" Dimension="0" Hidden="false" ExternalAccess="Read/Write" />
           <Member Name="Id" DataType="DINT" Dimension="0" Hidden="false" ExternalAccess="Read/Write" />
@@ -82,6 +83,12 @@
               <Element Index="[0]" Value="1.25" />
               <Element Index="[1]" Value="2.5" />
             </ArrayMember>
+            <StructureMember Name="Tuning" DataType="PID">
+              <DataValueMember Name="CTL" DataType="DINT" Value="0" />
+              <DataValueMember Name="SP" DataType="REAL" Value="50" />
+              <DataValueMember Name="KP" DataType="REAL" Value="1" />
+              <ArrayMember Name="DATA" DataType="REAL" Dimensions="17"><Element Index="[0]" Value="0.0" /></ArrayMember>
+            </StructureMember>
           </Structure>
         </Data>
       </Tag>
@@ -118,6 +125,12 @@
               <Element Index="[0]" Value="0.0" />
               <Element Index="[1]" Value="0.0" />
             </ArrayMember>
+            <StructureMember Name="Tuning" DataType="PID">
+              <DataValueMember Name="CTL" DataType="DINT" Value="0" />
+              <DataValueMember Name="SP" DataType="REAL" Value="50" />
+              <DataValueMember Name="KP" DataType="REAL" Value="1" />
+              <ArrayMember Name="DATA" DataType="REAL" Dimensions="17"><Element Index="[0]" Value="0.0" /></ArrayMember>
+            </StructureMember>
           </Structure>
         </Data>
       </Tag>
@@ -154,6 +167,12 @@
               <Element Index="[0]" Value="0.0" />
               <Element Index="[1]" Value="0.0" />
             </ArrayMember>
+            <StructureMember Name="Tuning" DataType="PID">
+              <DataValueMember Name="CTL" DataType="DINT" Value="0" />
+              <DataValueMember Name="SP" DataType="REAL" Value="50" />
+              <DataValueMember Name="KP" DataType="REAL" Value="1" />
+              <ArrayMember Name="DATA" DataType="REAL" Dimensions="17"><Element Index="[0]" Value="0.0" /></ArrayMember>
+            </StructureMember>
           </Structure>
         </Data>
       </Tag>
@@ -192,6 +211,12 @@
                   <Element Index="[0]" Value="0.0" />
                   <Element Index="[1]" Value="0.0" />
                 </ArrayMember>
+                <StructureMember Name="Tuning" DataType="PID">
+                  <DataValueMember Name="CTL" DataType="DINT" Value="0" />
+                  <DataValueMember Name="SP" DataType="REAL" Value="50" />
+                  <DataValueMember Name="KP" DataType="REAL" Value="1" />
+                  <ArrayMember Name="DATA" DataType="REAL" Dimensions="17"><Element Index="[0]" Value="0.0" /></ArrayMember>
+                </StructureMember>
               </Structure>
             </Element>
             <Element Index="[1]">
@@ -226,6 +251,12 @@
                   <Element Index="[0]" Value="0.0" />
                   <Element Index="[1]" Value="0.0" />
                 </ArrayMember>
+                <StructureMember Name="Tuning" DataType="PID">
+                  <DataValueMember Name="CTL" DataType="DINT" Value="0" />
+                  <DataValueMember Name="SP" DataType="REAL" Value="50" />
+                  <DataValueMember Name="KP" DataType="REAL" Value="1" />
+                  <ArrayMember Name="DATA" DataType="REAL" Dimensions="17"><Element Index="[0]" Value="0.0" /></ArrayMember>
+                </StructureMember>
               </Structure>
             </Element>
             <Element Index="[2]">
@@ -260,6 +291,12 @@
                   <Element Index="[0]" Value="0.0" />
                   <Element Index="[1]" Value="0.0" />
                 </ArrayMember>
+                <StructureMember Name="Tuning" DataType="PID">
+                  <DataValueMember Name="CTL" DataType="DINT" Value="0" />
+                  <DataValueMember Name="SP" DataType="REAL" Value="50" />
+                  <DataValueMember Name="KP" DataType="REAL" Value="1" />
+                  <ArrayMember Name="DATA" DataType="REAL" Dimensions="17"><Element Index="[0]" Value="0.0" /></ArrayMember>
+                </StructureMember>
               </Structure>
             </Element>
             <Element Index="[3]">
@@ -294,6 +331,12 @@
                   <Element Index="[0]" Value="0.0" />
                   <Element Index="[1]" Value="0.0" />
                 </ArrayMember>
+                <StructureMember Name="Tuning" DataType="PID">
+                  <DataValueMember Name="CTL" DataType="DINT" Value="0" />
+                  <DataValueMember Name="SP" DataType="REAL" Value="50" />
+                  <DataValueMember Name="KP" DataType="REAL" Value="1" />
+                  <ArrayMember Name="DATA" DataType="REAL" Dimensions="17"><Element Index="[0]" Value="0.0" /></ArrayMember>
+                </StructureMember>
               </Structure>
             </Element>
           </Array>
@@ -334,6 +377,12 @@
                   <Element Index="[0]" Value="0.0" />
                   <Element Index="[1]" Value="0.0" />
                 </ArrayMember>
+                <StructureMember Name="Tuning" DataType="PID">
+                  <DataValueMember Name="CTL" DataType="DINT" Value="0" />
+                  <DataValueMember Name="SP" DataType="REAL" Value="50" />
+                  <DataValueMember Name="KP" DataType="REAL" Value="1" />
+                  <ArrayMember Name="DATA" DataType="REAL" Dimensions="17"><Element Index="[0]" Value="0.0" /></ArrayMember>
+                </StructureMember>
               </Structure>
             </Element>
             <Element Index="[1]">
@@ -368,6 +417,12 @@
                   <Element Index="[0]" Value="0.0" />
                   <Element Index="[1]" Value="0.0" />
                 </ArrayMember>
+                <StructureMember Name="Tuning" DataType="PID">
+                  <DataValueMember Name="CTL" DataType="DINT" Value="0" />
+                  <DataValueMember Name="SP" DataType="REAL" Value="50" />
+                  <DataValueMember Name="KP" DataType="REAL" Value="1" />
+                  <ArrayMember Name="DATA" DataType="REAL" Dimensions="17"><Element Index="[0]" Value="0.0" /></ArrayMember>
+                </StructureMember>
               </Structure>
             </Element>
             <Element Index="[2]">
@@ -402,6 +457,12 @@
                   <Element Index="[0]" Value="0.0" />
                   <Element Index="[1]" Value="0.0" />
                 </ArrayMember>
+                <StructureMember Name="Tuning" DataType="PID">
+                  <DataValueMember Name="CTL" DataType="DINT" Value="0" />
+                  <DataValueMember Name="SP" DataType="REAL" Value="50" />
+                  <DataValueMember Name="KP" DataType="REAL" Value="1" />
+                  <ArrayMember Name="DATA" DataType="REAL" Dimensions="17"><Element Index="[0]" Value="0.0" /></ArrayMember>
+                </StructureMember>
               </Structure>
             </Element>
             <Element Index="[3]">
@@ -436,6 +497,12 @@
                   <Element Index="[0]" Value="0.0" />
                   <Element Index="[1]" Value="0.0" />
                 </ArrayMember>
+                <StructureMember Name="Tuning" DataType="PID">
+                  <DataValueMember Name="CTL" DataType="DINT" Value="0" />
+                  <DataValueMember Name="SP" DataType="REAL" Value="50" />
+                  <DataValueMember Name="KP" DataType="REAL" Value="1" />
+                  <ArrayMember Name="DATA" DataType="REAL" Dimensions="17"><Element Index="[0]" Value="0.0" /></ArrayMember>
+                </StructureMember>
               </Structure>
             </Element>
           </Array>
@@ -710,6 +777,12 @@
               <Element Index="[0]" Value="0.0" />
               <Element Index="[1]" Value="0.0" />
             </ArrayMember>
+            <StructureMember Name="Tuning" DataType="PID">
+              <DataValueMember Name="CTL" DataType="DINT" Value="0" />
+              <DataValueMember Name="SP" DataType="REAL" Value="50" />
+              <DataValueMember Name="KP" DataType="REAL" Value="1" />
+              <ArrayMember Name="DATA" DataType="REAL" Dimensions="17"><Element Index="[0]" Value="0.0" /></ArrayMember>
+            </StructureMember>
           </Structure>
         </Data>
       </Tag>

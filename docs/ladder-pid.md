@@ -13,6 +13,10 @@ preset loading before calculation and snapshot copying afterward.
 [PID zero FLL](aggregate-fill.md#pid-zero-fills) clears represented fields; configure
 valid scaling and UPD before the next enabled PID call.
 
+[FIFO/LIFO PID payloads](record-queues.md#pid-payloads) also copy complete public
+records or PID-containing UDTs. Queue movement preserves each address's private
+solver history; it does not execute PID. Cleared records need valid configuration.
+
 ## Operands and represented data
 
 ```text

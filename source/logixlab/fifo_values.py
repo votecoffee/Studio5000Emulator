@@ -16,6 +16,7 @@ def supported(memory,dtype):
 
 
 def record_type(project,dtype,seen=()):
+    if dtype.upper() == 'PID':return 'pid' not in project.udts
     if dtype.upper() in BASIC_RECORDS or project.string_capacity(dtype) is not None:return True
     name=dtype.casefold();definition=project.udts.get(name)
     if (name in seen or definition is None or definition.get('Class','User')!='User'
@@ -43,7 +44,7 @@ def read(memory,ref,scope,dtype):
         return numeric_storage.convert(memory.read(ref,scope),source,dtype)
     value=memory.read(ref,scope)
     if not aggregate(dtype):return coerce(value,dtype)
-    if not isinstance(value,dict):raise ModelError('FIFO requires one represented string or UDT record')
+    if not isinstance(value,dict):raise ModelError('FIFO requires one represented logical record')
     # Typed logical copies retain all represented fields, including unknown
     # backing bytes. Moving an unknown value does not establish its contents.
     return copy.deepcopy(value)

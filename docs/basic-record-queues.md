@@ -12,7 +12,9 @@ XIC(UnloadSnapshot)FFU(TimerQueue[Index],SavedTimer,QueueControl,?,?);
 
 The source/destination and array element types must match exactly. A TIMER
 cannot be queued as COUNTER, or converted through a scalar numeric operand.
-Other operational predefined schemas, data-only inferred records and AOI
+[PID payloads](record-queues.md#pid-payloads) now have a separate qualified logical
+profile, including PID-containing UDTs. Other operational predefined schemas,
+data-only inferred records and AOI
 instance payloads remain unqualified. Narrow numeric queues keep their existing
 SINT/INT/DINT/REAL profile; this change adds no scalar LINT/unsigned forms.
 

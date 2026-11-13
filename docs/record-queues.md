@@ -19,6 +19,7 @@ logical values without numeric conversion.
 
 [Basic TIMER/COUNTER/CONTROL records](basic-record-queues.md), including nested
 UDT members and their arrays, now use the same matching logical-copy rules.
+[PID records and PID-containing UDTs](#pid-payloads) also use this profile.
 AOI instance types, other operational predefined records and inferred data-only
 schemas remain unqualified.
 Mixed-type conversions and aggregate/string immediates remain blocked. Existing
@@ -44,8 +45,43 @@ now copy or clear the same record independently of its FIFO/LIFO controls. Guard
 existing bounds and edge rules.
 
 This extends represented UDT contents; scalar wide/time/date queues, implicit
-type conversion, operational/AOI record payloads and native packed ABI remain
+type conversion, other operational/AOI record payloads and native packed ABI remain
 outside this profile. Native queue timing/status/layout acceptance is separate.
+
+## PID payloads
+
+App `26.1112.222351` supports matching PID elements and explicit UDTs containing PID
+in ladder FFL/FFU/LFL/LFU, including nested arrays and existing alias/indirect/AOI
+array bindings. A PID payload copies its complete represented CTL, REAL fields
+and DATA[17], preserving unknowns without interpreting tuning or status values.
+The source, queue and destination must have the identical declared element type.
+Redefined PID, other unqualified operational schemas, AOI instance payloads and
+scalar wide numeric queues remain excluded.
+
+FIFO ordering/shifts, LIFO selected-slot behavior, saved CONTROL LEN/POS,
+independent load/unload edges, bounds, false/held/full-path laziness and
+whole-advance rollback retain their existing rules. Each moved payload owns its
+nested DATA arrays. Vacated slots and empty unload results receive typed zero
+PID fields. A queue can carry incomplete tuning records; it does not run PID.
+
+Private solver history stays at each canonical record address; queue movement
+does not transfer or reset it. A later enabled PID calculation follows the
+ordinary INI/Run initialization policy. Zeroed records need valid scaling and
+positive UPD before calculation. This logical profile does not establish native
+packed layout, internal-state transfer, scan/status or partial-fault equivalence.
+
+In **Record lab**, `IncomingPart.Tuning` is a PID member. Set its SP/KP and pulse
+LoadPart or PushPart after a false scan. Change the source and inspect the queued
+snapshot; UnloadPart returns FIFO order and PopPart returns LIFO order. The
+Tuning example exports only CTL, SP, KP and DATA[0]; other saved fields remain
+unknown until established. An empty unload returns a complete zero record.
+The existing fourth array elements remain guards. No new example controls or
+automatic PID execution are added.
+
+The source baseline is installed v35 help14526–14529 and Rockwell's
+[FFL structure operands](https://www.rockwellautomation.com/en-us/docs/factorytalk-design-studio/current/contents-ditamap/instructions/instruction-set/array--file--shift-instructions/fifo-load--ffl-.html).
+See [focused cases](../source/tests/test_pid_queues.py) and
+[PID copies](aggregate-copies.md#pid-records) for the related history boundary.
 
 ## Copying and clearing
 
