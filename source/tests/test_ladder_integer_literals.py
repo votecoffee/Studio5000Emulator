@@ -126,7 +126,7 @@ class LadderIntegerLiteralTests(unittest.TestCase):
         self.assertTrue(self.engine(['CPT(Dest,Source+1L);'], types=('DINT', 'LINT', 'LINT')).blockers)
 
     def test_existing_function_power_bcd_and_unsigned_immediate_guards_remain(self):
-        for text in ['SQRT(1L)', 'TRN(1L)', '1L**1e39', 'FRD(1U)', 'TOD(1U)', '1L+2147483648']:
+        for text in ['SQRT(1L,2L)', 'TRN(1L)', '1L**1e39', 'FRD(1U)', 'TOD(1U)', '1L+2147483648']:
             self.assertTrue(self.engine(['AFI()CPT(Dest,' + text + ');']).blockers, text)
 
     def test_false_calls_and_prescan_skip_domains_but_required_cmp_sides_are_eager(self):

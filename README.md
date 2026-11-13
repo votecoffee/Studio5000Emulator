@@ -105,7 +105,9 @@ conversion. See [REAL integer constants](docs/real-integer-literals.md).
 **Mixed REAL ladder expressions** now accept wide integer tags and typed
 decimal/radix constants in CPT, CMP, FAL and FSC, with float32 intermediates
 and existing file progress/retry rules. Try MixedRealEnabled in **Wide expression
-lab**; see [REAL expressions](docs/real-expressions.md).
+lab**; see [REAL expressions](docs/real-expressions.md). Math functions such as
+SIN, LOG and RAD also select REAL without a floating operand. Enable
+FunctionRealEnabled with FunctionRealIndex=1 for integer-input examples.
 
 **Floating comparison constants** now select REAL across six ladder relations
 and LIM, including constant-only calls and mixed integer tags. Try

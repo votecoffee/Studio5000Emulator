@@ -341,5 +341,6 @@ REAL relations/LIM without a REAL tag, including constant-only calls and mixed
 integer inputs. LREAL priority and exact integer-only comparisons remain separate.
 
 [Selected REAL expressions](real-expressions.md) add wide integer tags and typed
-decimal/radix constants to CPT/CMP/FAL/FSC with float32 intermediates. LREAL
-priority, exact integer consumers and existing FAL overflow/retry remain separate.
+decimal/radix constants to CPT/CMP/FAL/FSC with float32 intermediates. Eleven
+math functions also select REAL without a floating operand; ABS/SQR retain their
+existing exact integer paths. LREAL priority, exact integer consumers and existing FAL overflow/retry remain separate.

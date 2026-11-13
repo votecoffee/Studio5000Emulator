@@ -78,7 +78,7 @@ class DintRadixExpressionTests(unittest.TestCase):
             for code, file in [(f'AFI()CPT(Dest,{word});', False), (f'AFI()FSC(Ctl,?,?,ALL,Queue[Ctl.POS]={word});', True)]:
                 self.assertTrue(self.engine([code], dtype='DINT', file=file, checked=False).blockers, word)
         for dtype, text in [('REAL', '16#100000000'), ('LREAL', 'FRD(16#FFFFFFFF)'),
-                            ('DINT', '16#100000000+1.0'), ('DINT', 'SIN(16#FFFFFFFF)')]:
+                            ('DINT', '16#100000000+1.0'), ('DINT', 'SIN(16#100000000)')]:
             self.assertTrue(self.engine([f'AFI()CPT(Dest,{text});'], dtype=dtype, checked=False).blockers)
         for dtype in ['REAL', 'LREAL']:
             self.assertTrue(self.engine(['AFI()CMP(Source>FRD(16#FFFFFFFF))OTE(RunLatch);'], dtype=dtype, checked=False).blockers)

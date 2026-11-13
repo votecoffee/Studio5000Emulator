@@ -1062,6 +1062,27 @@
       <Tag Name="MixedRealLateDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
       <Tag Name="MixedRealLateResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
       <Tag Name="MixedRealSelected" DataType="REAL" Dimensions="3" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="REAL" Dimensions="3"><Element Index="[0]" Value="101" /><Element Index="[2]" Value="999" /></Array></Data></Tag>
+      <Tag Name="FunctionRealEnabled" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="FunctionRealIndex" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="FunctionRealAngle" DataType="UDINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="UDINT" Value="0" /></Data></Tag>
+      <Tag Name="FunctionRealSin" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="FunctionRealCos" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="FunctionRealTan" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="FunctionRealLn" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="FunctionRealLog" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="FunctionRealDegrees" DataType="INT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="INT" Value="0" /></Data></Tag>
+      <Tag Name="FunctionRealRadians" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="FunctionRealAsin" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="FunctionRealAcos" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="FunctionRealAtan" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="FunctionRealRootAlias" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="FunctionRealMatch" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="FunctionRealDomainEnabled" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="FunctionRealDomainSource" DataType="ULINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="ULINT" Value="2" /></Data></Tag>
+      <Tag Name="FunctionRealDomainResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="FunctionRealLateDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="FunctionRealLateResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="FunctionRealSelected" DataType="DINT" Dimensions="3" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="DINT" Dimensions="3"><Element Index="[0]" Value="101" /><Element Index="[2]" Value="999" /></Array></Data></Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
@@ -1143,7 +1164,7 @@
               <Rung Number="25" Type="N"><Text>JSR(IntegerConstants,0);</Text></Rung>
               <Rung Number="26" Type="N"><Text>JSR(DoubleIntegerConstants,0);</Text></Rung>
               <Rung Number="27" Type="N"><Text>JSR(IntegerFileConstants,0);</Text></Rung>
-              <Rung Number="28" Type="N"><Text>JSR(NumericMoveConstants,0)JSR(RadixMoves,0)JSR(MathConstants,0)JSR(ComparisonConstants,0)JSR(RealIntegerConstants,0)JSR(IntegerOperandConstants,0)JSR(BitwiseOperandConstants,0)JSR(Binary64SourceResults,0)JSR(DintPatternConstants,0)JSR(DintWordExpressions,0)JSR(WideBcdExpressions,0)JSR(WideRootPowerExpressions,0)JSR(BinaryRadixExpressions,0)JSR(RadixMathBlocks,0)JSR(RadixComparisons,0)JSR(RealRadixBlocks,0)JSR(RealComparisonConstants,0)JSR(MixedRealExpressions,0);</Text></Rung>
+              <Rung Number="28" Type="N"><Text>JSR(NumericMoveConstants,0)JSR(RadixMoves,0)JSR(MathConstants,0)JSR(ComparisonConstants,0)JSR(RealIntegerConstants,0)JSR(IntegerOperandConstants,0)JSR(BitwiseOperandConstants,0)JSR(Binary64SourceResults,0)JSR(DintPatternConstants,0)JSR(DintWordExpressions,0)JSR(WideBcdExpressions,0)JSR(WideRootPowerExpressions,0)JSR(BinaryRadixExpressions,0)JSR(RadixMathBlocks,0)JSR(RadixComparisons,0)JSR(RealRadixBlocks,0)JSR(RealComparisonConstants,0)JSR(MixedRealExpressions,0)JSR(FunctionRealExpressions,0);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="Binary64" Type="RLL">
@@ -1502,6 +1523,25 @@
               <Rung Number="6" Type="N"><Text>XIC(MixedRealEnabled)CPT(MixedRealSelected[MixedRealIndex],MixedRealWide-16777216.0+MixedRealReal);</Text></Rung>
               <Rung Number="7" Type="N"><Text>XIC(MixedRealEnabled)CMP((MixedRealWide+MixedRealReal=16777216U)&amp;&amp;!MixedRealInhibit)OTE(MixedRealMatch);</Text></Rung>
               <Rung Number="8" Type="N"><Text>XIC(MixedRealEnabled)DIV(1,MixedRealLateDivisor,MixedRealLateResult);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="FunctionRealExpressions" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(FunctionRealEnabled)CPT(FunctionRealSin,SIN(FunctionRealAngle));</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(FunctionRealEnabled)CPT(FunctionRealCos,COS(FunctionRealAngle));</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(FunctionRealEnabled)CPT(FunctionRealTan,TAN(1UL));</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(FunctionRealEnabled)CPT(FunctionRealLn,LN(1UL));</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(FunctionRealEnabled)CPT(FunctionRealLog,LOG(10L));</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(FunctionRealEnabled)CPT(FunctionRealDegrees,DEG(1U));</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(FunctionRealEnabled)CPT(FunctionRealRadians,RAD(180U));</Text></Rung>
+              <Rung Number="7" Type="N"><Text>XIC(FunctionRealEnabled)CPT(FunctionRealAsin,ASN(1UL));</Text></Rung>
+              <Rung Number="8" Type="N"><Text>XIC(FunctionRealEnabled)CPT(FunctionRealAcos,ACS(0L));</Text></Rung>
+              <Rung Number="9" Type="N"><Text>XIC(FunctionRealEnabled)CPT(FunctionRealAtan,ATN(1UL));</Text></Rung>
+              <Rung Number="10" Type="N"><Text>XIC(FunctionRealEnabled)CPT(FunctionRealRootAlias,SQRT(9L));</Text></Rung>
+              <Rung Number="11" Type="N"><Text>XIC(FunctionRealEnabled)CPT(FunctionRealSelected[FunctionRealIndex],SIN(FunctionRealAngle));</Text></Rung>
+              <Rung Number="12" Type="N"><Text>XIC(FunctionRealEnabled)CMP(SIN(FunctionRealAngle)&gt;=0)OTE(FunctionRealMatch);</Text></Rung>
+              <Rung Number="13" Type="N"><Text>XIC(FunctionRealEnabled)XIC(FunctionRealDomainEnabled)CPT(FunctionRealDomainResult,ASN(FunctionRealDomainSource));</Text></Rung>
+              <Rung Number="14" Type="N"><Text>XIC(FunctionRealEnabled)DIV(1,FunctionRealLateDivisor,FunctionRealLateResult);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

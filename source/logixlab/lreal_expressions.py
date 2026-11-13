@@ -8,6 +8,8 @@ from .model import INT_BITS, ModelError, coerce
 
 NUMERIC = frozenset((*INT_BITS, 'REAL', 'LREAL'))
 MATH = frozenset(FUNCTIONS) - {'SQRT', 'TRUNC'}
+# Match narrow ladder math selection; SQR retains the exact integer-root path.
+IMPLICIT_REAL = frozenset(FUNCTIONS) - {'ABS', 'SQR', 'TRN', 'TRUNC'}
 ARITHMETIC = frozenset(('+', '-', '*', '/', 'MOD', '**'))
 RELATIONS = {'=': operator.eq, '<>': operator.ne, '<': operator.lt,
              '<=': operator.le, '>': operator.gt, '>=': operator.ge}
@@ -34,7 +36,8 @@ def analyze(expression, memory, scope='', destination_type=None, *, consumer='CP
     if precision == 'REAL':
         def floating_literal(node):
             return node[0] == 'literal' and type(node[1]) is float or any(floating_literal(x) for x in node[1:] if isinstance(x,tuple))
-        selected = destination_type == 'REAL' or 'REAL' in declared.values() or floating_literal(expression.tree)
+        selected = (destination_type == 'REAL' or 'REAL' in declared.values()
+                    or floating_literal(expression.tree) or bool(expression.functions & IMPLICIT_REAL))
         extended = bool(expression.typed_types or expression.radix_types or destination_type in WIDE_TYPES or WIDE_TYPES.intersection(declared.values()))
         if binary64 or not selected or not extended:return None
         # Keep existing mixed string conditions on their established interpreter.
@@ -199,7 +202,9 @@ def description(project):
 def real_description(project):
     return dict(available=available(project),profile='v35-5580-real-extended-expressions',
                 consumers=['CPT','CMP','FAL','FSC'],types=sorted(NUMERIC-{'LREAL'}),
-                selection='A REAL tag, unsuffixed floating literal or CPT/FAL REAL destination; at least one wide integer tag, typed integer literal or signed DINT radix word',
+                selection='A REAL tag, unsuffixed floating literal, implicit REAL math function or CPT/FAL REAL destination; at least one wide integer source/result tag, typed integer literal or signed DINT radix word',
+                implicit_real_functions=sorted(IMPLICIT_REAL),
+                integer_functions='ABS/SQR/TRN/TRUNC do not select REAL by themselves; exact integer forms retain their existing qualification',
                 priority='LREAL selection first; existing narrow REAL, exact integer, string, generic/ST/index consumers remain separate',
                 constants='Bounded DINT/finite REAL; declared decimal/radix L/U/UL words, signed DINT words and immediate unary range checks before float32 conversion',
                 arithmetic='Finite float32 sources and every numeric intermediate; existing unary math, arithmetic and bounded power',

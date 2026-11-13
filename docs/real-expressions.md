@@ -2,10 +2,11 @@
 
 The bounded v35 ControlLogix 5580 profile supports wide integer tags and typed
 decimal/radix integer constants in selected REAL CPT, CMP, FAL and FSC expressions.
-A REAL tag, an unsuffixed floating literal, or a CPT/FAL REAL destination selects
-float32 calculation. This extension requires a wide integer source/result tag,
-typed integer literal or signed full DINT radix word; existing narrow expressions retain their
-established interpreter. Integer suffixes alone do not select REAL.
+A REAL tag, an unsuffixed floating literal, a CPT/FAL REAL destination or one of
+the REAL-selecting math functions below selects float32 calculation. This
+extension requires a wide integer source/result tag, typed integer literal or
+signed full DINT radix word; existing narrow expressions retain their established
+interpreter. Integer suffixes alone do not select REAL.
 
 ```text
 CPT(RealResult,UnsignedInput+0.5);
@@ -27,8 +28,8 @@ Each required numeric source and each arithmetic/function result converts to
 finite REAL. The operators are +, -, *, /, MOD and bounded **; existing numeric
 math functions and expression aliases remain available. MOD follows the
 dividend's sign and SQR uses absolute input. Numeric bitwise operations and
-FRD/TOD do not belong to this floating profile. Integer-only expressions keep
-their exact integer calculations and type/range rules.
+FRD/TOD do not belong to this floating profile. Integer-only expressions without
+a REAL-selecting function keep their exact calculations and type/range rules.
 
 16777217U becomes 16777216 before computation. Consequently
 `(16777217U+1U)-16777216U` produces zero in a REAL destination. Float32
@@ -53,6 +54,30 @@ step to run **MixedRealExpressions**. Result=16777216, Difference=0,
 DoubleDifference=1, Signed=-0.5, Root=4096, Integer=1 and Selected[1]=0.5;
 Match is true. Index 99 or MixedRealLateDivisor=0 demonstrates rollback.
 MixedRealInhibit gates the Boolean result while retaining eager numeric reads.
+
+## Functions that select REAL
+
+LN, LOG, SIN, COS, TAN, ASN, ACS, ATN, DEG and RAD select REAL calculation
+without a REAL tag, literal or destination. The existing SQRT software expression
+alias does likewise. Wide integer sources/results, decimal L/U/UL constants and
+signed radix words use the same checked float32 path as explicit REAL operands.
+For example, `CPT(Result,SIN(1UL))` rounds the float32 sine result to the integer
+destination; `CMP(LOG(100U)=2)` is true. Each numeric node rounds to float32,
+including integer arithmetic elsewhere in that expression. LREAL selection still
+has priority.
+
+ABS, SQR, TRN and the TRUNC software alias do not select REAL on their own.
+Qualified exact integer ABS/SQR calls retain their existing behavior; this does
+not add new standalone instruction mnemonics or broaden integer TRN forms.
+
+In **Wide expression lab**, set FunctionRealIndex=1 and FunctionRealEnabled=true.
+The FunctionRealExpressions routine uses integer operands/results throughout.
+Angle=0 gives Sin=0, Cos=1, Selected[1]=0 and Match=true. Angle=4 gives Sin=-1,
+Cos=-1, Selected[1]=-1 and Match=false. Ln=0, Log=1, Tan=2, Degrees=57,
+Radians=3, Asin=2, Acos=2, Atan=1 and RootAlias=3. Index=99, LateDivisor=0 or
+DomainEnabled=true with DomainSource=2 demonstrates whole-advance rollback.
+Repair DomainSource to 1 to obtain DomainResult=2. False gates preserve numeric
+outputs and clear Match. Names in this paragraph have the FunctionReal prefix.
 
 Generic expressions, ST/index parsers, existing mixed string conditions and other
 controller profiles remain separate. NaN/infinity and native numerical, math
