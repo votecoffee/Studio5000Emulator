@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+[DELETE retained windows](string-operations.md#delete-retained-windows) consume
+only surviving text as of `26.1112.215103`. Partially exported strings can delete
+unknown bytes or clear all active text. Ladder/ST/AOI calls retain range, capacity,
+alias and rollback checks. **String lab** includes a gated example.
+
 [Typed AOI input constants](aoi-constants.md) add exact LINT/unsigned and finite
 LREAL scalar Inputs as of `26.1112.213355`. Required parameter types must match,
 and existing copied-input lifecycle and rollback remain. A dedicated example

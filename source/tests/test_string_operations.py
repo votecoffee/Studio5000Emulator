@@ -214,9 +214,9 @@ class StringOperationTests(unittest.TestCase):
         for quantity in (0,-1,10):
             e=self.checked(['DELETE(SourceA,Qty,1,Dest);']);e.memory.write('Qty',quantity)
             with self.assertRaises(ModelError):e.step()
-        e=self.checked(['DELETE(SourceA,3,1,Dest);']);e.memory.values['sourcea']['DATA'][0]=None
+        e=self.checked(['DELETE(SourceA,3,1,Dest);']);e.memory.values['sourcea']['DATA'][3]=None
         with self.assertRaisesRegex(ModelError,'unknown'):e.step()
-        self.assertIsNone(e.memory.values['sourcea']['DATA'][0])
+        self.assertIsNone(e.memory.values['sourcea']['DATA'][3])
 
     def test_invalid_source_len_and_unknown_position_fault_without_outputs(self):
         for length in (-1,83,None):

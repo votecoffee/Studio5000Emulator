@@ -471,7 +471,8 @@ in ladder and Structured Text, including user strings and existing AOI bindings.
 **String lab** demonstrates case conversion, decimal/REAL exchange,
 [DTOS with REAL tags](docs/string-conversions.md#dtos-with-real-input),
 [STOD decimal parsing](docs/string-conversions.md#stod-decimal-input),
-[MID copy windows](docs/string-operations.md#mid-copy-windows) and
+[MID copy windows](docs/string-operations.md#mid-copy-windows),
+[DELETE retained windows](docs/string-operations.md#delete-retained-windows) and
 [lazy indexed string operands](docs/string-operations.md#operand-selection).
 [Ladder string MOV](docs/string-operations.md#ladder-string-mov) copies tags or
 single-quoted literals and clips the result to the destination capacity.

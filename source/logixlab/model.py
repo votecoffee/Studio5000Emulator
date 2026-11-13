@@ -1214,6 +1214,15 @@ class Memory:
             raise ModelError('MID range exceeds source LEN or declared DATA bounds')
         return self._decode_string_data(data[first:end])
 
+    def string_without(self, ref, start, count, scope=''):
+        """Capture DELETE's retained bytes without consuming its removed window."""
+        data, length = self._string_data(ref, scope)
+        first = start - 1
+        end = first + count
+        if not 1 <= start <= len(data) or count < 1 or end > length:
+            raise ModelError('DELETE requires positive quantity within the active source string')
+        return self._decode_string_data(data[:first] + data[end:length])
+
     def write_string(self,ref,text,scope=''):
         key,parts,dtype=self.check_writable(ref,scope)
         capacity=self.project.string_capacity(dtype)

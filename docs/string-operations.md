@@ -61,6 +61,35 @@ Other errors follow scan rollback, which restores earlier writes, AOI bindings
 and the modeled advance. AOI call-argument binding retains its separate contract.
 The software profile uses single-byte strings. Native fault and status handling remains separate.
 
+## DELETE retained windows
+
+App `26.1112.215103` reads only the retained prefix and suffix of a DELETE source
+in ladder and existing Structured Text calls. Source LEN, Start and Qty must be
+known and valid. Qty remains positive, Start is within source DATA capacity,
+and the entire deletion fits within active LEN. The removed bytes may be unknown
+in a partial export; inactive bytes are also unused. Retained bytes must be known.
+
+Deleting all active text can therefore establish an empty destination even when
+every active source byte is unknown. The source is captured before any write,
+including aliases and AOI InOut bindings. Writes update LEN and result bytes,
+preserve unused destination bytes, and require the result to fit its capacity.
+Unknown retained bytes, invalid metadata/indices/ranges, capacity errors and later
+faults retain whole-advance rollback. False rungs and prescan skip live operands;
+unreached ST branches remain dormant. This is an unknown-data rule of the software
+model, not evidence of native fault, read-access or partial-effect equivalence.
+
+In **String lab**, enable `DeleteWindow` and Step. `DeleteSource` has LEN 8,
+known `AB`/`CD` ends and four unknown middle bytes. Default DeleteStart=3 and
+DeleteQty=4 produce `ABCD` in `DeleteResult`; its last backing byte remains `!`.
+Set DeleteQty=3 to leave an unknown byte in the result and observe rollback.
+Restore 4 to retry. Set DeleteStart=1 and DeleteQty=8 to delete the entire text.
+The gate defaults false, preserving the original example's normal scan.
+
+The range basis is installed v35 DELETE help 14566 and the published
+[Rockwell DELETE reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-01/contents-ditamap/instruction-set/ascii-string-instructions/string-delete--delete-.html).
+No zero-quantity, new type, encoding, instruction language or native status
+support is added. See [focused cases](../source/tests/test_delete_windows.py).
+
 ## MID copy windows
 
 `MID(Source,Qty,Start,Dest)` in ladder and Structured Text requires Start

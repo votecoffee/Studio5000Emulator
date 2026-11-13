@@ -1120,6 +1120,33 @@
           <Structure DataType="LabText32"><DataValueMember Name="LEN" DataType="DINT" Value="0" /></Structure>
         </Data>
       </Tag>
+      <Tag Name="DeleteWindow" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data>
+      </Tag>
+      <Tag Name="DeleteStart" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="DINT" Value="3" /></Data>
+      </Tag>
+      <Tag Name="DeleteQty" DataType="DINT" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><DataValue DataType="DINT" Value="4" /></Data>
+      </Tag>
+      <Tag Name="DeleteSource" DataType="LabText32" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><Structure DataType="LabText32">
+          <DataValueMember Name="LEN" DataType="DINT" Value="8" />
+          <ArrayMember Name="DATA" DataType="SINT" Dimensions="32">
+            <Element Index="[0]" Value="65" /><Element Index="[1]" Value="66" />
+            <Element Index="[6]" Value="67" /><Element Index="[7]" Value="68" />
+          </ArrayMember>
+        </Structure></Data>
+      </Tag>
+      <Tag Name="DeleteResult" DataType="LabText32" TagType="Base" ExternalAccess="Read/Write">
+        <Data Format="Decorated"><Structure DataType="LabText32">
+          <DataValueMember Name="LEN" DataType="DINT" Value="3" />
+          <ArrayMember Name="DATA" DataType="SINT" Dimensions="32">
+            <Element Index="[0]" Value="111" /><Element Index="[1]" Value="108" /><Element Index="[2]" Value="100" />
+            <Element Index="[31]" Value="33" />
+          </ArrayMember>
+        </Structure></Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard">
@@ -1184,6 +1211,7 @@
               <Rung Number="22" Type="N"><Text>XIC(Convert)DTOS(RealSource,RoundedText);</Text></Rung>
               <Rung Number="23" Type="N"><Text>XIC(Convert)STOD(NumericText,ParsedInteger);</Text></Rung>
               <Rung Number="24" Type="N"><Text>XIC(MidWindow)MID(MidSource,MidQty,MidStart,MidDest);</Text></Rung>
+              <Rung Number="25" Type="N"><Text>XIC(DeleteWindow)DELETE(DeleteSource,DeleteQty,DeleteStart,DeleteResult);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="EditText" Type="ST">
