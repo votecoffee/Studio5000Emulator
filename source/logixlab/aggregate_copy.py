@@ -2,7 +2,7 @@
 from .integer_math import CONTROLLERS
 from .model import ModelError, literal
 from .numeric_copy import prefix, static_reference
-from .numeric_fill import aggregate_template, scalar_count, MAX_ELEMENTS
+from .numeric_fill import aggregate_template, scalar_count, MAX_ELEMENTS, AGGREGATE_SCALARS
 
 
 def handle(engine, op, scope, *, execute=False):
@@ -73,6 +73,7 @@ def description(project):
     return dict(available=project.version == '35' and project.processor.upper() in CONTROLLERS,
                 instructions=['COP', 'CPS'], languages=['RLL', 'ST'],
                 types='Identical TIMER/COUNTER/CONTROL/STRING or explicit nested basic UDT element types',
+                udt_scalar_fields=sorted(AGGREGATE_SCALARS-{'BIT'}),
                 selection='Structural preflight; false/prescan skip saved lengths, values and dynamic indices',
                 execution='Capture length and clipped source/destination windows before sequential stores; copy the minimum remaining element count',
                 clipping=True,clipping_boundary='Selected logical array/member or scalar; no crossing sibling members',

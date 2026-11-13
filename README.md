@@ -400,7 +400,8 @@ can inspect ER after BSL, BSR and LFU extent faults.
 FLL at the selected logical region. **Data lab** demonstrates source-limited
 copies with preserved neighboring records.
 
-[Matching aggregate copies](docs/aggregate-copies.md) give COP/CPS structural
+[Matching aggregate copies](docs/aggregate-copies.md), including
+[LREAL and time/date UDT fields](docs/aggregate-copies.md#precise-udt-fields), give COP/CPS structural
 validation, lazy live operands, complete unknown-value copies and bounded work
 for basic records, strings and nested UDTs.
 

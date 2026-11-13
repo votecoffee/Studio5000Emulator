@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+[Precise record copies](aggregate-copies.md#precise-udt-fields) and
+[typed zero fills](aggregate-fill.md#precise-udt-zero-fills) support LREAL and
+TIME32/TIME/LTIME/DT/LDT fields as of `26.1112.210459`. Record lab exposes separate
+COP, CPS and zero-fill gates. Native layouts/synchronization remain unqualified.
+
 [Precise UDT queue payloads](record-queues.md#precise-positions-and-timestamps)
 add LREAL positions and TIME32/TIME/LTIME/DT/LDT fields as of `26.1112.205241`.
 FIFO/LIFO preserve exact values through matching records, nested arrays, typed

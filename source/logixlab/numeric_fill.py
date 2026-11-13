@@ -3,10 +3,12 @@ from .integer_math import CONTROLLERS, bit_value
 from .model import INT_BITS, ModelError, coerce, literal
 from .numeric_copy import static_reference, location, prefix
 from .real_math import real
+from . import time_values
 
 INTEGERS = frozenset(('SINT', 'INT', 'DINT'))
 NUMERIC = INTEGERS | {'REAL'}
 MAX_ELEMENTS = 100000
+AGGREGATE_SCALARS = frozenset((*INT_BITS,*time_values.TYPES,'BOOL','REAL','LREAL','BIT'))
 
 
 def operand_type(memory, ref, scope, *, length=False):
@@ -101,7 +103,7 @@ def aggregate_template(project,dtype,seen=(),*,instruction="FLL"):
     for member in definition.findall('./Members/Member'):
         if member.get('Hidden','false').lower()=='true':continue
         kind=member.get('DataType')
-        if kind not in {*INT_BITS,'BOOL','REAL','BIT'}:aggregate_template(project,kind,seen+(name,),instruction=instruction)
+        if kind not in AGGREGATE_SCALARS:aggregate_template(project,kind,seen+(name,),instruction=instruction)
     return project.default(dtype)
 
 
@@ -125,6 +127,8 @@ def all_ones_value(project, dtype, template):
         return {name:True if type(value) is bool else -1 for name,value in template.items()}
     if kind in ('REAL','LREAL') or project.string_capacity(dtype) is not None:
         raise ModelError('All-ones FLL excludes floating-point and string members')
+    if kind in time_values.TYPES:
+        raise ModelError('All-ones FLL excludes time/date members')
     definition=project.udts.get(dtype.lower())
     if definition is None:raise ModelError('All-ones FLL requires a declared integral/Boolean record')
     types={member.get('Name'):member.get('DataType') for member in definition.findall('./Members/Member')}
@@ -181,15 +185,16 @@ def aggregate_description(project):
     return dict(available=project.version=='35' and project.processor.upper() in CONTROLLERS,language='RLL',instructions=['FLL'],
                 source='Scalar SINT/INT/DINT zero or -1, or matching immediate; length SINT/INT/DINT or bounded DINT immediate',
                 destinations='TIMER/COUNTER/CONTROL/STRING and explicit nested basic UDTs, selected arrays, aliases and existing AOI bindings',
-                zero='Typed values built from declared schema; full records establish unknowns, including BOOL/REAL members and unused string DATA',
-                all_ones='-1 fills exact signed/unsigned integer and Boolean fields, arrays, TIMER/COUNTER/CONTROL and nested integral UDTs; floating/string members excluded',
+                zero='Typed values built from declared schema; full records establish unknowns, including BOOL/REAL/LREAL/time/date members and unused string DATA',
+                udt_scalar_fields=sorted(AGGREGATE_SCALARS-{'BIT'}),
+                all_ones='-1 fills exact signed/unsigned integer and Boolean fields, arrays, TIMER/COUNTER/CONTROL and nested integral UDTs; floating/time/date/string members excluded',
                 control='Top-level CONTROL zero retains its existing logical-default reset; nested zero CONTROL members are zeroed; -1 sets flags and signed fields to all ones',
                 selection='Structural preflight; false/prescan skip live operands; true captures length, complete window and source pattern before stores',
                 zero_length='Validate live destination, skip source value and its live index',
                 clipping=True,clipping_boundary='Selected logical array/member or scalar; no crossing sibling members',
                 st_for_effects='Complete clipped static windows; changing/alias/AOI selections conservatively cover the enclosing array',
                 work='One instruction-budget unit per actual scalar member filled; logical clipping, no native byte clipping',
-                remaining=['Other nonzero/REAL/wider source patterns, all-ones floating/string fields, operational/AOI aggregate records, packed ABI and native faults/partial effects',
+                remaining=['Other nonzero/REAL/wider source patterns, all-ones floating/time/date/string fields, operational/AOI aggregate records, packed ABI and native faults/partial effects',
                            'Native scan/lifecycle/clock/internal-history reset parity and other profiles/languages'],native_runtime_parity=False)
 
 

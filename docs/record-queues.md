@@ -39,7 +39,8 @@ The **Record lab** PartRecord now includes Position (LREAL) and Timestamp (LDT).
 Set IncomingPart.Position to 1.0000000000000002 and its Timestamp to
 1794483000000000123 nanosecond ticks, then pulse LoadPart/UnloadPart. The output
 retains both values. Timestamps are exposed as exact decimal text in the API.
-Position remains binary64. Guard records and the independent stack retain their
+Position remains binary64. [COP/CPS and zero-fill gates](aggregate-copies.md#precise-udt-fields)
+now copy or clear the same record independently of its FIFO/LIFO controls. Guard records and the independent stack retain their
 existing bounds and edge rules.
 
 This extends represented UDT contents; scalar wide/time/date queues, implicit

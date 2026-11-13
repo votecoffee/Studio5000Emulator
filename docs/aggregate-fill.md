@@ -25,7 +25,7 @@ CONTROL and nested integral UDTs. Signed fields receive -1, unsigned fields thei
 maximum pattern and Boolean fields true. The source can be a scalar SINT/INT/DINT
 tag holding -1. Existing zero fills retain their broader record/string profile.
 
-All-ones fills exclude floating-point and string members. Unsupported literal
+All-ones fills exclude floating-point, time/date and string members. Unsupported literal
 patterns are rejected structurally; a dynamic source is checked when consumed.
 False calls and zero lengths retain their existing lazy source rules. A source
 or length stored inside the destination is captured before writes. Clipping,
@@ -36,10 +36,28 @@ histories or qualify packed native layouts. Native partial effects remain open.
 The source basis is installed v35 FLL help 14512, which describes unconverted
 structure patterns, and the [Rockwell FLL reference](https://www.rockwellautomation.com/en-mde/docs/studio-5000-logix-designer/37-02/contents-ditamap/instruction-set/array-file-misc-instructions/file-fill-fll.html).
 
+## Precise UDT zero fills
+
+App `26.1112.210459` extends zero FLL to explicit UDTs containing LREAL and
+TIME32/TIME/LTIME/DT/LDT members, including nested arrays and records. FLL(0,...)
+establishes floating zero for LREAL and exact integer zero ticks for time/date
+members. It can initialize unknown members from the declared schema without
+reading their saved values. Other records and unselected windows are retained.
+
+In **Record lab**, disable CopyPart and SyncCopyPart, then enable ClearCopiedPart.
+CopiedPart, including Position and Timestamp, becomes typed zero. Disable the
+clear gate before resuming either copy. The existing ST call extension uses the
+same schema and FOR-write protection; native FLL ST availability is unchanged.
+
+All-ones fills still exclude LREAL, other floating fields, time/date and strings.
+No other nonzero pattern, scalar wide/time fill, packed ABI or native lifecycle
+behavior is added. The [matching COP/CPS profile](aggregate-copies.md#precise-udt-fields)
+preserves these fields without conversion.
+
 ## Record contents and selection
 
-Supported explicit UDTs can contain BOOL, signed/unsigned integer and REAL
-members, their arrays, basic TIMER/COUNTER/CONTROL/string records and other
+Supported explicit UDTs can contain BOOL, signed/unsigned integer, REAL, LREAL
+and time/date members, their arrays, basic TIMER/COUNTER/CONTROL/string records and other
 explicit basic UDTs. Explicit DINT LEN/SINT DATA user strings are included.
 Operational records such as PID, AOI instance aggregates and unresolved member
 schemas remain excluded. Schema nesting is limited to 32 levels.

@@ -12,10 +12,28 @@ CPS(SourceTimers,DestTimers[DestIndex],Length);
 ```
 
 Both operands must have the identical declared element type. Basic UDTs can
-contain BOOL, signed/unsigned integers, REAL, their arrays, basic records,
+contain BOOL, signed/unsigned integers, REAL, LREAL, time/date fields, their arrays, basic records,
 explicit DINT LEN/SINT DATA strings and nested basic UDTs. Nesting is limited
 to 32 levels. Operational members such as PID and AOI aggregate schemas are
 outside this profile. Other controller profiles retain legacy copy behavior.
+
+## Precise UDT fields
+
+App `26.1112.210459` adds matching UDT copies containing LREAL and
+TIME32/TIME/LTIME/DT/LDT fields, including nested records and arrays. Binary64
+positions and exact duration/timestamp ticks copy as represented values without
+numeric conversion. Unknown members remain unknown, and each destination owns
+its nested storage. Scalar work limits, logical clipping, alias/AOI bindings,
+existing ST FOR protection and whole-advance rollback retain their existing rules.
+
+In **Record lab**, set IncomingPart.Position and IncomingPart.Timestamp, then
+enable CopyPart or SyncCopyPart. CopiedPart receives the complete record. Disable
+both copy gates before changing the source to observe detached storage. Enable
+ClearCopiedPart to apply a [typed zero fill](aggregate-fill.md#precise-udt-zero-fills).
+These are level-sensitive operations, independent of the queue edge controls.
+
+This extends the matching logical schema; it does not add native packed layouts,
+mixed record conversion, cross-member traversal or native CPS synchronization.
 
 ## Selection and complete records
 
