@@ -189,8 +189,8 @@ class PIDDynamicsTests(unittest.TestCase):
         with self.assertRaisesRegex(ModelError,'finite REAL range'):e.step()
         self.assertEqual(self.snapshot(e),before);self.assertEqual(self.run_step(e,Loop__KD=1),48)
 
-    def test_smoothing_gate_negative_kd_db_and_false_skip(self):
-        for settings in ({'KD':1},{'KD':-1},{'DB':-1}):
+    def test_negative_kd_db_and_false_skip(self):
+        for settings in ({'KD':-1},{'DB':-1}):
             e=self.checked(settings);self.run_step(e)
             e.memory.write('Execute',True);before=self.snapshot(e)
             with self.assertRaises(ModelError):e.step()

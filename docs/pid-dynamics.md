@@ -1,6 +1,6 @@
 # Ladder PID derivative and deadband
 
-The [ladder PID software profile](ladder-pid.md) now executes unsmoothed
+The [ladder PID software profile](ladder-pid.md) now executes smoothed or unsmoothed
 derivative action and control deadband, with or without zero crossing. Existing
 REAL operands, controller gates, scaling, limits, manual mode and transactional
 rules remain in effect. These are explicit simulator algorithms; native
@@ -8,9 +8,9 @@ coefficients, rounding, startup, flags and filter behavior remain unqualified.
 
 ## Derivative
 
-For nonzero KD, set `Loop.NDF` true to disable smoothing. Nonzero KD with NDF
-false faults because the native smoothing filter is not implemented. KP, KI,
-KD and DB must be nonnegative. KI zero still clears the active integral.
+Set `Loop.NDF` true for unsmoothed derivative action, or clear it for the
+[software smoothing filter](#derivative-smoothing). KP, KI, KD and DB must be
+nonnegative. KI zero still clears the active integral.
 
 Let `S = MAXS-MINS`, `dt = UPD` seconds, and use the current scaled engineering
 PV and signed engineering error from the main PID profile. Each reached true
@@ -33,7 +33,7 @@ The first reached sample, an INI reset, Run reentry and the first auto sample
 after software manual produce zero D. Changing DOE, CA or input/engineering
 scaling also primes a fresh baseline. Setpoint changes contribute to DOE=true
 derivative; a setpoint change alone does not affect DOE=false derivative.
-Changing gains uses current gains with the last compatible sample. Calls with
+For unsmoothed D, changing gains uses current gains with the last compatible sample. Calls with
 KD zero still refresh the baseline.
 
 False or skipped calls do not sample PV/error. After a skipped interval the
@@ -41,6 +41,38 @@ next reached call uses the full sample difference divided by one UPD, with no
 elapsed-time catch-up. Manual and held-deadband calls refresh the sample while
 using zero D. DATA[1] and DATA[7] remain retained, uninterpreted values; this
 profile does not invent a native filter accumulator or scaling coefficient.
+
+## Derivative smoothing
+
+App `26.1112.203745` adds a first-order low-pass filter when NDF is clear and KD
+is positive. This is an explicit software solver choice, not a recovered native
+coefficient or a claim of identical controller response. Let raw D be the term
+calculated above. The simulator uses a fixed derivative/filter ratio of 10:
+
+```text
+tau = KD / 10                 independent gains, seconds
+tau = 60 * KD / 10            dependent gains, KD in minutes
+alpha = UPD / (UPD + tau)
+filtered D = previous filtered D + alpha * (raw D - previous filtered D)
+```
+
+The dependent filter time excludes KP. Increasing KD increases smoothing relative
+to raw D. The first sample starts at zero. Enabling smoothing, or changing KD,
+UPD, independent/dependent mode, dependent KP, DOE, CA or PV scaling while smoothing
+is active, primes a fresh zero baseline. Disabling smoothing immediately uses the
+existing unsmoothed sampling rules. KD zero disables D.
+
+Manual/inhold and held-deadband calls clear D while refreshing PV/error samples.
+False/skipped calls preserve the filter and do not sample; the next call still
+uses one UPD. Run reentry and clearing INI reset the filter. History belongs to
+the canonical PID record, including aliases and supported AOI bindings; routine
+replacement copies it, and a failed advance rolls it back. DATA[1]/DATA[7] remain
+retained and do not seed the solver. Nonfinite/intermediate overflow keeps the
+existing atomic failure policy.
+
+In **PID lab**, set KP/KI to zero, BIAS to 50, KD to 10 and NDF false. Enable at
+PV 20: CV is 50. Change PV to 21: CV is 45. Leave PV unchanged: CV is 47.5, then
+48.75 as D decays. With NDF true, that PV step instead produces CV 40 and then 50.
 
 ## Deadband
 

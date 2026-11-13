@@ -46,7 +46,7 @@ rate; a [Periodic task](task-scheduling.md) is a suitable source of releases.
    `I = previous I + KI * e * UPD`. With dependent gains (PE set), use
    `I = previous I + KP * e * UPD / (60 * KI)`. KI zero disables integration
    and clears the active integral; zero effective dependent gain does likewise.
-4. Add BIAS, P, I and the [unsmoothed derivative](pid-dynamics.md) term. Clip an outward integral increment to the remaining
+4. Add BIAS, P, I and the [derivative](pid-dynamics.md) term, optionally smoothed. Clip an outward integral increment to the remaining
    automatic output headroom; freeze it if already beyond that limit. Retain
    changes that move away from a limit.
    Clamp the resulting output percentage to MINO..MAXO.
@@ -116,9 +116,9 @@ controls; see the [numeric operand examples](pid-operands.md).
 
 ## Remaining
 
-Nonzero KD requires NDF true; derivative smoothing remains blocked. One-way
-cascade is supported; upstream feedback and multi-level chains remain open.
-Filtering, analog module restart/acknowledgement,
+[Derivative smoothing](pid-dynamics.md#derivative-smoothing) uses a documented
+first-order software filter when NDF is clear. Native filter coefficients,
+cascade feedback and multi-level chains, analog module restart/acknowledgement,
 saved active state, additional languages/operands, native derivative/deadband
 coefficients, boundaries, lifecycle, status/
 fault/precision/lifecycle behavior and DATA/layout interpretation remain open.

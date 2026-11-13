@@ -1,4 +1,4 @@
-"""Bounded ladder PID solver; native coefficients, filtering and layout unqualified."""
+"""Bounded ladder PID solver; native coefficients and layout unqualified."""
 from .integer_math import CONTROLLERS, bit_value
 from .model import ArrayBoundsError, ModelError, coerce, literal
 from .numeric_copy import static_reference
@@ -149,8 +149,6 @@ def execute(engine, op, power, scope):
     v = {name: read(name) for name in ('KP', 'KI', 'KD', 'BIAS', 'MAXS', 'MINS',
          'DB', 'MAXO', 'MINO', 'UPD', 'MAXI', 'MINI', 'MAXCV', 'MINCV', 'PVH', 'PVL',
          'DVP', 'DVN', 'PVDB', 'DVDB')}
-    if v['KD'] > 0 and not flags('NDF'):
-        raise ModelError('PID derivative smoothing remains unqualified; set NDF for nonzero KD')
     if min(v['KP'], v['KI'], v['KD'], v['DB']) < 0 or v['UPD'] <= 0:
         raise ModelError('PID requires nonnegative gains/deadband and positive UPD seconds')
     if v['MAXS'] <= v['MINS'] or v['MAXI'] <= v['MINI'] or v['MAXCV'] <= v['MINCV']:
@@ -203,12 +201,27 @@ def execute(engine, op, power, scope):
                (state['error'] == 0 or (error < 0) != (state['error'] < 0)))
     hold = bool(not tracking and v['DB'] > 0 and abs(error) <= v['DB'] and
                 (flags('NOZC') or crossed or same_deadband and state['deadband']))
+    smoothing_signature = None
+    if not flags('NDF') and v['KD']:
+        smoothing_signature = (derivative_signature, flags('PE'),
+                               v['KP'] if flags('PE') else None, v['KD'], v['UPD'])
+    compatible_filter = smoothing_signature is None or state and state.get('smoothing_signature') == smoothing_signature
     derivative = 0.0
-    if (state and not was_tracking and not tracking and not hold and v['KD'] and
+    if (state and compatible_filter and not was_tracking and not tracking and not hold and v['KD'] and
             state['derivative_signature'] == derivative_signature):
         change = error - state['error'] if flags('DOE') else (pv - state['pv']) * (1 if flags('CA') else -1)
         kd = v['KP'] * 60 * v['KD'] if flags('PE') else v['KD']
         derivative = real(kd * change * 100 / (v['MAXS'] - v['MINS']) / v['UPD'])
+    if smoothing_signature is not None:
+        if (state and state.get('smoothing_signature') == smoothing_signature
+                and not was_tracking and not tracking and not hold):
+            # Explicit software filter: backward Euler, derivative time / 10.
+            # Dependent rate time is minutes; its filter time excludes KP.
+            seconds = (60 * v['KD']) if flags('PE') else v['KD']
+            alpha = v['UPD'] / (v['UPD'] + seconds / 10)
+            derivative = real(state['derivative'] + alpha * (derivative - state['derivative']))
+        else:
+            derivative = 0.0
     restart_cv = None
     if inhold:
         restart_cv = coerce(real(engine.memory.read(op.args[6], scope)), cvtype)
@@ -288,7 +301,7 @@ def execute(engine, op, power, scope):
     for i, value in ((0, integral), (2, pv), (3, error), (4, v['SP']), (14, real(assigned_cv))):
         obj['DATA'][i] = value
     engine.last_timer[identity] = dict(integral=integral, manual=manual, tracking=tracking, inhold=inhold, at=engine.time_ms,
-        pv=pv, error=error, derivative=derivative, derivative_signature=derivative_signature,
+        pv=pv, error=error, derivative=derivative, derivative_signature=derivative_signature, smoothing_signature=smoothing_signature,
         out=out, deadband=hold, deadband_signature=deadband_signature)
     return True
 
@@ -300,7 +313,12 @@ def description():
         conversions='PV/tieback promote to finite REAL; integer CV uses ties-to-even with range faults; automatic integer CV is zero throughout a positive deadband; DATA14 mirrors assigned CV',
         equation='Percent error=100*(SP-PV)/(MAXS-MINS), sign reversed for CA; P=KP*error%; independent I+=KI*error%*UPD; dependent I+=KP*error%*UPD/(60*KI)',
         solver='Rectangular I per reached true call using UPD, not elapsed time; clip outward I to automatic headroom, freeze if already beyond the limit',
-        derivative='NDF required for KD>0; independent D=KD*d(error%)/UPD or signed KD*d(PV%)/UPD; dependent coefficient=KP*60*KD; first/reinitialized/manual-transfer/config-change sample gives zero D',
+        derivative='NDF selects unsmoothed D; independent D=KD*d(error%)/UPD or signed KD*d(PV%)/UPD; dependent coefficient=KP*60*KD; first/reinitialized/manual-transfer/config-change sample gives zero D',
+        smoothing=dict(method='First-order backward Euler software filter', ratio=10,
+            time_constant='KD/10 seconds independent; 60*KD/10 seconds dependent; independent of KP',
+            equation='D=previous D+UPD/(UPD+time constant)*(raw D-previous D)',
+            reset='Zero baseline on first call, Run/INI reset, manual/inhold/deadband hold and incompatible filter configuration',
+            storage='Transactional canonical PID history; saved DATA values do not seed the filter', native_coefficients=False),
         deadband='DB>0: inclusive engineering error band; NOZC holds immediately, otherwise hold after zero/sign crossing; EWD means active hold; hold percent output and I, refresh samples; manual overrides',
         manual='MO overrides SWM: numeric tieback scaled MINTIE..MAXTIE into 0..100, raw input mirrored in TIE; SWM uses SO; I tracks output-P-BIAS or BIAS tracks with zero KI unless NOBC; first auto sample holds I',
         pv_tracking='PVT copies scaled PV to SP during controlling MO/SWM only; unknown old SP may be established; resulting SP must fit the engineering range; inactive auto and inhold retain SP',
@@ -311,6 +329,6 @@ def description():
         array_recovery='A cleared Type 4 Code 20 skips CV, record and solver history updates in a whole-project ladder scan',
         data='DATA[0,2,3,4,14] mirror I,PV,error,SP,CV; other entries retained, not interpreted as native coefficients',
         native_runtime_parity=False, packed_layout=False,
-        remaining=['Derivative smoothing/filter coefficients, cascade feedback/chains and analog module restart/acknowledgement',
+        remaining=['Native derivative filter coefficients, cascade feedback/chains and analog module restart/acknowledgement',
                    'ST call forms, broader AOI schema/lifecycle, further optional variants and saved active solver state',
                    'Native coefficients, anti-windup/bumpless/initialization/alarm boundaries, minor faults, rounding and DATA/layout parity'])

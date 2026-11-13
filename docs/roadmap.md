@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+[Ladder PID derivative smoothing](pid-dynamics.md#derivative-smoothing) adds a
+bounded first-order software filter as of `26.1112.203745`. NDF selects smoothed
+or unsmoothed D; compatible per-record history survives skipped calls and routine
+replacement and rolls back with failed advances. Native coefficients remain open.
+
 [FAL binary64-to-REAL result overflow](file-arithmetic.md#binary64-result-narrowing)
 now preserves the failing output and earlier writes as of `26.1112.202711`. Corrected
 inputs retry that position across ALL/numeric/INC, aliases and supported RLL AOIs.

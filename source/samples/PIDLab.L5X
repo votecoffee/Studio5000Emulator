@@ -200,7 +200,7 @@
           <Routine Name="MainRoutine" Type="RLL">
             <RLLContent>
               <Rung Number="0" Type="N">
-                <Comment>PID software profile. MO uses Tieback; PVTracking follows PV in manual. Inhold copies Readback to CV. Set NDF before nonzero KD.</Comment>
+                <Comment>PID software profile. MO uses Tieback; PVTracking follows PV in manual. Inhold copies Readback to CV. NDF disables the modeled derivative smoothing filter.</Comment>
                 <Text>XIC(Execute)PID(Loop,PV,Tieback,CV,0,Inhold,Readback);</Text>
               </Rung>
               <Rung Number="1" Type="N">

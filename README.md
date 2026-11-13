@@ -763,13 +763,14 @@ for a closed-loop step response or externally supplied process feedback.
 
 [Ladder PID](docs/ladder-pid.md) adds bounded P/PI/PID calculations, scaling,
 limits, alarms and software manual tracking. [Derivative and deadband](docs/pid-dynamics.md)
-include unsmoothed PV/error rates and zero-crossing output holds.
+include PV/error rates, a [modeled derivative smoothing filter](docs/pid-dynamics.md#derivative-smoothing)
+and zero-crossing output holds.
 [Numeric operands and tieback](docs/pid-operands.md) add integer PV/CV and hardware
 manual mode. Choose **PID lab** for independent REAL/INT loops and Boolean mode
 controls. [PV tracking and inhold](docs/pid-restart.md) add manual SP tracking and
 explicit output-readback initialization. [One-way PID cascade](docs/pid-cascade.md)
 and [ladder AOI PID](docs/aoi-pid.md) add master/slave scaling and independent
-InOut/local records; module behavior, smoothing and cascade feedback
+InOut/local records; module behavior, native filter coefficients and cascade feedback
 remain unfinished.
 
 [Numeric COP/CPS byte copies](docs/numeric-copies.md) add mixed integer/REAL bit
