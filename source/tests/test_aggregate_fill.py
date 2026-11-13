@@ -38,6 +38,28 @@ class AggregateFillTests(unittest.TestCase):
     @staticmethod
     def snapshot(e):return copy.deepcopy((e.memory.values,e.memory.frames,e.memory._resolved,e.addons.instances,e.scan_count,e.time_ms,e.scheduler_description(),e.trace,e.last_timer))
 
+    @staticmethod
+    def integral_fields(root):
+        types=root.find('./Controller/DataTypes');tags=root.find('./Controller/Tags')
+        leaf=E.SubElement(E.SubElement(types,'DataType',Name='MaskLeaf'),'Members')
+        for name,dtype in [('Enabled','BOOL'),('Byte','SINT'),('Unsigned','UDINT'),('Big','ULINT')]:
+            E.SubElement(leaf,'Member',Name=name,DataType=dtype,Dimension='0')
+        cell=E.SubElement(E.SubElement(types,'DataType',Name='MaskCell'),'Members')
+        for name,dtype,size in [('Count','DINT',0),('Wide','LINT',0),('Small','USINT',0),('Leaf','MaskLeaf',0),
+                                ('Flags','BOOL',3),('Words','INT',2),('Timer','TIMER',0),('Counter','COUNTER',0),('State','CONTROL',0)]:
+            E.SubElement(cell,'Member',Name=name,DataType=dtype,Dimension=str(size))
+        tag=E.SubElement(tags,'Tag',Name='Masks',DataType='MaskCell',TagType='Base',Dimensions='3')
+        E.SubElement(E.SubElement(tag,'Data',Format='Decorated'),'Array',DataType='MaskCell',Dimensions='3')
+
+    def assert_mask_ones(self,obj):
+        self.assertEqual((obj['Count'],obj['Wide'],obj['Small']),(-1,-1,255))
+        self.assertEqual(obj['Leaf'],dict(Enabled=True,Byte=-1,Unsigned=2**32-1,Big=2**64-1))
+        self.assertEqual(obj['Flags'],[True]*3)
+        self.assertEqual(obj['Words'],[-1]*2)
+        for name in ('Timer','Counter','State'):
+            for value in obj[name].values():
+                self.assertTrue(value) if type(value) is bool else self.assertEqual(value,-1)
+
     def assert_cell_zero(self,obj):
         self.assertIs(obj['Enabled'],False);self.assertIs(type(obj['Measure']),float);self.assertEqual(obj['Measure'],0.0)
         self.assertEqual((obj['Count'],obj['Wide']),(0,0));self.assertEqual(obj['Bytes'],[0]*4);self.assertTrue(all(value is False for value in obj['Flags']))
@@ -73,9 +95,9 @@ class AggregateFillTests(unittest.TestCase):
         with self.assertRaisesRegex(ModelError,'outside bounds'):e.step()
         self.assertEqual(self.snapshot(e),before);e.memory.write('Index',0);e.step();self.assertIsNone(e.memory.read('Records')[0]['Enabled']);self.assertEqual(e.memory.read('SourceIndex'),99)
 
-    def test_source_tag_must_be_zero_only_when_positive_window_executes(self):
+    def test_source_tag_must_be_supported_only_when_positive_window_executes(self):
         e=self.checked(['XIC(StartPB)FLL(Zeros[0],Records[0],1);']);e.memory.write('Zeros[0]',7);e.step();e.memory.write('StartPB',True);before=self.snapshot(e)
-        with self.assertRaisesRegex(ModelError,'integer zero only'):e.step()
+        with self.assertRaisesRegex(ModelError,'integer zero or -1 only'):e.step()
         self.assertEqual(self.snapshot(e),before);e.memory.write('Zeros[0]',0);e.step();self.assert_cell_zero(e.memory.read('Records')[0])
 
     def test_length_and_overlapping_zero_source_are_captured_before_any_store(self):
@@ -129,6 +151,90 @@ class AggregateFillTests(unittest.TestCase):
         e.memory.write('EnabledB',False);e.memory.write('IndexB',99);e.step();e.memory.write('EnabledB',True);e.memory.write('Records[0].Count',17);before=self.snapshot(e)
         with self.assertRaisesRegex(ModelError,'outside bounds'):e.step()
         self.assertEqual(self.snapshot(e),before)
+
+    def test_all_ones_nested_integral_records_clip_and_have_independent_storage(self):
+        e=self.checked(['FLL(-1,Masks[1],100000);'],self.integral_fields)
+        guard=copy.deepcopy(e.memory.read('Masks')[0])
+        e.step()
+        self.assertEqual(e.memory.read('Masks')[0],guard)
+        self.assert_mask_ones(e.memory.read('Masks')[1])
+        self.assert_mask_ones(e.memory.read('Masks')[2])
+        e.memory.write('Masks[1].Count',42)
+        self.assertEqual(e.memory.read('Masks[2].Count'),-1)
+
+    def test_all_ones_basic_records_and_each_signed_source_width(self):
+        for name in ('Timers','Counters','Controls'):
+            e=self.checked([f'FLL(-1,{name}[0],1);'])
+            e.step()
+            for value in e.memory.read(name)[0].values():
+                self.assertTrue(value) if type(value) is bool else self.assertEqual(value,-1)
+        for dtype in ('SINT','INT','DINT'):
+            def source(root):
+                self.integral_fields(root)
+                tag=E.SubElement(root.find('./Controller/Tags'),'Tag',Name='Pattern',DataType=dtype,TagType='Base')
+                E.SubElement(E.SubElement(tag,'Data',Format='Decorated'),'DataValue',DataType=dtype,Value='-1')
+            e=self.checked(['FLL(Pattern,Masks[0],1);'],source)
+            e.step()
+            self.assert_mask_ones(e.memory.read('Masks')[0])
+            self.assertEqual(e.memory.read('Pattern'),-1)
+
+    def test_all_ones_source_and_length_are_captured_before_overlapping_fill(self):
+        e=self.checked(['FLL(Masks[0].Count,Masks[0],Masks[0].Leaf.Byte);'],self.integral_fields)
+        e.memory.write('Masks[0].Count',-1)
+        e.memory.write('Masks[0].Leaf.Byte',2)
+        e.step()
+        self.assert_mask_ones(e.memory.read('Masks')[0])
+        self.assert_mask_ones(e.memory.read('Masks')[1])
+        self.assertIsNone(e.memory.read('Masks')[2]['Count'])
+
+    def test_all_ones_dynamic_source_stays_lazy_on_false_and_zero_length(self):
+        e=self.checked(['XIC(StartPB)FLL(Zeros[SourceIndex],Masks[Index],Lengths[0]);'],self.integral_fields)
+        e.step()
+        e.memory.write('StartPB',True);e.memory.write('Index',0);e.memory.write('Lengths[0]',0)
+        e.step()
+        self.assertIsNone(e.memory.read('Masks')[0]['Count'])
+        e.memory.write('SourceIndex',0);e.memory.write('Zeros[0]',-1);e.memory.write('Lengths[0]',1)
+        e.step()
+        self.assert_mask_ones(e.memory.read('Masks')[0])
+
+    def test_all_ones_float_and_string_fields_are_excluded_and_dynamic_failure_rolls_back(self):
+        for name in ('Records','Texts','CustomTexts'):
+            self.assertTrue(self.engine([f'AFI()FLL(-1,{name}[0],1);']).blockers,name)
+        e=self.checked(['XIC(StartPB)FLL(Zeros[0],Records[0],1);'])
+        e.memory.write('Zeros[0]',-1);e.step();e.memory.write('StartPB',True)
+        before=self.snapshot(e)
+        with self.assertRaisesRegex(ModelError,'All-ones FLL'):e.step()
+        self.assertEqual(self.snapshot(e),before)
+
+    def test_all_ones_budget_and_later_faults_restore_complete_records(self):
+        e=self.checked(['FLL(-1,Masks[0],2);','DIV(1,SpeedSetpoint,SpeedCommand);'],self.integral_fields)
+        e.memory.write('SpeedSetpoint',0);before=self.snapshot(e)
+        with self.assertRaises(ModelError):e.step()
+        self.assertEqual(self.snapshot(e),before)
+        e.memory.write('SpeedSetpoint',1);e.instruction_limit=10;before=self.snapshot(e)
+        with self.assertRaisesRegex(ModelError,'scalar-member budget'):e.step()
+        self.assertEqual(self.snapshot(e),before)
+        e.instruction_limit=1000;e.step();self.assert_mask_ones(e.memory.read('Masks')[0])
+
+    def test_all_ones_aoi_local_and_inout_records_restore_bindings_after_failure(self):
+        def worker(root):
+            self.integral_fields(root);self.aoi_logic(root)
+            definition=root.find('./Controller/AddOnInstructionDefinitions/AddOnInstructionDefinition')
+            definition.find('./Parameters/Parameter[@Name="Buffer"]').set('DataType','MaskCell')
+            definition.find('./LocalTags/LocalTag[@Name="LocalCells"]').set('DataType','MaskCell')
+            for text in definition.findall('./Routines/Routine/RLLContent/Rung/Text'):
+                text.text=text.text.replace('FLL(0,','FLL(-1,')
+            for tag in root.findall('./Controller/Tags/Tag'):
+                if tag.get('DataType')=='FillWorker':tag.find('./Data/Structure/ArrayMember').set('DataType','MaskCell')
+        e=self.checked(['XIC(EnabledA)FillWorker(First,Masks,IndexA);',
+                        'XIC(EnabledB)FillWorker(Second,Masks,IndexB);'],worker)
+        before=self.snapshot(e)
+        with self.assertRaisesRegex(ModelError,'outside bounds'):e.step()
+        self.assertEqual(self.snapshot(e),before)
+        e.memory.write('IndexB',1);e.step()
+        self.assert_mask_ones(e.memory.read('First.LocalCells')[0])
+        self.assert_mask_ones(e.memory.read('Second.LocalCells')[1])
+        self.assertIsNone(e.memory.read('First.LocalCells')[1]['Count'])
 
     def test_unsupported_patterns_types_and_operational_members_stay_blocked(self):
         for source in ('1','0.0','TRUE','Records','Records[0].Wide'):

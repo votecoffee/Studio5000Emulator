@@ -404,6 +404,8 @@ copies with preserved neighboring records.
 validation, lazy live operands, complete unknown-value copies and bounded work
 for basic records, strings and nested UDTs.
 
+[All-ones record fills](docs/aggregate-fill.md#all-ones-record-fills) add `FLL(-1,...)`
+for integral/Boolean records, with exact unsigned fields and existing clipping/rollback.
 [Aggregate zero fills](docs/aggregate-fill.md) initialize unknown TIMER, COUNTER,
 CONTROL, strings and explicit UDTs with declared member types. **Data lab** adds
 guarded record, timer, counter and string fill examples.

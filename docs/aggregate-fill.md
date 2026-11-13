@@ -12,9 +12,29 @@ FLL(0,Records[Start],Length);
 ```
 
 Source can also be a scalar SINT/INT/DINT tag whose executed value is zero.
-Constant sources are allowed. Nonzero patterns, REAL/wider source types and
-whole-array sources are outside this profile. Length is scalar SINT/INT/DINT
+Constant sources are allowed. The [all-ones form](#all-ones-record-fills) has a
+narrower record profile. Other nonzero patterns, REAL/wider source types and
+whole-array sources remain outside this profile. Length is scalar SINT/INT/DINT
 or an integer immediate in 0..100000.
+
+## All-ones record fills
+
+App `26.1112.192411` also supports `FLL(-1,Records[Start],Length)` for records
+containing only signed/unsigned integers, BOOLs, their arrays, TIMER, COUNTER,
+CONTROL and nested integral UDTs. Signed fields receive -1, unsigned fields their
+maximum pattern and Boolean fields true. The source can be a scalar SINT/INT/DINT
+tag holding -1. Existing zero fills retain their broader record/string profile.
+
+All-ones fills exclude floating-point and string members. Unsupported literal
+patterns are rejected structurally; a dynamic source is checked when consumed.
+False calls and zero lengths retain their existing lazy source rules. A source
+or length stored inside the destination is captured before writes. Clipping,
+independent record storage, AOI bindings, scalar-work limits and rollback apply.
+The fill changes represented data; it does not initialize private instruction
+histories or qualify packed native layouts. Native partial effects remain open.
+
+The source basis is installed v35 FLL help 14512, which describes unconverted
+structure patterns, and the [Rockwell FLL reference](https://www.rockwellautomation.com/en-mde/docs/studio-5000-logix-designer/37-02/contents-ditamap/instruction-set/array-file-misc-instructions/file-fill-fll.html).
 
 ## Record contents and selection
 
@@ -41,11 +61,11 @@ Structural preflight checks declared schemas, types, permissions, index grammar
 and literal bounds without reading saved source/length values or dynamic indices.
 Invalid static starting addresses remain blockers. False ladder rungs and
 prescan skip the fill and its live operands. True calls capture the length,
-complete destination window and zero source before storing anything, including
+complete destination window and source pattern before storing anything, including
 when source or length aliases a field that the fill will clear.
 
 Zero length resolves the live destination but skips the source value and its
-live index. Positive lengths require a known zero source. Full writes establish
+live index. Positive lengths require a known supported source pattern. Full writes establish
 unknown records while retaining the declared member types.
 
 ## Work limits and rollback
@@ -53,7 +73,7 @@ unknown records while retaining the declared member types.
 Each actual scalar member filled consumes one advance-budget unit.
 An out-of-bounds ladder operand can [skip the fill after a fault clear](controller-handlers.md#recover-fll-clr-and-swpb-array-faults).
 Uncleared faults, invalid regions or lengths, budget failure, unknown or
-nonzero consumed sources and later instruction faults restore earlier
+unsupported consumed sources and later instruction faults restore earlier
 writes, AOI bindings, time and scheduling within the modeled advance. Completed prescan is a separate lifecycle boundary.
 
 FLL changes represented tag data. It does not qualify native resets of private

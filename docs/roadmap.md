@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+[All-ones record fills](aggregate-fill.md#all-ones-record-fills) support `FLL(-1,...)`
+for integral/Boolean structures as of `26.1112.192411`. Nested records, exact unsigned
+patterns, selected windows, AOI bindings and existing rollback are included.
+
 [AVE error latches](array-statistics.md#ave-error-latches) retain results during
 float32 accumulation overflow and one-dimensional range overruns as of
 `26.1112.190744`. False rungs retain the error; CONTROL RES enables a fresh call.

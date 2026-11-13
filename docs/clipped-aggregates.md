@@ -18,6 +18,9 @@ elements 0 and 2 retain their previous values. A scalar accepts one record.
 Multidimensional arrays traverse row-major; a selected member array stops before
 its sibling members. These are logical boundaries, without inferred native ABI.
 
+The [all-ones integral record form](aggregate-fill.md#all-ones-record-fills) uses
+the same clipped logical destination window and scalar-work budget as zero fills.
+
 ## Captured operands and work
 
 Length remains a scalar SINT/INT/DINT or immediate in 0..100000. Types, schemas,

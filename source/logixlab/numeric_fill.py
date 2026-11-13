@@ -114,6 +114,23 @@ def zero_value(value):
     raise ModelError('Aggregate FLL cannot infer an unsupported member type')
 
 
+def all_ones_value(project, dtype, template):
+    """Represent an FF pattern only where every declared field has exact bits."""
+    if isinstance(template,list):
+        return [all_ones_value(project,dtype,value) for value in template]
+    kind=dtype.upper()
+    if kind in INT_BITS:return bit_value(-1,kind)
+    if kind in ('BOOL','BIT'):return True
+    if kind in ('TIMER','COUNTER','CONTROL'):
+        return {name:True if type(value) is bool else -1 for name,value in template.items()}
+    if kind in ('REAL','LREAL') or project.string_capacity(dtype) is not None:
+        raise ModelError('All-ones FLL excludes floating-point and string members')
+    definition=project.udts.get(dtype.lower())
+    if definition is None:raise ModelError('All-ones FLL requires a declared integral/Boolean record')
+    types={member.get('Name'):member.get('DataType') for member in definition.findall('./Members/Member')}
+    return {name:all_ones_value(project,types[name],value) for name,value in template.items()}
+
+
 def scalar_count(value):
     if isinstance(value,dict):return sum(map(scalar_count,value.values()))
     if isinstance(value,list):return sum(map(scalar_count,value))
@@ -129,6 +146,7 @@ def aggregate_handle(engine,op,scope,*,execute=False):
         if dtype not in ('TIMER','COUNTER','CONTROL','STRING') and dtype.lower() not in project.udts:return False
         template=aggregate_template(project,dtype)
         pattern=template if dtype=='CONTROL' else zero_value(template)
+        ones_pattern=None
         memory.region(op.args[1],0,scope)
         try:source=literal(op.args[0])
         except ValueError:
@@ -136,7 +154,8 @@ def aggregate_handle(engine,op,scope,*,execute=False):
             if source_type not in INTEGERS or isinstance(memory.at(key,parts),(dict,list)):
                 raise ModelError('Aggregate FLL source requires scalar SINT, INT or DINT')
         else:
-            if type(source) is not int or source!=0:raise ModelError('Aggregate FLL currently supports integer zero only')
+            if type(source) is not int or source not in (0,-1):raise ModelError('Aggregate FLL supports integer zero or -1 only')
+            if source==-1:ones_pattern=all_ones_value(project,dtype,template)
         operand_type(memory,op.args[2],scope,length=True)
         try:count=literal(op.args[2])
         except ValueError:pass
@@ -150,7 +169,8 @@ def aggregate_handle(engine,op,scope,*,execute=False):
     key,paths,_=prefix(memory,op.args[1],scope,count,writable=True)
     if count:
         source=memory.read(op.args[0],scope)
-        if type(source) is not int or source!=0:raise ModelError('Aggregate FLL currently supports integer zero only')
+        if type(source) is not int or source not in (0,-1):raise ModelError('Aggregate FLL supports integer zero or -1 only')
+        if source==-1:pattern=ones_pattern if ones_pattern is not None else all_ones_value(project,dtype,template)
         engine.budget-=len(paths)*scalar_count(pattern)
         if engine.budget<0:raise ModelError('Aggregate FLL scalar-member budget exceeded')
         for path in paths:memory.store(key,path,pattern)
@@ -159,16 +179,17 @@ def aggregate_handle(engine,op,scope,*,execute=False):
 
 def aggregate_description(project):
     return dict(available=project.version=='35' and project.processor.upper() in CONTROLLERS,language='RLL',instructions=['FLL'],
-                source='Scalar SINT/INT/DINT zero or integer-zero immediate; length SINT/INT/DINT or bounded DINT immediate',
+                source='Scalar SINT/INT/DINT zero or -1, or matching immediate; length SINT/INT/DINT or bounded DINT immediate',
                 destinations='TIMER/COUNTER/CONTROL/STRING and explicit nested basic UDTs, selected arrays, aliases and existing AOI bindings',
                 zero='Typed values built from declared schema; full records establish unknowns, including BOOL/REAL members and unused string DATA',
-                control='Top-level CONTROL retains its existing logical-default reset; nested CONTROL members are zeroed',
-                selection='Structural preflight; false/prescan skip live operands; true captures length, complete window and zero source before stores',
+                all_ones='-1 fills exact signed/unsigned integer and Boolean fields, arrays, TIMER/COUNTER/CONTROL and nested integral UDTs; floating/string members excluded',
+                control='Top-level CONTROL zero retains its existing logical-default reset; nested zero CONTROL members are zeroed; -1 sets flags and signed fields to all ones',
+                selection='Structural preflight; false/prescan skip live operands; true captures length, complete window and source pattern before stores',
                 zero_length='Validate live destination, skip source value and its live index',
                 clipping=True,clipping_boundary='Selected logical array/member or scalar; no crossing sibling members',
                 st_for_effects='Complete clipped static windows; changing/alias/AOI selections conservatively cover the enclosing array',
                 work='One instruction-budget unit per actual scalar member filled; logical clipping, no native byte clipping',
-                remaining=['Nonzero/REAL/wider source patterns, operational/AOI aggregate records, packed ABI and native faults/partial effects',
+                remaining=['Other nonzero/REAL/wider source patterns, all-ones floating/string fields, operational/AOI aggregate records, packed ABI and native faults/partial effects',
                            'Native scan/lifecycle/clock/internal-history reset parity and other profiles/languages'],native_runtime_parity=False)
 
 
