@@ -304,3 +304,8 @@ ST and index parsing are unchanged; native arithmetic/status parity is unverifie
 qualify FRD/TOD in CPT/CMP/FAL/FSC for USINT, UINT, UDINT, LINT and ULINT, using
 their selected 8/16/32/64-bit software conversion widths. Mixed numeric tag
 widths, REAL/LREAL, ST/index expansion and native parity remain excluded.
+
+[Homogeneous wide expression roots and powers](ladder-wide-expressions.md#integer-roots-and-powers)
+separately qualify integer SQR and nonnegative bounded `**` in CPT/CMP/FAL/FSC.
+USINT/UINT/UDINT/LINT/ULINT use exact integer calculations; mixed numeric tags,
+ST/index expansion and native arithmetic/status parity remain excluded.

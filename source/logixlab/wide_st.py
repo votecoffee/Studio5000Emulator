@@ -25,9 +25,11 @@ def analyze(expression,memory,scope='',destination_type=None,*,consumer='ST'):
         dtype=next(iter(wide))
     if destination_type not in (None,'BOOL',dtype):
         raise ModelError(label+' numeric destination must match the expression type')
-    bcd = {'FRD','TOD'} if expression.bcd and consumer in ('CPT','CMP','FAL') and not mixed else set()
-    if expression.functions-{'ABS'}-bcd or '**' in expression.operators:
-        raise ModelError(label+' supports ABS, qualified homogeneous FRD/TOD and basic arithmetic/bitwise operators; other functions/power remain unqualified')
+    ladder_math = consumer in ('CPT','CMP','FAL') and not mixed
+    bcd = {'FRD','TOD'} if expression.bcd and ladder_math else set()
+    roots = {'SQR'} if ladder_math else set()
+    if expression.functions-{'ABS'}-bcd-roots or '**' in expression.operators and not ladder_math:
+        raise ModelError(label+' supports ABS and qualified homogeneous FRD/TOD/SQR/integer power; other functions remain unqualified')
     types={ref:'bool' if kind=='BOOL' else 'number' for ref,kind in declared.items()}
     for ref in declared:
         if isinstance(memory.read(ref,scope),(list,dict)):
@@ -108,6 +110,9 @@ def evaluate(expression,memory,scope,profile):
         if kind=='call':
             item=visit(node[2])
             if value=='ABS':return number(abs(item))
+            if value=='SQR':
+                from .real_math import rounded_integer_root
+                return number(rounded_integer_root(item))
             from .numeric_conversions import from_bcd,to_bcd
             return number(from_bcd(item,INT_BITS[dtype]) if value=='FRD' else to_bcd(item,dtype))
         left,right=visit(node[2]),visit(node[3])
@@ -119,6 +124,12 @@ def evaluate(expression,memory,scope,profile):
         elif value=='*':result=left*right
         elif value=='/':result=quotient(left,right)
         elif value=='MOD':result=left-quotient(left,right)*right
+        elif value=='**':
+            bits=INT_BITS[dtype]
+            if not 0 <= right < bits:
+                raise ModelError(f'Wide integer expression exponent must be in 0..{bits-1}')
+            from .real_math import integer_power_result
+            result=integer_power_result(left,right,dtype)
         elif value=='AND':result=bit_value(left&right,dtype)
         elif value=='OR':result=bit_value(left|right,dtype)
         elif value=='XOR':result=bit_value(left^right,dtype)
@@ -135,6 +146,12 @@ def ladder_description(project):
                     interpretation='Unsuffixed words with bit31 set decode as signed DINT before expression unary operators',
                     arithmetic='Narrow integer or existing compatible wide profile; existing per-intermediate range checks',
                     excluded='REAL/LREAL mixtures, default/ST/index parser expansion and native parity',
+                    native_runtime_parity=False),
+                root_power=dict(instructions=['CPT','CMP','FAL','FSC'],types=sorted(WIDE_TYPES),
+                    root='SQR of integer absolute magnitude, rounded to nearest integer without a floating conversion',
+                    power='Exact nonnegative integer powers; exponent 0..width-1, with checked selected-width intermediates',
+                    exponent_max={'USINT':7,'UINT':15,'UDINT':31,'LINT':63,'ULINT':63},
+                    excluded='Mixed numeric tags, other functions, negative/fractional exponents, ST/index expansion and native parity',
                     native_runtime_parity=False),
                 bcd=dict(instructions=['CPT','CMP','FAL','FSC'],functions=['FRD','TOD'],types=sorted(WIDE_TYPES),
                     widths={'USINT':8,'UINT':16,'UDINT':32,'LINT':64,'ULINT':64},
@@ -173,7 +190,7 @@ def ladder_description(project):
                     native_runtime_parity=False),
                 failures='Required unknown data, bounds, division and overflow faults roll back the whole advance',
                 native_runtime_parity=False,
-                remaining=['Other mixed arithmetic intermediates and nonmatching typed/radix literal combinations','Numeric bitwise mixtures, power and functions beyond ABS and qualified homogeneous FRD/TOD',
+                remaining=['Other mixed arithmetic intermediates and nonmatching typed/radix literal combinations','Numeric bitwise mixtures and functions beyond ABS and qualified homogeneous FRD/TOD/SQR/power',
                            'Time/date expressions and additional file/index forms; LREAL and simple wide tag indices use separate qualified profiles','Native status/fault/intermediate/partial-effect parity'])
 
 

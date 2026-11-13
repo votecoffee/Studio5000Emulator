@@ -953,6 +953,20 @@
       <Tag Name="WideBcdBytePacked" DataType="USINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="USINT" Value="0" /></Data></Tag>
       <Tag Name="WideBcdMatch" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
       <Tag Name="WideBcdSelected" DataType="LINT" Dimensions="3" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="LINT" Dimensions="3"><Element Index="[0]" Value="101" /><Element Index="[2]" Value="999" /></Array></Data></Tag>
+      <Tag Name="RootPowerEnabled" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="RootPowerIndex" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="RootPowerUnsignedInput" DataType="ULINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="ULINT" Value="16000000004000000000" /></Data></Tag>
+      <Tag Name="RootPowerUnsignedRoot" DataType="ULINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="ULINT" Value="0" /></Data></Tag>
+      <Tag Name="RootPowerBase" DataType="LINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="3" /></Data></Tag>
+      <Tag Name="RootPowerExponent" DataType="LINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="34" /></Data></Tag>
+      <Tag Name="RootPowerPower" DataType="LINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="0" /></Data></Tag>
+      <Tag Name="RootPowerNegative" DataType="LINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="-16" /></Data></Tag>
+      <Tag Name="RootPowerSignedRoot" DataType="LINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="0" /></Data></Tag>
+      <Tag Name="RootPowerComposed" DataType="LINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="0" /></Data></Tag>
+      <Tag Name="RootPowerMatch" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="RootPowerLateDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="RootPowerLateResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="RootPowerSelected" DataType="ULINT" Dimensions="3" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="ULINT" Dimensions="3"><Element Index="[0]" Value="101" /><Element Index="[2]" Value="999" /></Array></Data></Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
@@ -1034,7 +1048,7 @@
               <Rung Number="25" Type="N"><Text>JSR(IntegerConstants,0);</Text></Rung>
               <Rung Number="26" Type="N"><Text>JSR(DoubleIntegerConstants,0);</Text></Rung>
               <Rung Number="27" Type="N"><Text>JSR(IntegerFileConstants,0);</Text></Rung>
-              <Rung Number="28" Type="N"><Text>JSR(NumericMoveConstants,0)JSR(RadixMoves,0)JSR(MathConstants,0)JSR(ComparisonConstants,0)JSR(RealIntegerConstants,0)JSR(IntegerOperandConstants,0)JSR(BitwiseOperandConstants,0)JSR(Binary64SourceResults,0)JSR(DintPatternConstants,0)JSR(DintWordExpressions,0)JSR(WideBcdExpressions,0);</Text></Rung>
+              <Rung Number="28" Type="N"><Text>JSR(NumericMoveConstants,0)JSR(RadixMoves,0)JSR(MathConstants,0)JSR(ComparisonConstants,0)JSR(RealIntegerConstants,0)JSR(IntegerOperandConstants,0)JSR(BitwiseOperandConstants,0)JSR(Binary64SourceResults,0)JSR(DintPatternConstants,0)JSR(DintWordExpressions,0)JSR(WideBcdExpressions,0)JSR(WideRootPowerExpressions,0);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="Binary64" Type="RLL">
@@ -1293,6 +1307,17 @@
               <Rung Number="4" Type="N"><Text>XIC(WideBcdEnabled)CMP(FRD(WideBcdPacked)=WideBcdInput)OTE(WideBcdMatch);</Text></Rung>
               <Rung Number="5" Type="N"><Text>XIC(WideBcdEnabled)CPT(WideBcdSelected[WideBcdIndex],TOD(WideBcdInput));</Text></Rung>
               <Rung Number="6" Type="N"><Text>XIC(WideBcdEnabled)DIV(1,WideBcdLateDivisor,WideBcdLateResult);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="WideRootPowerExpressions" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(RootPowerEnabled)CPT(RootPowerUnsignedRoot,SQR(RootPowerUnsignedInput));</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(RootPowerEnabled)CPT(RootPowerPower,RootPowerBase**RootPowerExponent);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(RootPowerEnabled)CPT(RootPowerSignedRoot,SQR(RootPowerNegative));</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(RootPowerEnabled)CPT(RootPowerComposed,SQR(RootPowerNegative)**2L);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(RootPowerEnabled)CMP(RootPowerPower=16677181699666569L)OTE(RootPowerMatch);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(RootPowerEnabled)CPT(RootPowerSelected[RootPowerIndex],SQR(RootPowerUnsignedInput));</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(RootPowerEnabled)DIV(1,RootPowerLateDivisor,RootPowerLateResult);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

@@ -251,7 +251,8 @@ or native import acceptance of the public fixture.
 
 Remaining integer forms include lower-type-only mixed arithmetic subtrees,
 additional conversions, nonmatching typed and untyped larger constants, mixed
-numeric bitwise, power and functions beyond ABS in wide expressions. Time/date
+numeric bitwise, mixed root/power arithmetic and other functions beyond the
+qualified homogeneous ABS/FRD/TOD/SQR forms in wide expressions. Time/date
 expressions and wide arithmetic inside array indices remain unsupported.
 
 [Integer FAL/FSC](integer-files.md), [LREAL CPT/CMP/FAL/FSC](lreal-expressions.md)
@@ -307,3 +308,50 @@ and [focused expression checks](../source/tests/test_dint_radix_expressions.py).
 qualify FRD/TOD in CPT/CMP/FAL/FSC for USINT, UINT, UDINT, LINT and ULINT, using
 their selected 8/16/32/64-bit software conversion widths. Mixed numeric tag
 widths, REAL/LREAL, ST/index expansion and native parity remain excluded.
+
+## Integer roots and powers
+
+Homogeneous v35 ControlLogix 5580 ladder CPT/CMP/FAL/FSC expressions now accept
+SQR and `**` for USINT, UINT, UDINT, LINT and ULINT. Numeric tags and result
+types must match; compatible constants keep their existing signed-DINT or
+matching L/U/UL literal rules. BOOL condition tags remain allowed.
+
+SQR takes the absolute integer magnitude and rounds its root to the nearest
+integer without converting through REAL/LREAL. Adjacent ULINT values
+16000000004000000000 and 16000000004000000001 produce 4000000000 and
+4000000001, respectively. SQR of the minimum LINT produces 3037000500.
+This reuses the existing standalone integer SQR software calculation.
+
+Power uses exact integer arithmetic and nonnegative exponents bounded to one
+less than the selected width: 0..7, 0..15, 0..31 or 0..63. Every intermediate
+and result must fit the selected type. Zero exponent yields 1, including 0**0.
+Negative and fractional exponents remain excluded; standalone XPY retains its
+separate rules. Existing expression precedence and left-to-right equal-order
+evaluation apply. These explicit bounds do not claim native limit/status parity.
+
+```text
+CPT(Root,SQR(Input));
+CPT(Power,Base**Exponent);
+CMP(SQR(Input)>=Threshold)OTE(Ready);
+FAL(Calc,?,?,ALL,Output[Calc.POS],SQR(Input[Calc.POS]));
+FSC(Find,?,?,ALL,Input[Find.POS]**2L>=Limit);
+```
+
+SQR and powers compose with the existing homogeneous arithmetic, bitwise,
+ABS and qualified FRD/TOD forms. Structural preflight, false/prescan lazy reads,
+file modes and eager Boolean evaluation are retained. Reached exponent ranges,
+required unknowns, bounds, overflow and later faults roll back the advance.
+Mixed numeric tag types, other functions, ST/index expansion and broader
+controller profiles remain separate. Native precision/status/fault/partial-effect
+parity is unverified.
+
+In **Wide expression lab**, set RootPowerIndex=1 and RootPowerEnabled=true.
+UnsignedRoot is 4000000000, Power is 16677181699666569, SignedRoot is 4,
+Composed is 16, and Match is true. Selected[1] receives UnsignedRoot and guards
+101/999 remain. Add 1 to UnsignedInput to observe the adjacent rounding boundary.
+Exponent=64 or LateDivisor=0 exercises rollback; restore 34 or 1 before retrying.
+The gate starts false with index99 dormant.
+
+Reports publish `wide_ladder_expressions.root_power`. Source basis: installed
+v35 CPT/CMP/FAL/FSC tables 14597/14592/14504/14515 and SQR/XPY references
+14617/14478. See [focused checks](../source/tests/test_wide_integer_root_power.py).

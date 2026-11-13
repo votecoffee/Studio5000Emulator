@@ -114,3 +114,8 @@ existing ALL/numeric/INC progress, lazy selection and whole-advance rollback.
 also preserve the same integer types, ALL/numeric/INC state and rollback.
 Other mixed typed forms, floating/radix mixtures, file-argument expansion and native parity
 remain separate.
+
+[Homogeneous wide expression roots and powers](ladder-wide-expressions.md#integer-roots-and-powers)
+separately qualify integer SQR and nonnegative bounded `**` in CPT/CMP/FAL/FSC.
+USINT/UINT/UDINT/LINT/ULINT use exact integer calculations; mixed numeric tags,
+ST/index expansion and native arithmetic/status parity remain excluded.

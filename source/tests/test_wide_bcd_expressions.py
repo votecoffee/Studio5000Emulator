@@ -74,7 +74,7 @@ class WideBcdExpressionTests(unittest.TestCase):
     def test_profile_mixed_types_real_bool_permissions_and_other_functions_stay_guarded(self):
         for types in [('LINT', 'DINT', 'LINT'), ('ULINT', 'UDINT', 'ULINT')]:
             self.assertTrue(self.engine(['AFI()CPT(Dest,FRD(Source)+Mask);'], types=types, checked=False).blockers)
-        for text in ['FRD(Source)+1.0', 'TOD(Source)+1UL', 'SQR(TOD(Source))', 'TOD(Source)**2', 'FRD(StartPB)']:
+        for text in ['FRD(Source)+1.0', 'TOD(Source)+1UL', 'LN(TOD(Source))', 'TOD(Source)**2.0', 'FRD(StartPB)']:
             self.assertTrue(self.engine([f'AFI()CPT(Dest,{text});'], checked=False).blockers, text)
         for dtype in ['REAL', 'LREAL']:
             self.assertTrue(self.engine(['AFI()CPT(Dest,FRD(Source));'], dtype=dtype, checked=False).blockers)

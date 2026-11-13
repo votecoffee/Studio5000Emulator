@@ -118,12 +118,12 @@ class LadderWideExpressionTests(unittest.TestCase):
             self.assertEqual(self.snapshot(e),before)
 
     def test_mixed_types_float_power_functions_and_large_immediates_block_even_false(self):
-        for expression in ('Source+1.0','Source+2147483648','Source+16#100000000','Source**2','SQR(Source)','TRN(Source)',
+        for expression in ('Source+1.0','Source+2147483648','Source+16#100000000','Source**2.0','SQRT(Source)','TRN(Source)',
                            'Source+RunLatch','NOT RunLatch','Source+1UL','Source+Unknown'):
             self.assertTrue(self.engine(['AFI()CPT(Dest,'+expression+');']).blockers,expression)
         for types in (('LINT','DINT','LINT'),('LINT','ULINT','LINT'),('LINT','LINT','REAL'),('LINT','LINT','DINT')):
             self.assertTrue(self.engine(['AFI()CPT(Dest,Source+(Mask+1));'],types=types).blockers)
-        for expression in ('Source','Source&&StartPB','!(Source)','Source=1.0','Source**2=1','Source>Mask>Dest'):
+        for expression in ('Source','Source&&StartPB','!(Source)','Source=1.0','Source**2.0=1','Source>Mask>Dest'):
             self.assertTrue(self.engine(['AFI()CMP('+expression+')OTE(RunLatch);']).blockers,expression)
 
     def test_meq_bad_literals_and_nonintegers_remain_blocked(self):

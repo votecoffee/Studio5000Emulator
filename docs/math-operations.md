@@ -187,3 +187,8 @@ math forms. A LREAL destination selects this finite binary64 software profile.
 [LREAL arithmetic results](lreal-destination-math.md) additionally select binary64
 for basic arithmetic and XPY without a LREAL source, including bounded
 constant-only calls. Direct ordering still requires a LREAL input for binary64.
+
+[Homogeneous wide expression roots and powers](ladder-wide-expressions.md#integer-roots-and-powers)
+separately qualify integer SQR and nonnegative bounded `**` in CPT/CMP/FAL/FSC.
+USINT/UINT/UDINT/LINT/ULINT use exact integer calculations; mixed numeric tags,
+ST/index expansion and native arithmetic/status parity remain excluded.

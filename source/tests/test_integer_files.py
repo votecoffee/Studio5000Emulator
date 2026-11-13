@@ -121,7 +121,7 @@ class IntegerFileTests(unittest.TestCase):
             self.assertEqual(e.memory.read('OutputA')[0], 18014398509481987); self.assertEqual(e.memory.read('DriverA.Scratch')[0], 9007199254740994)
 
     def test_unqualified_mixtures_functions_literals_and_destinations_are_guarded(self):
-        for expr in ('Queue[Ctl.POS]+Result', 'SQR(Queue[Ctl.POS])', 'Queue[Ctl.POS]**2', 'Queue[Ctl.POS]+2147483648'):
+        for expr in ('Queue[Ctl.POS]+Result', 'SQRT(Queue[Ctl.POS])', 'Queue[Ctl.POS]**2.0', 'Queue[Ctl.POS]+2147483648'):
             self.assertTrue(self.engine(['AFI()FAL(Ctl,?,?,ALL,Outgoing,' + expr + ');']).blockers)
         self.assertTrue(self.engine(['AFI()FAL(Ctl,?,?,ALL,Result,Queue[Ctl.POS]);']).blockers)
         self.assertTrue(self.engine(['AFI()FSC(Ctl,?,?,ALL,Queue[Ctl.POS]>Result);']).blockers)
