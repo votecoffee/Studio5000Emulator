@@ -5,6 +5,25 @@
     <Modules />
     <AddOnInstructionDefinitions />
     <Tags>
+      <Tag Name="DintRadixEnabled" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="DintRadixIndex" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="DintRadixSource" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="7" /></Data></Tag>
+      <Tag Name="DintRadixDivisor" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="2" /></Data></Tag>
+      <Tag Name="DintRadixLateDivisor" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="DintRadixSum" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="DintRadixDifference" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="DintRadixProduct" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="DintRadixQuotient" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="DintRadixRemainder" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="DintRadixNegative" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="DintRadixAbsolute" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="DintRadixLateResult" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="DintRadixWide" DataType="LINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="LINT" Value="0" /></Data></Tag>
+      <Tag Name="DintRadixEqual" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="DintRadixLess" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="DintRadixLimit" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="DintRadixWrapped" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="DintRadixSelected" DataType="DINT" Dimensions="3" TagType="Base"><Data Format="Decorated"><Array DataType="DINT" Dimensions="3"><Element Index="[0]" Value="101" /><Element Index="[2]" Value="999" /></Array></Data></Tag>
       <Tag Name="Execute" TagType="Base" DataType="BOOL" ExternalAccess="Read/Write">
         <Data Format="Decorated">
           <DataValue DataType="BOOL" Radix="Decimal" Value="1" />
@@ -986,7 +1005,7 @@
               <Rung Number="25" Type="N"><Text>JSR(IntegerConstants,0);</Text></Rung>
               <Rung Number="26" Type="N"><Text>JSR(DoubleIntegerConstants,0);</Text></Rung>
               <Rung Number="27" Type="N"><Text>JSR(IntegerFileConstants,0);</Text></Rung>
-              <Rung Number="28" Type="N"><Text>JSR(NumericMoveConstants,0)JSR(RadixMoves,0)JSR(MathConstants,0)JSR(ComparisonConstants,0)JSR(RealIntegerConstants,0)JSR(IntegerOperandConstants,0)JSR(BitwiseOperandConstants,0)JSR(Binary64SourceResults,0);</Text></Rung>
+              <Rung Number="28" Type="N"><Text>JSR(NumericMoveConstants,0)JSR(RadixMoves,0)JSR(MathConstants,0)JSR(ComparisonConstants,0)JSR(RealIntegerConstants,0)JSR(IntegerOperandConstants,0)JSR(BitwiseOperandConstants,0)JSR(Binary64SourceResults,0)JSR(DintPatternConstants,0);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="Binary64" Type="RLL">
@@ -1163,6 +1182,24 @@
               <Rung Number="7" Type="N"><Text>XIC(RealIntEnabled)ADD(4294967295U,0L,RealIntSelected[RealIntIndex]);</Text></Rung>
               <Rung Number="8" Type="N"><Text>XIC(RealIntEnabled)XIC(RealIntRangeFault)XPY(18446744073709551615UL,3L,RealIntFaultResult);</Text></Rung>
               <Rung Number="9" Type="N"><Text>XIC(RealIntEnabled)DIV(1,RealIntLateDivisor,RealIntLateResult);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="DintPatternConstants" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(DintRadixEnabled)ADD(DintRadixSource,16#FFFF_FFFF,DintRadixSum);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(DintRadixEnabled)SUB(16#FFFFFFFF,DintRadixSource,DintRadixDifference);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(DintRadixEnabled)MUL(2#11111111111111111111111111111110,DintRadixSource,DintRadixProduct);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(DintRadixEnabled)DIV(16#FFFFFFF9,DintRadixDivisor,DintRadixQuotient);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(DintRadixEnabled)MOD(16#FFFFFFF9,DintRadixDivisor,DintRadixRemainder);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(DintRadixEnabled)NEG(8#37777777777,DintRadixNegative);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(DintRadixEnabled)ABS(16#FFFFFFFE,DintRadixAbsolute);</Text></Rung>
+              <Rung Number="7" Type="N"><Text>XIC(DintRadixEnabled)ADD(9007199254740993L,16#FFFFFFFF,DintRadixWide);</Text></Rung>
+              <Rung Number="8" Type="N"><Text>XIC(DintRadixEnabled)EQU(16#FFFFFFFF,-1)OTE(DintRadixEqual);</Text></Rung>
+              <Rung Number="9" Type="N"><Text>XIC(DintRadixEnabled)LES(16#80000000,DintRadixSource)OTE(DintRadixLess);</Text></Rung>
+              <Rung Number="10" Type="N"><Text>XIC(DintRadixEnabled)LIM(16#80000000,DintRadixSource,16#7FFFFFFF)OTE(DintRadixLimit);</Text></Rung>
+              <Rung Number="11" Type="N"><Text>XIC(DintRadixEnabled)LIM(16#FFFFFFFF,16#80000000,16#FFFFFFF0)OTE(DintRadixWrapped);</Text></Rung>
+              <Rung Number="12" Type="N"><Text>XIC(DintRadixEnabled)ADD(16#FFFFFFFF,0,DintRadixSelected[DintRadixIndex]);</Text></Rung>
+              <Rung Number="13" Type="N"><Text>XIC(DintRadixEnabled)DIV(1,DintRadixLateDivisor,DintRadixLateResult);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="IntegerOperandConstants" Type="RLL">

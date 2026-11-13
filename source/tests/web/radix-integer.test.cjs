@@ -39,3 +39,32 @@ test('typed radix integer public operands retain their original exact values',()
   }
   assert.deepEqual([...seen].sort(),Object.keys(expected).sort());
 });
+
+
+test('signed DINT scalar context decodes full words in all three radices',()=>{
+  const reader=create([]),options={integerRadix:true,dintRadix:true};
+  for(const [ref,value] of [['16#FFFF_FFFF','-1'],['8#37777777777','-1'],['2#'+'1'.repeat(32),'-1'],
+    ['16#80000000','-2147483648'],['16#0000FFFF','65535']]) {
+    assert.deepEqual(reader.read(ref,options),{name:ref,type:'DINT radix literal',value});
+  }
+  for(const ref of ['16#100000000','2#2','8#8'])assert.equal(reader.read(ref,options),null,ref);
+});
+
+test('signed DINT scalar context keeps mask BCD default and typed source meanings',()=>{
+  const tags=[{name:'Source',type:'DINT',value:7}],before=structuredClone(tags),reader=create(tags);
+  assert.equal(reader.read('16#FFFFFFFF',{integerRadix:true,dintRadix:true}).value,'-1');
+  for(const options of [{},{bitwiseRadix:true},{bcdRadix:true}])assert.equal(reader.read('16#FFFFFFFF',options).value,'4294967295');
+  assert.equal(reader.read('16#FFFFFFFFL',{integerRadix:true,dintRadix:true}).value,'4294967295');
+  assert.equal(reader.read('Source',{integerRadix:true,dintRadix:true}),tags[0]);assert.deepEqual(tags,before);
+});
+
+test('signed DINT public scalar source words retain their authored signs',()=>{
+  const xml=readFileSync(join(__dirname,'../../samples/WideExpressionLab.L5X'),'utf8');
+  const routine=xml.match(/<Routine Name="DintPatternConstants"[\s\S]*?<\/Routine>/)[0],reader=create([]),values=[];
+  for(const match of routine.matchAll(/(?:ADD|SUB|MUL|DIV|MOD|NEG|ABS|EQU|NEQ|LES|LEQ|GRT|GEQ|LIM)\(([^)]+)\)/g)) {
+    for(const ref of match[1].split(','))if(/^(?:2|8|16)#/.test(ref))values.push(reader.read(ref,{integerRadix:true,dintRadix:true}));
+  }
+  assert(values.length>=12);assert(values.every(row=>row!==null));
+  assert(values.some(row=>row.type==='DINT radix literal'&&row.value==='-2147483648'));
+  assert(values.some(row=>row.type==='DINT radix literal'&&row.value==='-1'));
+});

@@ -150,7 +150,19 @@ def typed_integer(ref, *, radix=False):
     return value if value is not None and value[0] in INT_BITS else None
 
 
-def integer_operand(memory, ref, scope, *, radix=False):
+def dint_radix(ref):
+    """An unsigned-authored, unsuffixed word interpreted in signed DINT storage."""
+    text=ref.strip()
+    if text.partition('#')[0] not in ('2','8','16') or text.upper().endswith(('L','U')):
+        return None
+    from .numeric_storage import typed_literal
+    typed=typed_literal(text)
+    return typed[1] if typed is not None and typed[0]=='DINT' else None
+
+
+def integer_operand(memory, ref, scope, *, radix=False, signed_dint=False):
+    word=dint_radix(ref) if signed_dint else None
+    if word is not None:return None,word
     typed=typed_integer(ref,radix=radix)
     if typed is not None:return typed[0],None
     try:value=literal(ref)
@@ -168,17 +180,19 @@ def integer_bounds(dtype):
     return (0,(1<<bits)-1) if dtype in UNSIGNED_BITS else (-(1<<(bits-1)),(1<<(bits-1))-1)
 
 
-def typed_profile(engine, op, scope, *, arithmetic=False, radix=False):
+def typed_profile(engine, op, scope, *, arithmetic=False, radix=False, signed_dint=False):
     """Existing range-preserving integer rules with declared typed immediates."""
     allowed={'ADD','SUB','MUL','DIV','MOD','NEG','ABS'} if arithmetic else {*COMPARISONS,'LIM'}
     if op.name not in allowed:return None
     sources=op.args[:-1] if arithmetic else op.args
-    if not any(typed_integer(ref,radix=radix) is not None for ref in sources):return None
+    if not (any(typed_integer(ref,radix=radix) is not None for ref in sources)
+            or signed_dint and any((word:=dint_radix(ref)) is not None and word<0 for ref in sources)):
+        return None
     if engine.project.version!='35' or engine.project.processor.upper() not in CONTROLLERS:
         raise ModelError('Typed integer operands require the v35 ControlLogix 5580 profile')
     memory=engine.memory;types=[];constants=[]
     for ref in sources:
-        dtype,value=integer_operand(memory,ref,scope,radix=radix)
+        dtype,value=integer_operand(memory,ref,scope,radix=radix,signed_dint=signed_dint)
         if dtype is not None:types.append(dtype)
         else:constants.append(value)
     if arithmetic:
@@ -187,7 +201,7 @@ def typed_profile(engine, op, scope, *, arithmetic=False, radix=False):
             raise ModelError('Typed integer arithmetic requires one integer destination')
     else:
         rank=('SINT','USINT','INT','UINT','DINT','UDINT','LINT','ULINT')
-        common=max(types,key=rank.index)
+        common=max(types,key=rank.index) if types else 'DINT'
     low,high=integer_bounds(common)
     if any(integer_bounds(dtype)[0]<low or integer_bounds(dtype)[1]>high for dtype in types):
         raise ModelError('Typed integer result/comparison type must cover every complete source type range')
@@ -197,14 +211,17 @@ def typed_profile(engine, op, scope, *, arithmetic=False, radix=False):
 
 
 def radix_profile(engine, op, scope, *, arithmetic=False):
-    """Select the integer-only scalar profile only when a typed radix is present."""
+    """Select typed radix or a full unsuffixed DINT word with its sign bit set."""
     sources=op.args[:-1] if arithmetic else op.args
-    if not any('#' in ref and typed_integer(ref,radix=True) is not None for ref in sources):
+    if not (any('#' in ref and typed_integer(ref,radix=True) is not None for ref in sources)
+            or any((word:=dint_radix(ref)) is not None and word<0 for ref in sources)):
         return None
-    return typed_profile(engine,op,scope,arithmetic=arithmetic,radix=True)
+    return typed_profile(engine,op,scope,arithmetic=arithmetic,radix=True,signed_dint=True)
 
 
-def read_source(memory, ref, scope, *, radix=False):
+def read_source(memory, ref, scope, *, radix=False, signed_dint=False):
+    word=dint_radix(ref) if signed_dint else None
+    if word is not None:return word
     typed=typed_integer(ref,radix=radix)
     return typed[1] if typed is not None else memory.read(ref,scope)
 
@@ -249,7 +266,7 @@ def execute(engine, op, scope, dtype, *, radix=False):
     memory = engine.memory
     name = op.name
     sources = op.args if name in COMPARISONS or name == 'LIM' else op.args[:-1]
-    values = [read_source(memory, argument, scope, radix=radix) for argument in sources]
+    values = [read_source(memory, argument, scope, radix=radix, signed_dint=radix) for argument in sources]
     if name in COMPARISONS:
         return COMPARISONS[name](*values)
     if name == 'LIM':

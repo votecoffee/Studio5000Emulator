@@ -166,7 +166,7 @@ def execute(engine, op, power, scope):
     profile=radix or ordering_profile(engine,op,scope)
     if profile=='LREAL':values=[lreal_math_source(memory,arg,scope,execute=True) for arg in op.args]
     elif profile=='REAL':values=[real_math_source(memory,arg,scope,execute=True) for arg in op.args]
-    else:values = [integer_math.read_source(memory,arg,scope,radix=bool(radix)) for arg in op.args]
+    else:values = [integer_math.read_source(memory,arg,scope,radix=bool(radix),signed_dint=bool(radix)) for arg in op.args]
     if op.name == 'LIM':
         low, value, high = values
         return low <= value <= high if low <= high else value >= low or value <= high
@@ -192,6 +192,11 @@ def description(project):
                     constants='Decimal L/U/UL values and typed radix source patterns; existing bounded DINT constants must fit the selected integer type',
                     calculation='Exact integers without floating conversion; inclusive and reversed LIM use the same exact values',
                     scope='RLL v35 5580; typed radix selects integer-only comparison; decimal REAL/LREAL priority, MEQ/bitwise/other consumers and native parity remain separate',
+                    native_runtime_parity=False),
+                signed_dint_radix=dict(bases=[2,8,16],bits=32,
+                    interpretation='Unsuffixed full words with bit31 set are signed DINT constants; shorter words zero-fill',
+                    selection='Integer-only scalar profile when a negative DINT word or typed radix selects it; existing complete tag-range and constant-fit checks',
+                    scope='Ladder arithmetic and direct ordering/LIM only; default parsing, expressions, masks, BCD and call parameters remain separate',
                     native_runtime_parity=False),
                 lreal_ordering=dict(instructions=sorted((*RELATIONS,'LIM')),types=['LREAL'],
                     operands='Scalar numeric tags and constants; at least one LREAL tag or floating L/l literal selects binary64, including constant-only calls',

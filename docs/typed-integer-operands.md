@@ -103,6 +103,43 @@ is installed v35 Immediate values (14454), ADD (14623), EQU (14589), LIM (14610)
 Data conversions (14451) and the existing integer arithmetic/ordering profiles.
 These checks establish bounded software behavior, not native Studio acceptance.
 
+## Unsuffixed DINT radix words
+
+Ladder ADD/SUB/MUL/DIV/MOD/NEG/ABS and EQU/NEQ/LES/LEQ/GRT/GEQ/LIM accept full
+unsuffixed binary, octal and hexadecimal DINT words with bit 31 set. The
+authored word is interpreted in signed 32-bit storage: 16#FFFFFFFF and
+8#37777777777 mean -1, and 2#10000000000000000000000000000000 means -2147483648.
+Shorter positive words retain zero fill; 16#0000FFFF is 65535. All three bases
+retain their authored spelling in the viewer, which shows the signed DINT value.
+
+The negative word selects the existing integer-only scalar profile. Existing
+typed radix L/U/UL forms can also use these bounded signed DINT constants.
+Arithmetic destinations must cover complete source-tag type ranges and each
+constant must fit. Ordering uses the existing highest-ranked integer tag/type
+that covers all source ranges; constant-only comparisons use DINT. This adds
+no floating radix mixtures or implicit widening based on a saved tag value.
+DIV truncates toward zero and MOD retains the dividend sign. Reached zero
+divisors, overflow, unknown required sources, live bounds and later faults roll
+back the modeled advance. False/prescan skip data; syntax, permissions and static
+range/type errors remain blockers. Aliases, scoped members and AOI bindings
+share the same path. Default literal parsing, CPT/CMP/FAL/FSC, indices, BCD,
+bit masks, call parameters and general ST syntax retain separate contracts.
+Existing positive-word scalar behavior is unchanged.
+
+In **Wide expression lab**, set DintRadixIndex=1 and enable DintRadixEnabled.
+The example produces Sum=6, Difference=-8, Product=-14, Quotient=-3,
+Remainder=-1, Negative=1 and Absolute=2 in the corresponding DintRadix tags.
+DintRadixWide retains exact LINT value 9007199254740992. Equal/Less/Limit/Wrapped
+conditions are true; DintRadixSelected[1] becomes -1 while guards stay 101/999.
+The gate starts false with index 99 dormant. DintRadixDivisor=0 or
+DintRadixLateDivisor=0 demonstrates rollback; restore 2 or 1 respectively.
+Disable the gate before returning the index to 99.
+
+The source basis is installed v35 Immediate values (14454), ADD (14623), EQU
+(14589) and LIM (14610), using the same DINT word decoding as the existing MOV
+profile. Native numerical/status/fault/lifecycle parity remains unverified.
+See [focused checks](../source/tests/test_dint_radix_operands.py).
+
 See [integer execution](../source/logixlab/integer_math.py),
 [arithmetic selection](../source/logixlab/scalar_math.py),
 [comparisons](../source/logixlab/comparisons.py) and

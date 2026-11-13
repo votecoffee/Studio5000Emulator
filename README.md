@@ -61,6 +61,11 @@ math forms. In **Integer lab**, enable `RealIntegerEnabled` and step. See
 with REAL or integer results. In **Wide expression lab**, enable
 `Binary64ResultEnabled` and step. See [REAL and integer results](docs/lreal-math-literals.md#real-and-integer-results).
 
+**Signed DINT radix words** now work in ladder arithmetic and comparisons:
+`16#FFFFFFFF` means -1, while `16#0000FFFF` remains 65535. In **Wide expression
+lab**, set `DintRadixIndex=1`, enable `DintRadixEnabled` and step. See
+[full DINT words](docs/typed-integer-operands.md#unsuffixed-dint-radix-words).
+
 **TimeSynchronize GSV reads** now expose software UTC microseconds and
 nanoseconds to ladder and ST, including DT/LDT tags. ReadSyncStatus also reads
 configured enable/priorities, synchronization status and the PTP port count.
