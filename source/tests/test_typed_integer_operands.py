@@ -6,7 +6,7 @@ from xml.etree import ElementTree as E
 
 import test_numeric_storage as fixtures
 import test_file_bcd as snapshots
-from logixlab.model import Project, literal
+from logixlab.model import ModelError, Project, literal
 from logixlab.runtime import Engine
 
 KINDS=(('LINT','L'),('UDINT','U'),('ULINT','UL'))
@@ -74,8 +74,12 @@ class TypedIntegerOperandTests(unittest.TestCase):
             e=self.checked(['LIM(3UL,Source,1UL)OTE(RunLatch);'],source='ULINT',dest='ULINT',value=value);e.step();self.assertIs(e.memory.read('RunLatch'),want)
 
     def test_metadata_never_uses_saved_positive_values_to_authorize_lossy_types(self):
-        for source,dest,token in [('LINT','ULINT','1UL'),('DINT','UDINT','1U'),('ULINT','LINT','1L'),('UDINT','DINT','1U')]:
-            self.assertTrue(self.engine(['AFI()ADD(Source,'+token+',Results[1]);'],source=source,dest=dest,value=1).blockers)
+        for source,dest,token,bad in [('LINT','ULINT','1UL',-1),('DINT','UDINT','1U',-1),('ULINT','LINT','1L',1<<63),('UDINT','DINT','1U',1<<31)]:
+            dormant=self.checked(['AFI()ADD(Source,'+token+',Results[1]);'],source=source,dest=dest,value=bad);dormant.step()
+            e=self.checked(['ADD(Source,'+token+',Results[1]);'],source=source,dest=dest,value=1);e.step();self.assertEqual(e.memory.read('Results[1]'),2)
+            e.memory.write('Source',bad)
+            with self.assertRaisesRegex(ModelError,'overflow|range'):e.step()
+            self.assertEqual(e.memory.read('Results[1]'),2)
         for call in ('EQU(1L,1UL)','LIM(0L,1UL,2L)','EQU(-1L,1U)'):
             # LINT covers UDINT, so the final signed/unsigned relation is valid.
             e=self.engine(['AFI()'+call+'OTE(RunLatch);'])

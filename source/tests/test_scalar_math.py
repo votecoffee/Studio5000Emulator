@@ -80,7 +80,9 @@ class ScalarMathTests(unittest.TestCase):
     def test_wide_exact_values_and_homogeneous_type_gates_are_unchanged(self):
         e = self.checked(['ADD(Inputs[0],Mask,Results[0]);'], dtype='ULINT');e.memory.write('Inputs[0]', 9007199254740993)
         e.step();self.assertEqual(e.memory.read('Results[0]'), 9007199254740996)
-        self.assertTrue(self.engine(dtype='LINT', dest='DINT').blockers)
+        narrowed=self.checked(dtype='LINT',dest='DINT');narrowed.step();self.assertEqual(narrowed.memory.read('Results[1]'),10)
+        narrowed.memory.write('Source',1<<31)
+        with self.assertRaisesRegex(ModelError,'overflow|range'):narrowed.step()
         self.assertTrue(self.engine(['ADD(Source,2147483648,Results[0]);'], dtype='LINT').blockers)
         self.assertTrue(self.engine(['ADD(Source,-1,Results[0]);'], dtype='ULINT').blockers)
 

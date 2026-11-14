@@ -373,3 +373,9 @@ adds bounded exact duration/date addition and subtraction across CPT/CMP/FAL/FSC
 CPT/FAL time/date results require the matching family, exact destination ticks
 and declared range; temporal failures roll back the advance. ST/FBD/SFC,
 unsupported operators and native parity remain separate.
+
+[Checked integer input conversions](scalar-math.md#checked-integer-input-conversions)
+extend seven standalone ladder arithmetic forms to narrower/non-covering integer
+results when every required input and result fits. Declared-type preflight stays
+structural; live range checks and whole-advance rollback preserve exact values.
+Other consumers and native overflow/status/fault behavior remain separate.

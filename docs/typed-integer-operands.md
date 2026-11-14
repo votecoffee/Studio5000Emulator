@@ -149,3 +149,9 @@ See [integer execution](../source/logixlab/integer_math.py),
 now separately qualify unsuffixed words in ladder CPT/CMP/FAL/FSC integer
 expressions. Their unary operators follow word decoding; default, ST and
 array-index parsers keep their previous behavior.
+
+[Checked integer input conversions](scalar-math.md#checked-integer-input-conversions)
+extend seven standalone ladder arithmetic forms to narrower/non-covering integer
+results when every required input and result fits. Declared-type preflight stays
+structural; live range checks and whole-advance rollback preserve exact values.
+Other consumers and native overflow/status/fault behavior remain separate.

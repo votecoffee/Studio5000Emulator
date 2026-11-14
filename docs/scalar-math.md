@@ -308,3 +308,42 @@ the earlier three results retain their previous values.
 binary/octal/hex DINT and typed L/U/UL words in nineteen math forms. An explicit
 binary64 selector is required; REAL/integer-only and other consumers retain
 their contracts. Declared ranges precede conversion; native parity is unverified.
+
+## Checked integer input conversions
+
+ADD/SUB/MUL/DIV/MOD/NEG/ABS in the v35 5580 ladder software profile accept
+previously excluded integer source/result combinations when conversion is
+lossless for each required input and the result. This profile covers narrower
+destinations and non-covering signedness mixes involving a LINT/unsigned tag or
+typed integer constant. Existing narrow and complete-range profiles stay separate.
+
+Declared types select the profile; saved tag values never determine static
+eligibility. Preflight checks scalar shapes, references, writable destinations
+and constant ranges. False/prescan paths skip saved tag values and live indices.
+At a true instruction, every input must fit its declared range and the destination
+range before exact integer calculation. Known DINT or L/U/UL decimal/radix
+constants are checked before execution. Each result must fit its destination.
+DIV truncates toward zero and MOD retains the dividend's sign.
+
+For example, LINT 7 plus UDINT 3 can write DINT 10; ULINT 9007199254740993 plus
+DINT 2 can write exact LINT 9007199254740995. A positive signed tag may feed an
+unsigned result while its current value fits. A negative signed input cannot
+convert losslessly to unsigned, including for ABS. Nor does multiplication by
+zero permit an out-of-range source. Use a wider destination for those cases.
+
+Complete writes establish unknown selected destinations. All required inputs
+are consumed; unknowns, invalid indices, input/result ranges, zero divisors and
+later faults roll back the advance, including previous writes and AOI state.
+Existing aliases, UDT members and qualified AOI bindings retain their address
+rules. Floating/time/BOOL/aggregate operands, modular bit-pattern conversions,
+other instructions/languages and native overflow/status/fault equivalence are
+outside this lossless conversion profile. This is bounded software behavior,
+not a claim of general native integer narrowing or saturation/wrapping semantics.
+
+In **Integer lab**, set CheckedMathIndex=1 and CheckedMathEnabled=true. Sum=10,
+Difference=4, Product=14, Quotient=2, Remainder=1, Negated=-3, Absolute=7,
+Literal=3 and Selected[1]=10 (all use the CheckedMath prefix). Wide is LINT,
+Unsigned is UDINT, and results include smaller signed and unsigned types.
+Index99 or LateDivisor0 demonstrates rollback. Wide=128 exceeds the SINT product
+input range; Wide=-1 cannot feed the UINT ABS result. Repair Wide=7 to retry.
+The report describes this at scalar_math.checked_integer_conversion.

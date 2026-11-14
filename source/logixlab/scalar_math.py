@@ -4,7 +4,7 @@ import operator
 
 from . import time_values
 from .bit_transfer import operand, unsigned
-from .integer_math import CONTROLLERS, WIDE_TYPES, bit_value, bitwise_immediate_widths, profile, typed_profile, typed_integer, radix_profile, pattern
+from .integer_math import CONTROLLERS, WIDE_TYPES, bit_value, bitwise_immediate_widths, profile, typed_profile, typed_integer, radix_profile, pattern, integer_bounds, dint_radix, read_source, quotient
 from .model import INT_BITS, UNSIGNED_BITS, ModelError, coerce, literal
 from .numeric_storage import floating_math_profile, lreal_math_source, typed_literal, write_lreal_math_result
 from .real_math import real
@@ -27,6 +27,7 @@ def validate(engine, op, scope):
     try:
         if op.name in ARITHMETIC:
             if floating_math_profile(memory,op,scope,radix=True):return True
+            if narrowing_profile(engine,op,scope) is not None:return True
             if radix_profile(engine,op,scope,arithmetic=True):return True
             if time_arithmetic(engine, op, scope):
                 return True
@@ -241,6 +242,13 @@ def description(project):
                     result='Two durations yield a duration. Mixed operands yield a timestamp. Timestamp subtraction yields a signed duration.',
                     precision='Calculate exact integer nanoseconds before checking destination precision and range',
                     native_runtime_parity=False),
+                checked_integer_conversion=dict(instructions=sorted(ARITHMETIC),types=list(INT_BITS),
+                    selection='Declared non-covering source/result ranges involving a wide integer tag or typed integer constant; legacy narrow/covering profiles remain separate',
+                    inputs='Every required tag value must fit its declared type and destination range; known constants are checked statically',
+                    calculation='Exact integer operations after lossless input conversion; checked result, quotient toward zero, signed remainder',
+                    execution='Structural type/reference/permission checks; false/prescan skip values/indices; true full writes establish unknowns; failures roll back the advance',
+                    excluded='Lossy input conversion, wrapping/saturation, floating/time/BOOL/aggregate operands, other instructions/languages and native status/fault parity',
+                    native_runtime_parity=False),
                 widening_arithmetic=dict(instructions=sorted(ARITHMETIC), types=list(INT_BITS),
                     operands='Mixed integer tags with optional signed-DINT constants; destination covers every complete source tag type range',
                     constants='Known integer literals in signed DINT range, representable in destination; larger/typed/REAL constants remain excluded',
@@ -314,3 +322,59 @@ def description(project):
                 native_runtime_parity=False, native_math_status=False,
                 remaining=['Other arithmetic destination conversions/mixed signed-to-unsigned forms, larger/typed arithmetic constants, unsigned bitwise sources for floating destinations, and other wide/unsigned/LREAL remainder mixtures',
                            'Native overflow/status/fault/lifecycle/packed layout and broader controller qualification'])
+
+
+def narrowing_profile(engine, op, scope):
+    """Select by declared types; defer tag conversion ranges until a true call."""
+    if op.name not in ARITHMETIC or not available(engine.project):return None
+    memory=engine.memory;key,parts,dest=memory.check_writable(op.args[-1],scope)
+    if dest not in INT_BITS:return None
+    if isinstance(memory.at(key,parts),(list,dict,bool)):
+        raise ModelError('Checked integer math requires a writable scalar integer destination')
+    sources=[];declared=[]
+    for ref in op.args[:-1]:
+        typed=typed_integer(ref,radix=True)
+        if typed is not None:
+            dtype,value=typed;coerce(value,dtype)
+        elif (word:=dint_radix(ref)) is not None:
+            dtype,value=None,word
+        else:
+            try:value=literal(ref)
+            except ValueError:
+                sk,sp,dtype=memory.resolve(ref,scope)
+                if dtype not in INT_BITS:return None
+                if isinstance(memory.at(sk,sp),(list,dict,bool)):
+                    raise ModelError('Checked integer math requires scalar integer sources')
+                value=None
+            else:
+                if type(value) is not int:return None
+                value=coerce(value,'DINT');dtype=None
+        sources.append((ref,dtype,value));declared.append(dtype)
+    # Preserve legacy narrow and complete-range profiles separately. Untyped
+    # constants have a known bounded value and do not invent a source tag range.
+    if not WIDE_TYPES.intersection({dest,*declared}):return None
+    low,high=integer_bounds(dest)
+    if not any(dtype is not None and (integer_bounds(dtype)[0]<low or integer_bounds(dtype)[1]>high) for dtype in declared):return None
+    for _,_,value in sources:
+        if value is not None:coerce(value,dest)
+    return dict(destination=dest,sources=sources)
+
+
+def execute_narrowing(engine, op, scope, specification):
+    dtype=specification['destination'];values=[]
+    for ref,declared,constant in specification['sources']:
+        value=read_source(engine.memory,ref,scope,radix=True,signed_dint=True) if constant is None else constant
+        if declared is not None:value=coerce(value,declared)
+        values.append(coerce(value,dtype))
+    left=values[0]
+    if op.name=='NEG':result=-left
+    elif op.name=='ABS':result=abs(left)
+    else:
+        right=values[1]
+        if op.name=='ADD':result=left+right
+        elif op.name=='SUB':result=left-right
+        elif op.name=='MUL':result=left*right
+        elif op.name=='DIV':result=quotient(left,right)
+        else:result=left-quotient(left,right)*right
+    engine.memory.write(op.args[-1],coerce(result,dtype),scope)
+    return True

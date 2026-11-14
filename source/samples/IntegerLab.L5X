@@ -733,6 +733,22 @@
       <Tag Name="NarrowRealLateDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
       <Tag Name="NarrowRealLateResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
       <Tag Name="NarrowRealSelected" DataType="DINT" Dimensions="3" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="DINT" Dimensions="3"><Element Index="[0]" Value="101" /><Element Index="[2]" Value="999" /></Array></Data></Tag>
+      <Tag Name="CheckedMathEnabled" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="CheckedMathIndex" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="CheckedMathWide" DataType="LINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LINT" Value="7" /></Data></Tag>
+      <Tag Name="CheckedMathUnsigned" DataType="UDINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="UDINT" Value="3" /></Data></Tag>
+      <Tag Name="CheckedMathSmall" DataType="INT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="INT" Value="2" /></Data></Tag>
+      <Tag Name="CheckedMathSum" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="CheckedMathDifference" DataType="INT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="INT" Value="0" /></Data></Tag>
+      <Tag Name="CheckedMathProduct" DataType="SINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="SINT" Value="0" /></Data></Tag>
+      <Tag Name="CheckedMathQuotient" DataType="INT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="INT" Value="0" /></Data></Tag>
+      <Tag Name="CheckedMathRemainder" DataType="SINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="SINT" Value="0" /></Data></Tag>
+      <Tag Name="CheckedMathNegated" DataType="INT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="INT" Value="0" /></Data></Tag>
+      <Tag Name="CheckedMathAbsolute" DataType="UINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="UINT" Value="0" /></Data></Tag>
+      <Tag Name="CheckedMathLiteral" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="CheckedMathLateDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="CheckedMathLateResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="CheckedMathSelected" DataType="DINT" Dimensions="3" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="DINT" Dimensions="3"><Element Index="[0]" Value="101" /><Element Index="[2]" Value="999" /></Array></Data></Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard">
@@ -910,7 +926,7 @@
               <Rung Number="58" Type="N"><Text>JSR(RealCompare,0);</Text></Rung>
               <Rung Number="59" Type="N"><Text>JSR(RealResults,0);</Text></Rung>
               <Rung Number="60" Type="N"><Text>JSR(RealIntegerOutputs,0)JSR(NarrowRealOutputs,0);</Text></Rung>
-              <Rung Number="61" Type="N"><Text>JSR(ExactRootPower,0);</Text></Rung>
+              <Rung Number="61" Type="N"><Text>JSR(ExactRootPower,0)JSR(CheckedIntegerMath,0);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="ExactRootPower" Type="RLL">
@@ -1119,6 +1135,20 @@
               <Rung Number="7" Type="N"><Text>XIC(NarrowRealEnabled)EQU(NarrowRealSINT,2)OTE(NarrowRealRoundedEven);</Text></Rung>
               <Rung Number="8" Type="N"><Text>XIC(NarrowRealEnabled)XIC(NarrowRealBoundaryEnabled)ADD(NarrowRealBoundarySource,0UL,NarrowRealBoundaryResult);</Text></Rung>
               <Rung Number="9" Type="N"><Text>XIC(NarrowRealEnabled)DIV(1,NarrowRealLateDivisor,NarrowRealLateResult);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="CheckedIntegerMath" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(CheckedMathEnabled)ADD(CheckedMathWide,CheckedMathUnsigned,CheckedMathSum);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(CheckedMathEnabled)SUB(CheckedMathWide,CheckedMathUnsigned,CheckedMathDifference);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(CheckedMathEnabled)MUL(CheckedMathWide,CheckedMathSmall,CheckedMathProduct);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(CheckedMathEnabled)DIV(CheckedMathWide,CheckedMathUnsigned,CheckedMathQuotient);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>XIC(CheckedMathEnabled)MOD(CheckedMathWide,CheckedMathUnsigned,CheckedMathRemainder);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(CheckedMathEnabled)NEG(CheckedMathUnsigned,CheckedMathNegated);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(CheckedMathEnabled)ABS(CheckedMathWide,CheckedMathAbsolute);</Text></Rung>
+              <Rung Number="7" Type="N"><Text>XIC(CheckedMathEnabled)ADD(1UL,2L,CheckedMathLiteral);</Text></Rung>
+              <Rung Number="8" Type="N"><Text>XIC(CheckedMathEnabled)ADD(CheckedMathWide,CheckedMathUnsigned,CheckedMathSelected[CheckedMathIndex]);</Text></Rung>
+              <Rung Number="9" Type="N"><Text>XIC(CheckedMathEnabled)DIV(1,CheckedMathLateDivisor,CheckedMathLateResult);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

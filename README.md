@@ -123,6 +123,9 @@ Try TimeLiteralEnabled with TimeLiteralIndex=1.
 [Temporal arithmetic](docs/time-date-conditions.md#temporal-arithmetic-and-results)
 adds elapsed-time and future-timestamp expressions across CPT/CMP/FAL/FSC.
 Try TemporalMathEnabled with TemporalMathIndex=1, including exact result conversions.
+[Checked integer math](docs/scalar-math.md#checked-integer-input-conversions) now
+accepts narrower or mixed-signedness results when inputs and results fit exactly.
+Try CheckedMathEnabled with CheckedMathIndex=1 in **Integer lab**.
 
 **Floating comparison constants** now select REAL across six ladder relations
 and LIM, including constant-only calls and mixed integer tags. Try
