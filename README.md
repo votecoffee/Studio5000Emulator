@@ -114,6 +114,9 @@ relations. Try StringNumericEnabled with StringNumericIndex=1; see
 [Exact integer/string conditions](docs/ladder-wide-expressions.md#string-conditions-with-exact-integer-math)
 add the same composition to integer CMP/FSC while preserving values above 2^53.
 Try IntegerStringEnabled with IntegerStringIndex=1 in **Wide expression lab**.
+[Time/date conditions](docs/time-date-conditions.md) also add exact temporal tag
+relations to CMP/FSC, including BOOL and string checks. Try TemporalEnabled
+with TemporalIndex=1 in the same sample.
 
 **Floating comparison constants** now select REAL across six ladder relations
 and LIM, including constant-only calls and mixed integer tags. Try

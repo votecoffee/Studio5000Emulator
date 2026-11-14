@@ -4,6 +4,7 @@ from .integer_math import CONTROLLERS, quotient, integer_power
 import operator
 from .expressions import Expression, FUNCTIONS, BCD_FUNCTIONS, index_function
 from .model import ModelError, coerce
+from . import time_values
 
 RELATIONS={'=':operator.eq,'<>':operator.ne,'<':operator.lt,'<=':operator.le,'>':operator.gt,'>=':operator.ge}
 LOGICAL={'&&','^^','||'}
@@ -35,6 +36,8 @@ class Condition(Expression):
         return profile
 
     def validate(self,memory,scope=''):
+        temporal=time_values.condition_profile(self,memory,scope)
+        if temporal is not None:return False,temporal['types']
         floating=self.floating_profile(memory,scope)
         if floating is not None:return True,floating['types']
         wide=self.wide_profile(memory,scope)
@@ -94,6 +97,8 @@ class Condition(Expression):
         return real,types
 
     def evaluate(self,memory,scope=''):
+        temporal=time_values.condition_profile(self,memory,scope)
+        if temporal is not None:return bool(time_values.evaluate_condition(self,memory,scope,temporal))
         floating=self.floating_profile(memory,scope)
         if floating is not None:
             from . import lreal_expressions

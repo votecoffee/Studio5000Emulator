@@ -1109,6 +1109,19 @@
       <Tag Name="IntegerStringMixed" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
       <Tag Name="IntegerStringLateDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
       <Tag Name="IntegerStringLateResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="TemporalEnabled" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="TemporalIndex" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="TemporalDuration" DataType="TIME" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="TIME" Value="T#1us" /></Data></Tag>
+      <Tag Name="TemporalHighDuration" DataType="LTIME" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LTIME" Value="LT#1us_1ns" /></Data></Tag>
+      <Tag Name="TemporalStamp" DataType="DT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DT" Value="DT#2026-01-01-00:00:00.000_001" /></Data></Tag>
+      <Tag Name="TemporalHighStamp" DataType="LDT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LDT" Value="LDT#2026-01-01-00:00:00.000_001_001" /></Data></Tag>
+      <Tag Name="TemporalInhibit" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="TemporalDurationMatch" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="TemporalStampMatch" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="TemporalCombined" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="TemporalLateDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="TemporalLateResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="TemporalLimits" DataType="TIME" Dimensions="3" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="TIME" Dimensions="3"><Element Index="[0]" Value="0" /><Element Index="[1]" Value="1" /><Element Index="[2]" Value="2" /></Array></Data></Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
@@ -1190,7 +1203,7 @@
               <Rung Number="25" Type="N"><Text>JSR(IntegerConstants,0);</Text></Rung>
               <Rung Number="26" Type="N"><Text>JSR(DoubleIntegerConstants,0);</Text></Rung>
               <Rung Number="27" Type="N"><Text>JSR(IntegerFileConstants,0);</Text></Rung>
-              <Rung Number="28" Type="N"><Text>JSR(NumericMoveConstants,0)JSR(RadixMoves,0)JSR(MathConstants,0)JSR(ComparisonConstants,0)JSR(RealIntegerConstants,0)JSR(IntegerOperandConstants,0)JSR(BitwiseOperandConstants,0)JSR(Binary64SourceResults,0)JSR(DintPatternConstants,0)JSR(DintWordExpressions,0)JSR(WideBcdExpressions,0)JSR(WideRootPowerExpressions,0)JSR(BinaryRadixExpressions,0)JSR(RadixMathBlocks,0)JSR(RadixComparisons,0)JSR(RealRadixBlocks,0)JSR(RealComparisonConstants,0)JSR(MixedRealExpressions,0)JSR(FunctionRealExpressions,0)JSR(StringNumericConditions,0)JSR(IntegerStringConditions,0);</Text></Rung>
+              <Rung Number="28" Type="N"><Text>JSR(NumericMoveConstants,0)JSR(RadixMoves,0)JSR(MathConstants,0)JSR(ComparisonConstants,0)JSR(RealIntegerConstants,0)JSR(IntegerOperandConstants,0)JSR(BitwiseOperandConstants,0)JSR(Binary64SourceResults,0)JSR(DintPatternConstants,0)JSR(DintWordExpressions,0)JSR(WideBcdExpressions,0)JSR(WideRootPowerExpressions,0)JSR(BinaryRadixExpressions,0)JSR(RadixMathBlocks,0)JSR(RadixComparisons,0)JSR(RealRadixBlocks,0)JSR(RealComparisonConstants,0)JSR(MixedRealExpressions,0)JSR(FunctionRealExpressions,0)JSR(StringNumericConditions,0)JSR(IntegerStringConditions,0)JSR(TemporalConditions,0);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="Binary64" Type="RLL">
@@ -1584,6 +1597,14 @@
               <Rung Number="2" Type="N"><Text>XIC(IntegerStringEnabled)CMP(((IntegerStringSource AND 16#1UL)=1UL)&amp;&amp;(StringNumericCodes[IntegerStringIndex]=StringNumericNeedle))OTE(IntegerStringPatternMatch);</Text></Rung>
               <Rung Number="3" Type="N"><Text>XIC(IntegerStringEnabled)CMP((IntegerStringSigned+IntegerStringSmall=9007199254740994L)&amp;&amp;(StringNumericCodes[IntegerStringIndex]=StringNumericNeedle))OTE(IntegerStringMixed);</Text></Rung>
               <Rung Number="4" Type="N"><Text>XIC(IntegerStringEnabled)DIV(1,IntegerStringLateDivisor,IntegerStringLateResult);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="TemporalConditions" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(TemporalEnabled)CMP((TemporalHighDuration&gt;TemporalDuration)&amp;&amp;!TemporalInhibit)OTE(TemporalDurationMatch);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(TemporalEnabled)CMP((TemporalHighStamp&gt;TemporalStamp)&amp;&amp;!TemporalInhibit)OTE(TemporalStampMatch);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(TemporalEnabled)CMP((TemporalHighDuration&gt;TemporalLimits[TemporalIndex])&amp;&amp;(TemporalHighStamp&gt;TemporalStamp)&amp;&amp;(StringNumericCodes[TemporalIndex]=StringNumericNeedle)&amp;&amp;!TemporalInhibit)OTE(TemporalCombined);</Text></Rung>
+              <Rung Number="3" Type="N"><Text>XIC(TemporalEnabled)DIV(1,TemporalLateDivisor,TemporalLateResult);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

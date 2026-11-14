@@ -355,3 +355,9 @@ now combine integer arithmetic and STRING/user-string lexical relations in
 CMP/FSC, preserving source-selected widths, values above 2^53, eager required
 operands, existing ALL/numeric/INC state and whole-advance rollback. ST/string
 math/literals and native numerical/status/fault/layout parity remain separate.
+
+[Time/date CMP/FSC conditions](time-date-conditions.md) now compare temporal
+tags within duration or timestamp families using exact nanoseconds, with BOOL and
+STRING/user-string composition. Existing lazy references, eager required sides,
+ALL/numeric/INC progress and whole-advance rollback remain. Temporal literals,
+arithmetic in expressions, numeric mixtures and native parity remain separate.

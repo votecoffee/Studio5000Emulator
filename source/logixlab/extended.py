@@ -188,6 +188,7 @@ class Extensions:
                     if string_operations.string_literal(ref) is None:text(ref)
             elif n=='CMP':
                 condition=self.condition(a[0],allow_wide=True,bcd=True,lreal=True,radix_literals=True)
+                if time_values.condition_profile(condition,self.memory,scope) is not None:return True
                 strings=[ref for ref in condition.refs if self.is_string(ref,scope)]
                 if not strings:return False
                 for ref in condition.refs:

@@ -170,3 +170,67 @@ def display_changes(changes, tags):
         if row['tag'] in names else row
         for row in changes
     ]
+
+
+def condition_profile(expression, memory, scope=''):
+    """Qualify tag-only temporal relations for existing ladder CMP/FSC paths."""
+    if not (expression.allow_wide and expression.allow_lreal):return None
+    from .conditions import RELATIONS
+    from .model import ModelError
+    declared={ref:memory.resolve(ref,scope)[2] for ref in expression.refs}
+    if not TYPES.intersection(declared.values()):return None
+    if not available(memory.project):
+        raise ModelError('Time/date conditions require the v35 ControlLogix 5580 profile')
+    types={};previous=memory.structural
+    try:
+        memory.structural=True
+        for ref,dtype in declared.items():
+            if dtype in TYPES:
+                operand_type(memory,ref,scope)
+                memory.read(ref,scope,allow_time=True)
+                types[ref]='date' if dtype in DATE_TYPES else 'duration'
+            elif dtype=='BOOL':
+                if isinstance(memory.read(ref,scope),(dict,list)):
+                    raise ModelError('Time/date conditions require scalar BOOL operands')
+                types[ref]='bool'
+            elif memory.project.string_capacity(dtype) is not None:
+                memory.string(ref,scope);types[ref]='string'
+            else:
+                raise ModelError('Time/date conditions require temporal, BOOL or string tags')
+    finally:memory.structural=previous
+    def infer(node):
+        kind,value=node[:2]
+        if kind=='ref':return types[value]
+        if kind=='unary' and value in ('!','NOT') and infer(node[2])=='bool':return 'bool'
+        if kind!='binary':
+            raise ModelError('Time/date conditions support tag relations and Boolean composition; literals and arithmetic remain unqualified')
+        left,right=infer(node[2]),infer(node[3])
+        if value in RELATIONS:
+            if left!=right or left=='bool' and value not in ('=','<>'):
+                raise ModelError('Time/date comparison families and operand categories must match')
+            return 'bool'
+        if value in ('&&','||','^^','AND','OR','XOR') and left==right=='bool':return 'bool'
+        raise ModelError('Time/date conditions require relations or Boolean composition')
+    if infer(expression.tree)!='bool':raise ModelError('Time/date CMP/FSC requires a BOOL result')
+    return dict(declared=declared,types=types)
+
+
+def evaluate_condition(expression, memory, scope, profile):
+    """Read both required sides and compare exact nanoseconds or active bytes."""
+    from .conditions import RELATIONS
+    from .model import coerce
+    def visit(node):
+        kind,value=node[:2]
+        if kind=='ref':
+            dtype=profile['declared'][value];category=profile['types'][value]
+            if category in ('date','duration'):
+                return read_operand(memory,value,scope)*ns_per_tick(dtype)
+            if category=='string':return memory.string(value,scope)
+            return coerce(memory.read(value,scope),'BOOL')
+        if kind=='unary':return not visit(node[2])
+        left,right=visit(node[2]),visit(node[3])
+        if value in RELATIONS:return RELATIONS[value](left,right)
+        if value in ('&&','AND'):return left and right
+        if value in ('||','OR'):return left or right
+        return left!=right
+    return visit(expression.tree)

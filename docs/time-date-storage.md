@@ -132,3 +132,9 @@ enable ReadTypedTimes and step to see these reads and an exact DT-to-LDT MOV.
 Lossy conversion, broader clock attributes, ST time expressions, native packed
 layouts and CIP time/date access remain separate. Native Studio/controller
 acceptance is unverified.
+
+[Time/date CMP/FSC conditions](time-date-conditions.md) now compare temporal
+tags within duration or timestamp families using exact nanoseconds, with BOOL and
+STRING/user-string composition. Existing lazy references, eager required sides,
+ALL/numeric/INC progress and whole-advance rollback remain. Temporal literals,
+arithmetic in expressions, numeric mixtures and native parity remain separate.

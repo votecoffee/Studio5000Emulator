@@ -163,3 +163,9 @@ typed and larger literals remain excluded; an actual LREAL source is required.
 [REAL comparison promotion](mixed-real-comparisons.md) additionally converts
 numeric tag/constant operands to float32 when a REAL tag is present and no
 LREAL input selects binary64. Integer-only ordering remains exact.
+
+[Time/date CMP/FSC conditions](time-date-conditions.md) now compare temporal
+tags within duration or timestamp families using exact nanoseconds, with BOOL and
+STRING/user-string composition. Existing lazy references, eager required sides,
+ALL/numeric/INC progress and whole-advance rollback remain. Temporal literals,
+arithmetic in expressions, numeric mixtures and native parity remain separate.
