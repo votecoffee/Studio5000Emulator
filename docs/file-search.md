@@ -119,3 +119,9 @@ rules are explicit; wider types, ST and native parity remain separate.
 decimal/radix constants to CPT/CMP/FAL/FSC with float32 intermediates. Eleven
 math functions also select REAL without a floating operand; ABS/SQR retain their
 existing exact integer paths. LREAL priority, exact integer consumers and existing FAL overflow/retry remain separate.
+
+
+FSC also supports [mixed floating and string conditions](real-expressions.md#string-conditions-alongside-numeric-math),
+including selected STRING/user-string elements alongside REAL or LREAL numeric
+relations. The existing ALL/numeric/INC, first-match inhibit/resume and atomic
+rollback rules continue to apply; unused string bytes are not required.

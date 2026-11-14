@@ -478,3 +478,8 @@ integer inputs. LREAL priority and exact integer-only comparisons remain separat
 decimal/radix constants to CPT/CMP/FAL/FSC with float32 intermediates. Eleven
 math functions also select REAL without a floating operand; ABS/SQR retain their
 existing exact integer paths. LREAL priority, exact integer consumers and existing FAL overflow/retry remain separate.
+
+[Mixed floating/string conditions](real-expressions.md#string-conditions-alongside-numeric-math)
+add built-in STRING and declared user-string lexical relations to selected REAL
+and LREAL CMP/FSC, retaining eager required operands and existing file progress.
+String math/literals and native numerical/status/fault/layout parity remain separate.

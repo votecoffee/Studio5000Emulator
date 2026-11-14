@@ -1,7 +1,9 @@
 <?xml version='1.0' encoding='utf-8'?>
 <RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="WideExpressionLab" TargetType="Controller" ContainsContext="false">
   <Controller Name="WideExpressionLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
-    <DataTypes />
+    <DataTypes>
+      <DataType Name="CODE_12" Family="String" Class="User"><Members><Member Name="LEN" DataType="DINT" Dimension="0" Hidden="false" /><Member Name="DATA" DataType="SINT" Dimension="12" Hidden="false" /></Members></DataType>
+    </DataTypes>
     <Modules />
     <AddOnInstructionDefinitions />
     <Tags>
@@ -1083,6 +1085,17 @@
       <Tag Name="FunctionRealLateDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
       <Tag Name="FunctionRealLateResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
       <Tag Name="FunctionRealSelected" DataType="DINT" Dimensions="3" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="DINT" Dimensions="3"><Element Index="[0]" Value="101" /><Element Index="[2]" Value="999" /></Array></Data></Tag>
+      <Tag Name="StringNumericEnabled" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="StringNumericIndex" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="99" /></Data></Tag>
+      <Tag Name="StringNumericWide" DataType="ULINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="ULINT" Value="16777217" /></Data></Tag>
+      <Tag Name="StringNumericDouble" DataType="LREAL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="LREAL" Value="1.0000000000000002" /></Data></Tag>
+      <Tag Name="StringNumericInhibit" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="StringNumericRealMatch" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="StringNumericDoubleMatch" DataType="BOOL" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="BOOL" Value="false" /></Data></Tag>
+      <Tag Name="StringNumericLateDivisor" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="1" /></Data></Tag>
+      <Tag Name="StringNumericLateResult" DataType="DINT" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="StringNumericNeedle" DataType="CODE_12" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><Structure DataType="CODE_12"><DataValueMember Name="LEN" DataType="DINT" Value="6" /><ArrayMember Name="DATA" DataType="SINT" Dimensions="12"><Element Index="[0]" Value="80" /><Element Index="[1]" Value="65" /><Element Index="[2]" Value="82" /><Element Index="[3]" Value="84" /><Element Index="[4]" Value="45" /><Element Index="[5]" Value="65" /></ArrayMember></Structure></Data></Tag>
+      <Tag Name="StringNumericCodes" DataType="STRING" Dimensions="3" TagType="Base" ExternalAccess="Read/Write"><Data Format="Decorated"><Array DataType="STRING" Dimensions="3"><Element Index="[0]"><Structure DataType="STRING"><DataValueMember Name="LEN" DataType="DINT" Value="5" /><ArrayMember Name="DATA" DataType="SINT" Dimensions="82"><Element Index="[0]" Value="71" /><Element Index="[1]" Value="85" /><Element Index="[2]" Value="65" /><Element Index="[3]" Value="82" /><Element Index="[4]" Value="68" /></ArrayMember></Structure></Element><Element Index="[1]"><Structure DataType="STRING"><DataValueMember Name="LEN" DataType="DINT" Value="6" /><ArrayMember Name="DATA" DataType="SINT" Dimensions="82"><Element Index="[0]" Value="80" /><Element Index="[1]" Value="65" /><Element Index="[2]" Value="82" /><Element Index="[3]" Value="84" /><Element Index="[4]" Value="45" /><Element Index="[5]" Value="65" /></ArrayMember></Structure></Element><Element Index="[2]"><Structure DataType="STRING"><DataValueMember Name="LEN" DataType="DINT" Value="4" /><ArrayMember Name="DATA" DataType="SINT" Dimensions="82"><Element Index="[0]" Value="84" /><Element Index="[1]" Value="65" /><Element Index="[2]" Value="73" /><Element Index="[3]" Value="76" /></ArrayMember></Structure></Element></Array></Data></Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
@@ -1164,7 +1177,7 @@
               <Rung Number="25" Type="N"><Text>JSR(IntegerConstants,0);</Text></Rung>
               <Rung Number="26" Type="N"><Text>JSR(DoubleIntegerConstants,0);</Text></Rung>
               <Rung Number="27" Type="N"><Text>JSR(IntegerFileConstants,0);</Text></Rung>
-              <Rung Number="28" Type="N"><Text>JSR(NumericMoveConstants,0)JSR(RadixMoves,0)JSR(MathConstants,0)JSR(ComparisonConstants,0)JSR(RealIntegerConstants,0)JSR(IntegerOperandConstants,0)JSR(BitwiseOperandConstants,0)JSR(Binary64SourceResults,0)JSR(DintPatternConstants,0)JSR(DintWordExpressions,0)JSR(WideBcdExpressions,0)JSR(WideRootPowerExpressions,0)JSR(BinaryRadixExpressions,0)JSR(RadixMathBlocks,0)JSR(RadixComparisons,0)JSR(RealRadixBlocks,0)JSR(RealComparisonConstants,0)JSR(MixedRealExpressions,0)JSR(FunctionRealExpressions,0);</Text></Rung>
+              <Rung Number="28" Type="N"><Text>JSR(NumericMoveConstants,0)JSR(RadixMoves,0)JSR(MathConstants,0)JSR(ComparisonConstants,0)JSR(RealIntegerConstants,0)JSR(IntegerOperandConstants,0)JSR(BitwiseOperandConstants,0)JSR(Binary64SourceResults,0)JSR(DintPatternConstants,0)JSR(DintWordExpressions,0)JSR(WideBcdExpressions,0)JSR(WideRootPowerExpressions,0)JSR(BinaryRadixExpressions,0)JSR(RadixMathBlocks,0)JSR(RadixComparisons,0)JSR(RealRadixBlocks,0)JSR(RealComparisonConstants,0)JSR(MixedRealExpressions,0)JSR(FunctionRealExpressions,0)JSR(StringNumericConditions,0);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="Binary64" Type="RLL">
@@ -1542,6 +1555,13 @@
               <Rung Number="12" Type="N"><Text>XIC(FunctionRealEnabled)CMP(SIN(FunctionRealAngle)&gt;=0)OTE(FunctionRealMatch);</Text></Rung>
               <Rung Number="13" Type="N"><Text>XIC(FunctionRealEnabled)XIC(FunctionRealDomainEnabled)CPT(FunctionRealDomainResult,ASN(FunctionRealDomainSource));</Text></Rung>
               <Rung Number="14" Type="N"><Text>XIC(FunctionRealEnabled)DIV(1,FunctionRealLateDivisor,FunctionRealLateResult);</Text></Rung>
+            </RLLContent>
+          </Routine>
+          <Routine Name="StringNumericConditions" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>XIC(StringNumericEnabled)CMP((StringNumericWide+0.0=16777216U)&amp;&amp;(StringNumericCodes[StringNumericIndex]=StringNumericNeedle)&amp;&amp;!StringNumericInhibit)OTE(StringNumericRealMatch);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(StringNumericEnabled)CMP((StringNumericDouble&gt;1.0L)&amp;&amp;(StringNumericCodes[StringNumericIndex]=StringNumericNeedle)&amp;&amp;!StringNumericInhibit)OTE(StringNumericDoubleMatch);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>XIC(StringNumericEnabled)DIV(1,StringNumericLateDivisor,StringNumericLateResult);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

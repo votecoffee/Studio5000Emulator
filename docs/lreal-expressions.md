@@ -108,3 +108,9 @@ decimal L/U/UL forms, checking declared integer range before conversion to
 binary64. An LREAL tag/literal or destination must select this profile; integer
 constants alone retain exact integer rules. Other consumers, typed radix forms
 and native numerical/status/fault/lifecycle parity remain separate.
+
+
+[Mixed string conditions](real-expressions.md#string-conditions-alongside-numeric-math)
+now combine binary64 numeric relations with built-in or user string relations in
+CMP/FSC. Strings retain active-byte lexical comparisons and eager fault behavior;
+numeric selection and binary64 intermediate precision are unchanged.

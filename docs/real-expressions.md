@@ -79,7 +79,7 @@ DomainEnabled=true with DomainSource=2 demonstrates whole-advance rollback.
 Repair DomainSource to 1 to obtain DomainResult=2. False gates preserve numeric
 outputs and clear Match. Names in this paragraph have the FunctionReal prefix.
 
-Generic expressions, ST/index parsers, existing mixed string conditions and other
+Generic expressions, ST/index parsers, legacy narrow/string-only conditions and other
 controller profiles remain separate. NaN/infinity and native numerical, math
 status, fault, layout and lifecycle parity remain unqualified. Source basis:
 installed v35 Immediate values (14454), Data conversions (14451), CPT (14597),
@@ -89,3 +89,33 @@ See [shared floating evaluator](../source/logixlab/lreal_expressions.py),
 [CPT](../source/logixlab/extended.py), [CMP/FSC conditions](../source/logixlab/conditions.py),
 [FAL](../source/logixlab/file_arithmetic.py) and
 [focused cases](../source/tests/test_real_expressions.py).
+
+## String conditions alongside numeric math
+
+Selected REAL and LREAL CMP/FSC expressions can combine numeric relations with
+built-in STRING or declared DINT LEN/SINT DATA string relations. Each comparison
+requires matching operand categories: two numbers, two strings, or two BOOLs
+(BOOL ordering remains excluded). String capacities may differ. All six string
+relations compare active bytes in case-sensitive lexical order, including prefix
+and extended byte values. Unused DATA bytes are not consumed.
+
+```text
+CMP((UnsignedInput+0.5>0)&&(PartCode=ExpectedCode))OTE(Matched);
+FSC(Find,?,?,ALL,(Weights[Find.POS]>1.0L)&&(Codes[Find.POS]=ExpectedCode));
+```
+
+Required LEN and active DATA bytes must be known and within the declared string
+capacity. True/false Boolean results do not skip the other side: bad indices,
+unknown bytes and numeric faults still roll back the whole advance. Existing
+false-rung, prescan, file hold/done/inhibit and numeric-continuation rules apply.
+Aliases, selected string elements, UDT members and qualified AOI bindings retain
+their existing address rules. Strings cannot be math operands or numeric results;
+this adds no string literal syntax or native status/fault/layout qualification.
+String-only and legacy narrow/generic/ST/index expression paths stay separate.
+
+In **Wide expression lab**, set StringNumericIndex=1 and StringNumericEnabled=true.
+StringNumericRealMatch and StringNumericDoubleMatch become true. Change
+StringNumericNeedle.DATA[5] from 65 to 66 to make both false, or restore 65 to
+match PART-A. The example combines STRING array elements with a declared
+CODE_12 string. Index99 or StringNumericLateDivisor=0 demonstrates rollback.
+StringNumericInhibit also clears both results while all operands remain required.

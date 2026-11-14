@@ -40,8 +40,6 @@ def analyze(expression, memory, scope='', destination_type=None, *, consumer='CP
                     or floating_literal(expression.tree) or bool(expression.functions & IMPLICIT_REAL))
         extended = bool(expression.typed_types or expression.radix_types or destination_type in WIDE_TYPES or WIDE_TYPES.intersection(declared.values()))
         if binary64 or not selected or not extended:return None
-        # Keep existing mixed string conditions on their established interpreter.
-        if any(memory.project.string_capacity(dtype) is not None for dtype in declared.values()):return None
     elif precision != 'LREAL':raise ModelError('Unsupported floating expression precision')
     elif not binary64:return None
     if not available(memory.project):
@@ -52,8 +50,12 @@ def analyze(expression, memory, scope='', destination_type=None, *, consumer='CP
         raise ModelError('Unsupported '+precision+' expression function')
     types = {}
     for ref, dtype in declared.items():
+        if consumer == 'CMP' and memory.project.string_capacity(dtype) is not None:
+            memory.string(ref, scope)
+            types[ref] = 'string'
+            continue
         if dtype not in NUMERIC and not (consumer == 'CMP' and dtype == 'BOOL'):
-            raise ModelError(precision+' expressions require numeric scalar operands or CMP BOOL tags')
+            raise ModelError(precision+' expressions require numeric scalar operands or CMP BOOL/string tags')
         key, parts, _ = memory.resolve(ref, scope)
         if isinstance(memory.at(key, parts), (dict, list)):
             raise ModelError(precision+' expressions require scalar operands')
@@ -123,6 +125,7 @@ def evaluate(expression, memory, scope, profile):
         if kind == 'lreal_literal':
             return number(value)
         if kind == 'ref':
+            if profile['types'][value] == 'string':return memory.string(value, scope)
             result = memory.read(value, scope)
             dtype = profile['declared'][value]
             return coerce(result, 'BOOL') if dtype == 'BOOL' else number(coerce(result, dtype))
@@ -190,7 +193,8 @@ def description(project):
                     native_runtime_parity=False),
                 operators=sorted(ARITHMETIC), functions=sorted(MATH), exponent_limit=1024,
                 arithmetic='Finite binary64 intermediates; REAL tags retain their stored float32 precision; integer tags convert to binary64',
-                comparisons='CMP/FSC: six numeric relations, BOOL tags and eager Boolean composition',
+                comparisons='CMP/FSC: six numeric or string relations, BOOL tags and eager Boolean composition',
+                strings='Built-in STRING and declared DINT LEN/SINT DATA strings; compare active bytes lexically and case-sensitively; validate LEN and required bytes; no string arithmetic/literals',
                 references='Existing structural/lazy scalar, alias, member, array and AOI bindings; full unknown destination writes',
                 failures='Required unknowns, bounds, nonfinite/domain/zero/late faults roll back the modeled advance',
                 native_runtime_parity=False, native_math_status=False,
@@ -205,11 +209,12 @@ def real_description(project):
                 selection='A REAL tag, unsuffixed floating literal, implicit REAL math function or CPT/FAL REAL destination; at least one wide integer source/result tag, typed integer literal or signed DINT radix word',
                 implicit_real_functions=sorted(IMPLICIT_REAL),
                 integer_functions='ABS/SQR/TRN/TRUNC do not select REAL by themselves; exact integer forms retain their existing qualification',
-                priority='LREAL selection first; existing narrow REAL, exact integer, string, generic/ST/index consumers remain separate',
+                priority='LREAL selection first; existing narrow REAL, exact integer, string-only and generic/ST/index consumers remain separate',
                 constants='Bounded DINT/finite REAL; declared decimal/radix L/U/UL words, signed DINT words and immediate unary range checks before float32 conversion',
                 arithmetic='Finite float32 sources and every numeric intermediate; existing unary math, arithmetic and bounded power',
                 operators=sorted(ARITHMETIC),functions=sorted(FUNCTIONS),exponent_limit=1024,
-                comparisons='CMP/FSC numeric relations, BOOL tags and eager Boolean composition; numeric bitwise and FRD/TOD excluded',
+                comparisons='CMP/FSC numeric or string relations, BOOL tags and eager Boolean composition; numeric bitwise and FRD/TOD excluded',
+                strings='Built-in STRING and declared DINT LEN/SINT DATA strings; compare active bytes lexically and case-sensitively; validate LEN and required bytes; no string arithmetic/literals',
                 destination_types=sorted(NUMERIC-{'LREAL'}),destination_conversion='Nearest-even integer conversion with range checks; REAL results retain float32 precision',
                 failures='Unknowns, bounds, domains, integer ranges and later failures roll back; FAL REAL calculation overflow retains the existing ER/POS/prefix/retry behavior',
                 native_runtime_parity=False,native_math_status=False)

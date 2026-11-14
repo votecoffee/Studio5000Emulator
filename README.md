@@ -108,6 +108,9 @@ and existing file progress/retry rules. Try MixedRealEnabled in **Wide expressio
 lab**; see [REAL expressions](docs/real-expressions.md). Math functions such as
 SIN, LOG and RAD also select REAL without a floating operand. Enable
 FunctionRealEnabled with FunctionRealIndex=1 for integer-input examples.
+Selected REAL/LREAL CMP and FSC also combine numeric and STRING/user-string
+relations. Try StringNumericEnabled with StringNumericIndex=1; see
+[mixed string conditions](docs/real-expressions.md#string-conditions-alongside-numeric-math).
 
 **Floating comparison constants** now select REAL across six ladder relations
 and LIM, including constant-only calls and mixed integer tags. Try
