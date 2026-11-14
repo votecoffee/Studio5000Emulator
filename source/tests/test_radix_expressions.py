@@ -101,9 +101,13 @@ class RadixExpressionTests(unittest.TestCase):
         e=self.engine(['CPT(Dest,16#FFL);']);enabled=e.extensions.expression('16#FFL',integer_literals=True,radix_literals=True)
         self.assertEqual(enabled.radix_types,{'LINT'})
         with self.assertRaises(ModelError):e.extensions.expression('16#FFL',integer_literals=True)
-        for dtype,text in [('LREAL','FRD(16#1L)'),('LINT','16#1L+1e999L'),('REAL','16#1L'),('LINT','SQRT(16#1L)'),
-                           ('LINT','FRD(16#1L)+1.0'),('LINT','16#1L**2.0')]:
+        for dtype,text in [('LREAL','FRD(16#1L)'),('LINT','16#1L+1e999L'),('REAL','16#10000000000000000L'),('LINT','SQRT(16#1L,2L)'),
+                           ('LINT','FRD(16#1L)+1.0'),('LINT','16#1L**1e39')]:
             self.assertTrue(self.engine([f'AFI()CPT(Dest,{text});'],dtype=dtype,checked=False).blockers,(dtype,text))
+        # Existing selected REAL extensions accept these forms without widening
+        # generic/ST/index parsing or the integer-only calculation profile.
+        for dtype,text,want in [('REAL','16#1L',1.0),('LINT','SQRT(16#1L)',1),('LINT','16#1L**2.0',1)]:
+            e=self.engine([f'CPT(Dest,{text});'],dtype=dtype);e.step();self.assertEqual(e.memory.read('Dest'),want)
 
     def test_fal_all_numeric_and_inc_keep_exact_progress_lazy_holds_and_retry(self):
         e=self.engine(['FAL(Ctl,?,?,ALL,Queue[Ctl.POS],16#FFFFFFFFFFFFFFFFUL);'],file=True,dtype='ULINT')

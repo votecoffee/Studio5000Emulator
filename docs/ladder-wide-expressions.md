@@ -396,3 +396,39 @@ See [focused mixed checks](../source/tests/test_mixed_integer_root_power.py).
 decimal/radix constants to CPT/CMP/FAL/FSC with float32 intermediates. Eleven
 math functions also select REAL without a floating operand; ABS/SQR retain their
 existing exact integer paths. LREAL priority, exact integer consumers and existing FAL overflow/retry remain separate.
+
+## String conditions with exact integer math
+
+The qualified integer CMP/FSC profile can combine numeric and BOOL relations with
+STRING or user-string relations. Only numeric sources select the integer type:
+string operands do not change homogeneous or common-range arithmetic rules.
+Integers above 2^53 stay exact, including matching L/U/UL decimal/radix constants,
+homogeneous BCD/bitwise operations and qualified SQR/power expressions.
+
+```text
+CMP((Sequence>Previous)&&(PartCode=ExpectedCode))OTE(Matched);
+FSC(Find,?,?,ALL,(Counts[Find.POS]>9007199254740992UL)&&(Codes[Find.POS]=ExpectedCode));
+```
+
+All six string relations use case-sensitive lexical order over active bytes.
+Built-in STRING and explicit DINT LEN/SINT DATA string types can have different
+capacities. LEN and active DATA bytes must be known and valid; unused bytes are
+not consumed. String values cannot be numeric operands or literals. Numeric and
+string comparisons cannot mix categories; BOOL ordering remains excluded.
+
+Both Boolean sides are required. Unknown bytes, invalid LEN/indices, arithmetic
+errors and later faults roll back the modeled advance. False/prescan and existing
+FSC held, inhibited, done and ALL/numeric/INC rules remain. Selected strings,
+aliases, UDT members and qualified AOI bindings use their existing address rules.
+This does not add ST string expressions or native numerical/status/fault parity.
+[Floating/string conditions](real-expressions.md#string-conditions-alongside-numeric-math)
+retain their separate numeric selection and precision.
+
+In **Wide expression lab**, set IntegerStringIndex=1 and IntegerStringEnabled=true.
+IntegerStringMatch, Exact, PatternMatch and Mixed become true: Source
+9007199254740993 is greater than Threshold9007199254740992, exact subtraction
+retains the adjacent value, the low bit is set, and LINT+DINT arithmetic remains
+exact. This routine shares StringNumericCodes and StringNumericNeedle from the
+floating example. Needle.DATA[5]=66 makes both codes differ; restore65 to match.
+Index99 or IntegerStringLateDivisor=0 demonstrates rollback. IntegerStringInhibit
+gates Match while retaining eager operands; the other three checks remain active.

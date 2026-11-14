@@ -124,3 +124,9 @@ ST/index expansion and native arithmetic/status parity remain excluded.
 qualify compatible common-range tags in CPT/CMP/FAL/FSC, including LINT bases
 with DINT exponents. Full source ranges, common-type arithmetic subtrees and
 checked exponent/result bounds remain required; native parity is unverified.
+
+[Exact integer/string conditions](ladder-wide-expressions.md#string-conditions-with-exact-integer-math)
+now combine integer arithmetic and STRING/user-string lexical relations in
+CMP/FSC, preserving source-selected widths, values above 2^53, eager required
+operands, existing ALL/numeric/INC state and whole-advance rollback. ST/string
+math/literals and native numerical/status/fault/layout parity remain separate.

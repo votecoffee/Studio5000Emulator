@@ -111,6 +111,9 @@ FunctionRealEnabled with FunctionRealIndex=1 for integer-input examples.
 Selected REAL/LREAL CMP and FSC also combine numeric and STRING/user-string
 relations. Try StringNumericEnabled with StringNumericIndex=1; see
 [mixed string conditions](docs/real-expressions.md#string-conditions-alongside-numeric-math).
+[Exact integer/string conditions](docs/ladder-wide-expressions.md#string-conditions-with-exact-integer-math)
+add the same composition to integer CMP/FSC while preserving values above 2^53.
+Try IntegerStringEnabled with IntegerStringIndex=1 in **Wide expression lab**.
 
 **Floating comparison constants** now select REAL across six ladder relations
 and LIM, including constant-only calls and mixed integer tags. Try

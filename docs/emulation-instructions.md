@@ -349,3 +349,9 @@ existing exact integer paths. LREAL priority, exact integer consumers and existi
 add built-in STRING and declared user-string lexical relations to selected REAL
 and LREAL CMP/FSC, retaining eager required operands and existing file progress.
 String math/literals and native numerical/status/fault/layout parity remain separate.
+
+[Exact integer/string conditions](ladder-wide-expressions.md#string-conditions-with-exact-integer-math)
+now combine integer arithmetic and STRING/user-string lexical relations in
+CMP/FSC, preserving source-selected widths, values above 2^53, eager required
+operands, existing ALL/numeric/INC state and whole-advance rollback. ST/string
+math/literals and native numerical/status/fault/layout parity remain separate.

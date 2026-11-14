@@ -125,3 +125,9 @@ FSC also supports [mixed floating and string conditions](real-expressions.md#str
 including selected STRING/user-string elements alongside REAL or LREAL numeric
 relations. The existing ALL/numeric/INC, first-match inhibit/resume and atomic
 rollback rules continue to apply; unused string bytes are not required.
+
+[Exact integer/string conditions](ladder-wide-expressions.md#string-conditions-with-exact-integer-math)
+now combine integer arithmetic and STRING/user-string lexical relations in
+CMP/FSC, preserving source-selected widths, values above 2^53, eager required
+operands, existing ALL/numeric/INC state and whole-advance rollback. ST/string
+math/literals and native numerical/status/fault/layout parity remain separate.

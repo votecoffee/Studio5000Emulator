@@ -13,14 +13,16 @@ def analyze(expression,memory,scope='',destination_type=None,*,consumer='ST'):
     if not wide:return None
     if memory.project.version!='35' or memory.project.processor.upper() not in CONTROLLERS:
         raise ModelError(label+' requires the v35 ControlLogix 5580 profile')
-    numeric=set(declared.values())-{'BOOL'}
+    strings={ref for ref,kind in declared.items()
+             if consumer=='CMP' and memory.project.string_capacity(kind) is not None}
+    numeric={kind for ref,kind in declared.items() if ref not in strings}-{'BOOL'}
     mixed=consumer in ('CPT','CMP','FAL') and len(numeric)>1
     if mixed:
         dtype=ordering_type(numeric)
         if expression.typed_types - {dtype}:
             raise ModelError(label+' typed constants must match the common source tag type')
     else:
-        if len(wide)!=1 or set(declared.values())-wide-{'BOOL'}:
+        if len(wide)!=1 or numeric-wide:
             raise ModelError(label+' numeric tag operands must have one matching declared type')
         dtype=next(iter(wide))
     if destination_type not in (None,'BOOL',dtype):
@@ -30,8 +32,11 @@ def analyze(expression,memory,scope='',destination_type=None,*,consumer='ST'):
     roots = {'SQR'} if ladder_math else set()
     if expression.functions-{'ABS'}-bcd-roots or '**' in expression.operators and not ladder_math:
         raise ModelError(label+' supports ABS, homogeneous FRD/TOD and qualified integer SQR/power; other functions remain unqualified')
-    types={ref:'bool' if kind=='BOOL' else 'number' for ref,kind in declared.items()}
+    types={ref:'string' if ref in strings else 'bool' if kind=='BOOL' else 'number' for ref,kind in declared.items()}
     for ref in declared:
+        if ref in strings:
+            memory.string(ref,scope)
+            continue
         if isinstance(memory.read(ref,scope),(list,dict)):
             raise ModelError(label+' operands must be scalar values')
     def immediate(value):
@@ -99,6 +104,7 @@ def evaluate(expression,memory,scope,profile):
         if kind=='literal':return value if type(value) is bool else number(value)
         if kind=='typed_literal':return number(value)
         if kind=='ref':
+            if types[value]=='string':return memory.string(value,scope)
             item=memory.read(value,scope)
             return bool(item) if types[value]=='bool' else number(item)
         if kind=='unary':
@@ -142,6 +148,13 @@ def ladder_description(project):
     return dict(profile='v35-5580-integer-ladder-expressions',types=list(INTEGER_RANK),
                 available=project.version=='35' and project.processor.upper() in CONTROLLERS,
                 instructions=['CPT','CMP','MEQ'],file_consumers=['FAL','FSC'],mixed_numeric_types=True,
+                string_conditions=dict(consumers=['CMP','FSC'],
+                    types='Built-in STRING and declared DINT LEN/SINT DATA strings, including different capacities',
+                    comparison='Six case-sensitive lexical relations over active bytes; eager Boolean operands',
+                    numeric='Exact integer source/literal selection, range checks, common-type subtrees and homogeneous BCD/bitwise/root/power rules remain',
+                    selection='Structural validation; lazy false/prescan/file idle paths; unknown active bytes or invalid LEN/bounds roll back',
+                    excluded='String math/literals, category mismatches, ST/CPT/FAL string operands and native numerical/status/fault/layout parity',
+                    native_runtime_parity=False),
                 signed_dint_radix_expressions=dict(instructions=['CPT','CMP','FAL','FSC'],bases=[2,8,16],bits=32,
                     interpretation='Unsuffixed words with bit31 set decode as signed DINT before expression unary operators',
                     arithmetic='Narrow integer or existing compatible wide profile; existing per-intermediate range checks',
