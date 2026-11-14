@@ -137,3 +137,9 @@ tags within duration or timestamp families using exact nanoseconds, with BOOL an
 STRING/user-string composition. Existing lazy references, eager required sides,
 ALL/numeric/INC progress and whole-advance rollback remain. Temporal literals,
 arithmetic in expressions, numeric mixtures and native parity remain separate.
+
+[Typed temporal CMP/FSC thresholds](time-date-conditions.md#typed-thresholds-and-dates)
+now accept bounded T32/T/LT/DT/LDT literals, including negative durations,
+fractional dates, UTC offsets and constant-only conditions. Exact nanosecond
+comparisons, eager operands, existing file progress and rollback remain; generic,
+ST/index/CPT/FAL temporal expressions and native parity stay separate.

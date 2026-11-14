@@ -12,7 +12,7 @@ LOGICAL={'&&','^^','||'}
 
 class Condition(Expression):
     def __init__(self,text,*,allow_wide=False,bcd=False,lreal=False,integer_literals=False,radix_literals=False):
-        super().__init__(text,condition=True,bcd=bcd,floating_literals=lreal,integer_literals=lreal or integer_literals,radix_literals=radix_literals)
+        super().__init__(text,condition=True,bcd=bcd,floating_literals=lreal,integer_literals=lreal or integer_literals,radix_literals=radix_literals,temporal_literals=allow_wide and lreal)
         self.allow_wide=allow_wide
         self.allow_lreal=lreal
 

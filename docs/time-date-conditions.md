@@ -1,6 +1,6 @@
 # Time/date ladder conditions
 
-The bounded v35 ControlLogix 5580 software profile supports tag-only temporal
+The bounded v35 ControlLogix 5580 software profile supports exact temporal tag/literal
 relations in CMP and FSC. Existing temporal storage, direct comparisons and
 standalone ADD/SUB retain their separate profiles.
 
@@ -32,12 +32,11 @@ and live indices. Aliases, selected array elements, UDT members and qualified
 AOI bindings keep their existing address rules. FSC retains ALL/numeric/INC,
 first-match inhibit/resume, held/done skips and numeric false continuation.
 
-The temporal expression profile requires at least one temporal tag. It adds no
-literal syntax, temporal arithmetic in expressions, numeric mixtures, CPT/FAL
-temporal results, ST/FBD/SFC execution, new controller profiles or native
-numerical/status/fault/layout/lifecycle parity. Bare numeric constants have no
-implicit time unit. Typed temporal literals remain available in the previously
-supported standalone instructions, not inside this new condition grammar.
+The temporal expression profile requires at least one temporal tag or typed
+temporal literal. Constant-only conditions are supported. Bare numeric constants
+have no implicit time unit. Temporal arithmetic in expressions, numeric mixtures,
+CPT/FAL temporal results, ST/FBD/SFC execution, new controller profiles and native
+numerical/status/fault/layout/lifecycle parity remain separate.
 
 In **Wide expression lab**, set TemporalIndex=1 and TemporalEnabled=true.
 TemporalDurationMatch, TemporalStampMatch and TemporalCombined become true:
@@ -54,3 +53,34 @@ See [temporal storage](time-date-storage.md), [condition parser](../source/logix
 [temporal evaluator](../source/logixlab/time_values.py),
 [FSC](../source/logixlab/file_search.py) and
 [focused cases](../source/tests/test_time_conditions.py).
+
+## Typed thresholds and dates
+
+Qualified ladder CMP/FSC accepts T32#, T#, LT#, DT# and LDT# literals using the
+existing bounded storage syntax. Prefixes and UTC are case-insensitive. Duration
+components descend from days to nanoseconds; TIME32/TIME retain microsecond
+precision and LTIME supports nanoseconds. Negative durations put the sign after
+the prefix, for example LT#-1us_1ns. Existing declared ranges remain required.
+Dates support fractional seconds, grouped fractions and explicit UTC offsets.
+
+```text
+CMP(FineDuration>T#1us)OTE(Expired);
+CMP(Stamp>=DT#2026-01-01-08:00:00(UTC+08:00))OTE(AfterStart);
+FSC(Find,?,?,ALL,(Times[Find.POS]>LT#1ns)&&(Codes[Find.POS]=ExpectedCode));
+```
+
+Every constant is checked at declared precision/range before conversion to exact
+integer nanoseconds. UTC offsets are normalized by the existing date parser;
+they do not change the emulator or host clock. Both operands can be constants.
+Same-family relations and eager Boolean/string rules are unchanged. Invalid
+constants block a routine even on false rungs. Generic, ST, index, CPT and FAL
+parsers retain their scope; this adds no temporal expression arithmetic or
+floating conversion. A separate lexer option is enabled only by the existing
+qualified Condition flags, leaving consumer cache keys unchanged.
+
+In **Wide expression lab**, set TimeLiteralIndex=1 and TimeLiteralEnabled=true.
+DurationMatch, StampMatch, ConstantMatch and Combined become true (all have the
+TimeLiteral prefix). The routine reuses TemporalHighDuration/HighStamp/Limits and
+StringNumericCodes/Needle. It demonstrates tag/constant, constant-only, UTC-offset,
+cross-precision and selected string composition. Index99 or LateDivisor0 tests
+rollback. Changing a shared time value or code is reflected on the next step.

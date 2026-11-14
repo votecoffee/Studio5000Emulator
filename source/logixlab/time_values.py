@@ -20,7 +20,7 @@ BOUNDS = {
 }
 DATE = re.compile(
     r'(\d{4})-(\d{2})-(\d{2})-(\d{2}):(\d{2}):(\d{2})'
-    r'(?:\.([0-9]{1,9}|[0-9]{3}(?:_[0-9]{3}){1,2}))?'
+    r'(?:\.([0-9]{3}(?:_[0-9]{3}){1,2}|[0-9]{1,9}))?'
     r'(?:\s*\(UTC([+-])(\d{2}):(\d{2})\))?', re.ASCII | re.IGNORECASE)
 DURATION_COMPONENT = re.compile(r'([0-9]+)(d|h|ms|us|ns|m|s)', re.IGNORECASE)
 
@@ -81,6 +81,25 @@ def literal(ref):
         return None
     ticks = timestamp(value, dtype) if dtype in DATE_TYPES else duration(value, dtype)
     return dtype, checked(ticks, dtype)
+
+
+def scan(text, pos=0):
+    """Return one declared temporal expression token using the storage parser."""
+    prefix=re.match(r'(T32|LDT|LT|DT|T)#',text[pos:],re.ASCII|re.IGNORECASE)
+    if prefix is None:return None
+    dtype=PREFIXES[prefix[1].upper()];start=pos+prefix.end()
+    if dtype in DATE_TYPES:
+        date=DATE.match(text,start)
+        if date is None:raise ValueError('Invalid '+dtype+' date literal')
+        end=date.end()
+    else:
+        end=start
+        if text[end:end+1]=='-':end+=1
+        while end<len(text) and (text[end].isascii() and text[end].isalnum() or text[end]=='_'):end+=1
+    if end<len(text) and (text[end].isalnum() or text[end] in '_.#'):
+        raise ValueError('Invalid '+dtype+' literal boundary')
+    _,ticks=literal(text[pos:end])
+    return end,(ticks,dtype)
 
 
 def coerce(value, dtype):
@@ -173,12 +192,12 @@ def display_changes(changes, tags):
 
 
 def condition_profile(expression, memory, scope=''):
-    """Qualify tag-only temporal relations for existing ladder CMP/FSC paths."""
+    """Qualify exact temporal relations for existing ladder CMP/FSC paths."""
     if not (expression.allow_wide and expression.allow_lreal):return None
     from .conditions import RELATIONS
     from .model import ModelError
     declared={ref:memory.resolve(ref,scope)[2] for ref in expression.refs}
-    if not TYPES.intersection(declared.values()):return None
+    if not TYPES.intersection(declared.values()) and not expression.temporal_types:return None
     if not available(memory.project):
         raise ModelError('Time/date conditions require the v35 ControlLogix 5580 profile')
     types={};previous=memory.structural
@@ -201,9 +220,10 @@ def condition_profile(expression, memory, scope=''):
     def infer(node):
         kind,value=node[:2]
         if kind=='ref':return types[value]
+        if kind=='time_literal':return 'date' if node[2] in DATE_TYPES else 'duration'
         if kind=='unary' and value in ('!','NOT') and infer(node[2])=='bool':return 'bool'
         if kind!='binary':
-            raise ModelError('Time/date conditions support tag relations and Boolean composition; literals and arithmetic remain unqualified')
+            raise ModelError('Time/date conditions support temporal literals, tag relations and Boolean composition; numeric literals and arithmetic remain unqualified')
         left,right=infer(node[2]),infer(node[3])
         if value in RELATIONS:
             if left!=right or left=='bool' and value not in ('=','<>'):
@@ -221,6 +241,7 @@ def evaluate_condition(expression, memory, scope, profile):
     from .model import coerce
     def visit(node):
         kind,value=node[:2]
+        if kind=='time_literal':return value*ns_per_tick(node[2])
         if kind=='ref':
             dtype=profile['declared'][value];category=profile['types'][value]
             if category in ('date','duration'):

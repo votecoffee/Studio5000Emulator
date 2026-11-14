@@ -117,6 +117,9 @@ Try IntegerStringEnabled with IntegerStringIndex=1 in **Wide expression lab**.
 [Time/date conditions](docs/time-date-conditions.md) also add exact temporal tag
 relations to CMP/FSC, including BOOL and string checks. Try TemporalEnabled
 with TemporalIndex=1 in the same sample.
+[Typed time/date thresholds](docs/time-date-conditions.md#typed-thresholds-and-dates)
+now work directly in CMP/FSC, including UTC offsets and constant-only conditions.
+Try TimeLiteralEnabled with TimeLiteralIndex=1.
 
 **Floating comparison constants** now select REAL across six ladder relations
 and LIM, including constant-only calls and mixed integer tags. Try

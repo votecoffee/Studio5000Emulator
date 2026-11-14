@@ -5,6 +5,7 @@ import re
 from .model import ModelError, coerce, literal
 from .real_math import square_root
 from .st_literals import scan as typed_integer
+from . import time_values
 
 FUNCTIONS = {'ABS': abs, 'SQR': square_root, 'SQRT': square_root, 'TRN': math.trunc,
              'TRUNC': math.trunc, 'LN': math.log, 'LOG': math.log10,
@@ -30,8 +31,10 @@ PRECEDENCE = {'OR': 1, 'XOR': 2, 'AND': 3, '+': 4, '-': 4,
 
 
 class Expression:
-    def __init__(self, text, condition=False, structured=False, subscript=False, bcd=False, floating_literals=False, integer_literals=False, radix_literals=False):
+    def __init__(self, text, condition=False, structured=False, subscript=False, bcd=False, floating_literals=False, integer_literals=False, radix_literals=False, temporal_literals=False):
         if len(text) > 4096: raise ModelError('Expression exceeds 4096 characters')
+        if temporal_literals and (not condition or structured or subscript):
+            raise ModelError('Time/date expression literals require qualified ladder conditions')
         self.precedence = dict(PRECEDENCE)
         self.minimum = -3 if condition else 0
         self.structured=structured
@@ -51,9 +54,15 @@ class Expression:
         self.typed_types = set()
         self.radix_types = set()
         self.literal_types = set()
+        self.temporal_types = set()
         pos = 0
         while pos < len(text):
             if text[pos].isspace(): pos += 1; continue
+            if temporal_literals:
+                try:temporal=time_values.scan(text,pos)
+                except ValueError as error:raise ModelError('Invalid time/date expression literal: '+str(error)) from error
+                if temporal is not None:
+                    pos,value=temporal;self.tokens.append(('temporal',value));continue
             if structured and text[pos]=="'":
                 start=pos;pos+=1
                 while pos<len(text) and text[pos]!="'":
@@ -135,6 +144,8 @@ class Expression:
             node = ('lreal_literal',value);self.literal_types.add('LREAL')
         elif kind=='typed':
             node=('typed_literal',*value);self.typed_types.add(value[1])
+        elif kind=='temporal':
+            node=('time_literal',*value);self.temporal_types.add(value[1])
         elif kind=='string':node=('string',value)
         elif kind in ('+','-','NOT','!'):
             self.operators.add(kind)
@@ -169,6 +180,7 @@ class Expression:
         if real:raise ModelError('Signed DINT radix expressions require integer arithmetic')
 
     def validate(self, memory, scope='', destination_type=None, index=False):
+        if self.temporal_types:raise ModelError('Time/date literals require qualified ladder CMP/FSC')
         if self.typed_types:raise ModelError('Typed integer literals require a qualified integer expression profile')
         if self.literal_types:raise ModelError('LREAL literals require the qualified ladder floating expression profile')
         real = destination_type == 'REAL'

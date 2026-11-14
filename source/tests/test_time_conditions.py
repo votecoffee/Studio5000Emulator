@@ -54,7 +54,7 @@ class TimeConditionTests(unittest.TestCase):
             e=self.make([f'CMP({expression})OTE(RunLatch);'],change=dates);e.step();self.assertEqual(e.memory.read('RunLatch'),want,expression)
 
     def test_family_numeric_literal_math_shape_and_controller_guards(self):
-        for expression in ('Source>SpeedCommand','Source>1','Source>1UL','Source>1.0L','Source>T#1us',
+        for expression in ('Source>SpeedCommand','Source>1','Source>1UL','Source>1.0L','Source>T#1ns',
                 '(Source+Mask)>Source','ABS(Source)>Mask','Source','-Source>Mask','Source>StartPB',
                 '(Source>Mask)&&(SpeedCommand=SpeedCommand)','(Source>Mask)&&(Word=1)'):
             self.assertTrue(self.make([f'AFI()CMP({expression})OTE(RunLatch);'],checked=False).blockers,expression)
