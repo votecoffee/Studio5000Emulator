@@ -72,7 +72,7 @@ class TimeConditionLiteralTests(unittest.TestCase):
         for create in (Expression,lambda t:Expression(t,structured=True),lambda t:Expression(t,subscript=True),
                 Condition,lambda t:Condition(t,allow_wide=True),lambda t:Condition(t,lreal=True)):
             with self.assertRaises(ModelError):create('T#1us>T#0s')
-        with self.assertRaises(ModelError):Expression('T#1us',temporal_literals=True)
+        with self.assertRaises(ModelError):Expression('T#1us',temporal_literals=True).validate(None)
         with self.assertRaises(ModelError):Expression('T#1us',condition=True,structured=True,temporal_literals=True)
         for text in ('LT#1nsabc','DT#2026-01-01-00:00:00foo','LT#1ns_','LT#1ns#2'):
             self.assertTrue(self.make([f'AFI()CMP({text}>T#0s)OTE(RunLatch);'],checked=False).blockers,text)
@@ -80,12 +80,12 @@ class TimeConditionLiteralTests(unittest.TestCase):
         self.assertEqual(condition.temporal_types,{'LTIME','TIME'});self.assertTrue(condition.evaluate(e.memory))
         self.assertIs(condition,e.extensions.condition('LT#1ns>T#0s',allow_wide=True,lreal=True))
         with self.assertRaises(ModelError):e.extensions.condition('LT#1ns>T#0s')
-        self.assertTrue(self.make(['AFI()CPT(Dest,T#1us);'],checked=False).blockers)
-        self.assertTrue(self.make(['AFI()FAL(Ctl,?,?,ALL,Queue[Ctl.POS],T#1us);'],file=True,checked=False).blockers)
+        self.assertTrue(self.make(['AFI()CPT(Dest,DT#1970-01-01-00:00:00);'],checked=False).blockers)
+        self.assertTrue(self.make(['AFI()FAL(Ctl,?,?,ALL,Queue[Ctl.POS],DT#1970-01-01-00:00:00);'],file=True,checked=False).blockers)
 
     def test_cross_family_numeric_and_arithmetic_exclusions(self):
         for expression in ('T#1us>DT#2026-01-01-00:00:00','T#1us>1','T#1us>1UL','T#1us>1.0L',
-                'T#1us+LT#1ns>T#0s','-T#1us<T#0s','ABS(T#1us)>T#0s',
+                'T#1us*LT#1ns>T#0s','-DT#1970-01-01-00:00:00<DT#1970-01-01-00:00:00','ABS(T#1us)>T#0s',
                 '(T#1us>T#0s)&&(SpeedCommand=SpeedCommand)','(T#1us>T#0s)&&(Word=1)'):
             self.assertTrue(self.make([f'AFI()CMP({expression})OTE(RunLatch);'],checked=False).blockers,expression)
         for key,value in [('ProcessorType','1756-L75'),('MajorRev','34')]:

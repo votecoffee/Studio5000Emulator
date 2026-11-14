@@ -55,12 +55,12 @@ class TimeConditionTests(unittest.TestCase):
 
     def test_family_numeric_literal_math_shape_and_controller_guards(self):
         for expression in ('Source>SpeedCommand','Source>1','Source>1UL','Source>1.0L','Source>T#1ns',
-                '(Source+Mask)>Source','ABS(Source)>Mask','Source','-Source>Mask','Source>StartPB',
+                '(Source*Mask)>Source','ABS(Source)>Mask','Source','NOT Source>Mask','Source>StartPB',
                 '(Source>Mask)&&(SpeedCommand=SpeedCommand)','(Source>Mask)&&(Word=1)'):
             self.assertTrue(self.make([f'AFI()CMP({expression})OTE(RunLatch);'],checked=False).blockers,expression)
         self.assertTrue(self.make(['AFI()CMP(Source>Mask)OTE(RunLatch);'],source='LDT',other='TIME',checked=False).blockers)
-        self.assertTrue(self.make(['AFI()CPT(Dest,Source);'],checked=False).blockers)
-        self.assertTrue(self.make(['AFI()FAL(Ctl,?,?,ALL,Queue[Ctl.POS],Incoming);'],file=True,checked=False).blockers)
+        self.assertTrue(self.make(['AFI()CPT(Dest,Source*Source);'],checked=False).blockers)
+        self.assertTrue(self.make(['AFI()FAL(Ctl,?,?,ALL,Queue[Ctl.POS],Incoming*Incoming);'],file=True,checked=False).blockers)
         for key,value in [('ProcessorType','1756-L75'),('MajorRev','34')]:
             self.assertTrue(self.make(['AFI()CMP(Source>Mask)OTE(RunLatch);'],change=lambda root:root.find('Controller').set(key,value),checked=False).blockers)
         def array(root):

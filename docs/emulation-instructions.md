@@ -367,3 +367,9 @@ now accept bounded T32/T/LT/DT/LDT literals, including negative durations,
 fractional dates, UTC offsets and constant-only conditions. Exact nanosecond
 comparisons, eager operands, existing file progress and rollback remain; generic,
 ST/index/CPT/FAL temporal expressions and native parity stay separate.
+
+[Temporal expression arithmetic](time-date-conditions.md#temporal-arithmetic-and-results)
+adds bounded exact duration/date addition and subtraction across CPT/CMP/FAL/FSC.
+CPT/FAL time/date results require the matching family, exact destination ticks
+and declared range; temporal failures roll back the advance. ST/FBD/SFC,
+unsupported operators and native parity remain separate.

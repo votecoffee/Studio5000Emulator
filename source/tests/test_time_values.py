@@ -77,7 +77,7 @@ class TimeValueTests(unittest.TestCase):
         for text in ('MOV(DT#1970-01-01-00:00:00,Dest);', 'MOV(1,Dest);', 'MOV(Source,SpeedCommand);',
                      'MOV(Source.0,Dest);', 'EQU(Source,DT#1970-01-01-00:00:00)OTE(RunLatch);',
                      'LIM(Source,Source,Source)OTE(RunLatch);', 'MUL(Source,Source,Dest);',
-                     'CPT(Dest,Source+Source);', 'EQU(Source,LT#32d)OTE(RunLatch);',
+                     'CPT(Dest,Source*Source);', 'EQU(Source,LT#32d)OTE(RunLatch);',
                      'COP(Source,Dest,1);', 'CPS(Source,Dest,1);'):
             with self.subTest(text=text):
                 self.assertTrue(self.engine(['AFI()'+text]).blockers)

@@ -66,10 +66,11 @@ class Extensions:
         coerce(value,'DINT')
         return value
 
-    def numeric_destination(self,ref,scope,integer=False,wide=False):
+    def numeric_destination(self,ref,scope,integer=False,wide=False,temporal=False):
         key,parts,dtype=self.memory.check_writable(ref,scope)
         allowed=set(('SINT','INT','DINT') if integer else ('SINT','INT','DINT','REAL'))
         if wide:allowed.update((*WIDE_TYPES,'LREAL'))
+        if temporal:allowed.update(time_values.TYPES)
         if dtype not in allowed:
             raise ModelError('Numeric scalar destination required')
         value=self.memory.at(key,parts) if wide else self.memory.read(ref,scope)
@@ -87,12 +88,15 @@ class Extensions:
 
     def expression(self,text,*,bcd=False,floating_literals=False,integer_literals=False,radix_literals=False):
         key=(text,bcd,floating_literals,integer_literals,radix_literals)
-        if key not in self.expressions:self.expressions[key]=Expression(text,bcd=bcd,floating_literals=floating_literals,integer_literals=integer_literals,radix_literals=radix_literals)
+        if key not in self.expressions:self.expressions[key]=Expression(text,bcd=bcd,floating_literals=floating_literals,integer_literals=integer_literals,radix_literals=radix_literals,temporal_literals=floating_literals and integer_literals and radix_literals)
         return self.expressions[key]
 
     def compute(self,args,scope,execute=False):
-        dtype=self.numeric_destination(args[0],scope,wide=True)
+        dtype=self.numeric_destination(args[0],scope,wide=True,temporal=True)
         expression=self.expression(args[1],bcd=True,floating_literals=True,integer_literals=True,radix_literals=True)
+        temporal=time_values.expression_profile(expression,self.memory,scope,dtype,consumer='CPT')
+        if temporal is not None:
+            return time_values.evaluate_expression(expression,self.memory,scope,temporal) if execute else None
         floating=(lreal_expressions.analyze(expression,self.memory,scope,dtype,consumer='CPT') or
                   lreal_expressions.analyze(expression,self.memory,scope,dtype,consumer='CPT',precision='REAL'))
         if floating is not None:
@@ -163,8 +167,8 @@ class Extensions:
             expression=self.expression(op.args[1],bcd=True,floating_literals=True,integer_literals=True,radix_literals=True) if op.name=='CPT' else self.condition(op.args[0],allow_wide=True,bcd=True,lreal=True,radix_literals=True)
             for ref in expression.refs:
                 dtype=self.memory.resolve(ref,scope)[2]
-                if dtype not in {*INT_BITS,'REAL','LREAL','BOOL'}:return False
-                if isinstance(self.memory.read(ref,scope),(list,dict)):
+                if dtype not in {*INT_BITS,'REAL','LREAL','BOOL',*time_values.TYPES}:return False
+                if isinstance(self.memory.read(ref,scope,allow_time=dtype in time_values.TYPES),(list,dict)):
                     raise ModelError('CPT/CMP references require scalar numeric or BOOL elements')
             if op.name=='CPT':self.compute(op.args,scope)
             else:expression.validate(self.memory,scope)

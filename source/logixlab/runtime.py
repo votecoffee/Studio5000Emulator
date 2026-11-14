@@ -13,7 +13,7 @@ from .task_scheduler import TaskScheduler
 from .wall_clock import CoordinatedClock, ClockAdjustment, adjusted_microseconds, current_value_microseconds, MAX_SET_MICROSECONDS, SET_INTERVAL_MICROSECONDS
 from .runtime_references import RuntimeReferences
 from .change_detection import ChangeDetection
-from . import event_status, system_values, integer_math, scalar_math, numeric_storage, bit_logic, bit_transfer, numeric_fill, size_truncate, comparisons, string_operations, control_operations, sequencer_operations, numeric_conversions, real_math, array_statistics, array_sort, file_search, file_arithmetic, string_conversions, event_tasks, file_incremental, wide_st, st_cases, task_inhibit, mcr, data_transition, file_bit_compare, st_timers, st_counter, st_oneshot, st_scale, st_signal, st_rate, st_moving, st_capture, st_filter, st_digital, st_accumulate, st_select, st_derivative, st_curves, st_pi, st_bit_moves, numeric_copy, aggregate_copy, ladder_pid, ladder_alarm, ladder_analog_alarm, lreal_expressions
+from . import event_status, system_values, integer_math, scalar_math, numeric_storage, bit_logic, bit_transfer, numeric_fill, size_truncate, comparisons, string_operations, control_operations, sequencer_operations, numeric_conversions, real_math, array_statistics, array_sort, file_search, file_arithmetic, string_conversions, event_tasks, file_incremental, wide_st, st_cases, task_inhibit, mcr, data_transition, file_bit_compare, st_timers, st_counter, st_oneshot, st_scale, st_signal, st_rate, st_moving, st_capture, st_filter, st_digital, st_accumulate, st_select, st_derivative, st_curves, st_pi, st_bit_moves, numeric_copy, aggregate_copy, ladder_pid, ladder_alarm, ladder_analog_alarm, lreal_expressions, time_values
 from .model import ARITIES, ArrayBoundsError, Branch, Memory, ModelError, Op, operations, unknown_shape
 from .extended import Extensions
 from .function_blocks import FunctionBlocks,description as fbd_description
@@ -1287,6 +1287,7 @@ class Engine:
                 'real_expression_execution':lreal_expressions.real_description(self.project),
                 'wide_st_execution':wide_st.description(self.project),
                 'wide_ladder_expressions':wide_st.ladder_description(self.project),
+                'temporal_expressions':time_values.expression_description(self.project),
                 'bit_transfer':bit_transfer.description(),
                 'bit_logic':bit_logic.description(self.project),
                 'numeric_storage':numeric_storage.description(self.project),

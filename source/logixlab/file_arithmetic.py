@@ -3,7 +3,7 @@ from . import control_operations as controls
 from . import file_incremental as incremental
 from .integer_math import CONTROLLERS, WIDE_TYPES
 from .comparisons import INTEGER_RANK
-from . import lreal_expressions, wide_st
+from . import lreal_expressions, wide_st, time_values
 from .model import ArrayBoundsError, ModelError, coerce, literal
 
 INSTRUCTIONS = frozenset(('FAL',))
@@ -25,7 +25,7 @@ def mode(text):
 
 def destination(memory, op, scope):
     key, parts, dtype = memory.check_writable(op.args[4], scope)
-    if dtype not in lreal_expressions.NUMERIC or isinstance(memory.at(key, parts), (list, dict, bool)):
+    if dtype not in lreal_expressions.NUMERIC | time_values.TYPES or isinstance(memory.at(key, parts), (list, dict, bool)):
         raise ModelError('FAL requires a writable numeric scalar destination')
     ck, cp, _ = memory.resolve(op.args[0], scope)
     if key == ck and parts[:len(cp)] == cp:
@@ -35,6 +35,9 @@ def destination(memory, op, scope):
 
 def calculate(engine,expression,scope,dtype,*,execute=False):
     memory = engine.memory
+    temporal=time_values.expression_profile(expression,memory,scope,dtype,consumer='FAL')
+    if temporal is not None:
+        return time_values.evaluate_expression(expression,memory,scope,temporal) if execute else None
     floating = (lreal_expressions.analyze(expression,memory,scope,dtype,consumer='FAL') or
                 lreal_expressions.analyze(expression,memory,scope,dtype,consumer='FAL',precision='REAL'))
     if floating is not None:

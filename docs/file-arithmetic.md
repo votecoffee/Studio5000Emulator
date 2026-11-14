@@ -177,3 +177,9 @@ rules are explicit; wider types, ST and native parity remain separate.
 decimal/radix constants to CPT/CMP/FAL/FSC with float32 intermediates. Eleven
 math functions also select REAL without a floating operand; ABS/SQR retain their
 existing exact integer paths. LREAL priority, exact integer consumers and existing FAL overflow/retry remain separate.
+
+[Temporal expression arithmetic](time-date-conditions.md#temporal-arithmetic-and-results)
+adds bounded exact duration/date addition and subtraction across CPT/CMP/FAL/FSC.
+CPT/FAL time/date results require the matching family, exact destination ticks
+and declared range; temporal failures roll back the advance. ST/FBD/SFC,
+unsupported operators and native parity remain separate.

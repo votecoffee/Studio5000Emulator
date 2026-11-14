@@ -34,8 +34,8 @@ first-match inhibit/resume, held/done skips and numeric false continuation.
 
 The temporal expression profile requires at least one temporal tag or typed
 temporal literal. Constant-only conditions are supported. Bare numeric constants
-have no implicit time unit. Temporal arithmetic in expressions, numeric mixtures,
-CPT/FAL temporal results, ST/FBD/SFC execution, new controller profiles and native
+have no implicit time unit. Unsupported temporal operators, numeric mixtures,
+ST/FBD/SFC execution, new controller profiles and native
 numerical/status/fault/layout/lifecycle parity remain separate.
 
 In **Wide expression lab**, set TemporalIndex=1 and TemporalEnabled=true.
@@ -74,9 +74,9 @@ integer nanoseconds. UTC offsets are normalized by the existing date parser;
 they do not change the emulator or host clock. Both operands can be constants.
 Same-family relations and eager Boolean/string rules are unchanged. Invalid
 constants block a routine even on false rungs. Generic, ST, index, CPT and FAL
-parsers retain their scope; this adds no temporal expression arithmetic or
-floating conversion. A separate lexer option is enabled only by the existing
-qualified Condition flags, leaving consumer cache keys unchanged.
+parsers retain their separate defaults. Qualified CPT/FAL arithmetic is described
+below. The lexer also opts in through their existing complete expression flags,
+leaving consumer cache keys unchanged. No floating conversion is introduced.
 
 In **Wide expression lab**, set TimeLiteralIndex=1 and TimeLiteralEnabled=true.
 DurationMatch, StampMatch, ConstantMatch and Combined become true (all have the
@@ -84,3 +84,41 @@ TimeLiteral prefix). The routine reuses TemporalHighDuration/HighStamp/Limits an
 StringNumericCodes/Needle. It demonstrates tag/constant, constant-only, UTC-offset,
 cross-precision and selected string composition. Index99 or LateDivisor0 tests
 rollback. Changing a shared time value or code is reflected on the next step.
+
+## Temporal arithmetic and results
+
+CPT/CMP/FAL/FSC support exact temporal + and - expressions, including typed
+constants and duration unary signs. Allowed combinations are duration +/-
+duration, date +/- duration, duration + date, and date - date. Two dates cannot
+be added, and a date cannot be subtracted from a duration. Multiplication,
+division, functions and numeric/time mixtures remain excluded.
+
+Each temporal node uses exact integer nanoseconds within the existing canonical
+LTIME duration or LDT timestamp range. This is an explicit software-model policy,
+not native intermediate-width or status qualification. Timestamp differences
+must fit the modeled duration range; dates cannot underflow the epoch. Comparisons
+and eager BOOL/string composition consume the resulting families as before.
+
+```text
+CPT(Elapsed,StopStamp-StartStamp);
+CPT(NextStamp,StartStamp+LT#1ms);
+CMP((StopStamp-StartStamp)>T#1s)OTE(Expired);
+FAL(Calc,?,?,ALL,Next[Calc.POS],Stamps[Calc.POS]+LT#1ns);
+```
+
+CPT/FAL destinations must be scalar TIME32/TIME/LTIME for durations or DT/LDT
+for dates. The result must fit its declared range and exact stored tick precision;
+fractional ticks are rejected rather than rounded. Complete writes establish
+unknown destination cells. False/prescan and existing file modes retain lazy
+reads. Unknowns, precision/range errors and later faults roll back the advance,
+including earlier FAL cells and CONTROL progress. Earlier successful numeric/INC
+advances stay committed. Temporal failures do not use FAL's REAL ER/prefix retry.
+
+In **Wide expression lab**, set TemporalMathIndex=1 and TemporalMathEnabled=true.
+Elapsed=1ns, Next=1767225600000001001ns, Total=2001ns, Negative=-1ns,
+Selected[1]=2001ns and Match=true (all have TemporalMath prefix). The routine uses
+shared TemporalHighStamp/Stamp/HighDuration. Enable TemporalMathCoarseEnabled
+to demonstrate rejected fractional TIME ticks; change TemporalHighDuration to
+1000ns to obtain an exact Coarse=2us. Index99 and LateDivisor0 demonstrate rollback.
+The report exposes temporal_expressions. ST/FBD/SFC arithmetic and native
+precision/status/fault/layout/lifecycle parity remain unqualified.

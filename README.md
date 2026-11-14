@@ -120,6 +120,9 @@ with TemporalIndex=1 in the same sample.
 [Typed time/date thresholds](docs/time-date-conditions.md#typed-thresholds-and-dates)
 now work directly in CMP/FSC, including UTC offsets and constant-only conditions.
 Try TimeLiteralEnabled with TimeLiteralIndex=1.
+[Temporal arithmetic](docs/time-date-conditions.md#temporal-arithmetic-and-results)
+adds elapsed-time and future-timestamp expressions across CPT/CMP/FAL/FSC.
+Try TemporalMathEnabled with TemporalMathIndex=1, including exact result conversions.
 
 **Floating comparison constants** now select REAL across six ladder relations
 and LIM, including constant-only calls and mixed integer tags. Try
