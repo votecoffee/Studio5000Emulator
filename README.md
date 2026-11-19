@@ -219,7 +219,7 @@ reads the Mode word and reports Inhibited or Waiting for qualified modules.
 Waiting means a modeled parent or ancestor is inhibited or faulted. Ladder
 and ST can set Mode with SSV and read it back in the same scan. Ladder
 [IOT captures virtual output data](docs/device-io.md#immediate-output-captures)
-for running local modules. The **Module status lab**
+for running local and named IPv4 modules. The **Module status lab**
 demonstrates these states and reads local and Ethernet routes, including
 [a slot in a remote chassis](docs/gsv-configuration.md#remote-controllogix-backplane-path).
 Use the [simulated connection input](docs/gsv-configuration.md#simulated-module-connection)

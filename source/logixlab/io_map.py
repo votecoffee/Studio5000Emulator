@@ -16,6 +16,7 @@ class ModuleSettings:
     route: bytes | None = None
     routed_parent: str | None = None
     display_name: str | None = None
+    ethernet_addressed: bool = False
 
     def mode(self):
         if self.inhibited is None or self.major_fault is None:
@@ -183,7 +184,7 @@ def _module_settings(controller, modules):
         routed_parent = parent if name in routes and parent in routes else None
         settings.append(ModuleSettings(name, bool_values.get(module.get('Inhibited')),
                                        bool_values.get(module.get('MajorFault')), routes.get(name),
-                                       routed_parent, module.get('Name')))
+                                       routed_parent, module.get('Name'), ethernet_addressed=name in ethernet_routes))
     return tuple(settings)
 
 

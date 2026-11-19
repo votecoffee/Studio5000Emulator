@@ -1,4 +1,4 @@
-"""Local rack IOT captures instruction-time data at a committed boundary."""
+"""IOT captures instruction-time data at a committed boundary."""
 import base64
 import json
 import tempfile
@@ -34,8 +34,8 @@ class ImmediateOutputTests(unittest.TestCase):
     def step(self):
         return self.app.command('step',{'count':1,'dt':10})
 
-    def connection(self, state, **extra):
-        return self.app.command('module-connection',dict(module='RackOutput',state=state,
+    def connection(self, state, *, module='RackOutput', **extra):
+        return self.app.command('module-connection',dict(module=module,state=state,
                                                        project_generation=self.app.generation,**extra))
 
     def open_output(self):
@@ -45,6 +45,55 @@ class ImmediateOutputTests(unittest.TestCase):
 
     def snapshot(self):
         return json.loads(self.app.device_io.snapshot()[1])
+
+    @staticmethod
+    def named_output(root, *, bridged=False, address='192.0.2.99'):
+        modules = root.find('./Controller/Modules')
+        parent = 'Local'
+        if bridged:
+            parent = 'LineBridge'
+            bridge = ET.SubElement(modules, 'Module', Name=parent, CatalogNumber='1756-EN2TR',
+                                   Vendor='1', ProductType='12', ParentModule='Local',
+                                   ParentModPortId='1', Inhibited='false', MajorFault='false')
+            ports = ET.SubElement(bridge, 'Ports')
+            ET.SubElement(ports, 'Port', Id='1', Address='6', Type='ICP', Upstream='true')
+            ET.SubElement(ports, 'Port', Id='2', Type='Ethernet', Upstream='false')
+        remote = ET.SubElement(modules, 'Module', Name='NetworkOutput', CatalogNumber='1732E-OB16M12',
+                               Vendor='1', ProductType='7', ParentModule=parent, ParentModPortId='2',
+                               Inhibited='false', MajorFault='false')
+        ET.SubElement(ET.SubElement(remote, 'Ports'), 'Port', Id='1', Address=address,
+                      Type='Ethernet', Upstream='true')
+        tag = ET.SubElement(root.find('./Controller/Tags'), 'Tag', Name='NetworkOutput:O',
+                            TagType='Base', DataType='DINT')
+        ET.SubElement(ET.SubElement(tag, 'Data', Format='Decorated'), 'DataValue', DataType='DINT', Value='0')
+        text = root.find('.//Routine[@Name="Main"]/RLLContent/Rung[@Number="16"]/Text')
+        text.text = text.text.replace('Local:2:O', 'NetworkOutput:O')
+
+    def test_named_ipv4_outputs_require_running_path_and_retain_sample_when_blocked(self):
+        for bridged in (False, True):
+            with self.subTest(bridged=bridged):
+                self.assertEqual(self.load(lambda root: self.named_output(root, bridged=bridged))['blockers'], [])
+                self.write('SendImmediate', True)
+                self.assertEqual(self.step()['immediate_outputs'], [])
+                self.connection('running', module='NetworkOutput')
+                captured = self.step()['immediate_outputs']
+                self.assertEqual(captured, [
+                    dict(module='NetworkOutput', tag='NetworkOutput:O', value=17, sequence=1, scan=2, simulation_ms=20)])
+                self.assertEqual(self.snapshot()['immediate_outputs'], captured)
+                self.assertEqual(self.app.engine.memory.read('NetworkOutput:O'), 29)
+
+                blocked_module = 'LineBridge' if bridged else 'NetworkOutput'
+                self.connection('faulted', module=blocked_module, fault_code=5, fault_info=0)
+                self.write('OutputCommand', 45)
+                self.assertEqual(self.step()['immediate_outputs'], captured)
+                self.connection('running', module=blocked_module)
+                self.assertEqual(self.step()['immediate_outputs'], [
+                    captured[0] | dict(value=45, sequence=2, scan=4, simulation_ms=40)])
+
+    def test_named_output_rejects_invalid_or_ambiguous_ipv4_route(self):
+        for address in ('invalid', '192.0.2.42'):
+            state = self.load(lambda root: self.named_output(root, address=address))
+            self.assertTrue(any('IOT requires' in blocker for blocker in state['blockers']), state['blockers'])
 
     def test_open_output_captures_earlier_value_and_retains_sequence(self):
         self.assertEqual(self.load()['blockers'],[])

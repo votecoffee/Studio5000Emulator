@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+[Ladder IOT](device-io.md#immediate-output-captures) accepts whole output tags
+for named IPv4 modules in `26.1119.171037`. Simulated connections through the
+controller or a qualified local bridge publish the instruction-time image
+at commit. Faulted upstream routes retain the last published sample.
+
 [Periodic task diagnostics](task-scheduling.md#periodic-task-diagnostics)
 accept Status and OverlapCount GSV/SSV as of `26.1119.170432`. The serial
 scheduler exposes zero for both and supports zero resets. Execution durations,
