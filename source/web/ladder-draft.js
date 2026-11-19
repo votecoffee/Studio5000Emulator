@@ -49,15 +49,24 @@
     return gap.index >= 0 && gap.index <= series.length ? series : null;
   }
 
-  function instruction(nodes, id) {
+  function locate(nodes, id) {
     for (const [index, node] of nodes.entries()) {
-      if (!node.branch && node.draftId === id) return {series: nodes, index, node};
+      if (node.draftId === id) return {series: nodes, index, node};
       for (const leg of node.branch || []) {
-        const found = instruction(leg, id);
+        const found = locate(leg, id);
         if (found) return found;
       }
     }
     return null;
+  }
+
+  function movePlacement(source, id, target, gap) {
+    if (!source || !target) return null;
+    const from = locate(source, id), to = atGap(target, gap);
+    if (!from || from.node.branch || !to) return null;
+    const index = gap.index;
+    if (from.series === to && (index === from.index || index === from.index + 1)) return null;
+    return {from, to, index: from.series === to && index > from.index ? index - 1 : index};
   }
 
   function create(routine) {
@@ -74,19 +83,28 @@
     let rungs = base;
     const past = [], future = [];
 
+    function commit(updates) {
+      const next = rungs.slice();
+      for (const [index, nodes] of updates) {
+        const logic = serialize(nodes);
+        const text = logic === serialize(base[index].nodes) ? base[index].text : logic + ';';
+        next[index] = {...rungs[index], nodes, text};
+      }
+      past.push(rungs);
+      if (past.length > 100) past.shift();
+      future.length = 0;
+      rungs = next;
+    }
     function change(rungIndex, edit) {
       const before = rungs[rungIndex];
       if (!before) return null;
       const nodes = structuredClone(before.nodes), result = edit(nodes);
-      if (!result) return null;
-      const logic = serialize(nodes);
-      const text = logic === serialize(base[rungIndex].nodes) ? base[rungIndex].text : logic + ';';
-      past.push(rungs);
-      if (past.length > 100) past.shift();
-      future.length = 0;
-      rungs = rungs.slice();
-      rungs[rungIndex] = {...before, nodes, text};
+      if (result) commit([[rungIndex, nodes]]);
       return result;
+    }
+    function canMove(fromRung, id, toRung, gap) {
+      return Number.isInteger(fromRung) && Number.isInteger(toRung) &&
+        !!movePlacement(rungs[fromRung]?.nodes, id, rungs[toRung]?.nodes, gap);
     }
 
     return {
@@ -106,10 +124,38 @@
           return draftId;
         });
       },
+      canMove,
+      move(fromRung, id, toRung, gap) {
+        if (!canMove(fromRung, id, toRung, gap)) return null;
+        const source = structuredClone(rungs[fromRung].nodes);
+        const target = fromRung === toRung ? source : structuredClone(rungs[toRung].nodes);
+        const {from, to, index} = movePlacement(source, id, target, gap);
+        from.series.splice(from.index, 1);
+        to.splice(index, 0, from.node);
+        commit(source === target ? [[fromRung, source]] : [[fromRung, source], [toRung, target]]);
+        return id;
+      },
+      addLeg(rung, id) {
+        return change(rung, nodes => {
+          const branch = locate(nodes, id)?.node.branch;
+          if (!branch) return null;
+          branch.push([]);
+          return id;
+        });
+      },
+      removeLeg(rung, id, leg) {
+        return change(rung, nodes => {
+          const found = locate(nodes, id), branch = found?.node.branch;
+          if (!branch || branch.length < 2 || !Number.isInteger(leg) || leg < 0 || leg >= branch.length) return null;
+          branch.splice(leg, 1);
+          if (branch.length === 1) found.series.splice(found.index, 1, ...branch[0]);
+          return id;
+        });
+      },
       remove(rung, id) {
         return change(rung, nodes => {
-          const found = instruction(nodes, id);
-          if (!found) return null;
+          const found = locate(nodes, id);
+          if (!found || found.node.branch) return null;
           found.series.splice(found.index, 1);
           return id;
         });
@@ -117,8 +163,8 @@
       setOperands(rung, id, operands) {
         const args = operands.map(operandText);
         return change(rung, nodes => {
-          const found = instruction(nodes, id);
-          if (!found || found.node.args.length !== args.length ||
+          const found = locate(nodes, id);
+          if (!found || found.node.branch || found.node.args.length !== args.length ||
               args.every((arg, i) => arg === found.node.args[i])) return null;
           found.node.args = args;
           delete found.node.literal_values;

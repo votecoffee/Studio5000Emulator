@@ -34,7 +34,8 @@
         if (Array.isArray(op.branch)) {
           const ports = op.branch.map((_, i) => 'path' + i);
           const split = add(key + ':split', 'junction', ['in'], ports, {side: 'split'});
-          const join = add(key + ':join', 'junction', ports, ['out'], {side: 'join'});
+          const join = add(key + ':join', 'junction', ports, ['out'], {side: 'join',
+            ...(editing ? {draftId: op.draftId, legCount: ports.length} : {})});
           wire(previous, port(split.id, 'in'), gap);
           const paths = op.branch.map((branch, i) => {
             const leg = [...legs, [index, i]];

@@ -83,6 +83,83 @@
     const canvas = options.canvas, inspector = options.inspector, status = options.status;
     let current, key = '', sourceIdentity = '', zoom = 1, showValues = true, showComments = true, selected = '', documents = [], valueMap = new Map(), snapshot, lastTraces = new Map();
     let inspection = '', monitorSelection = '', draftSelection = '', draftRungs;
+    let movePick, drag, hovered, suppressedClick;
+    const wireTargets = new WeakMap(), dragSources = new WeakMap();
+    const draftStatus = () => movePick ? 'Choose a destination wire · Esc cancels' :
+      drag?.active ? 'Drop on a wire dot' : 'Draft · Simulator uses the loaded routine';
+
+    function moveStatus() {
+      if (!current?.draft) return;
+      canvas.classList.toggle('lv-pick-wire', !!movePick || !!drag?.active);
+      const text = draftStatus();
+      if (status.textContent !== text) status.textContent = text;
+    }
+    function highlight(dot) {
+      if (dot === hovered) return;
+      hovered?.classList.remove('drop-target');
+      hovered = dot;
+      hovered?.classList.add('drop-target');
+    }
+    function endDrag() {
+      if (!drag) return;
+      const {element, pointer} = drag;
+      drag = null;
+      if (element.hasPointerCapture(pointer)) element.releasePointerCapture(pointer);
+      highlight(null);
+      moveStatus();
+    }
+    function dropTarget(event) {
+      const dot = document.elementFromPoint(event.clientX, event.clientY)?.closest('.lv-draft-gap');
+      const destination = wireTargets.get(dot);
+      return destination && current.draft.canMove(drag.rung, drag.id, destination.rung, destination.gap) ? dot : null;
+    }
+    function moveTo(source, target) {
+      const id = options.onDraftMove(source.rung, source.id, target.rung, target.gap);
+      if (!id) return;
+      movePick = null;
+      select(target.graphId + ':draft:' + id, true);
+      moveStatus();
+    }
+    canvas.addEventListener('pointerdown', event => {
+      const element = event.target.closest('.lv-instruction'), source = dragSources.get(element);
+      if (!source || !event.isPrimary || event.button !== 0 || drag) return;
+      suppressedClick = null;
+      drag = {...source, element, pointer: event.pointerId, x: event.clientX, y: event.clientY, active: false};
+      element.setPointerCapture(event.pointerId);
+    });
+    canvas.addEventListener('pointermove', event => {
+      if (!drag || event.pointerId !== drag.pointer) return;
+      if (!drag.active) {
+        if (Math.hypot(event.clientX - drag.x, event.clientY - drag.y) < 5) return;
+        drag.active = true;
+        movePick = null;
+      }
+      event.preventDefault();
+      highlight(dropTarget(event));
+      moveStatus();
+    });
+    canvas.addEventListener('pointerup', event => {
+      if (!drag || event.pointerId !== drag.pointer) return;
+      const source = drag, dot = drag.active ? dropTarget(event) : null;
+      endDrag();
+      if (!source.active) return;
+      suppressedClick = source.element;
+      setTimeout(() => {if (suppressedClick === source.element) suppressedClick = null;}, 0);
+      if (dot) moveTo(source, wireTargets.get(dot));
+    });
+    for (const type of ['pointercancel', 'lostpointercapture']) canvas.addEventListener(type, event => {
+      if (drag?.pointer === event.pointerId) endDrag();
+    });
+    canvas.addEventListener('click', event => {
+      if (suppressedClick && suppressedClick.contains(event.target)) event.stopImmediatePropagation();
+    }, true);
+    for (const area of [canvas, inspector]) area.addEventListener('keydown', event => {
+      if (event.key !== 'Escape' || (!movePick && !drag)) return;
+      event.preventDefault();
+      movePick = null;
+      endDrag();
+      moveStatus();
+    });
     function read(ref, node) {
       if (node?.literalValues && Object.hasOwn(node.literalValues, ref)) return node.literalValues[ref];
       const bitwiseRadix = node?.opcode === 'MEQ' || ['AND','OR','XOR','NOT'].includes(node?.opcode) && node.operands?.slice(0,-1).includes(ref);
@@ -106,15 +183,30 @@
       const context = Object.keys(current.state.aoi_instances || {}).find(key => key.toLowerCase() === address?.toLowerCase());
       return target && context ? {key: target.key, context} : null;
     }
+    function updateSelection(focus = false) {
+      function updateItem(id, element) {
+        const active = id === selected;
+        element.classList.toggle('selected', active);
+        if (element.getAttribute('aria-pressed') !== String(active)) element.setAttribute('aria-pressed', String(active));
+        if (focus && id === selected) {
+          element.focus({preventScroll: true});
+          element.scrollIntoView({block: 'nearest', inline: 'nearest'});
+        }
+      }
+      for (const doc of documents) {
+        for (const [id, item] of doc.instructions) updateItem(id, item.group);
+        for (const [id, item] of doc.branches || []) updateItem(id, item.element);
+      }
+    }
     function select(id, focus = false) {
+      if (movePick && selected !== id) {
+        movePick = null;
+        moveStatus();
+      }
       selected = id;
       if (current.draft) draftSelection = id;
       else monitorSelection = id;
-      for (const doc of documents) for (const [nodeId, item] of doc.instructions) {
-        item.group.classList.toggle('selected', nodeId === id);
-        item.group.setAttribute('aria-pressed', String(nodeId === id));
-        if (focus && nodeId === id) {item.group.focus({preventScroll: true});item.group.scrollIntoView({block: 'nearest', inline: 'nearest'});}
-      }
+      updateSelection(focus);
       updateInspector();
       canvas.dispatchEvent(new CustomEvent('logic-node-selected', {bubbles: true, detail: {nodeId: id,
         graphId: documents.find(doc => doc.graph?.nodes.some(n => n.id === id))?.graph.id || current?.routine.key}}));
@@ -133,9 +225,14 @@
       });
     }
     function updateInspector() {
-      const doc = documents.find(doc => doc.instructions.has(selected)), item = doc?.instructions.get(selected);
-      inspector.hidden = !item;if (!item) {inspection = '';return;}
-      if (current.draft) {editInspector(doc, item);return;}
+      const doc = documents.find(doc => doc.instructions.has(selected) || doc.branches?.has(selected));
+      inspector.hidden = !doc;if (!doc) {inspection = '';return;}
+      const item = doc.instructions.get(selected);
+      if (current.draft) {
+        if (item) editInspector(doc, item);
+        else editBranch(doc, doc.branches.get(selected).node);
+        return;
+      }
       const fields = item.fields || parameters(item.node), event = doc.graph ? doc.power?.nodes[selected] : null;
       const loop = event?.loopTrace;
       const rows = fields.map(field => ({...field, ...operandDisplay(field, item.node, event)}));
@@ -185,11 +282,21 @@
       const head = html('div', 'lv-inspector-head');
       head.append(html('strong', '', node.opcode + ' · ' + presentation(node).title),
         html('span', '', 'Rung ' + doc.graph.number + ' · Draft'));
+      const move = html('button', '', 'Move instruction');
+      move.onclick = () => {
+        movePick = {rung: doc.rungIndex, id: node.draftId};
+        moveStatus();
+        const first = [...doc.row.querySelectorAll('.lv-draft-gap')].find(dot => {
+          const target = wireTargets.get(dot);
+          return current.draft.canMove(doc.rungIndex, node.draftId, target.rung, target.gap);
+        });
+        (first || canvas.querySelector('.lv-draft-gap'))?.focus();
+      };
       const remove = html('button', '', 'Delete instruction');
       remove.onclick = () => options.onDraftRemove(doc.rungIndex, node.draftId);
       const close = html('button', '', 'Close');
       close.onclick = () => select('');
-      head.append(remove, close);
+      head.append(move, remove, close);
       inspector.replaceChildren(head);
       if (!node.operands.length) return;
       const form = html('form', 'lv-draft-operands'), fields = parameters(node);
@@ -211,10 +318,42 @@
       };
       inspector.append(form);
     }
+    function editBranch(doc, node) {
+      const fingerprint = JSON.stringify([node.id, node.legCount]);
+      if (fingerprint === inspection) return;
+      inspection = fingerprint;
+      const head = html('div', 'lv-inspector-head');
+      const add = html('button', '', 'Add leg');
+      add.onclick = () => options.onDraftAddLeg(doc.rungIndex, node.draftId);
+      const close = html('button', '', 'Close');
+      close.onclick = () => select('');
+      head.append(html('strong', '', 'Branch'), html('span', '', 'Rung ' + doc.graph.number + ' · Draft'), add, close);
+      const legs = html('div', 'lv-draft-legs');
+      for (let leg = 0; leg < node.legCount; leg++) {
+        const remove = html('button', '', 'Delete leg ' + (leg + 1));
+        remove.disabled = node.legCount < 2;
+        remove.onclick = () => options.onDraftRemoveLeg(doc.rungIndex, node.draftId, leg);
+        legs.append(remove);
+      }
+      inspector.replaceChildren(head, legs);
+    }
+    function branchHandle(node, position, graph) {
+      const control = svg('rect', {class: 'lv-draft-branch', x: position.x - 5,
+        y: (position.y + position.endY) / 2 - 5, width: 10, height: 10,
+        tabindex: 0, role: 'button', 'aria-label': 'Edit branch in rung ' + graph.number});
+      control.addEventListener('click', () => select(node.id));
+      control.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {event.preventDefault();select(node.id);}
+      });
+      return control;
+    }
     function insertPoint(graph, rungIndex, edge, a, b) {
       const dot = svg('circle', {class: 'lv-draft-gap', cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2,
-        r: 6, tabindex: 0, role: 'button', 'aria-label': 'Insert on wire in rung ' + graph.number});
+        r: 6, tabindex: 0, role: 'button', 'aria-label': 'Wire insertion point in rung ' + graph.number});
+      const target = {graphId: graph.id, rung: rungIndex, gap: edge.gap};
+      wireTargets.set(dot, target);
       const insert = () => {
+        if (movePick) {moveTo(movePick, target);return;}
         const id = graph.id + ':draft:' + options.onDraftInsert(rungIndex, edge.gap);
         if (documents.some(doc => doc.instructions.has(id))) select(id, true);
       };
@@ -292,7 +431,7 @@
         const picture = svg('svg', {class: 'lv-ladder', viewBox: `0 0 ${geometry.width} ${geometry.height}`, width: geometry.width * zoom,
           height: geometry.height * zoom, 'aria-label': `Rung ${graph.number}: ${graph.source || 'ladder logic'}`});
         picture.append(svg('text', {x: 9, y: geometry.nodes[graph.nodes[0].id].y + 4, class: 'lv-rung-number'}, graph.number));
-        const instructions = new Map(), paths = new Map(), junctions = new Map(), gaps = [];
+        const instructions = new Map(), paths = new Map(), junctions = new Map(), gaps = [], branches = new Map();
         for (const edge of graph.edges) {
           const a = geometry.ports[edge.from.node + '/' + edge.from.port], b = geometry.ports[edge.to.node + '/' + edge.to.port];
           const path = svg('path', {class: 'lv-wire', d: `M${a.x} ${a.y} H${(a.x + b.x) / 2} V${b.y} H${b.x}`, 'data-edge-id': edge.id});
@@ -301,15 +440,24 @@
         }
         for (const node of graph.nodes) {
           const p = geometry.nodes[node.id];
-          if (node.kind === 'instruction') {const item = drawInstruction(node, p, graph);instructions.set(node.id, item);picture.append(item.group);}
-          else {
+          if (node.kind === 'instruction') {
+            const item = drawInstruction(node, p, graph);
+            if (current.draft) {
+              dragSources.set(item.group, {rung: rungIndex, id: node.draftId});
+              item.group.classList.add('lv-draft-instruction');
+            }
+            instructions.set(node.id, item);
+            picture.append(item.group);
+          } else {
             const path = svg('path', {class: node.kind === 'rail' ? 'lv-rail' : 'lv-junction',
               d: node.kind === 'rail' ? `M${p.x} ${p.top} V${p.bottom}` : `M${p.x} ${p.y} V${p.endY}`});
             picture.append(path);junctions.set(node.id, path);
+            if (current.draft && node.side === 'join') branches.set(node.id, {node, element: branchHandle(node, p, graph)});
           }
         }
-        picture.append(...gaps);
-        row.append(picture);canvas.append(row);documents.push({graph, rungIndex, row, geometry, svg: picture, instructions, paths, junctions});
+        picture.append(...gaps, ...[...branches.values()].map(item => item.element));
+        row.append(picture);canvas.append(row);
+        documents.push({graph, rungIndex, row, geometry, svg: picture, instructions, paths, junctions, branches});
       }
     }
     function renderST() {
@@ -367,6 +515,7 @@
       canvas.append(picture);
     }
     function rebuild() {
+      endDrag();
       const scroll = {left: canvas.scrollLeft, top: canvas.scrollTop};documents = [];canvas.replaceChildren();inspection = '';
       canvas.className = 'lv-canvas language-' + current.routine.kind.toLowerCase();canvas.classList.toggle('lv-hide-values', !showValues);
       if (current.routine.problems?.length) canvas.append(html('p', 'lv-source-note', current.routine.problems.join('\n')));
@@ -432,8 +581,9 @@
       canvas.classList.toggle('lv-hide-values', !!current.draft || !showValues);
       for (const doc of documents) {if (doc.row) doc.row.firstChild.hidden = !showComments || !doc.graph.comment;}
       const count = [...lastTraces.values()].length;
-      status.textContent = current.draft ? 'Draft · Simulator uses the loaded routine' : count ? `Last scan ${current.state.scan} · ${count} ${current.routine.kind === 'ST' ? 'line' : 'rung/block'} visits` : 'No execution trace';
-      for (const doc of documents) for (const [id, item] of doc.instructions) item.group.classList.toggle('selected', id === selected);
+      if (!current.draft) status.textContent = count ? `Last scan ${current.state.scan} · ${count} ${current.routine.kind === 'ST' ? 'line' : 'rung/block'} visits` : 'No execution trace';
+      moveStatus();
+      updateSelection();
       updateInspector();
     }
     return {
@@ -450,6 +600,7 @@
         const next = JSON.stringify([source, value.context]);
         const nextDraft = value.draft?.rungs;
         if (next !== key || nextDraft !== draftRungs || wasEditing !== !!value.draft) {
+          movePick = null;
           key = next;draftRungs = nextDraft;
           canvas.dataset.routine = current.routine.key;rebuild();
         } else update();
@@ -459,7 +610,7 @@
       values(value) {showValues = value;if (current) update();},
       comments(value) {showComments = value;if (current) update();},
       graphs() {return documents.filter(d => d.graph).map(d => structuredClone(d.graph));},
-      dispose() {documents = [];current = null;}
+      dispose() {endDrag();movePick = null;documents = [];current = null;}
     };
   }
   return {create, tokenizeST, labelTarget, parameterRadix, lrealMathRadix, realMathRadix};

@@ -139,9 +139,16 @@ not durable identities across source reordering.
 
 Open an ordinary ladder routine and select **Edit draft**. Choose an
 instruction or **Branch** from **Insert**, then select a dot on a wire.
-A branch has two independent paths with their own insertion points.
-Select an instruction to edit its operands or delete it. **Undo** and
-**Redo** also work with Ctrl+Z and Ctrl+Y outside text fields.
+Each branch leg has its own insertion points. Drag an instruction to a wire
+dot in the same rung, in a branch, or in another rung. For keyboard editing,
+select the instruction, choose **Move instruction**, then focus a destination
+dot and press Enter. Esc cancels the selection of a destination.
+
+Select the square on a branch's right rail to add or delete a leg. Deleting a
+leg removes its instructions. When one leg remains, its instructions return
+to the surrounding rung or branch. **Undo** restores the whole edit, including
+moves across two rungs. **Redo** repeats it. Ctrl+Z and Ctrl+Y also work outside
+text fields.
 
 **Monitor** restores the live view. Select **Resume draft** to return to
 a changed draft for the same project generation and routine revision.
@@ -176,8 +183,8 @@ The next authoring stages build on these same instruction nodes and connections:
 5. Qualify native engineering transfers and online editing separately from
    offline authoring and simulation.
 
-The draft tools cover wire insertion, operand editing, deletion and history.
-Drag moves, branch resize and leg management, draft reload, Python validation,
+The draft tools cover wire insertion, drag moves, branch legs, operand
+editing, deletion and history. Branch resize, draft reload, Python validation,
 applying drafts and edited L5X export are still planned.
 
 ## Verification

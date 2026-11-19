@@ -15,7 +15,10 @@ const logicView = LogixLogicView.create({canvas: $('rungs'), inspector: $('instr
   onZoom(value) {updateZoom(value);},
   onDraftInsert(rung, gap) {return changeDraft(draft => draft.insert(rung, gap, $('ladder-draft-palette').value));},
   onDraftOperands(rung, id, operands) {return changeDraft(draft => draft.setOperands(rung, id, operands));},
-  onDraftRemove(rung, id) {return changeDraft(draft => draft.remove(rung, id));}});
+  onDraftRemove(rung, id) {return changeDraft(draft => draft.remove(rung, id));},
+  onDraftMove(from, id, to, gap) {return changeDraft(draft => draft.move(from, id, to, gap));},
+  onDraftAddLeg(rung, id) {return changeDraft(draft => draft.addLeg(rung, id));},
+  onDraftRemoveLeg(rung, id, leg) {return changeDraft(draft => draft.removeLeg(rung, id, leg));}});
 let logicZoom = 1;
 function updateZoom(value) {
   logicZoom=value;const percent=Math.round(value*100), select=$('logic-zoom');

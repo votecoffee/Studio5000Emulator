@@ -86,3 +86,56 @@ test('non-RLL, AOI and diagnosed routines stay in Monitor', () => {
   assert.equal(draftModel.canEdit(routine), true);
   assert.throws(() => draftModel.create({...routine, kind: 'FBD'}), /read-only/);
 });
+
+test('moves between rungs preserve the instruction ID and undo both rungs together', () => {
+  const routine = fixture(), draft = draftModel.create(routine);
+  const id = draft.rungs[0].nodes[0].draftId;
+  const same = {legs: [], index: 1};
+  assert.equal(draft.canMove(0, id, 0, same), false);
+  assert.equal(draft.move(0, id, 0, same), null);
+  assert.equal(draft.move(0, id, 99, same), null);
+  assert.equal(draft.canUndo, false);
+  assert(draft.move(0, id, 1, same));
+  assert.equal(draft.rungs[0].text, 'OTE(Run);');
+  assert.equal(draft.rungs[1].text, 'MOV(0,Count)XIC(Start);');
+  assert.equal(draft.rungs[1].nodes[1].draftId, id);
+  assert.equal(draft.undo(), true);
+  assert.deepEqual(draft.rungs.map(rung => rung.text), routine.rungs.map(rung => rung.text));
+  assert.equal(draft.redo(), true);
+  assert.equal(draft.rungs[1].nodes[1].draftId, id);
+});
+
+test('moves into a later nested branch resolve the destination before removing the source', () => {
+  const routine = fixture(), draft = draftModel.create(routine);
+  const moved = draft.rungs[0].nodes[0].draftId;
+  const outer = draft.insert(0, {legs: [], index: 1}, 'Branch');
+  const inner = draft.insert(0, {legs: [[1, 1]], index: 0}, 'Branch');
+  const ladder = graph.compile(draft.rungs[0], routine.key, true);
+  const split = ladder.nodes.find(node => node.id.endsWith(':draft:' + inner + ':split'));
+  const wire = ladder.edges.find(edge => edge.from.node === split.id && edge.from.port === 'path0');
+  assert.equal(draft.move(0, outer, 0, wire.gap), null);
+  assert.equal(draft.move(0, moved, 0, wire.gap), moved);
+  assert.equal(draft.rungs[0].text, '[,[XIC(Start),]]OTE(Run);');
+  assert.equal(draft.rungs[0].nodes[0].branch[1][0].branch[0][0].draftId, moved);
+});
+
+test('branch leg commands preserve remaining nodes and restore nested topology on undo', () => {
+  const routine = fixture(), draft = draftModel.create(routine);
+  const branch = draft.insert(0, {legs: [], index: 1}, 'Branch');
+  const first = draft.insert(0, {legs: [[1, 0]], index: 0}, 'TON');
+  const last = draft.insert(0, {legs: [[1, 1]], index: 0}, 'ADD');
+  assert.equal(draft.addLeg(0, branch), branch);
+  const visual = graph.compile(draft.rungs[0], routine.key, true);
+  assert(visual.nodes.some(node => node.side === 'join' && node.draftId === branch && node.legCount === 3));
+  assert.equal(draft.removeLeg(0, branch, 3), null);
+  assert.equal(draft.removeLeg(0, branch, 0), branch);
+  assert.equal(draft.rungs[0].text, 'XIC(Start)[ADD(?,?,?),]OTE(Run);');
+  assert(draft.removeLeg(0, branch, 1));
+  assert.equal(draft.rungs[0].text, 'XIC(Start)ADD(?,?,?)OTE(Run);');
+  assert.equal(draft.rungs[0].nodes[1].draftId, last);
+  draft.undo();
+  draft.undo();
+  assert.equal(draft.rungs[0].nodes[1].draftId, branch);
+  assert.equal(draft.rungs[0].nodes[1].branch[0][0].draftId, first);
+  assert.equal(draft.rungs[0].nodes[1].branch.length, 3);
+});
