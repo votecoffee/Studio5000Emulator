@@ -88,6 +88,7 @@ class TaskScheduler:
         self.inhibitions={i:t.inhibited for i,t in enumerate(self.tasks)}
         self.periods={i:t.period for i,t in enumerate(self.tasks) if t.period is not None}
         self.watchdog_overrides: dict[int, int] = {}
+        self.output_update_overrides: dict[str, bool] = {}
         self.event_timeouts = {i: EventTimeout(t.timeout_ms, t.timeout_ms is not None)
                                for i, t in enumerate(self.tasks) if t.kind=='Event'}
         self.reset(0)
@@ -129,7 +130,8 @@ class TaskScheduler:
         """Carry only runtime progress into an unchanged, newly bound task graph."""
         if self.configuration != previous.configuration or self.tasks != previous.tasks:
             raise ModelError('Task graph changed during routine replacement')
-        for name in ('clock', 'origin', 'next_due', 'counts', 'last', 'overlaps', 'coalesced', 'inhibitions', 'periods', 'priorities', 'watchdog_overrides', 'event_timeouts', 'timeout_due'):
+        for name in ('clock', 'origin', 'next_due', 'counts', 'last', 'overlaps', 'coalesced', 'inhibitions', 'periods',
+                     'priorities', 'watchdog_overrides', 'output_update_overrides', 'event_timeouts', 'timeout_due'):
             setattr(self, name, copy.deepcopy(getattr(previous, name)))
 
     def commit(self, batch, *, executed=None, events=(), overlaps=None, coalesced=None, event_overlap_counts=None, timeout_due=None, event_timeouts=None):

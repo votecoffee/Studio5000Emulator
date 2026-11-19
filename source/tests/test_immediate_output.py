@@ -71,6 +71,8 @@ class ImmediateOutputTests(unittest.TestCase):
                     task = root.find('./Controller/Tasks/Task')
                     if setting is None:
                         task.attrib.pop('DisableUpdateOutputs', None)
+                        rungs = root.find('.//Routine[@Name="Main"]/RLLContent')
+                        rungs.remove(rungs.find('./Rung[@Number="17"]'))
                     else:
                         task.set('DisableUpdateOutputs', setting)
 
@@ -90,6 +92,30 @@ class ImmediateOutputTests(unittest.TestCase):
                 self.assertEqual(self.step()['task_outputs'], expected)
                 self.assertEqual(self.app.command('reset', {})['task_outputs'], [])
                 self.assertNotIn('task_outputs', self.snapshot())
+
+    def test_ssv_can_enable_an_initially_disabled_task_and_gate_same_scan_capture(self):
+        def initially_disabled(root):
+            root.find('./Controller/Tasks/Task').set('DisableUpdateOutputs', 'true')
+
+        self.assertEqual(self.load(initially_disabled)['blockers'], [])
+        self.open_output()
+        self.write('SendImmediate', True)
+        self.assertEqual(self.step()['task_outputs'], [])
+
+        self.write('SetTaskOutputProcessing', True)
+        state = self.step()
+        self.assertEqual(self.app.engine.memory.read('TaskOutputDisabled'), 0)
+        sample = dict(module='RackOutput', tag='Local:2:O', value=29, task='MainTask',
+                      sequence=1, scan=2, simulation_ms=20)
+        self.assertEqual(state['task_outputs'], [sample])
+        self.assertEqual(self.snapshot()['task_outputs'], [sample])
+
+        self.write('TaskOutputDisableCommand', -3)
+        state = self.step()
+        self.assertEqual(self.app.engine.memory.read('TaskOutputDisabled'), 1)
+        self.assertEqual(state['task_outputs'], [sample])
+        self.assertEqual(state['immediate_outputs'][0]['sequence'], 3)
+        self.assertEqual(self.snapshot()['task_outputs'], [sample])
 
     def test_auto_output_from_completed_task_is_discarded_if_a_later_task_faults(self):
         def configure(root):
@@ -246,7 +272,7 @@ class ImmediateOutputTests(unittest.TestCase):
     def test_late_fault_rolls_back_new_output_and_keeps_published_sample(self):
         def add_fault(root):
             routine = root.find('.//Routine[@Name="Main"]/RLLContent')
-            rung = ET.SubElement(routine,'Rung',Number='17',Type='N')
+            rung = ET.SubElement(routine,'Rung',Number='18',Type='N')
             ET.SubElement(rung,'Text').text = 'XIC(ReadModule)DIV(1,0,OutputCommand);'
 
         self.assertEqual(self.load(add_fault)['blockers'],[])

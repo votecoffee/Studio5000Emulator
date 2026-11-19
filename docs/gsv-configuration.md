@@ -39,7 +39,7 @@ advance and are visible to GSV and the software clock services.
 | Task | Watchdog | DINT | Effective setting in project execution, explicit positive source setting in a harness, in microseconds |
 | Task | Priority | INT | Effective Periodic/Event priority in project execution, explicit source priority in a harness |
 | Task | InhibitTask | DINT | Explicit source flag, 0/1 |
-| Task | DisableUpdateOutputs | DINT | Explicit source flag, 0/1 |
+| Task | DisableUpdateOutputs | DINT | [Effective task-end output processing flag, 0/1](device-io.md#changing-task-output-processing) |
 | Controller | Name | STRING or explicit user string | Explicit unambiguous source name |
 | ControllerDevice | DeviceName | SINT[33] window | Counted catalog name from ProcessorType |
 | ControllerDevice | ProductCode, ProductRev, Type, Vendor | INT | v35 5580 model identity |

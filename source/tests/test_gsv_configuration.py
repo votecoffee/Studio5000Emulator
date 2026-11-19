@@ -74,6 +74,30 @@ class GsvConfigurationTests(unittest.TestCase):
                 e=self.checked([f'GSV(Task,SlowTask,{attr},Out);'],mutate=setting);e.step()
                 self.assertEqual(e.memory.read('Out'),int(value=='true'))
 
+    def test_task_output_update_named_readback_rolls_back_and_survives_run_entry(self):
+        setter = 'SSV(Task,fAsTtAsK,DisableUpdateOutputs,Out);'
+        readback = 'GSV(Task,FastTask,DisableUpdateOutputs,Index);'
+        for st in (False, True):
+            with self.subTest(st=st):
+                gated = f'IF Flag THEN {setter} END_IF;' if st else 'XIC(Flag)' + setter
+                late = 'Limit := 1 / Limit;' if st else 'DIV(1,Limit,Limit);'
+                e = self.checked([gated, readback, late], st=st)
+                e.memory.write('Flag', True)
+                e.memory.write('Out', -3)
+                e.memory.write('Limit', 0)
+                with self.assertRaisesRegex(ModelError, 'zero'):
+                    e.step()
+                self.assertEqual(e._task_scheduler.output_update_overrides, {})
+                e.memory.write('Limit', 1)
+                e.step()
+                self.assertEqual(e.memory.read('Index'), 1)
+                self.assertEqual(e.memory.read('Out'), -3)
+                e.memory.write('Flag', False)
+                e.enter_run()
+                e.step()
+                self.assertEqual(e.memory.read('Index'), 1)
+                self.assertEqual(Engine(e.project)._task_scheduler.output_update_overrides, {})
+
     def test_controller_timeslice_and_sharing_require_explicit_settings(self):
         for attr,expected in (('TimeSlice',30),('ShareUnusedTimeSlice',0)):
             e=self.checked([f'GSV(Controller,,{attr},PriorityOut);']);e.step();self.assertEqual(e.memory.read('PriorityOut'),expected)
@@ -995,7 +1019,8 @@ class GsvConfigurationTests(unittest.TestCase):
                                   ('BackgroundTask','Status'),('BackgroundTask','OverlapCount')):
             self.assertTrue(self.engine([f'GSV(Task,{instance},{attribute},Out);']).blockers)
         for text in ('GSV(Controller,This,TimeSlice,PriorityOut);','GSV(Module,,EntryStatus,Out);',
-                     'SSV(Task,BackgroundTask,Rate,Out);','GSV(Task,FastTask,Rate);'):
+                     'SSV(Task,BackgroundTask,Rate,Out);','GSV(Task,FastTask,Rate);',
+                     'SSV(Task,FastTask,DisableUpdateOutputs,PriorityOut);'):
             self.assertTrue(self.engine([text]).blockers,text)
 
     def test_false_rung_skipped_st_and_prescan_retain_outputs(self):

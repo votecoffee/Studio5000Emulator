@@ -29,6 +29,9 @@
     <AddOnInstructionDefinitions />
     <Tags>
       <Tag Name="SendImmediate" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="SetTaskOutputProcessing" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="TaskOutputDisableCommand" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="TaskOutputDisabled" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
       <Tag Name="OutputCommand" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="17" /></Data></Tag>
       <Tag Name="Local:2:O" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
       <Tag Name="ApplyMode" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
@@ -90,6 +93,7 @@
               <Rung Number="14" Type="N"><Text>XIC(ReadConnection)GSV(Module,PointAdapter,FaultInfo,PointFaultInfo);</Text></Rung>
               <Rung Number="15" Type="N"><Text>XIC(ReadLed)GSV(Module,,LEDStatus,ModuleLed);</Text></Rung>
               <Rung Number="16" Type="N"><Text>XIC(SendImmediate)MOV(OutputCommand,Local:2:O)IOT(Local:2:O)MOV(29,Local:2:O);</Text></Rung>
+              <Rung Number="17" Type="N"><Text>XIC(SetTaskOutputProcessing)SSV(Task,THIS,DisableUpdateOutputs,TaskOutputDisableCommand)GSV(Task,THIS,DisableUpdateOutputs,TaskOutputDisabled);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="ReadModeST" Type="ST">

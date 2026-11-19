@@ -12,9 +12,9 @@ DEFAULT_WATCHDOG_US = {'Continuous': 5_000_000, 'Periodic': 500_000}
 
 def validate(engine,op,scope,*,executing=False):
     if (len(op.args)!=4 or any(not isinstance(a,str) for a in op.args)
-            or op.args[0].casefold()!='task' or op.args[2].casefold() not in ('inhibittask','rate','priority','watchdog','enabletimeout')
+            or op.args[0].casefold()!='task' or op.args[2].casefold() not in ('inhibittask','rate','priority','watchdog','enabletimeout','disableupdateoutputs')
             or not NAME.fullmatch(op.args[1])):
-        raise ModelError('SSV supports Task InhibitTask, Rate, Priority, Watchdog or EnableTimeOut and a task name or THIS')
+        raise ModelError('SSV supports Task InhibitTask, DisableUpdateOutputs, Rate, Priority, Watchdog or EnableTimeOut and a task name or THIS')
     if engine.mode!='project' or engine._task_scheduler is None or scope in engine.memory.frames:
         raise ModelError('SSV Task requires project task context; AOI/routine harness calls remain unqualified')
     source_type,_=gsv_configuration.source(engine,op,scope,executing=executing)
@@ -23,7 +23,7 @@ def validate(engine,op,scope,*,executing=False):
     if scheduler.source!=scheduler.configuration:raise ModelError('Task configuration changed; reload the project')
     index=next(i for i,t in enumerate(scheduler.tasks) if t.name.casefold()==name.casefold())
     if scheduler.tasks[index].kind not in ('Continuous','Periodic','Event'):
-        raise ModelError('SSV InhibitTask supports Standard Continuous/Periodic/qualified Event targets only')
+        raise ModelError('SSV Task supports Standard Continuous/Periodic/qualified Event targets only')
     memory=engine.memory;previous=memory.structural;memory.structural=True
     try:
         key,parts,dtype=memory.resolve(op.args[3],scope)
@@ -57,6 +57,9 @@ def execute(engine,op,power,scope):
             if not MIN_PRIORITY<=value<=MAX_PRIORITY:
                 raise ModelError(f'SSV Priority requires an INT in {MIN_PRIORITY}..{MAX_PRIORITY}')
             engine._task_scheduler.priorities[index]=value
+        elif attribute=='disableupdateoutputs':
+            scheduler=engine._task_scheduler
+            scheduler.output_update_overrides[scheduler.tasks[index].name]=value!=0
         elif attribute=='watchdog':
             scheduler=engine._task_scheduler
             if value==0:
@@ -113,6 +116,17 @@ def watchdog_description():
                 lifecycle='Run entry and routine replacement retain overrides; reset/reload restores source settings',
                 rollback='Overrides commit with tag values and task progress',
                 watchdog_enforced=False,native_protocol_expanded=False,native_runtime_parity=False)
+
+
+def output_update_description():
+    return dict(profile='v35-5580-SSV-Task-DisableUpdateOutputs',languages=['RLL','ST'],
+                targets=['Standard Continuous','Standard Periodic','Instruction-only Standard Event'],
+                source='Exact scalar DINT tag and explicit source DisableUpdateOutputs setting',
+                effect='Zero enables task-end captures; any nonzero disables them. GSV returns the effective flag as 0 or 1.',
+                timing='Visible to later instructions and at task completion in the same advance',
+                lifecycle='Run entry and routine replacement retain the flag; reset/reload restores the source setting',
+                rollback='Settings and pending task output captures commit with the complete advance',
+                native_protocol_expanded=False,native_runtime_parity=False)
 
 
 def attributes(engine,name,*,source_sha256):

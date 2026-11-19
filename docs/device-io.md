@@ -54,12 +54,11 @@ and ST IOT remain outside this profile.
 
 ## Task-end output snapshots
 
-Version `26.1119.172357` samples qualified outputs when a scheduled Standard
-task with explicit `DisableUpdateOutputs="false"` finishes. The emulator
-samples the current whole output tags of effectively Running modules using
-the same route and shape rules as IOT. Disabled or omitted settings skip
-this sampling. Unknown output images and blocked routes leave the prior
-sample in place, if any.
+When a scheduled Standard task finishes with output processing enabled, the
+emulator samples the current whole output tags of effectively Running modules
+using the same route and shape rules as IOT. The project must explicitly
+declare the task's initial `DisableUpdateOutputs` setting. Unknown output
+images and blocked routes leave the prior sample in place, if any.
 
 The cached Device I/O API returns the latest committed sample per tag under
 `task_outputs`, with the task name, value, scan, simulation time and a
@@ -69,9 +68,31 @@ roll back. Reset or project load starts a fresh set of samples.
 In **Module status lab**, use the steps above to run RackOutput and enable
 SendImmediate. **Last immediate outputs (IOT)** shows 17 at the instruction.
 **Last task-end outputs** shows 29 after MainTask finishes. This models
-the task boundary for a software device simulator. Native RPI scheduling,
-cyclic module traffic and runtime SSV changes to the setting remain open.
+the task boundary for a software device simulator. Native RPI scheduling and
+cyclic module traffic remain open.
 See [Rockwell's task output processing guide](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm005_-en-p.pdf).
+
+### Changing task output processing
+
+Version `26.1119.172950` supports these calls from ladder and Structured Text:
+
+```text
+SSV(Task,THIS,DisableUpdateOutputs,TaskOutputDisableCommand);
+GSV(Task,THIS,DisableUpdateOutputs,TaskOutputDisabled);
+```
+
+Use `THIS` for the current task or name a qualified Standard Continuous,
+Periodic or instruction-only Event task with an explicit initial setting.
+The SSV source is a scalar DINT tag. Zero enables task-end capture and
+any nonzero value disables it. GSV reads the effective setting as 0 or 1
+in the same advance, and the new setting applies when the task completes.
+IOT retains its own instruction-time behavior.
+
+In **Module status lab**, enable `SetTaskOutputProcessing` and set
+`TaskOutputDisableCommand` to 1 or 0. Step and check `TaskOutputDisabled`
+and the sequence under **Last task-end outputs**. A failed advance restores
+the previous setting and snapshot. Run entry and supported routine
+replacement retain the setting. Reset or reload restores the imported value.
 
 ## Start with MQTT
 

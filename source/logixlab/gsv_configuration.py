@@ -566,9 +566,11 @@ def source(engine, op, scope='', *, executing=False):
     values.update(configuration.attributes(name,source_sha256=project.sha256))
     raw=values.get(number)
     if raw is None:raise ModelError('GSV Task attribute is unavailable from explicit source settings')
-    if attribute in ('inhibittask','rate','priority','watchdog') and engine._task_scheduler is not None:
+    if attribute in ('inhibittask','rate','priority','watchdog','disableupdateoutputs') and engine._task_scheduler is not None:
         scheduler=engine._task_scheduler
         if scheduler.source!=scheduler.configuration:raise ModelError('Task configuration changed; reload the project')
+        if attribute=='disableupdateoutputs':
+            return dtype,int(scheduler.output_update_overrides.get(name, raw != bytes(4)))
         index=next(i for i,t in enumerate(scheduler.tasks) if t.name==name)
         if attribute=='inhibittask':return dtype,int(scheduler.inhibitions[index])
         if attribute=='rate':return dtype,scheduler.periods[index]*1000
@@ -715,7 +717,7 @@ def description():
                 component_names='Named Program or THIS and Program-scoped Routine or THIS in ordinary scheduled project logic.',
                 destinations='Exact BOOL/SINT/INT/DINT scalars, LEN/DATA strings, or a 33-cell SINT window for DeviceName; Module status also accepts the low word of a DINT',
                 times='Microseconds from exact milliseconds; no inferred defaults',
-                state='Source configuration with live Task InhibitTask, Watchdog, Periodic Rate and Periodic/Event Priority in project mode',
+                state='Source configuration with live Task InhibitTask, DisableUpdateOutputs, Watchdog, Periodic Rate and Periodic/Event Priority in project mode',
                 selection='Structural destination validation without saved dynamic indices; false/prescan skip outputs; full writes establish unknown cells',
                 st_for_effects='Complete static destinations; aliases/AOI/changing selections conservatively cover enclosing arrays',
                 native_runtime_equivalence=False, ssv=True,

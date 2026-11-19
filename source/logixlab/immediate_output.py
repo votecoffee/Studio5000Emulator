@@ -92,10 +92,13 @@ def task_plan(engine):
     scheduler = engine._task_scheduler
     if (engine.blockers or scheduler is None or not project.io_map.module_settings
             or project.version != '35' or project.processor.upper() not in CONTROLLERS):
-        return frozenset(), ()
+        return {}, ()
     # Task attribute 18 is the imported DINT DisableUpdateOutputs setting.
-    tasks = frozenset(task.name for task in scheduler.tasks
-                      if project.task_configuration.attributes(task.name, source_sha256=project.sha256).get(18) == bytes(4))
+    tasks = {}
+    for task in scheduler.tasks:
+        raw = project.task_configuration.attributes(task.name, source_sha256=project.sha256).get(18)
+        if raw is not None:
+            tasks[task.name] = raw != bytes(4)
     targets = []
     if tasks:
         for tag in project.tags.values():
@@ -105,12 +108,12 @@ def task_plan(engine):
                 targets.append(bind(engine, tag.key))
             except ModelError:
                 continue  # Unsupported tags do not block ordinary task execution.
-    return tasks if targets else frozenset(), tuple(targets)
+    return tasks if targets else {}, tuple(targets)
 
 
 def description():
     return dict(instruction='IOT',language='RLL',scope='v35 5580 whole-project local slots, named IPv4 modules and qualified remote rack slots',
                 connection='Requires an effective Running simulated module input',
                 delivery='Latest instruction-time output per tag, published after scan commit',
-                task_outputs='Latest task-end images for qualified running modules with explicit DisableUpdateOutputs=false; unknown images are skipped',
+                task_outputs='Latest task-end images for qualified running modules when the effective DisableUpdateOutputs flag is zero; unknown images are skipped',
                 wire_packets=False,rpi_timing=False,native_runtime_parity=False)

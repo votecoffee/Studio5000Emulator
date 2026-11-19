@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+[Task output processing SSV](device-io.md#changing-task-output-processing)
+can change the task-end snapshot setting in `26.1119.172950`. The effective flag
+is visible to GSV and task completion in the same advance. Faults roll it back.
+
 [Task-end output snapshots](device-io.md#task-end-output-snapshots) honor the
 imported DisableUpdateOutputs setting in `26.1119.172357`. Device I/O shows
 the latest committed output image and task separately from IOT captures.

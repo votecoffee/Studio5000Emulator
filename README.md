@@ -224,6 +224,8 @@ demonstrates these states and reads local and Ethernet routes, including
 [a slot in a remote chassis](docs/gsv-configuration.md#remote-controllogix-backplane-path).
 [Task-end output snapshots](docs/device-io.md#task-end-output-snapshots)
 reflect the same qualified modules when the Task enables automatic output processing.
+Ladder and ST can change that setting during a scan with
+[`SSV Task DisableUpdateOutputs`](docs/device-io.md#changing-task-output-processing).
 Use the [simulated connection input](docs/gsv-configuration.md#simulated-module-connection)
 to exercise Running, Faulted, FaultCode and FaultInfo in ladder and ST.
 The Device I/O tab sets the simulated input and displays the effective state.

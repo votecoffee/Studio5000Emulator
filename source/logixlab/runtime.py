@@ -149,7 +149,7 @@ class Engine:
                 self._task_scan_timings={t['name'].casefold():task_runtime.TaskMeasurements() for t in project.tasks
                                          if self.task_scan_timing_eligible(t['name'])}
             self._task_event_status=event_status.initial(self)
-        self._output_tasks, self._output_targets = immediate_output.task_plan(self)
+        self._output_defaults, self._output_targets = immediate_output.task_plan(self)
 
     def _task_runtime_available(self,task,source_sha256):
         if (source_sha256!=self.project.sha256 or self.mode!='project' or self.blockers
@@ -809,6 +809,7 @@ class Engine:
         task_timings=dict(self._task_scan_timings)
         inhibitions=dict(self._task_scheduler.inhibitions) if batch else None
         watchdog_overrides=dict(self._task_scheduler.watchdog_overrides) if batch else None
+        output_update_overrides=dict(self._task_scheduler.output_update_overrides) if batch else None
         completed=[]
         single_timing = self._task_measurements is not None
         if single_timing:task_timings[self._measured_task]=self._task_measurements
@@ -849,7 +850,8 @@ class Engine:
                             timings[name]=timings[name].record(perf_counter_ns()-start)
                         else:self._routine(entry, 0)
                     if self._event_dispatch is not None:self._event_dispatch.complete_task(task)
-                    if task in self._output_tasks and self._module_connections:
+                    if (task in self._output_defaults and self._module_connections
+                            and not self._task_scheduler.output_update_overrides.get(task, self._output_defaults[task])):
                         for target in self._output_targets:
                             immediate_output.capture(self, target, task_outputs, self.task_outputs, task=task)
                     if task_scan_start is not None:
@@ -899,6 +901,7 @@ class Engine:
                 self._task_scheduler.periods=batch.periods
                 self._task_scheduler.priorities=list(batch.priorities)
                 self._task_scheduler.watchdog_overrides=watchdog_overrides
+                self._task_scheduler.output_update_overrides=output_update_overrides
             self.time_ms, self.last_timer, self.memory.first_scan, self.trace, self._file_incremental, self._file_arithmetic_retry, self._st_counter_edges, self._st_oneshot_edges = previous
             self._executing_task=None
             self.last_cleared_program_fault = previous_program_clear
@@ -1399,7 +1402,7 @@ class Engine:
                            "CPT uses a bounded expression grammar and float32 REAL operations; native arithmetic equivalence is unverified",
                            "CMP supports typed numeric/BOOL/string comparisons and eager logical evaluation; unknowns/faults cannot hide behind logical operands",
                            "MEQ mixes declared integer patterns with bounded plain or typed immediates for v35 5580; homogeneous LINT compatibility is retained; native parity is unqualified",
-                           "GSV supports Controller audit values, v35 5580 Task/Controller settings, Program/Routine names and ControllerDevice identity with typed destinations; SSV supports Module Mode, qualified Task InhibitTask, Watchdog settings, Periodic/Event Rate, Priority, Status and OverlapCount, Event EnableTimeOut, Program/Task LastScanTime/MaxScanTime and Task StartTime/interval resets, and Program DisableFlag; broader system attributes remain unqualified",
+                           "GSV supports Controller audit values, v35 5580 Task/Controller settings, Program/Routine names and ControllerDevice identity with typed destinations; SSV supports Module Mode, qualified Task InhibitTask, DisableUpdateOutputs, Watchdog settings, Periodic/Event Rate, Priority, Status and OverlapCount, Event EnableTimeOut, Program/Task LastScanTime/MaxScanTime and Task StartTime/interval resets, and Program DisableFlag; broader system attributes remain unqualified",
                            "Strings preserve LEN and backing SINT DATA; string faults roll back rather than reproduce native fault handling",
                            "Arithmetic overflow/divide faults stop and roll back; controller fault/status semantics differ",
                            "No online connection or download; source files are never saved by the engine"]}

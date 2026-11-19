@@ -124,4 +124,4 @@ def description():
                 array_recovery='A cleared Type 4 Code 20 in a whole-project ladder scan skips the GSV write or SSV update',
                 ssv=True, task_inhibition=task_inhibit.description(), task_rate=task_inhibit.rate_description(),
                 task_priority=task_inhibit.priority_description(),
-                task_watchdog=task_inhibit.watchdog_description())
+                task_watchdog=task_inhibit.watchdog_description(), task_output_update=task_inhibit.output_update_description())
