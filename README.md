@@ -378,6 +378,8 @@ known-zero source. **System lab** includes word windows, resets and rollback.
 [Event overlap counts](docs/event-overlap-count.md) adds live ladder/ST reads
 and zero resets, including THIS and separate status/counter behavior. **Event
 lab** includes guarded count and reset controls.
+[Periodic task diagnostics](docs/task-scheduling.md#periodic-task-diagnostics)
+support the same attribute names with zero readings under serial scheduling.
 
 [Event task timing](docs/event-task-timing.md) adds last/maximum interpreter
 durations and Program/Task THIS reads for instruction-only Events. **Event lab**

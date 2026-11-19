@@ -105,6 +105,40 @@ class EventStatusTests(unittest.TestCase):
                         ['GSV(Task,THIS,Status,EntryStatus); SSV(Task,THIS,Status,Command); GSV(Task,THIS,Status,ExitStatus);']],st=True,event_st=True)
         e.memory.write('Command',4);e.step();self.assertEqual((e.memory.read('EntryStatus'),e.memory.read('ExitStatus'),e.memory.read('CallerStatus')),(1,4,4))
 
+    def test_serial_periodic_diagnostics_named_and_this_reads_and_zero_resets(self):
+        def periodic(root):
+            task = root.find('./Controller/Tasks/Task[2]')
+            task.remove(task.find('EventInfo'))
+            task.attrib.update(Type='PERIODIC', Rate='10', Priority='5')
+
+        for st in (False, True):
+            with self.subTest(st=st):
+                def reset(attribute, task):
+                    call = f'SSV(Task,{task},{attribute},Values[Index]);'
+                    return f'IF ClearStatus THEN {call} END_IF;' if st else 'XIC(ClearStatus)' + call
+
+                e = self.checked([
+                    ['GSV(Task,Task1,Status,CallerStatus);', reset('Status', 'Task1'),
+                     'GSV(Task,Task1,OverlapCount,AfterStatus);'],
+                    ['GSV(Task,THIS,OverlapCount,EntryStatus);', reset('OverlapCount', 'THIS'),
+                     'GSV(Task,THIS,Status,ExitStatus);'],
+                ], st=st, event_st=st, mutate=periodic)
+                outputs = ('CallerStatus', 'AfterStatus', 'EntryStatus', 'ExitStatus')
+                e.step(40)
+                self.assertEqual([e.memory.read(ref) for ref in outputs], [0] * 4)
+                self.assertEqual(e.scheduler_description()['tasks'][1]['executions'], 4)
+                self.assertEqual(e._task_event_status, {})
+                e.memory.write('ClearStatus', True)
+                self.fault(e, 'outside bounds')
+                e.memory.write('Index', 1)
+                self.fault(e, 'Unknown')
+                e.memory.write('Values[1]', 4)
+                self.fault(e, 'reset zero')
+                e.memory.write('Values[1]', 0)
+                e.step()
+                self.assertEqual([e.memory.read(ref) for ref in outputs], [0] * 4)
+                self.assertEqual(e.scheduler_description()['tasks'][1]['executions'], 5)
+
     def test_run_entry_retains_status_and_fresh_model_resets(self):
         e=self.checked();e.memory.write('StartPB',True);e.step();e.enter_run();self.assertEqual(e._task_event_status['task1'],1)
         from logixlab.runtime import Engine

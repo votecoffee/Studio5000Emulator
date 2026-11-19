@@ -1,4 +1,4 @@
-"""Logical EVENT, timeout and active-overlap status, separate from native Task status."""
+"""Task diagnostics for modeled Event dispatch and serial Periodic releases."""
 import struct
 from .model import ModelError
 from . import event_tasks
@@ -21,14 +21,15 @@ def initial(engine):
 
 def target(engine,op,scope,*,executing=False):
     if len(op.args)!=4 or any(not isinstance(a,str) for a in op.args) or not matches(op):
-        raise ModelError('Event Task diagnostics require Task, an Event task name/THIS, Status/OverlapCount and a DINT tag')
+        raise ModelError('Task diagnostics require Task, a Periodic or Event task name/THIS, Status/OverlapCount and a DINT tag')
     event_tasks.profile(engine.project)
     # Validate the actual ordinary caller, even when the target is explicitly named.
     current_instance(engine,'Program','THIS',scope,executing=executing,allow_event=True)
     name=current_instance(engine,'Task',op.args[1],scope,executing=executing,allow_event=True)
     scheduler=engine._task_scheduler
     index=next((i for i,t in enumerate(scheduler.tasks) if t.name.casefold()==name.casefold()),None)
-    if index not in scheduler.event_timeouts:raise ModelError('Task Status requires a qualified instruction-only Event target')
+    if index is None or (scheduler.tasks[index].kind != 'Periodic' and index not in scheduler.event_timeouts):
+        raise ModelError('Task diagnostics require a qualified Periodic or instruction-only Event target')
     return index,scheduler.tasks[index].name.casefold()
 
 
@@ -36,7 +37,7 @@ def operand(engine,op,scope):
     memory=engine.memory
     key,parts,dtype=(memory.check_writable(op.args[3],scope) if op.name=='GSV' else memory.resolve(op.args[3],scope))
     if dtype!='DINT' or isinstance(memory.at(key,parts),(dict,list,bool)):
-        raise ModelError('Event Task Status requires one exact scalar DINT tag')
+        raise ModelError('Task Status and OverlapCount require one exact scalar DINT tag')
     return key,parts
 
 
@@ -62,6 +63,16 @@ def overlap_counts(engine):
 def execute(engine,op,power,scope):
     if not power:return power
     index,name=target(engine,op,scope,executing=True);key,parts=operand(engine,op,scope)
+    if engine._task_scheduler.tasks[index].kind == 'Periodic':
+        # Periodic releases run serially and cannot overlap in this scheduler.
+        if op.name == 'GSV':
+            engine.memory.store(key, parts, 0)
+        else:
+            value = engine.memory.read(op.args[3], scope)
+            if type(value) is not int or value != 0:
+                raise ModelError(f'SSV Periodic Task {op.args[2]} supports a known DINT reset zero only')
+        return power
+
     if op.args[2].casefold()=='overlapcount':
         if op.name=='GSV':
             count=overlap_counts(engine)[name]
@@ -108,8 +119,9 @@ def description():
                 visibility='Live within an advance; latched until supported SSV replacement; reset/reload initializes zero',
                 setters='Exact DINT replacement of modeled bits; bit 1 requires a defined timeout period; source retained',
                 contexts='Ordinary scheduled Programs, named Event target or THIS inside its Event task; no AOI/harness',
+                periodic='Named or THIS Periodic targets read zero for Status/OverlapCount under serial scheduling and accept exact DINT zero resets',
                 duplicates='Pending requests still coalesce; they do not set the active-overlap bit',
                 rollback='Status and task/data progress commit only with a successful complete advance',
                 native_protocol_expanded=False,native_runtime_parity=False,
-                remaining=['External event sources and other Task status bits','Continuous/Periodic/Safety status setters',
+                remaining=['External event sources and other Task status bits','Periodic overlap modeling and Continuous/Safety status',
                            'AOI/harness contexts and native pending/interrupt/status/fault/lifecycle parity'])

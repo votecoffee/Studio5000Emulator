@@ -20,6 +20,8 @@ current-instance contexts keep their existing profiles.
 [OverlapCount GSV/SSV](event-overlap-count.md) additionally reads the live active-
 request count and resets it from known zero. Counter and Status changes are
 independent and commit with the same complete advance.
+[Periodic task diagnostics](task-scheduling.md#periodic-task-diagnostics)
+provide separate Status and OverlapCount reads under the serial scheduler.
 
 ## Modeled bits and visibility
 

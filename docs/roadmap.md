@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+[Periodic task diagnostics](task-scheduling.md#periodic-task-diagnostics)
+accept Status and OverlapCount GSV/SSV as of `26.1119.170432`. The serial
+scheduler exposes zero for both and supports zero resets. Execution durations,
+preemption and periodic overlap detection remain open.
+
 [Direct string SIZE](size-truncate.md#direct-string-capacity) reads declared
 capacity in `26.1119.165909`, including supported user-defined strings and
 aliased UDT members. Existing array dimensions and lazy operand checks carry

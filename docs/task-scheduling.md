@@ -84,6 +84,27 @@ native Task measurement/status services retain their guarded single-task
 profile; multi-task counts are not substituted into unimplemented native fields.
 Program host-time measurements remain separate from simulated release times.
 
+## Periodic task diagnostics
+
+As of `26.1119.170432`, ladder and ST can read `Task.Status` and
+`Task.OverlapCount` for a named Standard Periodic task, or use `THIS` from
+its own scheduled Program:
+
+```text
+GSV(Task,FastTask,Status,FastStatus);
+GSV(Task,THIS,OverlapCount,ActiveOverlaps);
+SSV(Task,THIS,OverlapCount,ResetValue);
+```
+
+Both GSV attributes write a scalar DINT zero because periodic releases in
+the emulator run serially without modeled execution duration. SSV accepts a
+known DINT zero for either attribute. Reached nonzero values and bad
+references follow normal advance rollback. The qualified Event task
+[status](event-task-status.md) and [overlap count](event-overlap-count.md)
+continue to report modeled Event triggers and active requests separately.
+Native periodic overlap detection requires execution-time and preemption models.
+See [Rockwell's Task object reference](https://www.rockwellautomation.com/en-gb/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/input-output-instructions/access-the-task-object.html).
+
 ## Validation checkpoint
 
 Focused scheduler and Event cases cover mixed rates, priority/FIFO ordering,

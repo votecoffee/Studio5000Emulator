@@ -6,6 +6,8 @@ The v35 ControlLogix 5580 project profile supports
 instruction-only Standard Event tasks. Ordinary scheduled Programs can name
 the target; `THIS` inside the Event selects its Task. AOI, routine-harness,
 Safety and Periodic deadline-overlap behavior remain unqualified.
+[Serial Periodic tasks](task-scheduling.md#periodic-task-diagnostics) have
+their own zero baseline for Status and OverlapCount.
 
 ```text
 GSV(Task,THIS,OverlapCount,ActiveOverlaps);
