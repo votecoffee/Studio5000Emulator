@@ -4,6 +4,7 @@ The v35 ControlLogix 5580 software profile adds these common ladder forms:
 
 ```text
 SIZE(Grid[0,0],1,Columns);
+SIZE(Message,0,Capacity);
 SIZE(Message.DATA[0],0,Capacity);
 TRN(RealValue,WholeValue);
 ```
@@ -13,8 +14,21 @@ and string DATA storage. Selected elements retain that array's declared rank and
 dimensions; leaf values and string LEN are not consumed. One to three dimensions,
 aliases and existing AOI InOut/local bindings are supported. Results can be
 SINT/INT/DINT/REAL, provided the size fits the destination. SIZE is also callable
-from ST. Direct scalar string operands and packed layout traversal remain outside
-this profile; use the represented DATA array for string capacity.
+from ST. It returns logical element counts.
+
+## Direct string capacity
+
+As of `26.1119.165909`, a scalar STRING or supported user-defined string can
+be passed directly to SIZE with dimension 0. The result is the declared
+capacity, even if LEN and every DATA byte are unknown. This also works through
+an alias or a string member in a selected UDT. The selected member's address
+must be valid when the instruction executes.
+
+A string array and its directly selected elements keep their existing array
+dimensions. For example, SIZE on either `Labels` or `Labels[1]` returns 2 for a
+two-element string array. Use `Labels[1].DATA` to obtain that element's string
+capacity. The v35 examples use explicit DATA operands; native verification of
+the emulator's direct scalar form remains open.
 
 The documented dimension operand is an immediate 0, 1 or 2. The existing emulator
 extension accepting a SINT/INT/DINT dimension tag remains available, with rank and

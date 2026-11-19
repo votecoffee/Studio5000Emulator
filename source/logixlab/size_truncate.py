@@ -18,10 +18,10 @@ def scalar(memory, ref, scope, allowed, *, destination=False):
 
 
 def shape(memory, ref, scope):
-    """Find the closest logical containing array, without consuming its leaves."""
-    key, parts, _ = memory.resolve(ref, scope)
+    """Find array dimensions or scalar string capacity without reading contents."""
+    key, parts, dtype = memory.resolve(ref, scope)
     if key is None or any(isinstance(part, tuple) for part in parts):
-        raise ModelError('SIZE source must address an array')
+        raise ModelError('SIZE source must address an array or scalar string')
     value = memory.values[key]
     array = None
     for index, part in enumerate(parts):
@@ -31,7 +31,11 @@ def shape(memory, ref, scope):
             array = value
         value = value[part]
     if isinstance(value, list) and (not parts or not isinstance(parts[-1], int)):array = value
-    if array is None:raise ModelError('SIZE source must address an array')
+    if array is None:
+        capacity = memory.project.string_capacity(dtype)
+        if capacity is None:
+            raise ModelError('SIZE source must address an array or scalar string')
+        return [capacity]
     dimensions = []
     while isinstance(array, list):
         dimensions.append(len(array))
@@ -102,7 +106,7 @@ def handle(engine, op, scope, *, execute=False):
 def description(project):
     return dict(available=project.version == '35' and project.processor.upper() in CONTROLLERS,
                 profile='v35-5580-SIZE-TRN', size_languages=['RLL', 'ST'], trn_languages=['RLL'],
-                size='Whole arrays or selected elements; closest logical member array; rank 1..3; no leaf-value reads',
+                size='Whole arrays or selected elements, closest logical member array, or capacity of scalar strings; no leaf-value reads',
                 size_destinations=sorted(NARROW), trn_source='Finite REAL/LREAL tag, bounded DINT/finite REAL immediate or finite floating L/l LREAL immediate',
                 trn_destinations=sorted(TRN_DESTINATIONS), truncation='Preserve tagged REAL float32 or LREAL binary64 source precision; truncate toward zero, then representable destination conversion',
                 lreal='Tagged and floating L/l LREAL sources with integer/REAL/LREAL destinations; v35 ladder TRN',

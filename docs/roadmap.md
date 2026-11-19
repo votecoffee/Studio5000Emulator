@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+[Direct string SIZE](size-truncate.md#direct-string-capacity) reads declared
+capacity in `26.1119.165909`, including supported user-defined strings and
+aliased UDT members. Existing array dimensions and lazy operand checks carry
+over. Native verification of direct scalar operands remains open.
+
 [ControllerDevice SerialNumber](gsv-configuration.md#controller-device-identity)
 fills the serial read in `26.1119.165455`. GSV writes the advertised virtual
 EtherNet/IP serial to a DINT in ladder and ST. System Lab demonstrates the

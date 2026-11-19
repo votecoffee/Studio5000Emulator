@@ -686,9 +686,9 @@ adds an `ExecuteIndexed` section for full writes, faults and recovery.
 adds CPT/CMP calculations with explicit intermediate checks. Enable
 `MixedExpressionMath` in that lab for nine examples.
 
-[Array size and truncation](docs/size-truncate.md) add selected array/string DATA
-size reads, lazy unknown-value handling and signed/unsigned TRN results. In
-**Data lab**, enable `InspectData` to see these forms.
+[Array size and truncation](docs/size-truncate.md) support selected arrays,
+string capacity reads, lazy unknown-value handling and signed/unsigned TRN results.
+In **Data lab**, enable `InspectData` to see array and string DATA sizes.
 
 [Numeric file fills](docs/numeric-fill.md) add integer narrowing/sign extension,
 structural validation and lazy operand reads for FLL. In **Data lab**, enable

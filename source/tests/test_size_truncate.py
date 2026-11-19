@@ -45,11 +45,32 @@ class SizeTruncateTests(unittest.TestCase):
         e = self.checked(['SIZE(Grid[1],0,Dest);']);e.step()
         self.assertEqual(e.memory.read('Dest'), 2)
 
-    def test_size_string_data_capacity_ignores_unknown_len_and_bytes(self):
-        e = self.checked(['SIZE(Banner.DATA[0],0,Dest);'])
+    def test_size_string_capacity_ignores_unknown_len_and_bytes(self):
+        e = self.checked(['SIZE(Banner,0,Results[0])SIZE(Banner.DATA[0],0,Results[1]);'])
         e.memory.values['banner'] = {'LEN': None, 'DATA': [None] * 82};e.step()
-        self.assertEqual(e.memory.read('Dest'), 82)
+        self.assertEqual(e.memory.read('Results'), [82, 82, None])
         self.assertIsNone(e.memory.values['banner']['LEN'])
+
+    def test_size_custom_string_member_alias_uses_capacity_and_checks_live_index(self):
+        from test_aggregate_fill import AggregateFillTests
+        fixture = AggregateFillTests()
+        fixture.setUp()
+        self.addCleanup(fixture.doCleanups)
+
+        def alias(root):
+            E.SubElement(root.find('./Controller/Tags'), 'Tag', Name='Label',
+                         TagType='Alias', AliasFor='Records[Index].Text')
+
+        e = fixture.checked(['XIC(StartPB)SIZE(Label,0,SpeedCommand);'], mutate=alias)
+        e.step()
+        self.assertEqual(e.memory.read('SpeedCommand'), 0)
+        e.memory.write('StartPB', True)
+        with self.assertRaisesRegex(ModelError, 'outside bounds'):
+            e.step()
+        self.assertEqual(e.memory.read('SpeedCommand'), 0)
+        e.memory.write('Index', 1)
+        e.step()
+        self.assertEqual(e.memory.read('SpeedCommand'), 8)
 
     def test_size_member_arrays_choose_closest_array(self):
         def strings(root):
@@ -64,6 +85,9 @@ class SizeTruncateTests(unittest.TestCase):
         for ref in ('Labels[1].DATA', 'Labels[1].DATA[12]'):
             e = self.checked([f'SIZE({ref},0,Dest);'], mutate=strings);e.step()
             self.assertEqual(e.memory.read('Dest'), 82)
+        e = self.checked(['SIZE(Labels,0,Results[0])SIZE(Labels[1],0,Results[1]);'], mutate=strings)
+        e.step()
+        self.assertEqual(e.memory.read('Results'), [2, 2, None])
         self.assertTrue(self.engine(['SIZE(Labels[1].LEN,0,Dest);'], mutate=strings).blockers)
 
     def test_size_aliases_and_three_dimensional_arrays(self):
@@ -95,7 +119,7 @@ class SizeTruncateTests(unittest.TestCase):
         self.assertEqual(e.memory.read('Mask'), 3)
 
     def test_size_static_bad_forms_are_blocked(self):
-        for text in ('SIZE(Grid,2,Dest);', 'SIZE(Grid,-1,Dest);', 'SIZE(Grid,1.0,Dest);',
+        for text in ('SIZE(Grid,2,Dest);', 'SIZE(Banner,1,Dest);', 'SIZE(Grid,-1,Dest);', 'SIZE(Grid,1.0,Dest);',
                      'SIZE(Grid,TRUE,Dest);', 'SIZE(Source,0,Dest);', 'SIZE(Dest.0,0,Mask);',
                      'SIZE(Grid,0,StartPB);', 'SIZE(Grid,0,Results);'):
             self.assertTrue(self.engine([text]).blockers, text)
@@ -157,9 +181,11 @@ class SizeTruncateTests(unittest.TestCase):
     def test_size_st_call_and_trunc_expression_remain_separate(self):
         def st(root):
             routine = root.find('.//Program/Routines/Routine');routine.set('Type', 'ST');routine.remove(routine.find('RLLContent'))
-            E.SubElement(E.SubElement(routine, 'STContent'), 'Line', Number='0').text = 'SIZE(Grid[1,2],1,Dest); Source:=TRUNC(-3.9);'
+            E.SubElement(E.SubElement(routine, 'STContent'), 'Line', Number='0').text = (
+                'SIZE(Grid[1,2],1,Dest); SIZE(Banner,0,Results[0]); Source:=TRUNC(-3.9);')
         e = self.checked(mutate=st);e.step()
         self.assertEqual((e.memory.read('Dest'), e.memory.read('Source')), (3, -3.0))
+        self.assertEqual(e.memory.read('Results[0]'), 82)
 
     def test_size_aoi_inout_local_arrays_and_binding_rollback(self):
         import test_aoi_queues as queues
