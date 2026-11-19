@@ -6,10 +6,27 @@ from . import gsv_configuration
 from .integer_math import CONTROLLERS
 from .model import ModelError, dimensions
 
-LOCAL_OUTPUT_NAME = re.compile(r'local:(0|[1-9][0-9]?):o', re.ASCII | re.I)
-ETHERNET_OUTPUT_NAME = re.compile(r'([a-z_][a-z0-9_]{0,39}):o', re.ASCII | re.I)
+OUTPUT_NAME = re.compile(r'([a-z_][a-z0-9_]{0,39})(?::(0|[1-9][0-9]?))?:o', re.ASCII | re.I)
 SCALARS = frozenset(('BOOL','SINT','INT','DINT','USINT','UINT','UDINT','REAL'))
 MAX_CELLS = 64
+
+
+def output_module(io_map, ref):
+    match = OUTPUT_NAME.fullmatch(ref)
+    if match is None:
+        return None
+    name, slot = match.groups()
+    if slot is not None and name.casefold() == 'local':
+        parent, route = None, bytes((1, int(slot)))
+    else:
+        module = io_map.named_module(name)
+        if module is None or not module.ethernet_addressed or module.route is None:
+            return None
+        if slot is None:
+            return module
+        parent, route = module.name, module.route + bytes((1, int(slot)))
+    return next((entry for entry in io_map.module_settings
+                 if entry.route == route and entry.routed_parent == parent), None)
 
 
 def validate(engine, op, scope):
@@ -18,17 +35,9 @@ def validate(engine, op, scope):
             or scope in engine.memory.frames):
         raise ModelError('IOT requires a whole-project v35 ControlLogix 5580 ladder scan')
     ref = op.args[0]
-    local = LOCAL_OUTPUT_NAME.fullmatch(ref)
-    if local:
-        route = bytes((1, int(local[1])))
-        module = next((entry for entry in project.io_map.module_settings if entry.route == route), None)
-        if module is None or module.inhibited is None:
-            raise ModelError('IOT output slot requires a qualified local module and explicit Inhibited setting')
-    else:
-        named = ETHERNET_OUTPUT_NAME.fullmatch(ref)
-        module = project.io_map.named_module(named[1]) if named else None
-        if module is None or not module.ethernet_addressed or module.inhibited is None:
-            raise ModelError('IOT requires a whole Local:<slot>:O or named IPv4 module :O tag with a qualified route')
+    module = output_module(project.io_map, ref)
+    if module is None or module.inhibited is None:
+        raise ModelError('IOT requires a whole output tag for a qualified local slot, named IPv4 module or remote rack slot with explicit Inhibited setting')
     memory = engine.memory
     key, _, dtype = memory.resolve(ref,scope)
     tag = project.tags[key]
@@ -68,7 +77,7 @@ def execute(engine, op, scope):
 
 
 def description():
-    return dict(instruction='IOT',language='RLL',scope='v35 5580 whole-project local rack slots and named IPv4 modules',
+    return dict(instruction='IOT',language='RLL',scope='v35 5580 whole-project local slots, named IPv4 modules and qualified remote rack slots',
                 connection='Requires an effective Running simulated module input',
                 delivery='Latest instruction-time output per tag, published after scan commit',
                 wire_packets=False,rpi_timing=False,native_runtime_parity=False)

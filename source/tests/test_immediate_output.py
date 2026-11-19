@@ -12,6 +12,24 @@ from logixlab.server import Application
 SAMPLE = Path(__file__).resolve().parents[1] / 'samples/ModuleStatusLab.L5X'
 
 
+def add_local_bridge(modules):
+    bridge = ET.SubElement(modules, 'Module', Name='LineBridge', CatalogNumber='1756-EN2TR',
+                           Vendor='1', ProductType='12', ParentModule='Local',
+                           ParentModPortId='1', Inhibited='false', MajorFault='false')
+    ports = ET.SubElement(bridge, 'Ports')
+    ET.SubElement(ports, 'Port', Id='1', Address='6', Type='ICP', Upstream='true')
+    ET.SubElement(ports, 'Port', Id='2', Type='Ethernet', Upstream='false')
+    return bridge.get('Name')
+
+
+def select_output_tag(root, name):
+    tag = ET.SubElement(root.find('./Controller/Tags'), 'Tag', Name=name,
+                        TagType='Base', DataType='DINT')
+    ET.SubElement(ET.SubElement(tag, 'Data', Format='Decorated'), 'DataValue', DataType='DINT', Value='0')
+    text = root.find('.//Routine[@Name="Main"]/RLLContent/Rung[@Number="16"]/Text')
+    text.text = text.text.replace('Local:2:O', name)
+
+
 class ImmediateOutputTests(unittest.TestCase):
     def setUp(self):
         tmp = tempfile.TemporaryDirectory()
@@ -49,25 +67,70 @@ class ImmediateOutputTests(unittest.TestCase):
     @staticmethod
     def named_output(root, *, bridged=False, address='192.0.2.99'):
         modules = root.find('./Controller/Modules')
-        parent = 'Local'
-        if bridged:
-            parent = 'LineBridge'
-            bridge = ET.SubElement(modules, 'Module', Name=parent, CatalogNumber='1756-EN2TR',
-                                   Vendor='1', ProductType='12', ParentModule='Local',
-                                   ParentModPortId='1', Inhibited='false', MajorFault='false')
-            ports = ET.SubElement(bridge, 'Ports')
-            ET.SubElement(ports, 'Port', Id='1', Address='6', Type='ICP', Upstream='true')
-            ET.SubElement(ports, 'Port', Id='2', Type='Ethernet', Upstream='false')
+        parent = add_local_bridge(modules) if bridged else 'Local'
         remote = ET.SubElement(modules, 'Module', Name='NetworkOutput', CatalogNumber='1732E-OB16M12',
                                Vendor='1', ProductType='7', ParentModule=parent, ParentModPortId='2',
                                Inhibited='false', MajorFault='false')
         ET.SubElement(ET.SubElement(remote, 'Ports'), 'Port', Id='1', Address=address,
                       Type='Ethernet', Upstream='true')
-        tag = ET.SubElement(root.find('./Controller/Tags'), 'Tag', Name='NetworkOutput:O',
-                            TagType='Base', DataType='DINT')
-        ET.SubElement(ET.SubElement(tag, 'Data', Format='Decorated'), 'DataValue', DataType='DINT', Value='0')
-        text = root.find('.//Routine[@Name="Main"]/RLLContent/Rung[@Number="16"]/Text')
-        text.text = text.text.replace('Local:2:O', 'NetworkOutput:O')
+        select_output_tag(root, 'NetworkOutput:O')
+
+    @staticmethod
+    def remote_rack_output(root, *, bridged=False, tag_slot=5):
+        modules = root.find('./Controller/Modules')
+        adapter = modules.find('Module[@Name="RemoteRack"]')
+        if bridged:
+            adapter.set('ParentModule', add_local_bridge(modules))
+            # The extra local slot hop also lengthens the sample's GSV Path read.
+            path = root.find('./Controller/Tags/Tag[@Name="RemotePath"]')
+            path.set('Dimensions', '20')
+            path.find('./Data/Array').set('Dimensions', '20')
+        module = ET.SubElement(modules, 'Module', Name='RemoteCoils', CatalogNumber='1756-OB16D',
+                               Vendor='1', ProductType='7', ParentModule='RemoteRack',
+                               ParentModPortId='1', Inhibited='false', MajorFault='false')
+        ET.SubElement(ET.SubElement(module, 'Ports'), 'Port', Id='1', Address='5',
+                      Type='ICP', Upstream='true')
+        select_output_tag(root, f'RemoteRack:{tag_slot}:O')
+
+    def test_remote_rack_slot_captures_child_output_and_tracks_upstream_state(self):
+        for bridged in (False, True):
+            with self.subTest(bridged=bridged):
+                self.assertEqual(self.load(lambda root: self.remote_rack_output(root, bridged=bridged))['blockers'], [])
+                self.write('SendImmediate', True)
+                self.connection('running', module='RemoteRack')
+                self.assertEqual(self.step()['immediate_outputs'], [])
+                self.connection('running', module='RemoteCoils')
+                self.assertEqual(self.step()['immediate_outputs'], [])  # Adapter is still inhibited.
+                self.write('RackModeCommand', 0)
+                self.write('ApplyRackMode', True)
+                captured = self.step()['immediate_outputs']
+                self.assertEqual(captured, [
+                    dict(module='RemoteCoils', tag='RemoteRack:5:O', value=17, sequence=1, scan=3, simulation_ms=30)])
+                self.assertEqual(self.snapshot()['immediate_outputs'], captured)
+                self.assertEqual(self.app.engine.memory.read('RemoteRack:5:O'), 29)
+
+                blocked_module = 'LineBridge' if bridged else 'RemoteRack'
+                self.connection('faulted', module=blocked_module, fault_code=5, fault_info=0)
+                self.write('OutputCommand', 45)
+                self.assertEqual(self.step()['immediate_outputs'], captured)
+                self.connection('running', module=blocked_module)
+                self.assertEqual(self.step()['immediate_outputs'], [
+                    captured[0] | dict(value=45, sequence=2, scan=5, simulation_ms=50)])
+
+    def test_remote_output_cannot_match_a_local_slot_or_ambiguous_rack_slot(self):
+        state = self.load(lambda root: self.remote_rack_output(root, tag_slot=2))
+        self.assertTrue(any('IOT requires' in blocker for blocker in state['blockers']), state['blockers'])
+
+        # Adding a second child to rack slot 5 invalidates both slot routes.
+        def duplicate(root):
+            self.remote_rack_output(root)
+            modules = root.find('./Controller/Modules')
+            sibling = ET.fromstring(ET.tostring(modules.find('Module[@Name="RemoteCoils"]')))
+            sibling.set('Name', 'DuplicateCoils')
+            modules.append(sibling)
+
+        state = self.load(duplicate)
+        self.assertTrue(any('IOT requires' in blocker for blocker in state['blockers']), state['blockers'])
 
     def test_named_ipv4_outputs_require_running_path_and_retain_sample_when_blocked(self):
         for bridged in (False, True):

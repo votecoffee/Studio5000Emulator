@@ -16,11 +16,16 @@ buffers and coalescing; it does not record every intermediate tag transition.
 ## Immediate output captures
 
 Ladder IOT supports whole controller output tags. Use `Local:2:O` for a local
-rack slot or `NetworkOutput:O` for a named module with an explicit IPv4 route
-through the controller or a qualified local bridge. The project must contain
-the complete output tag and an unambiguous module route. Its simulated
-connection must be effectively Running when IOT executes. A faulted or
-inhibited upstream bridge prevents capture until the path is available again.
+rack slot, `NetworkOutput:O` for a named module with an explicit IPv4 route,
+or `RemoteRack:5:O` for slot 5 in a qualified remote ControlLogix rack.
+The remote route may use the controller's Ethernet port or a qualified local
+bridge.
+
+The project must contain the complete output tag and an unambiguous route.
+For a remote rack slot, set the simulated connection for the **module in
+that slot** to Running. Device I/O identifies the capture by that module's
+name and the full output tag. A faulted or inhibited upstream adapter or
+bridge prevents capture until the path is available again.
 
 Supported output images contain a scalar, a flat array or a flat user-defined
 record with up to 64 scalar cells. The allowed cell types are BOOL, SINT, INT,
@@ -42,8 +47,8 @@ Expand **Last immediate outputs (IOT)** to see 17. The live Local:2:O tag
 ends the scan at 29.
 
 The delivery is an instruction-time snapshot for a simulated device.
-Cyclic module traffic, RPI resets, produced-tag triggers, remote rack slot
-addresses, vendor module layouts and ST IOT remain outside this profile.
+Cyclic module traffic, RPI resets, produced-tag triggers, vendor module layouts
+and ST IOT remain outside this profile.
 
 [Rockwell IOT reference](https://www.rockwellautomation.com/en-za/docs/studio-5000-logix-designer/38-00/contents-ditamap/instruction-set/input-output-instructions/immediate-output--iot-.html)
 

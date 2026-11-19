@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+[Remote rack IOT](device-io.md#immediate-output-captures) supports whole output
+tags such as `RemoteRack:5:O` in `26.1119.171704`. The emulator resolves the
+rack and slot to the actual module, then checks its simulated connection
+and upstream path before publishing a capture.
+
 [Ladder IOT](device-io.md#immediate-output-captures) accepts whole output tags
 for named IPv4 modules in `26.1119.171037`. Simulated connections through the
 controller or a qualified local bridge publish the instruction-time image
