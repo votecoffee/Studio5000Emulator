@@ -144,11 +144,17 @@ dot in the same rung, in a branch, or in another rung. For keyboard editing,
 select the instruction, choose **Move instruction**, then focus a destination
 dot and press Enter. Esc cancels the selection of a destination.
 
-Select the square on a branch's right rail to add or delete a leg. Deleting a
-leg removes its instructions. When one leg remains, its instructions return
-to the surrounding rung or branch. **Undo** restores the whole edit, including
-moves across two rungs. **Redo** repeats it. Ctrl+Z and Ctrl+Y also work outside
-text fields.
+Drag the square on a branch's right rail to a highlighted wire dot. A dot
+after the branch wraps the intervening instructions into the top leg. A dot
+inside the top leg releases everything after it to the right of the branch.
+For keyboard editing, select the square and choose **Resize branch**.
+Nested branches move as a unit, and the other legs keep their instructions.
+
+Select the square to add or delete a leg. Deleting a leg removes its
+instructions. When one leg remains, its instructions return to the
+surrounding rung or branch. **Undo** restores the whole edit, including
+moves across two rungs and branch resizing. **Redo** repeats it. Ctrl+Z
+and Ctrl+Y also work outside text fields.
 
 **Monitor** restores the live view. Select **Resume draft** to return to
 a changed draft for the same project generation and routine revision.
@@ -183,8 +189,8 @@ The next authoring stages build on these same instruction nodes and connections:
 5. Qualify native engineering transfers and online editing separately from
    offline authoring and simulation.
 
-The draft tools cover wire insertion, drag moves, branch legs, operand
-editing, deletion and history. Branch resize, draft reload, Python validation,
+The draft tools cover wire insertion, drag moves, branch resizing and legs,
+operand editing, deletion and history. Draft reload, Python validation,
 applying drafts and edited L5X export are still planned.
 
 ## Verification

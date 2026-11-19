@@ -69,6 +69,20 @@
     return {from, to, index: from.series === to && index > from.index ? index - 1 : index};
   }
 
+  function resizePlacement(nodes, id, gap) {
+    if (!nodes) return null;
+    const branch = locate(nodes, id), top = branch?.node.branch?.[0];
+    if (!top) return null;
+    const destination = atGap(nodes, gap), after = branch.index + 1;
+    if (destination === branch.series && gap.index > after) {
+      return {from: branch.series, start: after, count: gap.index - after, to: top, index: top.length};
+    }
+    if (destination === top && gap.index < top.length) {
+      return {from: top, start: gap.index, count: top.length - gap.index, to: branch.series, index: after};
+    }
+    return null;
+  }
+
   function create(routine) {
     if (!canEdit(routine)) throw new Error('This routine is read-only');
     let nextId = 0;
@@ -134,6 +148,18 @@
         to.splice(index, 0, from.node);
         commit(source === target ? [[fromRung, source]] : [[fromRung, source], [toRung, target]]);
         return id;
+      },
+      canResize(rung, id, gap) {
+        return Number.isInteger(rung) && !!resizePlacement(rungs[rung]?.nodes, id, gap);
+      },
+      resize(rung, id, gap) {
+        return change(rung, nodes => {
+          const placement = resizePlacement(nodes, id, gap);
+          if (!placement) return null;
+          const {from, start, count, to, index} = placement;
+          to.splice(index, 0, ...from.splice(start, count));
+          return id;
+        });
       },
       addLeg(rung, id) {
         return change(rung, nodes => {

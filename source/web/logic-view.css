@@ -12,8 +12,9 @@
 .lv-draft-gap:hover,.lv-draft-gap:focus {fill:#286da8;stroke:#134772}
 .lv-draft-instruction {cursor:grab;touch-action:none}
 .lv-pick-wire .lv-draft-gap {stroke:#0f6947}
-.lv-draft-gap.drop-target {fill:#1c885c;stroke:#0b5234;stroke-width:3}
-.lv-draft-branch {fill:#eaf1f9;stroke:#286da8;stroke-width:1.6;cursor:pointer;outline:none}
+.lv-draft-gap.resize-target {fill:#d6f4e5;stroke:#0f6947;stroke-width:2}
+.lv-draft-gap.drop-target,.lv-draft-gap.resize-target:focus {fill:#1c885c;stroke:#0b5234;stroke-width:3}
+.lv-draft-branch {fill:#eaf1f9;stroke:#286da8;stroke-width:1.6;cursor:ew-resize;outline:none;touch-action:none}
 .lv-draft-branch:hover,.lv-draft-branch:focus,.lv-draft-branch.selected {fill:#286da8;stroke:#134772}
 .lv-draft-legs {display:flex;flex-wrap:wrap;gap:6px;padding:9px 12px}
 .lv-draft-legs button {border:1px solid #a4b6c8;border-radius:3px;background:#fff;color:#243747;padding:5px 7px}

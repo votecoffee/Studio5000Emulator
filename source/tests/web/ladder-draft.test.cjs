@@ -139,3 +139,54 @@ test('branch leg commands preserve remaining nodes and restore nested topology o
   assert.equal(draft.rungs[0].nodes[1].branch[0][0].draftId, first);
   assert.equal(draft.rungs[0].nodes[1].branch.length, 3);
 });
+
+test('resizing wraps following nodes into the top leg and releases a contiguous suffix', () => {
+  const routine = fixture();
+  const branch = {branch: [[op('XIC', 'A')], [op('XIO', 'B')]]};
+  const parallel = {branch: [[op('XIC', 'C')], [op('XIC', 'D')]]};
+  routine.rungs[0].nodes = [branch, parallel, op('ADD', '1', '2', 'Count'), op('OTE', 'Run')];
+  routine.rungs[0].text = ' [XIC(A),XIO(B)] [XIC(C),XIC(D)] ADD(1, 2, Count) OTE(Run);';
+  const draft = draftModel.create(routine);
+  const [first, adjacent, add, last] = draft.rungs[0].nodes;
+  const wrap = {legs: [], index: 3};
+  assert(draft.canResize(0, first.draftId, wrap));
+  assert(draft.resize(0, first.draftId, wrap));
+  assert.equal(draft.rungs[0].text, '[XIC(A)[XIC(C),XIC(D)]ADD(1,2,Count),XIO(B)]OTE(Run);');
+  assert.deepEqual(draft.rungs[0].nodes[0].branch[0].slice(1).map(item => item.draftId), [adjacent.draftId, add.draftId]);
+  assert.equal(draft.rungs[0].nodes[1].draftId, last.draftId);
+  assert.equal(draft.rungs[1].text, routine.rungs[1].text);
+  const extended = draft.rungs[0].text;
+  const unwrap = {legs: [[0, 0]], index: 1};
+  assert(draft.resize(0, first.draftId, unwrap));
+  assert.equal(draft.rungs[0].text, routine.rungs[0].text);
+  assert.equal(draft.changed, false);
+  assert(draft.undo());
+  assert.equal(draft.rungs[0].text, extended);
+  assert(draft.redo());
+  assert.equal(draft.rungs[0].text, routine.rungs[0].text);
+});
+
+test('resizing stays in the selected branch parent and rejects unrelated and boundary wires', () => {
+  const routine = fixture();
+  const inner = {branch: [[op('XIC', 'A')], [op('XIO', 'B')]]};
+  routine.rungs[0].nodes = [op('XIC', 'Start'),
+    {branch: [[inner, op('XIC', 'C')], [op('XIC', 'D')]]}, op('OTE', 'Run')];
+  const draft = draftModel.create(routine), nested = draft.rungs[0].nodes[1].branch[0][0].draftId;
+  const original = draft.rungs[0].text;
+  for (const gap of [{legs: [], index: 3}, {legs: [[1, 1]], index: 1},
+    {legs: [[1, 0], [0, 1]], index: 0}, {legs: [[1, 0], [0, 0]], index: 1},
+    {legs: [[1, 0]], index: 1}, {legs: [[1, 0]], index: 3}]) {
+    assert.equal(draft.canResize(0, nested, gap), false);
+    assert.equal(draft.resize(0, nested, gap), null);
+  }
+  assert.equal(draft.rungs[0].text, original);
+  assert.equal(draft.canUndo, false);
+
+  const diagram = graph.compile(draft.rungs[0], routine.key, true);
+  const wire = diagram.edges.find(edge => edge.gap.legs.length === 1
+    && edge.gap.legs[0][0] === 1 && edge.gap.legs[0][1] === 0 && edge.gap.index === 2);
+  assert(draft.resize(0, nested, wire.gap));
+  assert.equal(draft.rungs[0].text, 'XIC(Start)[[XIC(A)XIC(C),XIO(B)],XIC(D)]OTE(Run);');
+  assert(draft.undo());
+  assert.equal(draft.rungs[0].text, original);
+});

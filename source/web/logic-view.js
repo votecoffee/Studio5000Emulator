@@ -83,16 +83,40 @@
     const canvas = options.canvas, inspector = options.inspector, status = options.status;
     let current, key = '', sourceIdentity = '', zoom = 1, showValues = true, showComments = true, selected = '', documents = [], valueMap = new Map(), snapshot, lastTraces = new Map();
     let inspection = '', monitorSelection = '', draftSelection = '', draftRungs;
-    let movePick, drag, hovered, suppressedClick;
+    let movePick, drag, hovered, suppressedClick, resizeGuide = null, resizeDots = [];
     const wireTargets = new WeakMap(), dragSources = new WeakMap();
-    const draftStatus = () => movePick ? 'Choose a destination wire · Esc cancels' :
-      drag?.active ? 'Drop on a wire dot' : 'Draft · Simulator uses the loaded routine';
 
+    function acceptsWire(source, target) {
+      if (!target) return false;
+      if (source.resize) return source.rung === target.rung &&
+        current.draft.canResize(source.rung, source.id, target.gap);
+      return current.draft.canMove(source.rung, source.id, target.rung, target.gap);
+    }
+    function validWires(doc, source) {
+      return [...doc.row.querySelectorAll('.lv-draft-gap')].filter(dot => acceptsWire(source, wireTargets.get(dot)));
+    }
+    function indicateResize(source) {
+      if (resizeGuide === source) return;
+      for (const dot of resizeDots) dot.classList.remove('resize-target');
+      resizeGuide = source;
+      resizeDots = source ? validWires(documents[source.rung], source) : [];
+      for (const dot of resizeDots) dot.classList.add('resize-target');
+    }
     function moveStatus() {
       if (!current?.draft) return;
-      canvas.classList.toggle('lv-pick-wire', !!movePick || !!drag?.active);
-      const text = draftStatus();
+      const source = movePick || (drag?.active ? drag : null);
+      indicateResize(source?.resize ? source : null);
+      canvas.classList.toggle('lv-pick-wire', !!source && !source.resize);
+      const text = source?.resize ? 'Choose a highlighted wire to resize the branch · Esc cancels' :
+        movePick ? 'Choose a destination wire · Esc cancels' :
+        drag?.active ? 'Drop on a wire dot' : 'Draft · Simulator uses the loaded routine';
       if (status.textContent !== text) status.textContent = text;
+    }
+    function pickWire(doc, source) {
+      movePick = source;
+      moveStatus();
+      const first = validWires(doc, source)[0];
+      (first || canvas.querySelector('.lv-draft-gap'))?.focus();
     }
     function highlight(dot) {
       if (dot === hovered) return;
@@ -110,18 +134,19 @@
     }
     function dropTarget(event) {
       const dot = document.elementFromPoint(event.clientX, event.clientY)?.closest('.lv-draft-gap');
-      const destination = wireTargets.get(dot);
-      return destination && current.draft.canMove(drag.rung, drag.id, destination.rung, destination.gap) ? dot : null;
+      return acceptsWire(drag, wireTargets.get(dot)) ? dot : null;
     }
-    function moveTo(source, target) {
-      const id = options.onDraftMove(source.rung, source.id, target.rung, target.gap);
+    function applyWire(source, target) {
+      if (!acceptsWire(source, target)) return;
+      const id = source.resize ? options.onDraftResize(source.rung, source.id, target.gap) :
+        options.onDraftMove(source.rung, source.id, target.rung, target.gap);
       if (!id) return;
       movePick = null;
-      select(target.graphId + ':draft:' + id, true);
+      select(target.graphId + ':draft:' + id + (source.resize ? ':join' : ''), true);
       moveStatus();
     }
     canvas.addEventListener('pointerdown', event => {
-      const element = event.target.closest('.lv-instruction'), source = dragSources.get(element);
+      const element = event.target.closest('.lv-instruction, .lv-draft-branch'), source = dragSources.get(element);
       if (!source || !event.isPrimary || event.button !== 0 || drag) return;
       suppressedClick = null;
       drag = {...source, element, pointer: event.pointerId, x: event.clientX, y: event.clientY, active: false};
@@ -145,7 +170,7 @@
       if (!source.active) return;
       suppressedClick = source.element;
       setTimeout(() => {if (suppressedClick === source.element) suppressedClick = null;}, 0);
-      if (dot) moveTo(source, wireTargets.get(dot));
+      if (dot) applyWire(source, wireTargets.get(dot));
     });
     for (const type of ['pointercancel', 'lostpointercapture']) canvas.addEventListener(type, event => {
       if (drag?.pointer === event.pointerId) endDrag();
@@ -283,15 +308,7 @@
       head.append(html('strong', '', node.opcode + ' · ' + presentation(node).title),
         html('span', '', 'Rung ' + doc.graph.number + ' · Draft'));
       const move = html('button', '', 'Move instruction');
-      move.onclick = () => {
-        movePick = {rung: doc.rungIndex, id: node.draftId};
-        moveStatus();
-        const first = [...doc.row.querySelectorAll('.lv-draft-gap')].find(dot => {
-          const target = wireTargets.get(dot);
-          return current.draft.canMove(doc.rungIndex, node.draftId, target.rung, target.gap);
-        });
-        (first || canvas.querySelector('.lv-draft-gap'))?.focus();
-      };
+      move.onclick = () => pickWire(doc, {rung: doc.rungIndex, id: node.draftId});
       const remove = html('button', '', 'Delete instruction');
       remove.onclick = () => options.onDraftRemove(doc.rungIndex, node.draftId);
       const close = html('button', '', 'Close');
@@ -323,11 +340,15 @@
       if (fingerprint === inspection) return;
       inspection = fingerprint;
       const head = html('div', 'lv-inspector-head');
+      const source = {rung: doc.rungIndex, id: node.draftId, resize: true};
+      const resize = html('button', '', 'Resize branch');
+      resize.disabled = !validWires(doc, source).length;
+      resize.onclick = () => pickWire(doc, source);
       const add = html('button', '', 'Add leg');
       add.onclick = () => options.onDraftAddLeg(doc.rungIndex, node.draftId);
       const close = html('button', '', 'Close');
       close.onclick = () => select('');
-      head.append(html('strong', '', 'Branch'), html('span', '', 'Rung ' + doc.graph.number + ' · Draft'), add, close);
+      head.append(html('strong', '', 'Branch'), html('span', '', 'Rung ' + doc.graph.number + ' · Draft'), resize, add, close);
       const legs = html('div', 'lv-draft-legs');
       for (let leg = 0; leg < node.legCount; leg++) {
         const remove = html('button', '', 'Delete leg ' + (leg + 1));
@@ -337,10 +358,12 @@
       }
       inspector.replaceChildren(head, legs);
     }
-    function branchHandle(node, position, graph) {
+    function branchHandle(node, position, graph, rungIndex) {
       const control = svg('rect', {class: 'lv-draft-branch', x: position.x - 5,
         y: (position.y + position.endY) / 2 - 5, width: 10, height: 10,
         tabindex: 0, role: 'button', 'aria-label': 'Edit branch in rung ' + graph.number});
+      control.append(svg('title', {}, 'Click for branch controls or drag to resize'));
+      dragSources.set(control, {rung: rungIndex, id: node.draftId, resize: true});
       control.addEventListener('click', () => select(node.id));
       control.addEventListener('keydown', event => {
         if (event.key === 'Enter' || event.key === ' ') {event.preventDefault();select(node.id);}
@@ -353,7 +376,7 @@
       const target = {graphId: graph.id, rung: rungIndex, gap: edge.gap};
       wireTargets.set(dot, target);
       const insert = () => {
-        if (movePick) {moveTo(movePick, target);return;}
+        if (movePick) {applyWire(movePick, target);return;}
         const id = graph.id + ':draft:' + options.onDraftInsert(rungIndex, edge.gap);
         if (documents.some(doc => doc.instructions.has(id))) select(id, true);
       };
@@ -452,7 +475,7 @@
             const path = svg('path', {class: node.kind === 'rail' ? 'lv-rail' : 'lv-junction',
               d: node.kind === 'rail' ? `M${p.x} ${p.top} V${p.bottom}` : `M${p.x} ${p.y} V${p.endY}`});
             picture.append(path);junctions.set(node.id, path);
-            if (current.draft && node.side === 'join') branches.set(node.id, {node, element: branchHandle(node, p, graph)});
+            if (current.draft && node.side === 'join') branches.set(node.id, {node, element: branchHandle(node, p, graph, rungIndex)});
           }
         }
         picture.append(...gaps, ...[...branches.values()].map(item => item.element));
@@ -516,6 +539,7 @@
     }
     function rebuild() {
       endDrag();
+      indicateResize(null);
       const scroll = {left: canvas.scrollLeft, top: canvas.scrollTop};documents = [];canvas.replaceChildren();inspection = '';
       canvas.className = 'lv-canvas language-' + current.routine.kind.toLowerCase();canvas.classList.toggle('lv-hide-values', !showValues);
       if (current.routine.problems?.length) canvas.append(html('p', 'lv-source-note', current.routine.problems.join('\n')));
@@ -610,7 +634,7 @@
       values(value) {showValues = value;if (current) update();},
       comments(value) {showComments = value;if (current) update();},
       graphs() {return documents.filter(d => d.graph).map(d => structuredClone(d.graph));},
-      dispose() {endDrag();movePick = null;documents = [];current = null;}
+      dispose() {endDrag();indicateResize(null);movePick = null;documents = [];current = null;}
     };
   }
   return {create, tokenizeST, labelTarget, parameterRadix, lrealMathRadix, realMathRadix};

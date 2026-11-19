@@ -17,6 +17,7 @@ const logicView = LogixLogicView.create({canvas: $('rungs'), inspector: $('instr
   onDraftOperands(rung, id, operands) {return changeDraft(draft => draft.setOperands(rung, id, operands));},
   onDraftRemove(rung, id) {return changeDraft(draft => draft.remove(rung, id));},
   onDraftMove(from, id, to, gap) {return changeDraft(draft => draft.move(from, id, to, gap));},
+  onDraftResize(rung, id, gap) {return changeDraft(draft => draft.resize(rung, id, gap));},
   onDraftAddLeg(rung, id) {return changeDraft(draft => draft.addLeg(rung, id));},
   onDraftRemoveLeg(rung, id, leg) {return changeDraft(draft => draft.removeLeg(rung, id, leg));}});
 let logicZoom = 1;
