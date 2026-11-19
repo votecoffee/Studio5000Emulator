@@ -116,6 +116,7 @@ class Engine:
         self._module_modes = {}
         self._module_connections = {}
         self.immediate_outputs = {}
+        self.task_outputs = {}
         self._immediate_output_advance = None
         self._messages = {}
         self._message_advance = None
@@ -148,6 +149,7 @@ class Engine:
                 self._task_scan_timings={t['name'].casefold():task_runtime.TaskMeasurements() for t in project.tasks
                                          if self.task_scan_timing_eligible(t['name'])}
             self._task_event_status=event_status.initial(self)
+        self._output_tasks, self._output_targets = immediate_output.task_plan(self)
 
     def _task_runtime_available(self,task,source_sha256):
         if (source_sha256!=self.project.sha256 or self.mode!='project' or self.blockers
@@ -814,6 +816,7 @@ class Engine:
         self._program_advance=program_control.Advance(set(self._disabled_programs),set(self._program_scanned),
                                                        set(self._activation_prescan_pending))
         self._immediate_output_advance = {}
+        task_outputs = {}
         self._message_advance = self._messages.copy()
         try:
             self._scan_controller_status = controller_status_word(self.controller_mode(running=running))
@@ -846,6 +849,9 @@ class Engine:
                             timings[name]=timings[name].record(perf_counter_ns()-start)
                         else:self._routine(entry, 0)
                     if self._event_dispatch is not None:self._event_dispatch.complete_task(task)
+                    if task in self._output_tasks and self._module_connections:
+                        for target in self._output_targets:
+                            immediate_output.capture(self, target, task_outputs, self.task_outputs, task=task)
                     if task_scan_start is not None:
                         task_timings[measured_task]=task_timings[measured_task].record(task_scan_start,task_runtime.perf_counter_ns(),start_time_us=task_scan_wall)
                 finally:
@@ -882,6 +888,8 @@ class Engine:
             self._messages = self._message_advance
             if self._immediate_output_advance:
                 self.immediate_outputs = self.immediate_outputs | self._immediate_output_advance
+            if task_outputs:
+                self.task_outputs = self.task_outputs | task_outputs
         except (ModelError, ArithmeticError, ValueError, TypeError, KeyError, IndexError, OverflowError) as e:
             self.memory.message_cache = message_cache
             self._module_modes = module_modes

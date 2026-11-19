@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+[Task-end output snapshots](device-io.md#task-end-output-snapshots) honor the
+imported DisableUpdateOutputs setting in `26.1119.172357`. Device I/O shows
+the latest committed output image and task separately from IOT captures.
+
 [Remote rack IOT](device-io.md#immediate-output-captures) supports whole output
 tags such as `RemoteRack:5:O` in `26.1119.171704`. The emulator resolves the
 rack and slot to the actual module, then checks its simulated connection

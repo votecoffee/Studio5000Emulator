@@ -100,6 +100,9 @@ class DeviceIO:
         immediate = getattr(engine,'immediate_outputs',None)
         if immediate:
             metadata['immediate_outputs'] = tuple(immediate.values())
+        task_outputs = getattr(engine, 'task_outputs', None)
+        if task_outputs:
+            metadata['task_outputs'] = tuple(task_outputs.values())
         with self.lock:
             self.sequence += 1; metadata['sequence'] = self.sequence
             self.frame = (metadata, tuple(rows)); self.captures += 1; self.last_capture = self.clock()

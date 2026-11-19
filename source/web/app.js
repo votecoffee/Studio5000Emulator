@@ -69,6 +69,12 @@ function renderModuleSimulation() {
     + ' · Effective ' + (moduleStatusLabels[module.entry_status] ?? 'Unknown')
     + (module.major_fault_on_loss ? ' · Required in Run' : '');
 }
+function renderOutputSamples(panel, field, rows, label) {
+  $(panel).hidden = !rows.length;
+  $(field).textContent = rows.map(row => [
+    row.module, row.tag, row.task, 'Scan ' + row.scan, row.simulation_ms + ' ms', label + ' ' + row.sequence,
+  ].filter(Boolean).join(' · ') + '\n' + JSON.stringify(row.value)).join('\n\n');
+}
 function render() {
   if(state?.app_version){$('app-version').textContent=state.app_version;document.title=`LogixLab ${state.app_version} · Offline PLC lab`;}
   const appliance=state?.execution_environment==='vmware-host-only';
@@ -84,10 +90,8 @@ function render() {
   $('harness').disabled = !loaded || $('mode').value !== 'routine';
   renderConnectivity();
   renderModuleSimulation();
-  const outputs=state?.immediate_outputs||[];
-  $('immediate-outputs').hidden=!outputs.length;
-  $('immediate-output-values').textContent=outputs.map(row=>
-    row.module+' · '+row.tag+' · Scan '+row.scan+' · '+row.simulation_ms+' ms · Send '+row.sequence+'\n'+JSON.stringify(row.value)).join('\n\n');
+  renderOutputSamples('immediate-outputs', 'immediate-output-values', state?.immediate_outputs || [], 'Send');
+  renderOutputSamples('task-outputs', 'task-output-values', state?.task_outputs || [], 'Sample');
   const device=state?.device_io||{};
   $('device-badge').textContent=device.writes_enabled?'EXTERNAL TAG WRITES ENABLED':'EXTERNAL TAGS READ ONLY';
   $('device-writes').checked=!!device.writes_enabled;

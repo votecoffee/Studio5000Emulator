@@ -33,6 +33,7 @@ def prepare(engine,source,neutral,program,base_revision,*,native_source=None,nat
     candidate.memory.first_scan=engine.memory.first_scan
     candidate._module_modes=engine._module_modes.copy()
     candidate._module_connections=engine._module_connections.copy()
+    candidate.task_outputs=copy.deepcopy(engine.task_outputs)
     candidate._messages=engine._messages.copy()
     for name in ('scan_count','time_ms','last_timer','trace','changes','prescan_count','last_cleared_module_fault',
                  'last_cleared_program_fault',

@@ -52,6 +52,27 @@ and ST IOT remain outside this profile.
 
 [Rockwell IOT reference](https://www.rockwellautomation.com/en-za/docs/studio-5000-logix-designer/38-00/contents-ditamap/instruction-set/input-output-instructions/immediate-output--iot-.html)
 
+## Task-end output snapshots
+
+Version `26.1119.172357` samples qualified outputs when a scheduled Standard
+task with explicit `DisableUpdateOutputs="false"` finishes. The emulator
+samples the current whole output tags of effectively Running modules using
+the same route and shape rules as IOT. Disabled or omitted settings skip
+this sampling. Unknown output images and blocked routes leave the prior
+sample in place, if any.
+
+The cached Device I/O API returns the latest committed sample per tag under
+`task_outputs`, with the task name, value, scan, simulation time and a
+separate per-tag sequence. Samples from all releases in a failed advance
+roll back. Reset or project load starts a fresh set of samples.
+
+In **Module status lab**, use the steps above to run RackOutput and enable
+SendImmediate. **Last immediate outputs (IOT)** shows 17 at the instruction.
+**Last task-end outputs** shows 29 after MainTask finishes. This models
+the task boundary for a software device simulator. Native RPI scheduling,
+cyclic module traffic and runtime SSV changes to the setting remain open.
+See [Rockwell's task output processing guide](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm005_-en-p.pdf).
+
 ## Start with MQTT
 
 Use an MQTT 3.1.1 broker, such as [Eclipse Mosquitto](https://mosquitto.org/).

@@ -102,7 +102,7 @@
       </Program>
     </Programs>
     <Tasks>
-      <Task Name="MainTask" Type="CONTINUOUS" Priority="10" Watchdog="500" Class="Standard" InhibitTask="false">
+      <Task Name="MainTask" Type="CONTINUOUS" Priority="10" Watchdog="500" Class="Standard" InhibitTask="false" DisableUpdateOutputs="false">
         <ScheduledPrograms><ScheduledProgram Name="MainProgram" /></ScheduledPrograms>
       </Task>
     </Tasks>

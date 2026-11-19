@@ -1,4 +1,4 @@
-"""Instruction-time samples from qualified local and Ethernet output tags."""
+"""Instruction-time and task-end samples from qualified simulated outputs."""
 import copy
 import re
 
@@ -34,7 +34,11 @@ def validate(engine, op, scope):
     if (engine.mode != 'project' or project.version != '35' or project.processor.upper() not in CONTROLLERS
             or scope in engine.memory.frames):
         raise ModelError('IOT requires a whole-project v35 ControlLogix 5580 ladder scan')
-    ref = op.args[0]
+    return bind(engine, op.args[0], scope)
+
+
+def bind(engine, ref, scope=''):
+    project = engine.project
     module = output_module(project.io_map, ref)
     if module is None or module.inhibited is None:
         raise ModelError('IOT requires a whole output tag for a qualified local slot, named IPv4 module or remote rack slot with explicit Inhibited setting')
@@ -60,24 +64,53 @@ def validate(engine, op, scope):
     raise ModelError('IOT requires a supported scalar, flat array or flat user record of at most 64 cells')
 
 
-def execute(engine, op, scope):
-    key, tag, module = validate(engine,op,scope)
+def capture(engine, binding, pending, committed, *, task=None):
+    key, tag, module = binding
     status, _, _ = gsv_configuration._module_connection_state(engine,module,engine.project.io_map.named_module)
     if status != gsv_configuration.MODULE_RUNNING:
         return
     value = engine.memory.values[key]
     cells = value.values() if isinstance(value,dict) else value if isinstance(value,list) else (value,)
     if any(cell is None for cell in cells):
-        raise ModelError('IOT output contains unknown data')
-    pending = engine._immediate_output_advance
-    previous = pending.get(key) or engine.immediate_outputs.get(key)
+        if task is None:
+            raise ModelError('IOT output contains unknown data')
+        return
+    previous = pending.get(key) or committed.get(key)
     sequence = previous['sequence'] + 1 if previous else 1
     pending[key] = dict(module=module.display_name or module.name,tag=tag.key,value=copy.deepcopy(value),
                         sequence=sequence,scan=engine.scan_count+1,simulation_ms=engine.time_ms)
+    if task is not None:
+        pending[key]['task'] = task
+
+
+def execute(engine, op, scope):
+    capture(engine, validate(engine, op, scope), engine._immediate_output_advance, engine.immediate_outputs)
+
+
+def task_plan(engine):
+    project = engine.project
+    scheduler = engine._task_scheduler
+    if (engine.blockers or scheduler is None or not project.io_map.module_settings
+            or project.version != '35' or project.processor.upper() not in CONTROLLERS):
+        return frozenset(), ()
+    # Task attribute 18 is the imported DINT DisableUpdateOutputs setting.
+    tasks = frozenset(task.name for task in scheduler.tasks
+                      if project.task_configuration.attributes(task.name, source_sha256=project.sha256).get(18) == bytes(4))
+    targets = []
+    if tasks:
+        for tag in project.tags.values():
+            if tag.scope or not tag.key.lower().endswith(':o'):
+                continue
+            try:
+                targets.append(bind(engine, tag.key))
+            except ModelError:
+                continue  # Unsupported tags do not block ordinary task execution.
+    return tasks if targets else frozenset(), tuple(targets)
 
 
 def description():
     return dict(instruction='IOT',language='RLL',scope='v35 5580 whole-project local slots, named IPv4 modules and qualified remote rack slots',
                 connection='Requires an effective Running simulated module input',
                 delivery='Latest instruction-time output per tag, published after scan commit',
+                task_outputs='Latest task-end images for qualified running modules with explicit DisableUpdateOutputs=false; unknown images are skipped',
                 wire_packets=False,rpi_timing=False,native_runtime_parity=False)

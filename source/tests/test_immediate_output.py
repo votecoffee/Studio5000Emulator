@@ -64,6 +64,67 @@ class ImmediateOutputTests(unittest.TestCase):
     def snapshot(self):
         return json.loads(self.app.device_io.snapshot()[1])
 
+    def test_task_end_outputs_honor_explicit_setting_and_keep_iot_separate(self):
+        for setting in ('false', 'true', None):
+            with self.subTest(setting=setting):
+                def configure(root):
+                    task = root.find('./Controller/Tasks/Task')
+                    if setting is None:
+                        task.attrib.pop('DisableUpdateOutputs', None)
+                    else:
+                        task.set('DisableUpdateOutputs', setting)
+
+                self.assertEqual(self.load(configure)['blockers'], [])
+                self.open_output()
+                self.write('SendImmediate', True)
+                state = self.step()
+                self.assertEqual(state['immediate_outputs'][0]['value'], 17)
+                sample = dict(module='RackOutput', tag='Local:2:O', value=29, task='MainTask',
+                              sequence=1, scan=1, simulation_ms=10)
+                expected = [sample] if setting == 'false' else []
+                self.assertEqual(state['task_outputs'], expected)
+                self.assertEqual(self.snapshot().get('task_outputs', []), expected)
+
+                self.write('SendImmediate', False)
+                self.app.engine.memory.values['local:2:o'] = None
+                self.assertEqual(self.step()['task_outputs'], expected)
+                self.assertEqual(self.app.command('reset', {})['task_outputs'], [])
+                self.assertNotIn('task_outputs', self.snapshot())
+
+    def test_auto_output_from_completed_task_is_discarded_if_a_later_task_faults(self):
+        def configure(root):
+            controller = root.find('./Controller')
+            task = controller.find('./Tasks/Task')
+            task.attrib.update(Type='PERIODIC', Rate='10', Priority='5', DisableUpdateOutputs='false')
+            background = ET.SubElement(controller.find('Tasks'), 'Task', Name='BackgroundTask', Type='CONTINUOUS',
+                                       Class='Standard', Priority='10', Watchdog='500', InhibitTask='false',
+                                       DisableUpdateOutputs='true')
+            ET.SubElement(ET.SubElement(background, 'ScheduledPrograms'), 'ScheduledProgram', Name='Background')
+            program = ET.SubElement(controller.find('Programs'), 'Program', Name='Background',
+                                    MainRoutineName='Main', Class='Standard', Disabled='false')
+            ET.SubElement(program, 'Tags')
+            routine = ET.SubElement(ET.SubElement(program, 'Routines'), 'Routine', Name='Main', Type='RLL')
+            rung = ET.SubElement(ET.SubElement(routine, 'RLLContent'), 'Rung', Number='0', Type='N')
+            ET.SubElement(rung, 'Text').text = 'XIC(ReadModule)DIV(1,0,OutputCommand);'
+            output = root.find('.//Program[@Name="MainProgram"]//Rung[@Number="16"]/Text')
+            output.text = output.text.replace('MOV(29,Local:2:O)', 'ADD(OutputCommand,12,Local:2:O)')
+
+        self.assertEqual(self.load(configure)['blockers'], [])
+        self.open_output()
+        self.write('SendImmediate', True)
+        before = self.step()['task_outputs']
+        self.assertEqual([(row['task'], row['value']) for row in before], [('MainTask', 29)])
+        self.write('OutputCommand', 45)
+        self.write('ReadModule', True)
+        with self.assertRaisesRegex(ModelError, 'Scan rolled back'):
+            self.step()
+        self.assertEqual(self.app.engine.scan_count, 1)
+        self.assertEqual(self.snapshot()['task_outputs'], before)
+        self.assertEqual(self.app.engine.memory.read('Local:2:O'), 29)
+        self.write('ReadModule', False)
+        self.assertEqual(self.step()['task_outputs'],
+                         [before[0] | dict(value=57, sequence=2, scan=2, simulation_ms=20)])
+
     @staticmethod
     def named_output(root, *, bridged=False, address='192.0.2.99'):
         modules = root.find('./Controller/Modules')
