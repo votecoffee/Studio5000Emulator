@@ -4175,7 +4175,10 @@ class ApplicationLifecycleTests(unittest.TestCase):
         def current():
             with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:return json.load(response)
         before=current()
-        for name in ('ladder-graph.js','instruction-view.js','logic-values.js','logic-view.js','logic-view.css'):
+        self.assertRegex(before['source_sha256'],r'^[0-9a-f]{64}$')
+        self.assertFalse(before['connectivity']['enabled'])
+        self.assertLess(page.index('src="/ladder-draft.js"'),page.index('src="/app.js"'))
+        for name in ('ladder-graph.js','instruction-view.js','logic-values.js','logic-view.js','logic-view.css','ladder-draft.js'):
             self.assertEqual(self.get('/'+name),(Path(__file__).resolve().parents[1]/'web'/name).read_bytes())
         after=current()
         for key in ('tags','routines','scan','ms','task_schedule','routine_edits'):self.assertEqual(after[key],before[key])

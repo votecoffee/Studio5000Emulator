@@ -11,43 +11,52 @@
   const CONDITIONS = new Set([...CONTACTS, 'ONS', 'AFI', 'EQU', 'NEQ', 'LES', 'LEQ', 'GRT', 'GEQ', 'LIM', 'MEQ', 'CMP', 'LBL']);
   const port = (node, name) => ({node, port: name});
 
-  function compile(rung, routine = '') {
+  function compile(rung, routine = '', editing = false) {
     const id = `${routine}#${rung.number}`, nodes = [], edges = [], order = [];
     function add(id, kind, inputs, outputs, extra = {}) {
       const node = {id, kind, ports: [...inputs.map(id => ({id, direction: 'in', type: 'power'})),
         ...outputs.map(id => ({id, direction: 'out', type: 'power'}))], ...extra};
       nodes.push(node);return node;
     }
-    function wire(from, to) { edges.push({id: `${id}:e${edges.length}`, from, to, type: 'power'}); }
+    function wire(from, to, gap) {
+      const edge = {id: `${id}:e${edges.length}`, from, to, type: 'power'};
+      if (editing) edge.gap = gap;
+      edges.push(edge);
+    }
     const left = add(`${id}:left`, 'rail', [], ['out'], {side: 'left'});
     const right = add(`${id}:right`, 'rail', ['in'], [], {side: 'right'});
-    function sequence(source, path, incoming) {
+    function sequence(source, path, incoming, legs = []) {
       const items = [];let previous = incoming;
       source.forEach((op, index) => {
-        const key = `${path}.${index}`;
+        const sourceId = `${path}.${index}`;
+        const key = editing ? `${id}:draft:${op.draftId}` : sourceId;
+        const gap = {legs, index};
         if (Array.isArray(op.branch)) {
           const ports = op.branch.map((_, i) => 'path' + i);
           const split = add(key + ':split', 'junction', ['in'], ports, {side: 'split'});
           const join = add(key + ':join', 'junction', ports, ['out'], {side: 'join'});
-          wire(previous, port(split.id, 'in'));
+          wire(previous, port(split.id, 'in'), gap);
           const paths = op.branch.map((branch, i) => {
-            const result = sequence(branch, key + '.b' + i, port(split.id, 'path' + i));
-            wire(result.end, port(join.id, 'path' + i));return result.region;
+            const leg = [...legs, [index, i]];
+            const result = sequence(branch, sourceId + '.b' + i, port(split.id, 'path' + i), leg);
+            wire(result.end, port(join.id, 'path' + i), {legs: leg, index: branch.length});
+            return result.region;
           });
           items.push({kind: 'parallel', split: split.id, join: join.id, paths});
           previous = port(join.id, 'out');
         } else {
           const node = add(key, 'instruction', ['in'], ['out'], {opcode: String(op.name),
-            operands: op.args.map(String), sourcePath: key.slice(id.length + 1), ordinal: order.length,
+            operands: op.args.map(String), sourcePath: sourceId.slice(id.length + 1), ordinal: order.length,
+            ...(editing ? {draftId: op.draftId} : {}),
             ...(op.literal_values ? {literalValues: structuredClone(op.literal_values)} : {})});
-          wire(previous, port(node.id, 'in'));order.push(node.id);
+          wire(previous, port(node.id, 'in'), gap);order.push(node.id);
           items.push({kind: 'instruction', node: node.id});previous = port(node.id, 'out');
         }
       });
       return {region: {kind: 'sequence', items}, end: previous};
     }
     const result = sequence(rung.nodes || [], id + ':n', port(left.id, 'out'));
-    wire(result.end, port(right.id, 'in'));
+    wire(result.end, port(right.id, 'in'), {legs: [], index: (rung.nodes || []).length});
     return {schemaVersion: 1, id, routine, number: String(rung.number), comment: rung.comment || '',
       source: rung.text || '', nodes, edges, order, regions: result.region};
   }

@@ -28,6 +28,11 @@ emulation or general Studio GUI compatibility. Detailed prior results are in
 and [connectivity history](docs/connectivity-history.md).
 Development is maintained on `main`.
 
+**Edit draft** on an ordinary ladder routine lets you insert instructions and
+branches on the existing wires, edit operands, and undo or redo changes.
+Draft JSON is saved separately. Use **Monitor** to return to the loaded
+routine and see its execution. [Ladder draft guide](docs/logic-viewer.md#offline-ladder-drafts)
+
 **Appliance startup recovery** now handles a timed-out VMware guest-address
 query through the existing MAC-matched DHCP and pinned SSH fallback. Startup
 keeps its bounded retry window and version checks; see

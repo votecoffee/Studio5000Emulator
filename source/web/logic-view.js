@@ -82,7 +82,7 @@
   function create(options) {
     const canvas = options.canvas, inspector = options.inspector, status = options.status;
     let current, key = '', sourceIdentity = '', zoom = 1, showValues = true, showComments = true, selected = '', documents = [], valueMap = new Map(), snapshot, lastTraces = new Map();
-    let inspection = '';
+    let inspection = '', monitorSelection = '', draftSelection = '', draftRungs;
     function read(ref, node) {
       if (node?.literalValues && Object.hasOwn(node.literalValues, ref)) return node.literalValues[ref];
       const bitwiseRadix = node?.opcode === 'MEQ' || ['AND','OR','XOR','NOT'].includes(node?.opcode) && node.operands?.slice(0,-1).includes(ref);
@@ -91,6 +91,7 @@
       return snapshot?.read(ref, {movRadix: node?.opcode === 'MOV' && node.operands?.[0] === ref, bitwiseRadix, integerRadix, dintRadix: integerRadix, bcdRadix, callRadix: parameterRadix(node, ref, current.state.aoi_definitions)}) || null;
     }
     function operandDisplay(field, node, power) {
+      if (current.draft) return {};
       const sample = power?.operandSamples?.[field.argument];
       const unsampled = !!power?.loopTrace && field.argument > 0 && !sample;
       return {sample, unsampled, row: sample || (unsampled ? null : read(field.ref, node))};
@@ -107,6 +108,8 @@
     }
     function select(id, focus = false) {
       selected = id;
+      if (current.draft) draftSelection = id;
+      else monitorSelection = id;
       for (const doc of documents) for (const [nodeId, item] of doc.instructions) {
         item.group.classList.toggle('selected', nodeId === id);
         item.group.setAttribute('aria-pressed', String(nodeId === id));
@@ -132,6 +135,7 @@
     function updateInspector() {
       const doc = documents.find(doc => doc.instructions.has(selected)), item = doc?.instructions.get(selected);
       inspector.hidden = !item;if (!item) {inspection = '';return;}
+      if (current.draft) {editInspector(doc, item);return;}
       const fields = item.fields || parameters(item.node), event = doc.graph ? doc.power?.nodes[selected] : null;
       const loop = event?.loopTrace;
       const rows = fields.map(field => ({...field, ...operandDisplay(field, item.node, event)}));
@@ -172,6 +176,53 @@
         table.append(row);
       }
       inspector.append(table);
+    }
+    function editInspector(doc, item) {
+      const {node} = item;
+      const fingerprint = JSON.stringify([node.id, node.operands, 'draft']);
+      if (inspection === fingerprint) return;
+      inspection = fingerprint;
+      const head = html('div', 'lv-inspector-head');
+      head.append(html('strong', '', node.opcode + ' · ' + presentation(node).title),
+        html('span', '', 'Rung ' + doc.graph.number + ' · Draft'));
+      const remove = html('button', '', 'Delete instruction');
+      remove.onclick = () => options.onDraftRemove(doc.rungIndex, node.draftId);
+      const close = html('button', '', 'Close');
+      close.onclick = () => select('');
+      head.append(remove, close);
+      inspector.replaceChildren(head);
+      if (!node.operands.length) return;
+      const form = html('form', 'lv-draft-operands'), fields = parameters(node);
+      const inputs = node.operands.map((operand, i) => {
+        const label = html('label', '', fields.find(field => field.argument === i)?.label || 'Operand ' + (i + 1));
+        const input = html('input');input.value = operand;input.spellcheck = false;
+        label.append(input);form.append(label);
+        return input;
+      });
+      const submit = html('button', '', 'Update operands');
+      const feedback = html('span');feedback.setAttribute('role', 'alert');
+      form.append(submit, feedback);
+      form.onsubmit = event => {
+        event.preventDefault();
+        try {
+          options.onDraftOperands(doc.rungIndex, node.draftId, inputs.map(input => input.value));
+          feedback.textContent = '';
+        } catch (error) {feedback.textContent = error.message;}
+      };
+      inspector.append(form);
+    }
+    function insertPoint(graph, rungIndex, edge, a, b) {
+      const dot = svg('circle', {class: 'lv-draft-gap', cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2,
+        r: 6, tabindex: 0, role: 'button', 'aria-label': 'Insert on wire in rung ' + graph.number});
+      const insert = () => {
+        const id = graph.id + ':draft:' + options.onDraftInsert(rungIndex, edge.gap);
+        if (documents.some(doc => doc.instructions.has(id))) select(id, true);
+      };
+      dot.addEventListener('click', insert);
+      dot.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {event.preventDefault();insert();}
+      });
+      return dot;
     }
     function drawInstruction(node, position, graph) {
       const {x, y, width, above, below, symbol} = position, group = svg('g', {class: 'lv-instruction', transform: `translate(${x},${y})`, 'data-node-id': node.id});
@@ -224,7 +275,7 @@
       }
       for (const name of ['in', 'out']) group.append(svg('circle', {class: 'lv-port', cx: name === 'in' ? 0 : width, cy: 0, r: 3,
         'data-port-id': name, 'data-port-direction': name === 'in' ? 'in' : 'out'}));
-      const navigate = op === 'JMP' ? () => {const target = labelTarget(documents.map(d => d.graph), node.operands[0]);if (target) select(target.nodeId, true);} : null;
+      const navigate = !current.draft && op === 'JMP' ? () => {const target = labelTarget(documents.map(d => d.graph), node.operands[0]);if (target) select(target.nodeId, true);} : null;
       const label = `${op} ${node.operands.join(', ')}. Select instruction details.${navigate ? ' Ctrl+Enter to follow label.' : ''}`;
       const marker = svg('text', {x: symbol ? width - 5 : position.boxWidth - 8, y: symbol ? -38 : -31,
         class: 'lv-fault-marker', 'aria-hidden': 'true'}, '');
@@ -232,7 +283,8 @@
       return {group, monitors: fields, node, graph, title, titleText: title.textContent, label, marker};
     }
     function renderLadder() {
-      const graphs = current.routine.rungs.map(rung => root.LadderGraph.compile(rung, current.routine.key));
+      const graphs = (current.draft?.rungs || current.routine.rungs)
+        .map(rung => root.LadderGraph.compile(rung, current.routine.key, !!current.draft));
       const minimum = Math.max(760, ...graphs.map(graph => root.LadderGraph.layout(graph, 0, node => faceplates.dimensions(node, presentation(node))).width));
       for (const [rungIndex, graph] of graphs.entries()) {
         const geometry = root.LadderGraph.layout(graph, minimum, node => faceplates.dimensions(node, presentation(node))), row = html('section', 'lv-rung');row.dataset.rung = graph.number;
@@ -240,11 +292,12 @@
         const picture = svg('svg', {class: 'lv-ladder', viewBox: `0 0 ${geometry.width} ${geometry.height}`, width: geometry.width * zoom,
           height: geometry.height * zoom, 'aria-label': `Rung ${graph.number}: ${graph.source || 'ladder logic'}`});
         picture.append(svg('text', {x: 9, y: geometry.nodes[graph.nodes[0].id].y + 4, class: 'lv-rung-number'}, graph.number));
-        const instructions = new Map(), paths = new Map(), junctions = new Map();
+        const instructions = new Map(), paths = new Map(), junctions = new Map(), gaps = [];
         for (const edge of graph.edges) {
           const a = geometry.ports[edge.from.node + '/' + edge.from.port], b = geometry.ports[edge.to.node + '/' + edge.to.port];
           const path = svg('path', {class: 'lv-wire', d: `M${a.x} ${a.y} H${(a.x + b.x) / 2} V${b.y} H${b.x}`, 'data-edge-id': edge.id});
           picture.append(path);paths.set(edge.id, path);
+          if (edge.gap) gaps.push(insertPoint(graph, rungIndex, edge, a, b));
         }
         for (const node of graph.nodes) {
           const p = geometry.nodes[node.id];
@@ -255,6 +308,7 @@
             picture.append(path);junctions.set(node.id, path);
           }
         }
+        picture.append(...gaps);
         row.append(picture);canvas.append(row);documents.push({graph, rungIndex, row, geometry, svg: picture, instructions, paths, junctions});
       }
     }
@@ -324,7 +378,7 @@
     }
     function update() {
       lastTraces = new Map();
-      for (const item of current.state.trace || []) if (item.routine === current.routine.key && (!current.context || item.context === current.context)) {
+      for (const item of current.state.trace || []) if (!current.draft && item.routine === current.routine.key && (!current.context || item.context === current.context)) {
         lastTraces.set(item.rung_index ?? String(item.number), item);
       }
       for (const doc of documents) {
@@ -375,22 +429,30 @@
           for (const [path, source] of doc.paths) path.classList.toggle('live', trace(String(source))?.power === true);
         }
       }
-      canvas.classList.toggle('lv-hide-values', !showValues);
+      canvas.classList.toggle('lv-hide-values', !!current.draft || !showValues);
       for (const doc of documents) {if (doc.row) doc.row.firstChild.hidden = !showComments || !doc.graph.comment;}
       const count = [...lastTraces.values()].length;
-      status.textContent = count ? `Last scan ${current.state.scan} · ${count} ${current.routine.kind === 'ST' ? 'line' : 'rung/block'} visits` : 'No execution trace';
+      status.textContent = current.draft ? 'Draft · Simulator uses the loaded routine' : count ? `Last scan ${current.state.scan} · ${count} ${current.routine.kind === 'ST' ? 'line' : 'rung/block'} visits` : 'No execution trace';
       for (const doc of documents) for (const [id, item] of doc.instructions) item.group.classList.toggle('selected', id === selected);
       updateInspector();
     }
     return {
       render(value) {
+        const wasEditing = !!current?.draft;
         current = value;valueMap = new Map(value.state.tags.map(row => [row.name.toLowerCase(), row]));
         snapshot = values.create(value.state.tags, {routine: value.routine.key, context: value.context, bindings: value.state.aoi_bindings?.[value.context] || {}});
         const source = JSON.stringify([value.state.connectivity?.source_l5x_sha256 || value.state.name, value.routine.key, value.routine.rungs, value.routine.lines, value.routine.diagram, value.state.aoi_definitions]);
-        if (source !== sourceIdentity) {selected = '';sourceIdentity = source;zoom = 1;canvas.scrollTo(0, 0);options.onZoom?.(zoom);}
+        if (source !== sourceIdentity) {
+          monitorSelection = draftSelection = '';sourceIdentity = source;
+          zoom = 1;canvas.scrollTo(0, 0);options.onZoom?.(zoom);
+        }
+        selected = value.draft ? draftSelection : monitorSelection;
         const next = JSON.stringify([source, value.context]);
-        if (next !== key) {key = next;canvas.dataset.routine = current.routine.key;rebuild();}
-        else update();
+        const nextDraft = value.draft?.rungs;
+        if (next !== key || nextDraft !== draftRungs || wasEditing !== !!value.draft) {
+          key = next;draftRungs = nextDraft;
+          canvas.dataset.routine = current.routine.key;rebuild();
+        } else update();
       },
       zoom(value) {zoom = Math.max(0.1, Math.min(2, value));if (current) rebuild();return zoom;},
       fit() {if (!current) return zoom;const width = Math.max(760, ...documents.filter(d => d.svg).map(d => d.geometry?.width || d.width));return this.zoom(Math.min(1, Math.max(0.1, (canvas.clientWidth - 12) / width)));},

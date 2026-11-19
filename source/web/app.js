@@ -6,10 +6,16 @@ let moduleFormGeneration, modulePending = false;
 const moduleStatusLabels = {4096:'Faulted',16384:'Running',24576:'Inhibited',28672:'Waiting'};
 const moduleInputLabels = {clear:'Cleared',running:'Running',faulted:'Faulted'};
 let locatorTimer = null, locatorRequest = null, locatorDeadline = 0;
+const ladderDrafts = new Map();
+let editingDraft = null;
 const recognized = name => report?.supported_instructions.includes(name) || report?.known_add_on_instructions?.includes(name) || report?.function_blocks?.instructions?.includes(name);
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const logicView = LogixLogicView.create({canvas: $('rungs'), inspector: $('instruction-inspector'), status: $('logic-status'),
-  onOpenRoutine(key, context) {selected=key;if(context!==undefined)selectedContext=context;renderExplorer();renderLadder();},onZoom(value) {updateZoom(value);}});
+  onOpenRoutine(key, context) {selected=key;if(context!==undefined)selectedContext=context;renderExplorer();renderLadder();},
+  onZoom(value) {updateZoom(value);},
+  onDraftInsert(rung, gap) {return changeDraft(draft => draft.insert(rung, gap, $('ladder-draft-palette').value));},
+  onDraftOperands(rung, id, operands) {return changeDraft(draft => draft.setOperands(rung, id, operands));},
+  onDraftRemove(rung, id) {return changeDraft(draft => draft.remove(rung, id));}});
 let logicZoom = 1;
 function updateZoom(value) {
   logicZoom=value;const percent=Math.round(value*100), select=$('logic-zoom');
@@ -22,6 +28,42 @@ $('logic-zoom-out').onclick=()=>updateZoom(logicView.zoom(logicZoom/1.25));
 $('logic-fit').onclick=()=>updateZoom(logicView.fit());
 $('logic-values').onchange=()=>logicView.values($('logic-values').checked);
 $('logic-comments').onchange=()=>logicView.comments($('logic-comments').checked);
+$('ladder-draft-palette').replaceChildren(...Object.keys(LogixLadderDraft.palette).map(name => new Option(name, name)));
+$('ladder-draft-mode').onclick = () => {
+  const routine = state?.routines?.find(row => row.key === selected);
+  if (!LogixLadderDraft.canEdit(routine)) return;
+  const key = draftIdentity(routine);
+  if (editingDraft === key) editingDraft = null;
+  else {
+    if (!ladderDrafts.has(key)) ladderDrafts.set(key, LogixLadderDraft.create(routine));
+    editingDraft = key;
+  }
+  renderLadder();
+};
+$('ladder-draft-undo').onclick = () => changeDraft(draft => draft.undo());
+$('ladder-draft-redo').onclick = () => changeDraft(draft => draft.redo());
+$('ladder-draft-save').onclick = () => {
+  const draft = ladderDrafts.get(editingDraft);
+  if (!draft?.changed) return;
+  download({format: 'logixlab-rll-draft', version: 1, routine: selected,
+    source_sha256: state.source_sha256,
+    base_revision: state.routine_edits?.revision ?? 0,
+    rungs: draft.rungs.map(({number, comment, text}) => ({number, comment, text}))},
+  selected.replace(/[^a-z0-9_-]+/gi, '-') + '.ladder-draft.json');
+};
+$('ladder-draft-discard').onclick = () => {
+  if (!ladderDrafts.get(editingDraft) || !window.confirm('Discard this routine draft?')) return;
+  ladderDrafts.delete(editingDraft);editingDraft = null;
+  renderLadder();
+};
+$('ladder').addEventListener('keydown', event => {
+  if (editingDraft === null || !(event.ctrlKey || event.metaKey) || event.altKey ||
+      event.target.closest('input, select, textarea, [contenteditable]')) return;
+  const key = event.key.toLowerCase();
+  if (key !== 'z' && key !== 'y') return;
+  event.preventDefault();
+  changeDraft(draft => key === 'y' || event.shiftKey ? draft.redo() : draft.undo());
+});
 async function api(action, data = {}) {
   const response = await fetch('/api/' + action, {method:'POST', headers:{'Content-Type':'application/json','X-Logix-Token':window.LOGIX_TOKEN}, body:JSON.stringify(data)});
   const result = await response.json();
@@ -194,8 +236,35 @@ function renderTags() {
   });
   if (tags.length > 3000) {const note=document.createElement('p');note.textContent='Showing first 3,000 results. Narrow the filter.';$('tags').append(note);}
 }
+function draftIdentity(routine) {
+  return JSON.stringify([state.instance_id, state.project_generation, state.source_sha256,
+    state.routine_edits?.revision ?? 0, routine.key]);
+}
+function changeDraft(action) {
+  const draft = ladderDrafts.get(editingDraft);
+  if (!draft) return null;
+  const result = action(draft);
+  if (result) renderLadder();
+  return result;
+}
+function draftControls(routine) {
+  const editable = LogixLadderDraft.canEdit(routine), key = editable ? draftIdentity(routine) : null;
+  if (editingDraft !== key) editingDraft = null;
+  const draft = ladderDrafts.get(editingDraft), mode = $('ladder-draft-mode');
+  mode.hidden = !editable;
+  mode.textContent = draft ? 'Monitor' : ladderDrafts.get(key)?.changed ? 'Resume draft' : 'Edit draft';
+  $('ladder-draft-toolbar').hidden = !draft;
+  $('ladder-draft-undo').disabled = !draft?.canUndo;
+  $('ladder-draft-redo').disabled = !draft?.canRedo;
+  $('ladder-draft-save').disabled = !draft?.changed;
+  $('logic-view-mode').textContent = draft ? 'Offline draft' : 'Read-only monitor';
+  $('logic-values').closest('label').hidden = !!draft;
+  return draft;
+}
 function renderLadder() {
-  const routine=state.routines.find(r=>r.key===selected);if(!routine)return;
+  const routine = state.routines.find(r => r.key === selected);
+  const draft = draftControls(routine);
+  if (!routine) return;
   const aoi=routine.key.startsWith('AOI:') ? routine.key.split('/')[0].slice(4) : '';
   const contexts=Object.entries(state.aoi_instances || {}).filter(([name,v])=>v.definition===aoi).map(([name])=>name);
   $('aoi-context').hidden=!aoi;
@@ -205,7 +274,7 @@ function renderLadder() {
   $('aoi-context').value=selectedContext;
   $('routine-name').textContent=routine.key; $('routine-type').textContent=routine.kind + (routine.active ? ' · IN EXECUTION SCOPE' : ' · OUTSIDE EXECUTION SCOPE');
   $('logic-comments-label').hidden=routine.kind!=='RLL';
-  logicView.render({routine, state, context: aoi ? selectedContext : '', recognized});
+  logicView.render({routine, state, context: aoi ? selectedContext : '', recognized, draft});
 }
 function renderCoverage() {
   if (!report) return;

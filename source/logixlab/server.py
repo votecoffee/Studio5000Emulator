@@ -270,6 +270,7 @@ class Application:
         self.publish_device_io(tags)
         metadata['device_io'] = self.device_io.description()
         return {**metadata, "loaded": True, "name": e.project.name, "version": e.project.version,
+                "source_sha256": e.project.sha256,
                 "processor": e.project.processor, "scan": e.scan_count, "ms": e.time_ms,
                 "mode": e.mode, "selected": e.selected, "blockers": e.blockers,
                 "module_simulation": gsv_configuration.simulated_module_connections(e),
@@ -732,6 +733,7 @@ def serve(port=0, open_browser=True, data_dir=None, eip_port=None, eip_writes=Fa
             assets = {"/": ("index.html", "text/html; charset=utf-8"),
                       "/app.js": ("app.js", "text/javascript"), "/style.css": ("style.css", "text/css"),
                       "/ladder-graph.js": ("ladder-graph.js", "text/javascript"),
+                      "/ladder-draft.js": ("ladder-draft.js", "text/javascript"),
                       "/instruction-view.js": ("instruction-view.js", "text/javascript"),
                       "/logic-values.js": ("logic-values.js", "text/javascript"),
                       "/logic-view.js": ("logic-view.js", "text/javascript"), "/logic-view.css": ("logic-view.css", "text/css"),

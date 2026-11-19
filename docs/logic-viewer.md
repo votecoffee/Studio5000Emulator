@@ -11,7 +11,7 @@ instructions. JSR instructions provide **Open routine** in their details;
 Structured Text JSR lines also have a navigation button. **Fit width**, zoom,
 **Values** and **Comments** control presentation. Zoom and selection survive
 monitor refreshes. Opening another routine or source resets the viewport and
-selection. The monitor is read-only; tag writes use the existing watch.
+selection. The monitor is read-only. Tag writes use the existing watch.
 
 Green wiring describes the last recorded scan. Value labels normally show the
 current tag snapshot, which can change between scans. Unvisited instructions
@@ -135,7 +135,29 @@ node and graph identity for inspector integration. Imported identities are
 deterministic source-path IDs, stable across scans and value updates; they are
 not durable identities across source reordering.
 
-## Planned node and wire editor
+## Offline ladder drafts
+
+Open an ordinary ladder routine and select **Edit draft**. Choose an
+instruction or **Branch** from **Insert**, then select a dot on a wire.
+A branch has two independent paths with their own insertion points.
+Select an instruction to edit its operands or delete it. **Undo** and
+**Redo** also work with Ctrl+Z and Ctrl+Y outside text fields.
+
+**Monitor** restores the live view. Select **Resume draft** to return to
+a changed draft for the same project generation and routine revision.
+**Save draft JSON** downloads the current rung text, comments and base source
+identifiers. Keep that file if you need the text after closing the browser.
+Draft JSON import and L5X export from drafts are future work.
+
+Drafts use the same SVG graph and faceplates as the monitor. Insertion and
+operand editing affect the browser draft only. Scan traces and live values
+are shown in Monitor, where the simulator continues to use the loaded
+routine. A draft retains the original source text of each unchanged rung.
+The operand field checks delimiters to keep each value within its own
+argument. Python validation of edited routines and applying a draft to
+the simulator are separate roadmap milestones.
+
+## Node and wire editor roadmap
 
 The next authoring stages build on these same instruction nodes and connections:
 
@@ -154,9 +176,9 @@ The next authoring stages build on these same instruction nodes and connections:
 5. Qualify native engineering transfers and online editing separately from
    offline authoring and simulation.
 
-Insertion, dragging/wiring, undo/redo, graph compilation and authoring saves are
-future work. The current viewer does not change the loaded routine or offer
-editing gestures that discard changes on the next scan.
+The draft tools cover wire insertion, operand editing, deletion and history.
+Drag moves, branch resize and leg management, draft reload, Python validation,
+applying drafts and edited L5X export are still planned.
 
 ## Verification
 
