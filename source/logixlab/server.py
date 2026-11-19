@@ -668,6 +668,13 @@ class Application:
                         "scan": e.scan_count, "ms": e.time_ms, "tags": tags,
                         "changes": time_values.display_changes(e.changes, tags),
                         'controller':self.controller_state()}
+            elif action == 'ladder-draft-open':
+                if (type(data) is not dict or set(data) != {'draft', 'project_generation'}
+                        or type(data['project_generation']) is not int or data['project_generation'] != self.generation):
+                    raise ModelError('Opening a draft requires the current project generation')
+                from .ladder_drafts import reopen
+                rows = reopen(e.project, data['draft'])
+                return {'rungs': [{**row, 'nodes': serialize_nodes(row['nodes'])} for row in rows]}
             elif action=='export-edited-l5x':
                 if self.running:raise ModelError('Switch to Program before saving edited logic')
                 if self.endpoint and self.endpoint.enabled:

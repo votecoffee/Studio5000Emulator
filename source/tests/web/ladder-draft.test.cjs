@@ -190,3 +190,38 @@ test('resizing stays in the selected branch parent and rejects unrelated and bou
   assert(draft.undo());
   assert.equal(draft.rungs[0].text, original);
 });
+
+test('opening a draft is one reversible edit and preserves untouched rung identities', () => {
+  const routine = fixture(), draft = draftModel.create(routine);
+  const firstId = draft.rungs[0].nodes[0].draftId;
+  const unchanged = draft.rungs[1];
+  const opened = [
+    {...routine.rungs[0], text: 'XIO(Other)OTE(Run);', comment: 'Saved comment',
+      nodes: [op('XIO', 'Other'), op('OTE', 'Run')]},
+    routine.rungs[1]
+  ];
+  assert.equal(draft.restore(opened), true);
+  assert.equal(draft.rungs[0].comment, 'Saved comment');
+  assert.equal(draft.rungs[0].text, opened[0].text);
+  assert.notEqual(draft.rungs[0].nodes[0].draftId, firstId);
+  assert.equal(draft.rungs[1], unchanged);
+  assert.equal(draft.restore(opened), false);
+  assert.deepEqual(opened[0].nodes[0], op('XIO', 'Other'));
+  assert.throws(() => draft.restore([opened[0], {...opened[1], number: '99'}]), /does not match/);
+  assert.equal(draft.undo(), true);
+  assert.equal(draft.rungs[0].nodes[0].draftId, firstId);
+  assert.equal(draft.changed, false);
+  assert.equal(draft.canUndo, false);
+  assert.equal(draft.redo(), true);
+  assert.equal(draft.rungs[0].text, opened[0].text);
+});
+
+test('comment-only draft reopens keep instruction identity and count as a change', () => {
+  const routine = fixture(), draft = draftModel.create(routine);
+  const nodes = draft.rungs[0].nodes;
+  assert(draft.restore([{...routine.rungs[0], comment: 'Different comment'}, routine.rungs[1]]));
+  assert.equal(draft.changed, true);
+  assert.equal(draft.rungs[0].nodes, nodes);
+  assert(draft.undo());
+  assert.equal(draft.changed, false);
+});

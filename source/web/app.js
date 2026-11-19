@@ -7,7 +7,7 @@ const moduleStatusLabels = {4096:'Faulted',16384:'Running',24576:'Inhibited',286
 const moduleInputLabels = {clear:'Cleared',running:'Running',faulted:'Faulted'};
 let locatorTimer = null, locatorRequest = null, locatorDeadline = 0;
 const ladderDrafts = new Map();
-let editingDraft = null;
+let editingDraft = null, draftFileRequest = 0;
 const recognized = name => report?.supported_instructions.includes(name) || report?.known_add_on_instructions?.includes(name) || report?.function_blocks?.instructions?.includes(name);
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const logicView = LogixLogicView.create({canvas: $('rungs'), inspector: $('instruction-inspector'), status: $('logic-status'),
@@ -37,6 +37,8 @@ $('ladder-draft-mode').onclick = () => {
   const routine = state?.routines?.find(row => row.key === selected);
   if (!LogixLadderDraft.canEdit(routine)) return;
   const key = draftIdentity(routine);
+  setDraftFileStatus('');
+  ++draftFileRequest;
   if (editingDraft === key) editingDraft = null;
   else {
     if (!ladderDrafts.has(key)) ladderDrafts.set(key, LogixLadderDraft.create(routine));
@@ -52,12 +54,43 @@ $('ladder-draft-save').onclick = () => {
   download({format: 'logixlab-rll-draft', version: 1, routine: selected,
     source_sha256: state.source_sha256,
     base_revision: state.routine_edits?.revision ?? 0,
+    base_logic_sha256: state.routine_edits?.logic_sha256 ?? null,
     rungs: draft.rungs.map(({number, comment, text}) => ({number, comment, text}))},
   selected.replace(/[^a-z0-9_-]+/gi, '-') + '.ladder-draft.json');
+};
+$('ladder-draft-open').onclick = () => $('ladder-draft-file').click();
+$('ladder-draft-file').onchange = async event => {
+  const file = event.target.files[0], key = editingDraft, draft = ladderDrafts.get(key);
+  event.target.value = '';
+  if (!file || !draft) return;
+  const request = ++draftFileRequest;
+  const projectGeneration = state.project_generation;
+  const routine = selected;
+  const isCurrent = () => request === draftFileRequest && key === editingDraft &&
+    draftIdentity({key: selected}) === key && draft === ladderDrafts.get(key);
+  setDraftFileStatus('Opening draft…');
+  try {
+    const source = await file.text();
+    if (!isCurrent()) return;
+    let saved;
+    try {saved = JSON.parse(source.replace(/^\uFEFF/, ''));}
+    catch {throw new Error('The selected draft file is not valid JSON');}
+    if (saved?.format === 'logixlab-rll-draft' && saved.routine !== routine) {
+      throw new Error('Open this draft from its original ladder routine');
+    }
+    const restored = await api('ladder-draft-open', {project_generation: projectGeneration, draft: saved});
+    if (!isCurrent()) return;
+    const changed = changeDraft(active => active.restore(restored.rungs));
+    setDraftFileStatus(changed ? 'Draft opened · Undo restores the previous draft' : 'Draft already matches this file');
+  } catch (error) {
+    if (isCurrent()) setDraftFileStatus(error.message, true);
+  }
 };
 $('ladder-draft-discard').onclick = () => {
   if (!ladderDrafts.get(editingDraft) || !window.confirm('Discard this routine draft?')) return;
   ladderDrafts.delete(editingDraft);editingDraft = null;
+  ++draftFileRequest;
+  setDraftFileStatus('');
   renderLadder();
 };
 $('ladder').addEventListener('keydown', event => {
@@ -240,9 +273,14 @@ function renderTags() {
   });
   if (tags.length > 3000) {const note=document.createElement('p');note.textContent='Showing first 3,000 results. Narrow the filter.';$('tags').append(note);}
 }
+function setDraftFileStatus(message, failed = false) {
+  const status = $('ladder-draft-file-status');
+  status.textContent = message;
+  status.classList.toggle('failed', failed);
+}
 function draftIdentity(routine) {
   return JSON.stringify([state.instance_id, state.project_generation, state.source_sha256,
-    state.routine_edits?.revision ?? 0, routine.key]);
+    state.routine_edits?.revision ?? 0, state.routine_edits?.logic_sha256 ?? null, routine.key]);
 }
 function changeDraft(action) {
   const draft = ladderDrafts.get(editingDraft);
@@ -253,7 +291,11 @@ function changeDraft(action) {
 }
 function draftControls(routine) {
   const editable = LogixLadderDraft.canEdit(routine), key = editable ? draftIdentity(routine) : null;
-  if (editingDraft !== key) editingDraft = null;
+  if (editingDraft !== null && editingDraft !== key) {
+    editingDraft = null;
+    ++draftFileRequest;
+    setDraftFileStatus('');
+  }
   const draft = ladderDrafts.get(editingDraft), mode = $('ladder-draft-mode');
   mode.hidden = !editable;
   mode.textContent = draft ? 'Monitor' : ladderDrafts.get(key)?.changed ? 'Resume draft' : 'Edit draft';

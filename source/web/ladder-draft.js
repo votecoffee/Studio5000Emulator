@@ -104,6 +104,9 @@
         const text = logic === serialize(base[index].nodes) ? base[index].text : logic + ';';
         next[index] = {...rungs[index], nodes, text};
       }
+      record(next);
+    }
+    function record(next) {
       past.push(rungs);
       if (past.length > 100) past.shift();
       future.length = 0;
@@ -123,7 +126,7 @@
 
     return {
       get rungs() {return rungs;},
-      get changed() {return rungs.some((rung, i) => rung.text !== base[i].text);},
+      get changed() {return rungs.some((rung, i) => rung.text !== base[i].text || rung.comment !== base[i].comment);},
       get canUndo() {return past.length > 0;},
       get canRedo() {return future.length > 0;},
       insert(rung, gap, opcode) {
@@ -196,6 +199,23 @@
           delete found.node.literal_values;
           return id;
         });
+      },
+      restore(rows) {
+        if (!Array.isArray(rows) || rows.length !== rungs.length || rows.some((row, i) =>
+          !row || row.number !== rungs[i].number || typeof row.text !== 'string' ||
+          typeof row.comment !== 'string' || !Array.isArray(row.nodes))) {
+          throw new Error('The opened draft does not match this routine');
+        }
+        const next = rows.map((row, i) => {
+          const before = rungs[i];
+          if (row.text === before.text) return row.comment === before.comment ? before : {...before, comment: row.comment};
+          const restored = structuredClone(row);
+          identify(restored.nodes);
+          return restored;
+        });
+        if (next.every((row, i) => row === rungs[i])) return false;
+        record(next);
+        return true;
       },
       undo() {
         if (!past.length) return false;

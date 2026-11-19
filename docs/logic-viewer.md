@@ -159,16 +159,20 @@ and Ctrl+Y also work outside text fields.
 **Monitor** restores the live view. Select **Resume draft** to return to
 a changed draft for the same project generation and routine revision.
 **Save draft JSON** downloads the current rung text, comments and base source
-identifiers. Keep that file if you need the text after closing the browser.
-Draft JSON import and L5X export from drafts are future work.
+identifiers. To reopen it after closing the browser, load the original project
+and select the original routine. Choose **Edit draft**, then **Open draft
+JSON**. LogixLab checks the project source, base logic revision and rung
+numbers, then parses the draft text with its Python ladder parser. A
+successful open replaces the browser draft in one undoable step. It accepts
+unfinished operand placeholders and keeps the loaded simulator logic active.
 
 Drafts use the same SVG graph and faceplates as the monitor. Insertion and
 operand editing affect the browser draft only. Scan traces and live values
 are shown in Monitor, where the simulator continues to use the loaded
 routine. A draft retains the original source text of each unchanged rung.
 The operand field checks delimiters to keep each value within its own
-argument. Python validation of edited routines and applying a draft to
-the simulator are separate roadmap milestones.
+argument. Checking whether an edited routine can execute against the loaded
+project and applying it to the simulator are separate roadmap milestones.
 
 ## Node and wire editor roadmap
 
@@ -190,8 +194,8 @@ The next authoring stages build on these same instruction nodes and connections:
    offline authoring and simulation.
 
 The draft tools cover wire insertion, drag moves, branch resizing and legs,
-operand editing, deletion and history. Draft reload, Python validation,
-applying drafts and edited L5X export are still planned.
+operand editing, deletion, history and reopening saved drafts. Execution
+validation, applying drafts and edited L5X export are still planned.
 
 ## Verification
 

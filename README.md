@@ -31,8 +31,8 @@ Development is maintained on `main`.
 **Edit draft** on an ordinary ladder routine lets you insert and move
 instructions on the wires, resize branches, edit operands, and manage branch legs.
 Undo and redo cover each draft change.
-Draft JSON is saved separately. Use **Monitor** to return to the loaded
-routine and see its execution. [Ladder draft guide](docs/logic-viewer.md#offline-ladder-drafts)
+Save and reopen draft JSON against the original project and routine.
+Use **Monitor** to see the loaded routine execute. [Ladder draft guide](docs/logic-viewer.md#offline-ladder-drafts)
 
 **Appliance startup recovery** now handles a timed-out VMware guest-address
 query through the existing MAC-matched DHCP and pinned SSH fallback. Startup

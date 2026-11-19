@@ -4185,6 +4185,45 @@ class ApplicationLifecycleTests(unittest.TestCase):
         with self.assertRaises(HTTPError) as error:self.get('/web/logic-view.js')
         self.assertEqual(error.exception.code,404);error.exception.close()
 
+    def test_ladder_draft_open_checks_source_and_syntax_without_installing_rungs(self):
+        before = self.post('demo', {'sample': 'ConveyorDemo'})
+        routine = next(row for row in before['routines'] if row['kind'] == 'RLL' and row['rungs'])
+        rows = [{key: row[key] for key in ('number', 'comment', 'text')} for row in routine['rungs']]
+        source = " [XIC(StartPB),XIO(StopPB)] MOV('a$,b$'c',Scratch[Pos(1,2)]) OTE(?);"
+        rows[0].update(comment='Saved draft comment', text=source)
+        draft = {'format': 'logixlab-rll-draft', 'version': 1, 'routine': routine['key'],
+                 'source_sha256': before['source_sha256'], 'base_revision': 0, 'rungs': rows}
+        request = {'project_generation': before['project_generation'], 'draft': draft}
+        result = self.post('ladder-draft-open', request)['rungs']
+        self.assertEqual(result[0]['text'], source)
+        self.assertEqual(result[0]['comment'], 'Saved draft comment')
+        self.assertEqual(result[0]['nodes'][0]['branch'][1], [{'name': 'XIO', 'args': ['StopPB']}])
+        self.assertEqual(result[0]['nodes'][1]['args'], ["'a$,b$'c'", 'Scratch[Pos(1,2)]'])
+        self.assertEqual(result[0]['nodes'][2]['args'], ['?'])
+        self.assertEqual(result[1:], routine['rungs'][1:])
+
+        bad_operand = [{**rows[0], 'text': 'MOV(Target[(1]),Value);'}, *rows[1:]]
+        tampered = [{**rows[0], 'nodes': []}, *rows[1:]]
+        cases = [
+            ({**request, 'project_generation': -1}, 'current project generation'),
+            ({**request, 'draft': {**draft, 'source_sha256': '0' * 64}}, 'different project source'),
+            ({**request, 'draft': {**draft, 'base_revision': 1}}, 'matching base logic revision'),
+            ({**request, 'draft': {**draft, 'routine': 'Missing/Routine'}}, 'unavailable or read-only'),
+            ({**request, 'draft': {**draft, 'rungs': rows[::-1]}}, 'rung numbers'),
+            ({**request, 'draft': {**draft, 'rungs': bad_operand}}, 'Unbalanced operand'),
+            ({**request, 'draft': {**draft, 'rungs': tampered}}, 'number, comment and text strings'),
+        ]
+        for payload, message in cases:
+            with self.subTest(message=message):
+                with self.assertRaises(HTTPError) as rejected:
+                    self.post('ladder-draft-open', payload)
+                with rejected.exception as error:
+                    self.assertEqual(error.code, 400)
+                    self.assertIn(message, json.load(error)['error'])
+        after = self.post('observe', {})
+        for key in ('routines', 'tags', 'trace', 'scan', 'ms', 'routine_edits', 'project_generation'):
+            self.assertEqual(after[key], before[key], key)
+
     def test_logic_view_aoi_bindings_expose_canonical_tag_references_without_writes(self):
         state=self.post('demo',{'sample':'AOIQueueLab'})
         bindings={name.lower():value for name,value in state['aoi_bindings'].items()}

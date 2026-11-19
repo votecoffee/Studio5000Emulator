@@ -8,6 +8,7 @@
 #logic-status {color:#556879;margin-left:auto;font-size:10px}
 .lv-draft-toolbar {background:#eaf1f9;border-bottom-color:#91aaca}
 .lv-draft-toolbar[hidden],.logic-toolbar label[hidden] {display:none}
+#ladder-draft-file-status.failed {color:#9c2424}
 .lv-draft-gap {fill:#edf6ff;stroke:#286da8;stroke-width:1.7;cursor:pointer;outline:none}
 .lv-draft-gap:hover,.lv-draft-gap:focus {fill:#286da8;stroke:#134772}
 .lv-draft-instruction {cursor:grab;touch-action:none}
