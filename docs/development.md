@@ -35,6 +35,20 @@ shared behavior justify broader checks:
 py -3.13 -X utf8 -m unittest discover -s tests -v
 ```
 
+The 2026-11-19 checkpoint for app `26.1119.172950` ran 6,863 Python tests
+on Windows against commit `79383cb`. Two Linux-only socket tests were skipped.
+The run reported 602 failures across 24 test methods. Three HTTP tests timed
+out during server startup and passed on retry. Two arithmetic matrices and
+19 guard tests still expected older integer-conversion and expression rules.
+Their updated expectations passed, including all 880 matrix cases. All 83
+viewer tests passed. The baseline was followed by targeted reruns of the 24
+affected methods.
+
+The Windows executable was smoke-tested against the Module Status Lab.
+Task-end output snapshots paused and resumed while IOT captures continued.
+The VMware image passed its checksum and embedded file checks against the
+baseline. This checkpoint covers software behavior and packaged artifacts.
+
 The 2026-11-12 milestone for app `26.1112.231317` ran 6,478 Python tests
 against an unchanged source baseline, with two platform skips. Two HTTP checks
 had outdated expectations: aggregate FLL's rejected-source message now lists

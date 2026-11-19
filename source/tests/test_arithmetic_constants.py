@@ -1,4 +1,4 @@
-"""Bounded DINT constants in widening ladder arithmetic; no constant folding."""
+"""Bounded DINT constants in mixed ladder arithmetic; no constant folding."""
 import unittest
 from unittest.mock import patch
 from xml.etree import ElementTree as E
@@ -25,12 +25,16 @@ class ArithmeticConstantTests(unittest.TestCase):
                     for args in (f'Source,{value}',f'{value},Source'):
                         with self.subTest(source=source,dest=dest,args=args):
                             e=self.engine([f'ADD({args},Results[1]);'],source=source,dest=dest,value=3)
-                            allowed=source in fixtures.DESTINATIONS[dest] and BOUNDS[dest][0] <= value <= BOUNDS[dest][1]
-                            self.assertEqual(not e.blockers,allowed)
-                            if allowed:
-                                if dest=='DINT' and value==2147483647:
-                                    with self.assertRaisesRegex(ModelError,'overflow'):e.step()
-                                else:e.step();self.assertEqual(e.memory.read('Results'),[None,3+value,None])
+                            low, high = BOUNDS[dest]
+                            self.assertEqual(not e.blockers, low <= value <= high)
+                            if e.blockers:
+                                continue
+                            if not low <= 3 + value <= high:
+                                with self.assertRaisesRegex(ModelError, 'overflow'):
+                                    e.step()
+                            else:
+                                e.step()
+                                self.assertEqual(e.memory.read('Results'), [None, 3 + value, None])
 
     def test_five_binary_operations_keep_operand_order_and_signed_results(self):
         cases=[('ADD',-4,-4),('SUB',-10,10),('MUL',-21,-21),('DIV',-2,0),('MOD',-1,3)]
@@ -117,7 +121,7 @@ class ArithmeticConstantTests(unittest.TestCase):
     def test_unsupported_literals_types_permissions_and_old_targets_stay_blocked(self):
         for source,dest,constant in [('DINT','LINT','2147483648'),('DINT','LINT','16#1_0000_0000'),
                                      ('DINT','LINT','TRUE'),('USINT','UINT','-1'),
-                                     ('DINT','ULINT','1'),('LINT','DINT','1')]:
+                                     ('DINT','ULINT','-1'),('LINT','SINT','128')]:
             with self.subTest(source=source,dest=dest,constant=constant):
                 self.assertTrue(self.engine([f'AFI()ADD(Source,{constant},Results[0]);'],source=source,dest=dest).blockers)
         for constant,expected in (('1.0',4),('1L',4),('1U',4),('16#FFFF_FFFF',2)):

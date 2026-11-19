@@ -1,8 +1,7 @@
 # Emulation coverage and remaining work
 
-Audited 2026-11-12 for app `26.1112.231317`; includes matching mixed-integer constants and PID record transfers. **Full Logix emulation is not
-implemented.** The current engine executes bounded RLL/Structured Text and a
-limited FBD signal graph.
+Coverage as of app `26.1119.172950` includes bounded RLL and Structured Text
+execution and a limited FBD signal graph.
 Development prioritizes **full ladder support, then ST, then FBD, then SFC**.
 New FBD/SFC features wait for ladder and ST coverage and qualification gates.
 Studio 5000 compatibility expansion follows the emulation foundations.
@@ -114,6 +113,7 @@ firmware features are separate profiles, not implicit L85E capabilities.
 | Tasks/controller | Mixed Standard Continuous/Periodic tasks, deterministic serial releases with coincident priority order, Program/Run and per-Program first scans | General CPU preemption/time slicing, other event triggers, watchdogs, full fault handlers, restart/retention |
 | Motion | Empty source-checked motion discovery only | Axis/group/coordinate models and every motion instruction family |
 | I/O modules | Local-controller metadata, named local and qualified routed Mode reads and writes, Inhibited/Waiting EntryStatus, simulated Running/Faulted and fault diagnostics, aggregate LEDStatus, configured backplane and Ethernet routes, externally driven ordinary tags | Module backplane/adapters, cyclic I/O, channel behavior, diagnostics, forces and failures |
+| Simulated output delivery | [Ladder IOT](device-io.md#immediate-output-captures) captures whole outputs for local slots, named IPv4 modules and remote rack slots. [Task-end snapshots](device-io.md#task-end-output-snapshots) publish separately to Device I/O, with live [DisableUpdateOutputs](device-io.md#changing-task-output-processing) control in ladder and ST. Both publish at commit. | Cyclic/RPI traffic, produced-tag triggers, broader device profiles and output image layouts |
 | POINT I/O | No POINT I/O device model | Adapter, rack/slot/channel configuration, digital/analog/specialty modules and connection lifecycle |
 | FANUC robots | HTTP/optional MQTT can connect an external tag simulator | FANUC device assemblies, handshakes, robot state/faults and optional robot-simulator integration |
 | EDS/AOP | No EDS parser or device-model generator | EDS import/validation, assemblies/parameters/connections and separately authored behavioral models |

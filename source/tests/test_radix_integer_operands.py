@@ -61,9 +61,9 @@ class RadixIntegerOperandTests(unittest.TestCase):
                      'GRT(16#FFFFFFFFFFFFFFFFUL,9223372036854775808UL)']:
             e=self.checked([call+'OTE(RunLatch);']);e.step();self.assertTrue(e.memory.read('RunLatch'))
 
-    def test_complete_source_ranges_block_narrowing_and_lossy_signedness_even_while_false(self):
-        for call,source,dest in [('ADD(Source,16#1UL,Results[1]);','DINT','ULINT'),
-                                 ('ADD(Source,16#0L,Results[1]);','UDINT','UDINT'),
+    def test_constant_bounds_and_comparison_source_ranges_are_structural(self):
+        for call,source,dest in [('ADD(Source,-1L,Results[1]);','DINT','ULINT'),
+                                 ('ADD(Source,16#80L,Results[1]);','UDINT','SINT'),
                                  ('EQU(Source,16#0UL)OTE(RunLatch);','LINT','LINT'),
                                  ('GRT(Source,16#0U)OTE(RunLatch);','SINT','LINT')]:
             self.assertTrue(self.engine(['AFI()'+call],source=source,dest=dest,value=1).blockers,call)
@@ -76,10 +76,11 @@ class RadixIntegerOperandTests(unittest.TestCase):
                 engine=self.engine(['AFI()'+call],source=source,value=value)
                 if source in ('REAL','LREAL'):self.assertEqual(engine.blockers,[])
                 else:self.assertTrue(engine.blockers,(source,call))
-        for dest in ('REAL','LREAL','TIME','SINT'):
-            engine=self.engine(['AFI()ADD(16#1L,1L,Results[1]);'],dest=dest)
-            if dest in ('REAL','LREAL'):self.assertEqual(engine.blockers,[])
-            else:self.assertTrue(engine.blockers,dest)
+        for dest in ('REAL', 'LREAL', 'SINT'):
+            engine = self.checked(['ADD(16#1L,1L,Results[1]);'], dest=dest)
+            engine.step()
+            self.assertEqual(engine.memory.read('Results[1]'), 2)
+        self.assertTrue(self.engine(['AFI()ADD(16#1L,1L,Results[1]);'], dest='TIME').blockers)
 
     def test_invalid_and_overwide_literals_block_both_math_and_ordering(self):
         for token in ('16#100000000U','16#10000000000000000L','2#2UL','8#8L','16#FF U','16#FFLU','-16#FFL'):

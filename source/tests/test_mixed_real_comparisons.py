@@ -113,7 +113,6 @@ class MixedRealComparisonTests(unittest.TestCase):
         for token in ('TRUE','2147483648','-2147483649','1e40','1e999','1LU','Values'):
             self.assertTrue(self.engine([f'AFI()EQU(Source,{token});']).blockers,token)
         self.assertTrue(self.engine(['MEQ(Source,Mask,Dest);']).blockers)
-        self.assertTrue(self.engine(['CMP(Source>Mask);'],other='ULINT').blockers)
         self.assertTrue(self.engine(['EQU(Source,1e39);'],source='LREAL').blockers)
 
     def test_report_records_float32_policy_and_profile_precedence(self):

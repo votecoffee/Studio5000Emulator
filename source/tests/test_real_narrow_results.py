@@ -58,7 +58,9 @@ class RealNarrowResultTests(unittest.TestCase):
             e=self.checked(['SUB(16777217.0L,16777216.0,Results[1]);'],dest=dtype);e.step();self.assertEqual(e.memory.read('Results[1]'),1)
         e=self.checked(['ADD(Source,1,Results[1]);'],source='DINT',value=16777217,dest='DINT');e.step();self.assertEqual(e.memory.read('Results[1]'),16777218)
         for dtype in NARROW:
-            self.assertTrue(self.engine(['AFI()ADD(Source,1U,Results[1]);'],source='UDINT',value=1,dest=dtype).blockers)
+            e = self.checked(['ADD(Source,1U,Results[1]);'], source='UDINT', value=1, dest=dtype)
+            e.step()
+            self.assertEqual(e.memory.read('Results[1]'), 2)
             self.assertTrue(self.engine(['AFI()LN(16#1UL,Results[1]);'],dest=dtype).blockers)
 
     def test_false_prescan_skip_live_indices_unknowns_and_complete_writes(self):

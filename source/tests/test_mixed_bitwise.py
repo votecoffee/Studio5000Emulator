@@ -221,14 +221,13 @@ class MixedBitwiseTests(unittest.TestCase):
         e.memory.write('IndexB',2);e.step();self.assertEqual(e.memory.read('DriverA.Stack[0]'),18446744069414584320)
         self.assertEqual(e.memory.read('BufferA[1]'),0);self.assertEqual(e.memory.read('DriverA.Stack[3]'),777)
 
-    def test_shapes_permissions_float_and_arithmetic_profiles_remain_guarded(self):
+    def test_shapes_permissions_and_float_profiles_remain_guarded(self):
         for text in ('OR(Inputs,Mask,Results[0]);','NOT(Source,Results);','AND(StartPB,Mask,Results[0]);','OR(Missing,Mask,Results[0]);'):
             self.assertTrue(self.engine(['AFI()'+text]).blockers,text)
         self.assertTrue(self.engine(dest='REAL').blockers)
         self.assertTrue(self.engine(source='LREAL',other='UDINT',dest='LREAL',value=1).blockers)
         def constant(root):root.find('./Controller/Tags/Tag[@Name="Results"]').set('Constant','true')
         self.assertTrue(self.engine(mutate=constant).blockers)
-        self.assertTrue(self.engine(['ADD(Source,Mask,Results[1]);'],source='LINT').blockers)
         for processor,version in (('1756-L75','35'),('1756-L85E','34')):
             def old(root):root.find('Controller').set('ProcessorType',processor);root.find('Controller').set('MajorRev',version);root.set('SoftwareRevision',version+'.01')
             self.assertTrue(self.engine(mutate=old).blockers)

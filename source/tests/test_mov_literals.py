@@ -141,13 +141,13 @@ class MovLiteralTests(unittest.TestCase):
         e.memory.write('FaultDivisor', 1); e.step(); self.assertEqual(e.memory.read('BufferA[2]'), 9007199254740993)
         e.memory.write('EnabledA', False); e.memory.write('IndexA', 999); e.step()
 
-    def test_old_profiles_dest_permissions_and_non_mov_arguments_do_not_widen(self):
+    def test_old_profiles_destination_permissions_and_unqualified_arguments(self):
         for key, value in [('ProcessorType', '1756-L75'), ('MajorRev', '34')]:
             self.assertTrue(self.engine(['AFI()MOV(1L,Results[1]);'],
                                        mutate=lambda root: root.find('Controller').set(key, value)).blockers)
         def constant(root): root.find('./Controller/Tags/Tag[@Name="Results"]').set('Constant', 'true')
         self.assertTrue(self.engine(['AFI()MOV(1L,Results[1]);'], mutate=constant).blockers)
-        for rung in ['ADD(1L,1L,Results[1]);', 'FLL(1L,Results[0],1);', 'CLR(1L);',
+        for rung in ['FLL(1L,Results[0],1);', 'CLR(1L);',
                      'MOV(1L,Results[1L]);', 'MOV(1L,StartPB);']:
             self.assertTrue(self.engine([rung]).blockers, rung)
 

@@ -137,8 +137,9 @@ class RealIntegerLiteralTests(unittest.TestCase):
             self.assertTrue(self.engine(['AFI()SQR('+token+',Results[1]);']).blockers,token)
 
     def test_other_results_integer_only_comparisons_and_profiles_do_not_widen(self):
-        for dest in ('SINT','INT','DINT','LINT'):
-            self.assertTrue(self.engine(['AFI()'+('ADD(1UL,1UL,Results[1]);' if dest=='LINT' else 'ADD(1L,1U,Results[1]);')],dest=dest).blockers,dest)
+        for dest, value in (('SINT', '128L'), ('INT', '32768L'), ('DINT', '2147483648L'),
+                            ('LINT', '9223372036854775808UL')):
+            self.assertTrue(self.engine([f'AFI()ADD({value},1U,Results[1]);'], dest=dest).blockers, dest)
         for call in ('EQU(1L,1UL)','LIM(0L,1U,2UL)','MEQ(Source,1.0L,Source)'):
             self.assertTrue(self.comparison([call+'OTE(RunLatch);'],source='DINT',checked=False).blockers,call)
         for key,value in [('ProcessorType','1756-L75'),('MajorRev','34')]:

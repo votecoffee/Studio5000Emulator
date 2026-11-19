@@ -80,7 +80,7 @@ class WideIntegerRootPowerTests(unittest.TestCase):
     def test_mixed_types_permissions_profiles_st_and_index_paths_stay_guarded(self):
         for text in ['Source+SQR(Mask)', 'Source**(Mask+1)']:
             self.assertTrue(self.engine([f'AFI()CPT(Dest,{text});'], types=('LINT', 'DINT', 'LINT'), checked=False).blockers)
-        for text in ['SQRT(Source)', 'LN(Source)', 'SQR(Source)+1.0', 'Source**2.5', 'SQR(StartPB)']:
+        for text in ['SQRT(StartPB)', 'LN(StartPB)', 'SQR(Source)+1e39', 'Source**StartPB', 'SQR(StartPB)']:
             self.assertTrue(self.engine([f'AFI()CPT(Dest,{text});'], checked=False).blockers, text)
         def constant(root):root.find('./Controller/Tags/Tag[@Name="Dest"]').set('Constant', 'true')
         self.assertTrue(self.engine(['AFI()CPT(Dest,SQR(Source));'], mutate=constant, checked=False).blockers)

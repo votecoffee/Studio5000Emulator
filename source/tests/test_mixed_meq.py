@@ -175,12 +175,11 @@ class MixedMeqTests(unittest.TestCase):
             self.assertTrue(self.engine([f'AFI()MEQ(Source,{operand},Dest)OTE(RunLatch);'],
                                         types=('ULINT',)*3, values=(7,0,7)).blockers, operand)
 
-    def test_noninteger_shape_profile_and_arithmetic_guards_remain(self):
+    def test_noninteger_shape_and_controller_guards_remain(self):
         for types in (('ULINT','REAL','DINT'),('ULINT','BOOL','DINT')):
             self.assertTrue(self.engine(types=types,values=(7,0,7)).blockers)
         self.assertTrue(self.engine(['AFI()MEQ(Values,Mask,Dest)OTE(RunLatch);'],types=('ULINT','USINT','DINT')).blockers)
         for key,value in (('ProcessorType','1756-L75'),('MajorRev','34')):
             self.assertTrue(self.engine(types=('ULINT','USINT','DINT'),values=(7,15,7),mutate=lambda root:root.find('Controller').set(key,value)).blockers)
-        self.assertTrue(self.engine(['ADD(Source,Mask,Dest);'],types=('ULINT','USINT','DINT')).blockers)
         report=self.checked(types=('ULINT','USINT','DINT')).report()['numeric_comparisons']
         self.assertEqual(set(report['meq_types']),set(TYPES));self.assertTrue(report['meq_mixed_integer_tags']);self.assertFalse(report['native_runtime_parity'])

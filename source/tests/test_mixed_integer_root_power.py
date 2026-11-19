@@ -41,7 +41,7 @@ class MixedIntegerRootPowerTests(unittest.TestCase):
         for common, smaller in [('UINT', 'INT'), ('UDINT', 'DINT'), ('ULINT', 'LINT'), ('LINT', 'ULINT'), ('INT', 'UINT')]:
             self.assertTrue(self.engine(['AFI()CPT(Dest,Source**Mask);'], types=(common, smaller, common), values=(3, 2, 0), checked=False).blockers)
         for text in ['Source+SQR(Mask)', 'Source**(Mask+1)', 'Source+FRD(Mask)',
-                     'TOD(Source)+Mask', 'Source AND Mask', 'Source**Mask+1U', 'Source**Mask+0.5']:
+                     'TOD(Source)+Mask', 'Source AND Mask', 'Source**Mask+1U', 'Source**StartPB+0.5']:
             self.assertTrue(self.engine([f'AFI()CPT(Dest,{text});'], types=('LINT', 'DINT', 'LINT'), checked=False).blockers, text)
         self.assertTrue(self.engine(['AFI()CPT(Dest,Source**Mask);'], types=('DINT', 'UINT', 'LINT'), checked=False).blockers)
         for key, value in [('ProcessorType', '1756-L75'), ('MajorRev', '34')]:

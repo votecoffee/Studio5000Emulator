@@ -129,11 +129,9 @@ class IntegerMathTests(unittest.TestCase):
         self.assertEqual(e.memory.read('WideDest'), 13)
         self.assertEqual(e.memory.read('SpeedCommand'), 0)
 
-    def test_incompatible_integer_bool_and_invalid_immediates_stay_blocked(self):
-        for types in (('LINT', 'DINT', 'UDINT'), ('LINT', 'ULINT', 'LINT'),
-                      ('LINT', 'LINT', 'DINT'), ('LINT', 'BOOL', 'LINT')):
-            with self.subTest(types=types):
-                self.assertTrue(self.engine(['ADD(WideA,WideB,WideDest);'], types=types).blockers)
+    def test_bool_and_invalid_immediates_stay_blocked(self):
+        self.assertTrue(self.engine(['ADD(WideA,WideB,WideDest);'],
+                                    types=('LINT', 'BOOL', 'LINT')).blockers)
         for operand in ('1e39', 'TRUE', '2147483648'):
             self.assertTrue(self.engine([f'ADD(WideA,{operand},WideDest);']).blockers)
         self.assertTrue(self.engine(['ADD(WideA,-1,WideDest);'], 'ULINT').blockers)
