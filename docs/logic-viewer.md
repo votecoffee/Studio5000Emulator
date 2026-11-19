@@ -171,8 +171,15 @@ operand editing affect the browser draft only. Scan traces and live values
 are shown in Monitor, where the simulator continues to use the loaded
 routine. A draft retains the original source text of each unchanged rung.
 The operand field checks delimiters to keep each value within its own
-argument. Checking whether an edited routine can execute against the loaded
-project and applying it to the simulator are separate roadmap milestones.
+argument. Use **Validate draft** to check the edited routine with the
+loaded project's tag definitions, call targets and execution plan. The check
+builds a temporary model with the project's initial tag values and previews
+prescan. It includes the selected routine even when that routine is outside
+the scheduled programs. Diagnostics name the routine and rung where the
+runtime can locate the problem. An edit clears the previous result.
+
+Passing this check means the draft passed preflight. Normal scans with live
+tag values, applying the draft and exporting edited L5X are separate steps.
 
 ## Node and wire editor roadmap
 
@@ -194,8 +201,8 @@ The next authoring stages build on these same instruction nodes and connections:
    offline authoring and simulation.
 
 The draft tools cover wire insertion, drag moves, branch resizing and legs,
-operand editing, deletion, history and reopening saved drafts. Execution
-validation, applying drafts and edited L5X export are still planned.
+operand editing, deletion, history, reopening saved drafts and execution
+preflight. Applying drafts and edited L5X export are still planned.
 
 ## Verification
 

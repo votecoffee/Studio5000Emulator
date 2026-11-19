@@ -7,7 +7,7 @@ const moduleStatusLabels = {4096:'Faulted',16384:'Running',24576:'Inhibited',286
 const moduleInputLabels = {clear:'Cleared',running:'Running',faulted:'Faulted'};
 let locatorTimer = null, locatorRequest = null, locatorDeadline = 0;
 const ladderDrafts = new Map();
-let editingDraft = null, draftFileRequest = 0;
+let editingDraft = null, draftFileRequest = 0, draftCheckRequest = 0;
 const recognized = name => report?.supported_instructions.includes(name) || report?.known_add_on_instructions?.includes(name) || report?.function_blocks?.instructions?.includes(name);
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const logicView = LogixLogicView.create({canvas: $('rungs'), inspector: $('instruction-inspector'), status: $('logic-status'),
@@ -39,6 +39,7 @@ $('ladder-draft-mode').onclick = () => {
   const key = draftIdentity(routine);
   setDraftFileStatus('');
   ++draftFileRequest;
+  clearDraftCheck();
   if (editingDraft === key) editingDraft = null;
   else {
     if (!ladderDrafts.has(key)) ladderDrafts.set(key, LogixLadderDraft.create(routine));
@@ -51,12 +52,21 @@ $('ladder-draft-redo').onclick = () => changeDraft(draft => draft.redo());
 $('ladder-draft-save').onclick = () => {
   const draft = ladderDrafts.get(editingDraft);
   if (!draft?.changed) return;
-  download({format: 'logixlab-rll-draft', version: 1, routine: selected,
-    source_sha256: state.source_sha256,
-    base_revision: state.routine_edits?.revision ?? 0,
-    base_logic_sha256: state.routine_edits?.logic_sha256 ?? null,
-    rungs: draft.rungs.map(({number, comment, text}) => ({number, comment, text}))},
-  selected.replace(/[^a-z0-9_-]+/gi, '-') + '.ladder-draft.json');
+  download(draftDocument(draft), selected.replace(/[^a-z0-9_-]+/gi, '-') + '.ladder-draft.json');
+};
+$('ladder-draft-validate').onclick = async () => {
+  const key = editingDraft, draft = ladderDrafts.get(key);
+  if (!draft) return;
+  const request = ++draftCheckRequest;
+  const isCurrent = () => request === draftCheckRequest && draftIsActive(key, draft);
+  showDraftCheck('Checking draft…', [], true);
+  try {
+    const result = await api('ladder-draft-validate', {project_generation: state.project_generation, draft: draftDocument(draft)});
+    if (!isCurrent()) return;
+    showDraftCheck(result.valid ? 'Draft passed execution preflight' : 'Draft has execution blockers', result.diagnostics);
+  } catch (error) {
+    if (isCurrent()) showDraftCheck('Draft validation failed', [error.message]);
+  }
 };
 $('ladder-draft-open').onclick = () => $('ladder-draft-file').click();
 $('ladder-draft-file').onchange = async event => {
@@ -66,8 +76,7 @@ $('ladder-draft-file').onchange = async event => {
   const request = ++draftFileRequest;
   const projectGeneration = state.project_generation;
   const routine = selected;
-  const isCurrent = () => request === draftFileRequest && key === editingDraft &&
-    draftIdentity({key: selected}) === key && draft === ladderDrafts.get(key);
+  const isCurrent = () => request === draftFileRequest && draftIsActive(key, draft);
   setDraftFileStatus('Opening draft…');
   try {
     const source = await file.text();
@@ -91,6 +100,7 @@ $('ladder-draft-discard').onclick = () => {
   ladderDrafts.delete(editingDraft);editingDraft = null;
   ++draftFileRequest;
   setDraftFileStatus('');
+  clearDraftCheck();
   renderLadder();
 };
 $('ladder').addEventListener('keydown', event => {
@@ -278,6 +288,34 @@ function setDraftFileStatus(message, failed = false) {
   status.textContent = message;
   status.classList.toggle('failed', failed);
 }
+function draftDocument(draft) {
+  return {format: 'logixlab-rll-draft', version: 1, routine: selected,
+    source_sha256: state.source_sha256, base_revision: state.routine_edits?.revision ?? 0,
+    base_logic_sha256: state.routine_edits?.logic_sha256 ?? null,
+    rungs: draft.rungs.map(({number, comment, text}) => ({number, comment, text}))};
+}
+function showDraftCheck(message, diagnostics = [], pending = false) {
+  const section = $('ladder-draft-validation'), details = $('ladder-draft-diagnostics');
+  section.hidden = !message;
+  section.classList.toggle('failed', diagnostics.length > 0);
+  $('ladder-draft-validation-status').textContent = message;
+  const items = document.createDocumentFragment();
+  for (const diagnostic of diagnostics) {
+    const row = document.createElement('li');
+    row.textContent = diagnostic;
+    items.append(row);
+  }
+  details.replaceChildren(items);
+  details.hidden = diagnostics.length === 0;
+  $('ladder-draft-validate').disabled = pending;
+}
+function clearDraftCheck() {
+  ++draftCheckRequest;
+  showDraftCheck('');
+}
+function draftIsActive(key, draft) {
+  return key === editingDraft && draftIdentity({key: selected}) === key && draft === ladderDrafts.get(key);
+}
 function draftIdentity(routine) {
   return JSON.stringify([state.instance_id, state.project_generation, state.source_sha256,
     state.routine_edits?.revision ?? 0, state.routine_edits?.logic_sha256 ?? null, routine.key]);
@@ -286,7 +324,10 @@ function changeDraft(action) {
   const draft = ladderDrafts.get(editingDraft);
   if (!draft) return null;
   const result = action(draft);
-  if (result) renderLadder();
+  if (result) {
+    clearDraftCheck();
+    renderLadder();
+  }
   return result;
 }
 function draftControls(routine) {
@@ -295,6 +336,7 @@ function draftControls(routine) {
     editingDraft = null;
     ++draftFileRequest;
     setDraftFileStatus('');
+    clearDraftCheck();
   }
   const draft = ladderDrafts.get(editingDraft), mode = $('ladder-draft-mode');
   mode.hidden = !editable;

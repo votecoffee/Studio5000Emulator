@@ -1,6 +1,9 @@
-"""Reopen a ladder draft against the active source without changing the project."""
+"""Reopen and validate ladder drafts against a loaded source snapshot."""
 
-from .model import ModelError, ascii_literal_end, operations, parse_rung
+import copy
+from dataclasses import replace
+
+from .model import ModelError, ascii_literal_end, ladder_operand_problem, operations, parse_rung
 
 
 FIELDS = {'format', 'version', 'routine', 'source_sha256', 'base_revision', 'rungs'}
@@ -74,3 +77,28 @@ def reopen(project, draft):
         nodes = base['nodes'] if row['text'] == base['text'] else _draft_nodes(row['text'], row['number'])
         restored.append({**row, 'nodes': nodes})
     return restored
+
+
+def validate(project, draft):
+    from .runtime import Engine
+
+    rungs = reopen(project, draft)
+    key = draft['routine'].lower()
+    problems = []
+    for rung in rungs:
+        number = rung['number']
+        if not rung['text'].strip():
+            problems.append(f"Rung {number}: Empty or protected rung")
+        for op in operations(rung['nodes']):
+            problem = ladder_operand_problem(op, project.aois)
+            if problem:
+                problems.append(f'Rung {number}: {problem}')
+    if problems:
+        return {'valid': False, 'diagnostics': [f"{draft['routine']}: {message}" for message in problems]}
+    # Keep the source bindings, tag definitions and other routines. Engine
+    # plans against its own memory, clocks, labels and execution state.
+    candidate = copy.copy(project)
+    candidate.routines = dict(project.routines)
+    candidate.routines[key] = replace(project.routines[key], rungs=rungs)
+    preview = Engine(candidate, defer_prescan=True, include_routines=(key,))
+    return {'valid': not preview.blockers, 'diagnostics': preview.blockers}

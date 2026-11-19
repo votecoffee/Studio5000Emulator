@@ -4224,6 +4224,41 @@ class ApplicationLifecycleTests(unittest.TestCase):
         for key in ('routines', 'tags', 'trace', 'scan', 'ms', 'routine_edits', 'project_generation'):
             self.assertEqual(after[key], before[key], key)
 
+    def test_ladder_draft_validation_reports_execution_blockers_without_mutating_state(self):
+        self.post('demo', {'sample': 'ConveyorDemo'})
+        self.post('write', {'tag': 'StartPB', 'value': True})
+        before = self.post('step', {'dt': 10})
+        routine = next(row for row in before['routines'] if row['key'] == 'MainProgram/MainRoutine')
+        rows = [{key: row[key] for key in ('number', 'comment', 'text')} for row in routine['rungs']]
+
+        def check(*rung_texts):
+            changed = [{**row, 'text': rung_texts[i]} if i < len(rung_texts) else row
+                       for i, row in enumerate(rows)]
+            draft = {'format': 'logixlab-rll-draft', 'version': 1, 'routine': routine['key'],
+                     'source_sha256': before['source_sha256'], 'base_revision': 0, 'rungs': changed}
+            return self.post('ladder-draft-validate', {'project_generation': before['project_generation'], 'draft': draft})
+
+        self.assertEqual(check('MOV(77,SpeedCommand);', 'XIC(StartPB)TON(StartDelay,?,?);'),
+                         {'valid': True, 'diagnostics': []})
+        for text, diagnostic in [
+            ('XIC(DraftMissingTag)OTE(MotorRunning);', 'DraftMissingTag'),
+            ('XIC(SpeedCommand)OTE(MotorRunning);', 'BOOL'),
+            ('OTE();', 'operand count 0'),
+            ('DRAFT_MISSING_INSTRUCTION();', 'unsupported DRAFT_MISSING_INSTRUCTION'),
+            ('JMP(DraftMissingLabel);', 'Missing label'),
+        ]:
+            with self.subTest(text=text):
+                result = check(text)
+                self.assertFalse(result['valid'])
+                self.assertTrue(any('rung 0' in item.lower() and diagnostic in item
+                                    for item in result['diagnostics']), result)
+        after = self.post('observe', {})
+        for key in ('tags', 'routines', 'trace', 'scan', 'ms', 'fault', 'routine_edits', 'project_generation'):
+            self.assertEqual(after[key], before[key], key)
+        next_scan = self.post('step', {'dt': 10})
+        self.assertEqual(next_scan['scan'], before['scan'] + 1)
+        self.assertNotEqual(next(tag['value'] for tag in next_scan['tags'] if tag['name'] == 'SpeedCommand'), 77)
+
     def test_logic_view_aoi_bindings_expose_canonical_tag_references_without_writes(self):
         state=self.post('demo',{'sample':'AOIQueueLab'})
         bindings={name.lower():value for name,value in state['aoi_bindings'].items()}

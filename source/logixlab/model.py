@@ -91,6 +91,16 @@ def operand_problem(op):
     return ''
 
 
+def ladder_operand_problem(op, aois):
+    if op.name in aois:
+        if len(op.args) != 1 + len(aois[op.name].required):
+            return f'{op.name} requires instance plus required parameters in definition order'
+        return ''
+    if op.name not in ARITIES:
+        return f'unsupported {op.name}'
+    return operand_problem(op)
+
+
 def ascii_literal_end(text, start):
     """Return the exclusive end of a single-quoted Logix literal."""
     pos = start + 1
@@ -570,11 +580,8 @@ class Project:
                 routine.rungs.append({'number':number,'text':text,'comment':rung.findtext('Comment',''),'nodes':nodes})
                 for op in operations(nodes):
                     if count:self.instruction_counts[op.name]+=1
-                    if op.name in self.aois:
-                        if len(op.args)!=1+len(self.aois[op.name].required):
-                            routine.problems.append(f'Rung {number}: {op.name} requires instance plus required parameters in definition order')
-                    elif op.name not in ARITIES:routine.problems.append(f'Rung {number}: unsupported {op.name}')
-                    elif operand_problem(op):routine.problems.append(f'Rung {number}: '+operand_problem(op))
+                    problem = ladder_operand_problem(op, self.aois)
+                    if problem: routine.problems.append(f'Rung {number}: {problem}')
             except ModelError as e:routine.problems.append(f'Rung {number}: {e}')
         return routine
 

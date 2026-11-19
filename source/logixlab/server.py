@@ -307,6 +307,25 @@ class Application:
             self._io_dirty = False
 
     def command(self, action, data):
+        if action in ('ladder-draft-open', 'ladder-draft-validate'):
+            from . import ladder_drafts
+
+            with self.lock:
+                if self.busy: raise ModelError('Import in progress')
+                if self.engine is None: raise ModelError('Load a project first')
+                if (type(data) is not dict or set(data) != {'draft', 'project_generation'}
+                        or type(data['project_generation']) is not int or data['project_generation'] != self.generation):
+                    raise ModelError('A draft request requires the current project generation')
+                project, generation = self.engine.project, self.generation
+            if action == 'ladder-draft-validate':
+                result = ladder_drafts.validate(project, data['draft'])
+            else:
+                rows = ladder_drafts.reopen(project, data['draft'])
+                result = {'rungs': [{**row, 'nodes': serialize_nodes(row['nodes'])} for row in rows]}
+            with self.lock:
+                if self.busy or self.engine is None or self.engine.project is not project or self.generation != generation:
+                    raise ModelError('The loaded project changed during the draft request')
+            return result
         if action == 'clock-configure':
             with self.lock:
                 if set(data) != {'use_host_utc'} or data.get('use_host_utc') is not True:
@@ -668,13 +687,6 @@ class Application:
                         "scan": e.scan_count, "ms": e.time_ms, "tags": tags,
                         "changes": time_values.display_changes(e.changes, tags),
                         'controller':self.controller_state()}
-            elif action == 'ladder-draft-open':
-                if (type(data) is not dict or set(data) != {'draft', 'project_generation'}
-                        or type(data['project_generation']) is not int or data['project_generation'] != self.generation):
-                    raise ModelError('Opening a draft requires the current project generation')
-                from .ladder_drafts import reopen
-                rows = reopen(e.project, data['draft'])
-                return {'rungs': [{**row, 'nodes': serialize_nodes(row['nodes'])} for row in rows]}
             elif action=='export-edited-l5x':
                 if self.running:raise ModelError('Switch to Program before saving edited logic')
                 if self.endpoint and self.endpoint.enabled:
