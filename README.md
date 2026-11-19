@@ -284,7 +284,8 @@ summarizes a complete simulated module inventory.
 
 [Controller device GSV](docs/gsv-configuration.md#controller-device-identity)
 reads the loaded 5580 model's catalog name, product code, packed firmware
-revision, device type and vendor. [Controller device status](docs/gsv-configuration.md#controller-device-status)
+revision, device type and vendor, plus the virtual EtherNet/IP serial number.
+[Controller device status](docs/gsv-configuration.md#controller-device-status)
 uses the same mode word as the emulator's EtherNet/IP endpoint.
 **System lab** demonstrates ladder and ST.
 

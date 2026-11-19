@@ -4,6 +4,7 @@ import struct
 from .model import ModelError
 
 PROFILES=('research','logix-v35-l85e')
+VIRTUAL_CONTROLLER_SERIAL = 0x4C4C0001
 # ControlLogix 5580 product codes in the v35 ControllerDevice help.
 CONTROLLOGIX_5580_PRODUCT_CODES = {
     '1756-L81E': 164, '1756-L82E': 165, '1756-L83E': 166,
@@ -25,7 +26,7 @@ class Identity:
     major:int
     minor:int
     product_name:str
-    serial:int=0x4C4C0001
+    serial:int=VIRTUAL_CONTROLLER_SERIAL
     hardware_revision:tuple[int,int]=(1,0)
     firmware_build:int=0
 

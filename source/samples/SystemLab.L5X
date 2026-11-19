@@ -95,6 +95,7 @@
       <Tag Name="RetainTestEdits" TagType="Base" DataType="SINT"><Data Format="Decorated"><DataValue DataType="SINT" Value="-1" /></Data></Tag>
       <Tag Name="FirmwareUpdateInhibit" TagType="Base" DataType="BOOL"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="DeviceStatus" TagType="Base" DataType="INT"><Data Format="Decorated"><DataValue DataType="INT" Value="-1" /></Data></Tag>
+      <Tag Name="DeviceSerial" TagType="Base" DataType="DINT"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
       <Tag Name="StDeviceStatus" TagType="Base" DataType="INT"><Data Format="Decorated"><DataValue DataType="INT" Value="-1" /></Data></Tag>
       <Tag Name="ReadControllerDevice" TagType="Base" DataType="BOOL"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="DeviceNameBytes" TagType="Base" DataType="SINT" Dimensions="33"><Data Format="Decorated"><Array DataType="SINT" Dimensions="33"><Element Index="[0]" Value="-1" /></Array></Data></Tag>
@@ -794,7 +795,7 @@
               <Rung Number="2" Type="N"><Text>XIC(ReadThis)GSV(Program,THIS,LastScanTime,ThisWords[ThisIndex]);</Text></Rung>
               <Rung Number="3" Type="N"><Text>XIC(ReadThis)GSV(Program,THIS,MaxScanTime,ThisProgramMax);</Text></Rung>
               <Rung Number="4" Type="N"><Text>XIC(ReadObjectIdentity)GSV(Program,THIS,Name,ObjectProgramName)GSV(Routine,THIS,Name,ObjectRoutineName)GSV(Task,THIS,Instance,ObjectTaskSlot);</Text></Rung>
-              <Rung Number="5" Type="N"><Text>XIC(ReadControllerDevice)GSV(ControllerDevice,,DeviceName,DeviceNameBytes)GSV(ControllerDevice,,ProductCode,DeviceProductCode)GSV(ControllerDevice,,ProductRev,DeviceProductRev)GSV(ControllerDevice,,Status,DeviceStatus);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(ReadControllerDevice)GSV(ControllerDevice,,DeviceName,DeviceNameBytes)GSV(ControllerDevice,,ProductCode,DeviceProductCode)GSV(ControllerDevice,,ProductRev,DeviceProductRev)GSV(ControllerDevice,,SerialNumber,DeviceSerial)GSV(ControllerDevice,,Status,DeviceStatus);</Text></Rung>
               <Rung Number="6" Type="N"><Text>XIC(ReadControllerFlags)GSV(Controller,,CanUseRPIFromProducer,UseProducerRpi)GSV(Controller,,RedundancyEnabled,RedundancyFlag);</Text></Rung>
               <Rung Number="7" Type="N"><Text>XIC(ReadModuleStatus)GSV(Module,,LEDStatus,IoLedStatus);</Text></Rung>
             </RLLContent>

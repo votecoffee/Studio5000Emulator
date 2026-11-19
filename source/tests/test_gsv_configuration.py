@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 from xml.etree import ElementTree as E
 
+from logixlab.identity import Identity
 from logixlab.model import ModelError, Project
 from logixlab.runtime import Engine
 import test_string_operations as strings
@@ -886,12 +887,28 @@ class GsvConfigurationTests(unittest.TestCase):
         for text in ('GSV(ControllerDevice,THIS,ProductCode,PriorityOut);',
                      'GSV(ControllerDevice,,ProductCode,Out);',
                      'GSV(ControllerDevice,,ProductCode,PriorityOut.0);',
-                     'GSV(ControllerDevice,,SerialNumber,Out);',
+                     'GSV(ControllerDevice,,SerialNumber,PriorityOut);',
+                     'SSV(ControllerDevice,,SerialNumber,Out);',
                      'GSV(ControllerDevice,,Status,Out);',
                      'GSV(ControllerDevice,,Status,PriorityOut.0);',
                      'SSV(ControllerDevice,,Status,PriorityOut);',
                      'SSV(ControllerDevice,,ProductRev,PriorityOut);'):
             self.assertTrue(self.engine([text]).blockers,text)
+
+    def test_device_serial_matches_identity_and_rolls_back_on_fault(self):
+        for st in (False, True):
+            with self.subTest(st=st):
+                later = 'Index := 1 / Limit;' if st else 'DIV(1,Limit,Index);'
+                e = self.checked(['GSV(ControllerDevice,,SerialNumber,Out);', later], st=st)
+                e.memory.write('Limit', 0)
+                with self.assertRaisesRegex(ModelError, 'zero'):
+                    e.step()
+                self.assertEqual(e.memory.read('Out'), -7)
+                e.memory.write('Limit', 1)
+                e.step()
+                serial = struct.pack('<i', e.memory.read('Out'))
+                for profile in ('research', 'logix-v35-l85e'):
+                    self.assertEqual(serial, Identity.from_project(profile, e.project).attributes()[6])
 
     def test_device_status_uses_one_entry_sample_and_rolls_back_on_fault(self):
         for st in (False,True):

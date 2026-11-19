@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+[ControllerDevice SerialNumber](gsv-configuration.md#controller-device-identity)
+fills the serial read in `26.1119.165455`. GSV writes the advertised virtual
+EtherNet/IP serial to a DINT in ladder and ST. System Lab demonstrates the
+read alongside the other controller identity attributes.
+
 [Matching typed constants](ladder-wide-expressions.md#matching-typed-constants)
 extend mixed integer CPT/CMP/FAL/FSC as of `26.1112.224640`. L/U/UL constants must
 match the common actual source tag type; no new promotion or subtree inference.

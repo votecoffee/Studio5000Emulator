@@ -43,6 +43,7 @@ advance and are visible to GSV and the software clock services.
 | Controller | Name | STRING or explicit user string | Explicit unambiguous source name |
 | ControllerDevice | DeviceName | SINT[33] window | Counted catalog name from ProcessorType |
 | ControllerDevice | ProductCode, ProductRev, Type, Vendor | INT | v35 5580 model identity |
+| ControllerDevice | SerialNumber | DINT | Virtual serial advertised by EtherNet/IP Identity |
 | ControllerDevice | Status | INT | Controller mode sampled at scan entry |
 | Module | LEDStatus | INT or DINT low word | Complete controller-only map or complete simulated module inventory with a determinable aggregate |
 | Module | ForceStatus | INT or DINT low word | Complete controller-only I/O map |
@@ -180,11 +181,15 @@ works when the complete window fits in the selected array. Bytes outside
 the window retain their values. The catalog name comes from the project
 processor, independent of the endpoint's advertised identity profile.
 
+SerialNumber is a read-only GSV attribute with a writable DINT destination.
+It returns the same 32-bit virtual serial that EtherNet/IP advertises,
+`16#4C4C0001`. The serial belongs to the emulator and is independent of the
+imported project's hardware data.
+
 In **System lab**, enable ReadControllerDevice and step 25 ms. Ladder writes
-DeviceNameBytes, product code 168, and revision 16#0B23. ST writes device type
-14 and vendor 1. ST also uses the existing ReadConfig gate. Physical serial
-numbers and native ControllerDevice execution remain unqualified. These reads
-follow installed v35 help topic 14635.
+DeviceNameBytes, product code 168, revision `16#0B23` and DeviceSerial.
+ST writes device type 14 and vendor 1. ST also uses the existing ReadConfig
+gate. These modeled reads follow installed v35 help topic 14635.
 [Rockwell ControllerDevice reference](https://www.rockwellautomation.com/en-pr/docs/studio-5000-logix-designer/38-02/contents-ditamap/instruction-set/input-output-instructions/access-the-controllerdevice-object.html)
 
 ### Controller device status

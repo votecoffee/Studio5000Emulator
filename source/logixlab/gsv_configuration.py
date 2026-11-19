@@ -4,8 +4,8 @@ import re
 import struct
 from uuid import uuid4
 
-from .identity import CONTROLLOGIX_5580_PRODUCT_CODES
-from .integer_math import CONTROLLERS
+from .identity import CONTROLLOGIX_5580_PRODUCT_CODES, VIRTUAL_CONTROLLER_SERIAL
+from .integer_math import CONTROLLERS, bit_value
 from .model import ModelError, coerce, dimensions
 from .numeric_copy import location, prefix, static_reference
 from .string_operations import string_operand
@@ -127,6 +127,8 @@ def controller_device(engine, instance, attribute, *, executing):
         return 'INT', struct.unpack('<h', bytes((35, int(minor))))[0]
     if attribute == 'productcode':
         return 'INT', CONTROLLOGIX_5580_PRODUCT_CODES[processor]
+    if attribute == 'serialnumber':
+        return 'DINT', bit_value(VIRTUAL_CONTROLLER_SERIAL, 'DINT')
     if attribute == 'type':
         return 'INT', 14
     if attribute == 'vendor':
@@ -706,8 +708,8 @@ def description():
                 module_led_status='Empty controller-only map or aggregate of a complete simulated module inventory.',
                 module_force_status='Controller-only I/O map.',
                 major_fault_record='Active ladder fault routine; DINT[11] or first member of a supported fault-record UDT.',
-                controller_device=['DeviceName','ProductCode','ProductRev','Type','Vendor','Status'],
-                controller_device_source='v35 5580 project processor and firmware revision, plus modeled controller mode at scan entry.',
+                controller_device=['DeviceName','ProductCode','ProductRev','SerialNumber','Type','Vendor','Status'],
+                controller_device_source='v35 5580 project processor and firmware revision, virtual EtherNet/IP serial, and modeled controller mode at scan entry.',
                 controller_device_status='Remote keyswitch; Program 0x3070, Run 0x3060, software fault 0x3450 at retry entry.',
                 task_instance='Zero-based slot in the current emulator Task registry, independent of native CIP instance IDs.',
                 component_names='Named Program or THIS and Program-scoped Routine or THIS in ordinary scheduled project logic.',
