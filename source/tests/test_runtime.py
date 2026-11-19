@@ -175,6 +175,46 @@ class RuntimeTests(unittest.TestCase):
         with self.assertRaisesRegex(ModelError,'overflow'): e.step()
         self.assertEqual(e.memory.read('SpeedCommand'),0)
 
+    def test_sparse_scan_rolls_back_mutable_records_and_ignores_unreferenced_arrays(self):
+        def add_cold_tag(root):
+            tag = ET.SubElement(root.find('./Controller/Tags'), 'Tag', Name='Cold',
+                                TagType='Base', DataType='TIMER', Dimensions='16')
+            data = ET.SubElement(tag, 'Data', Format='Decorated')
+            ET.SubElement(data, 'Array', DataType='TIMER', Dimensions='16')
+
+        class ColdArray(list):
+            def __deepcopy__(self, memo):
+                raise AssertionError('Scan copied an unreferenced array')
+
+            def __getitem__(self, index):
+                raise AssertionError('Scan inspected an unreferenced array')
+
+        engine = self.engine([
+            'MOV(99,SpeedCommand);',
+            'OTL(RunLatch);',
+            'TON(StartDelay,?,?);',
+            'XIC(StartPB)DIV(1,0,DisplayedPartCount);',
+        ], add_cold_tag)
+        self.assertEqual(engine.blockers, [])
+        memory = engine.memory
+        cold = ColdArray(memory.values['cold'])
+        memory.values['cold'] = cold
+        start_delay = copy.deepcopy(memory.read('StartDelay'))
+        memory.write('StartPB', True)
+        with self.assertRaisesRegex(ModelError, 'Scan rolled back'):
+            engine.step()
+        self.assertEqual(memory.read('SpeedCommand'), 0)
+        self.assertFalse(memory.read('RunLatch'))
+        self.assertEqual(memory.read('StartDelay'), start_delay)
+        self.assertEqual(engine.changes, [])
+        self.assertEqual((engine.scan_count, engine.time_ms), (0, 0))
+
+        memory.write('StartPB', False)
+        changes = engine.step()
+        self.assertEqual([item['tag'] for item in changes],
+                         ['RunLatch', 'StartDelay.EN', 'StartDelay.TT', 'SpeedCommand'])
+        self.assertIs(memory.values['cold'], cold)
+
     def test_unknown_instruction_in_false_path_blocks(self):
         e=self.engine(['AFI()SECRET(RunLatch);'])
         self.assertTrue(any('unsupported SECRET' in b for b in e.blockers))

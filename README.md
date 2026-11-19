@@ -1024,6 +1024,9 @@ state is used by native Remote Run/Program requests. Scanning runs in the app
 and continues with the webpage closed.
 Entering Run performs modeled prescan, which can reset non-retentive values and
 execute enabled AOI Prescan routines. Repeated Run requests do not repeat it.
+During each simulation advance, LogixLab snapshots individual tags as the logic
+writes to them or accesses their mutable records. A failed scan restores the
+saved values. Change history compares only the tags captured during that advance.
 For supported Studio edits, select **Connectivity → Allow supported Studio edits**
 before connecting. This profile replaces an existing standard RLL routine in
 **Program** mode. Changes stay in memory; reload the original project to restore

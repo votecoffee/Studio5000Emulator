@@ -6,6 +6,7 @@ import re
 import struct
 import xml.etree.ElementTree as ET
 from collections import Counter
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
 from .controller_configuration import ControllerConfiguration
@@ -812,7 +813,10 @@ class Project:
 class Memory:
     def __init__(self, project):
         self.project = project
+        # Use store(), read() or at() for mutable access during a scan.
         self.values = copy.deepcopy(project.initial)
+        self.value_order = {key: index for index, key in enumerate(self.values)}
+        self._before = None
         self.message_cache = {}
         self.first_scan = True
         self._resolved = {}
@@ -820,6 +824,24 @@ class Memory:
         self.validating = False
         self.structural = False
         self.structural_constant_indices = False
+
+    @contextmanager
+    def track_values(self):
+        """Keep original values for the tags a simulation advance can change."""
+        if self._before is not None:
+            raise ModelError('Tag value tracking is already active')
+        self._before = {}
+        try:
+            yield self._before
+        except Exception:
+            self.values.update(self._before)
+            raise
+        finally:
+            self._before = None
+
+    def _remember(self, key):
+        if self._before is not None and key not in self._before:
+            self._before[key] = copy.deepcopy(self.values[key])
 
     def index(self,expr,scope):
         from .expressions import Expression
@@ -1102,6 +1124,9 @@ class Memory:
         if value is None:
             if self.validating and scope in self.frames:return self.project.default(dtype)
             raise ModelError(f'Unknown initial byte/value omitted by export: {ref}')
+        # Instruction handlers can edit returned records and arrays in place.
+        if isinstance(value, (dict, list)):
+            self._remember(key)
         if not parts and key in self.project.message_configs:
             from .ladder_message import status_members
             return {**value, **status_members(value['FLAGS'])}
@@ -1135,8 +1160,11 @@ class Memory:
         return key,parts,dtype
 
     def at(self,key,parts):
+        """Access a resolved value. Mutable results may be edited in place."""
         value=self.values[key]
         for part in parts:value=value[part]
+        if isinstance(value, (dict, list)):
+            self._remember(key)
         return value
 
     def address(self,key,parts):
@@ -1149,6 +1177,7 @@ class Memory:
 
     def store(self,key,parts,value):
         if self.project.tags[key].constant:raise ModelError('Constant destination')
+        self._remember(key)
         if not parts:self.values[key]=copy.deepcopy(value);return
         parent=self.at(key,parts[:-1])
         if len(parts) == 1 and parts[0] == 'FLAGS' and key in self.project.message_configs:

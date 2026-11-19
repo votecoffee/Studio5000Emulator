@@ -788,7 +788,11 @@ class Engine:
 
     def _step(self, dt=10, *, running=False):
         self.prepare_step(dt)
-        before = copy.deepcopy(self.memory.values)
+        with self.memory.track_values() as before:
+            self._advance(dt, running=running)
+        return self._record_tag_changes(before)
+
+    def _advance(self, dt, *, running):
         message_cache = self.memory.message_cache.copy()
         module_modes = self._module_modes.copy()
         bindings = copy.deepcopy((self.memory.frames,self.memory._resolved,self.addons.instances)) if self.project.aois else None
@@ -879,7 +883,6 @@ class Engine:
             if self._immediate_output_advance:
                 self.immediate_outputs = self.immediate_outputs | self._immediate_output_advance
         except (ModelError, ArithmeticError, ValueError, TypeError, KeyError, IndexError, OverflowError) as e:
-            self.memory.values = before
             self.memory.message_cache = message_cache
             self._module_modes = module_modes
             if bindings is not None:self.memory.frames,self.memory._resolved,self.addons.instances = bindings
@@ -900,7 +903,6 @@ class Engine:
             self._scan_controller_status=None
             self._immediate_output_advance=None
             self._message_advance=None
-        return self._record_tag_changes(before)
 
     def _recover_ladder_fault(self, op, scope, error):
         program_handler = self.project.program_fault_routines.get(scope)
@@ -1002,7 +1004,8 @@ class Engine:
                     compare(indexed, old[i], new[i])
             elif old != new:
                 changes.append({"scan": self.scan_count, "ms": self.time_ms, "tag": path, "before": old, "after": new})
-        for k, v in self.memory.values.items(): compare(self.project.tags[k].key, before[k], v)
+        for key in sorted(before, key=self.memory.value_order.__getitem__):
+            compare(self.project.tags[key].key, before[key], self.memory.values[key])
         self.changes = (changes + self.changes)[:2000]
         return changes
 

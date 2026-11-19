@@ -717,7 +717,7 @@ def execute_attribute(engine, op, scope):
             raise ModelError(f'SSV Message {member} requires a known value in 0..{MAX_TIMEOUT_MULTIPLIER}')
     elif type(value) is not int or value <= 0:
         raise ModelError(f'SSV Message {member} requires a known positive value')
-    record[member] = value
+    memory.store(control, [member], value)
 
 
 def prescan(engine, op, scope):
@@ -729,7 +729,7 @@ def prescan(engine, op, scope):
         if name in record:
             defaults[name] = record[name]
     defaults['FLAGS'] = record['FLAGS'] & CACHE_MASK
-    engine.memory.values[key] = defaults
+    engine.memory.store(key, [], defaults)
     engine.memory.message_cache.pop(key, None)
     if engine._message_advance is not None:
         engine._message_advance.pop(key, None)
@@ -765,7 +765,7 @@ def _capture_path(engine, key):
 
 
 def _admit(engine, key, power):
-    record = engine.memory.values[key]
+    record = engine.memory.at(key, ())
     queue = engine._message_advance
     if len(queue) >= MAX_PENDING or sum(not request.started for request in queue.values()) >= THROTTLE_POSITIONS:
         return
@@ -804,7 +804,7 @@ def _admit(engine, key, power):
 
 def execute(engine, op, power, scope):
     key = _control_key(engine, op.args[0], scope, op.name)
-    record = engine.memory.values[key]
+    record = engine.memory.at(key, ())
     queue = engine._message_advance
     pending = queue.get(key)
     if pending is not None:
@@ -997,7 +997,7 @@ def service(engine, status_word):
     cache = memory.message_cache
     now_us = engine.time_ms * 1000
     for key, pending in tuple(queue.items()):
-        record = memory.values[key]
+        record = memory.at(key, ())
         transferred = 0
         if record['FLAGS'] & TO_MASK or (pending.deadline_us is not None and now_us >= pending.deadline_us):
             error = 0xFE
