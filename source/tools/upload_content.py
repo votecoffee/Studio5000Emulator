@@ -257,6 +257,8 @@ class _ProgramValues:
         self.udts={d.get('Name','').casefold():d for d in types}
         if len(self.udts)!=len(types):raise ValueError('Duplicate exported data type')
         self.tags={}
+        # Partial exports do not establish executable AOI definitions.
+        self.aois={}
         self.message_configs={}
 
 

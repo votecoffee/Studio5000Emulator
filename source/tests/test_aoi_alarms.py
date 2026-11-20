@@ -175,7 +175,7 @@ class AOIAlarmTests(unittest.TestCase):
         def constant(controller):
             controller.find('Tags/Tag[@Name="MotorAlarm"]').set('Constant', 'true')
 
-        for configure, diagnostic in ((local, 'requires an InOut parameter'), (wrong, 'InOut type/array'),
+        for configure, diagnostic in ((local, 'requires an InOut parameter'), (wrong, 'InOut requires type ALARM_DIGITAL, received BOOL'),
                                       (constant, 'read-only destination')):
             with self.subTest(case=configure.__name__):
                 self.assertIn(diagnostic.lower(), ' '.join(self.engine(configure, checked=False).blockers).lower())
