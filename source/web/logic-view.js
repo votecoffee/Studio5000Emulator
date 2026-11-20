@@ -52,8 +52,9 @@
         add('string', Math.min(end, text.length));continue;
       }
       const rest = text.slice(at);
-      const number = rest.match(/^(?:2|8|16)#[\da-fA-F](?:[\da-fA-F_ ]*[\da-fA-F])?(?:[Uu][Ll]?|[Ll])(?![\w.])/)
-        || rest.match(/^(?:(?:2|8|16)#[\da-fA-F_]+|(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?[uUlL]*)/);
+      if (rest.startsWith('..')) {add('plain', at + 2);continue;}
+      const number = rest.match(/^(?:2|8|16)#[\da-fA-F_]+(?: +[\da-fA-F_]+)*(?:[Uu][Ll]?|[Ll])?(?!\w)/)
+        || rest.match(/^(?:\d+(?:\.(?!\.)\d*)?|\.\d+)(?:[eE][+-]?\d+)?[uUlL]*/);
       if (number) {add('number', at + number[0].length);continue;}
       const word = text.slice(at).match(/^[A-Za-z_][\w:]*/);
       if (word) {add(KEYWORDS.has(word[0].toUpperCase()) ? 'keyword' : /^\s*\(/.test(text.slice(at + word[0].length)) ? 'function' : 'plain', at + word[0].length);continue;}

@@ -398,6 +398,11 @@
       <Tag Name="StMixedIntegerCaseInput" DataType="LINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="LINT" Value="9007199254740993" /></Data></Tag>
       <Tag Name="StMixedIntegerCaseOffset" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
       <Tag Name="StMixedIntegerCaseResult" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="RunStDintRadix" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="StDintRadixInput" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="-1" /></Data></Tag>
+      <Tag Name="StDintRadixWord" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="StDintRadixMasked" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="StDintRadixCase" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
       <Tag Name="StDivisor" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
         <Data Format="Decorated">
           <DataValue DataType="LINT" Radix="Decimal" Value="3" />
@@ -1191,6 +1196,14 @@
               <Line Number="46">        ELSE StMixedIntegerCaseResult:=-1;</Line>
               <Line Number="47">    END_CASE;</Line>
               <Line Number="48">END_IF;</Line>
+              <Line Number="49">IF RunStDintRadix THEN</Line>
+              <Line Number="50">    StDintRadixWord:=16#FFFF FFFF;</Line>
+              <Line Number="51">    StDintRadixMasked:=StDintRadixInput AND 16#8000_0000;</Line>
+              <Line Number="52">    CASE StDintRadixMasked OF</Line>
+              <Line Number="53">        8#200 0000 0000: StDintRadixCase:=1;</Line>
+              <Line Number="54">        ELSE StDintRadixCase:=0;</Line>
+              <Line Number="55">    END_CASE;</Line>
+              <Line Number="56">END_IF;</Line>
             </STContent>
           </Routine>
           <Routine Name="NarrowRealOutputs" Type="RLL">

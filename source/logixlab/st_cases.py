@@ -4,13 +4,13 @@ from .integer_math import WIDE_TYPES
 from .lreal_expressions import immediate as floating_immediate
 from .model import ModelError,coerce,literal
 from .numeric_storage import typed_literal
+from .st_literals import RADIX, SUFFIX
 
-RADIX=r'(?:2|8|16)#[0-9a-fA-F_]+'
-TYPED_NUMBER=rf'(?:{RADIX}|\d+)(?:[Uu][Ll]?|[Ll])(?!\w)'
+TYPED_NUMBER=rf'(?:{RADIX}|\d+){SUFFIX}(?!\w)'
 FRACTION=r'(?:\d+\.(?!\.)\d*|\.\d+)'
 EXPONENT=r'[eE][+-]?\d+'
 LREAL_NUMBER=rf'(?:{FRACTION}(?:{EXPONENT})?|\d+{EXPONENT})[Ll](?!\w)'
-NUMBER=rf'{LREAL_NUMBER}|{TYPED_NUMBER}|{RADIX}|(?:{FRACTION}|\d+)(?:{EXPONENT})?'
+NUMBER=rf'{LREAL_NUMBER}|{TYPED_NUMBER}|{RADIX}(?!\w)|(?:{FRACTION}|\d+)(?:{EXPONENT})?'
 
 
 def labels(text):
@@ -23,12 +23,12 @@ def labels(text):
             if match is None:raise ModelError('CASE labels require numeric literals')
             sign,token=match.groups()
             try:
-                if token[-1] in 'LlUu':
-                    if '#' in token:
-                        dtype,value=typed_literal(token)
-                        value=coerce(-value if sign=='-' else value,dtype)
-                    else:
-                        dtype,value=typed_literal(sign+token)
+                if '#' in token:
+                    dtype,value=typed_literal(token)
+                    value=coerce(-value if sign=='-' else value,dtype)
+                    if dtype=='DINT':dtype=None
+                elif token[-1] in 'LlUu':
+                    dtype,value=typed_literal(sign+token)
                 else:
                     value=literal(token)
                     value=-value if sign=='-' else value

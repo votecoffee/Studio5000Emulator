@@ -15,6 +15,42 @@ class StructuredLiteralTests(unittest.TestCase):
     engine=fixtures.WideStructuredTests.engine
     checked=fixtures.WideStructuredTests.checked
 
+    def test_unsuffixed_radix_words_are_signed_with_zero_filled_short_words(self):
+        for word,value in (
+            ('16#FFFF FFFF',-1), ('16#FFFF',65535),
+            ('8#200 0000 0000',-2**31), ('8#377_7777_7777',-1),
+            ('2#1000 0000 0000 0000 0000 0000 0000 0000',-2**31), ('2#1111',15),
+        ):
+            with self.subTest(word=word):
+                e=self.checked(f'WideDest:={word};',dtype='DINT')
+                e.step()
+                self.assertEqual(e.memory.read('WideDest'),value)
+
+    def test_unsuffixed_word_does_not_consume_and_keyword_or_select_a_wide_profile(self):
+        source=('WideDest:=16#FFFF FFFF AND 16#8000_0000; '
+                'IF (WideDest=16#8000 0000) AND (16#FFFF FFFF < 0) THEN Result:=TRUE; END_IF;')
+        e=self.checked(source,dtype='DINT')
+        e.step()
+        self.assertEqual(e.memory.read('WideDest'),-2**31)
+        self.assertTrue(e.memory.read('Result'))
+        e=self.checked('WideDest:=16#FFFF FFFF+0.5;',dtype='REAL')
+        e.step()
+        self.assertEqual(e.memory.read('WideDest'),-0.5)
+
+    def test_unsuffixed_radix_checks_width_and_base_before_reaching_the_line(self):
+        for word in ('16#1 0000 0000','8#400 0000 0000','2#10 0020'):
+            with self.subTest(word=word):
+                e=self.engine(f'IF FALSE THEN WideDest:={word}; END_IF;',dtype='DINT')
+                self.assertTrue(e.blockers)
+
+    def test_radix_sign_is_applied_after_decode_and_overflow_rolls_back(self):
+        e=self.checked('WideA:=7; WideDest:=-16#8000 0000;',dtype='DINT',a=0)
+        before=copy.deepcopy(e.memory.values)
+        with self.assertRaisesRegex(ModelError,'DINT overflow'):
+            e.step()
+        self.assertEqual(e.memory.values,before)
+        self.assertEqual(e.scan_count,0)
+
     def test_decimal_suffixes_cover_full_declared_ranges(self):
         for dtype,text,expected in (('LINT','9223372036854775807L',9223372036854775807),
                                     ('LINT','-9223372036854775808L',-9223372036854775808),

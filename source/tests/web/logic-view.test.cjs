@@ -216,6 +216,14 @@ test('ST syntax highlights grouped typed radix literals as one number', () => {
     ['16#8000 0000 0000 0000L', '2#11ul']);
   assert.equal(tokens.map(token => token.text).join(''), source);
 });
+test('ST syntax preserves grouped DINT words and separates both CASE range endpoints', () => {
+  const source = '16#8000 0000..8#377_7777_7777, 0..2#1111: Bits := 16#FFFF FFFF AND Input;';
+  const tokens = tokenizeST(source);
+  assert.deepEqual(tokens.filter(token => token.kind === 'number').map(token => token.text),
+    ['16#8000 0000', '8#377_7777_7777', '0', '2#1111', '16#FFFF FFFF']);
+  assert(tokens.some(token => token.kind === 'keyword' && token.text === 'AND'));
+  assert.equal(tokens.map(token => token.text).join(''), source);
+});
 test('ST block comments remain comments across lines and support nesting', () => {
   const state = {depth: 0}, lines = ['(* outer (* nested', '*) still outer', '*) Value := 1;'];
   const tokens = lines.map(line => tokenizeST(line, state));assert.equal(state.depth, 0);

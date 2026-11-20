@@ -4,7 +4,7 @@ from .integer_math import CONTROLLERS, quotient, integer_power
 import re
 from .model import ModelError, coerce, literal
 from .real_math import square_root
-from .st_literals import scan as typed_integer
+from .st_literals import RADIX_TOKEN as ST_RADIX_TOKEN, scan as typed_integer
 from . import time_values
 
 FUNCTIONS = {'ABS': abs, 'SQR': square_root, 'SQRT': square_root, 'TRN': math.trunc,
@@ -74,11 +74,17 @@ class Expression:
                 continue
             if structured and text[pos]=='&':self.tokens.append(('AND','AND'));pos+=1;continue
             if (structured or radix_literals and integer_literals) and text[pos].isdigit():
-                radix = re.match(r'(?:2|8|16)#[0-9A-Fa-f_ ]+(?:[Uu][Ll]?|[Ll])(?![\w.])', text[pos:])
+                if structured:
+                    radix = ST_RADIX_TOKEN.match(text, pos)
+                else:
+                    radix = re.match(r'(?:2|8|16)#[0-9A-Fa-f_ ]+(?:[Uu][Ll]?|[Ll])(?![\w.])', text[pos:])
                 if radix:
                     from .numeric_storage import typed_literal
                     dtype, value = typed_literal(radix[0])
-                    self.tokens.append(('typed',(value,dtype)));self.radix_types.add(dtype)
+                    if dtype=='DINT':
+                        self.tokens.append(('number',str(value)))
+                    else:
+                        self.tokens.append(('typed',(value,dtype)));self.radix_types.add(dtype)
                     pos += len(radix[0]);continue
             typed=typed_integer(text,pos) if structured or integer_literals else None
             if typed is not None:

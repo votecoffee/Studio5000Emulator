@@ -848,6 +848,8 @@ bounded profile. General CPU preemption, other event sources and Safety remain u
 arithmetic, comparisons and bitwise operations for the v35 ControlLogix 5580
 model. **Integer lab** compares RLL/ST results and demonstrates exact
 [decimal, binary, octal and hexadecimal L/U/UL integer literals](docs/st-integer-literals.md).
+Enable `RunStDintRadix` to try a [signed DINT radix word](docs/st-integer-literals.md#signed-dint-radix-words)
+in a mask and CASE label.
 Enable `RunStPower` to try [exact wide integer powers](docs/wide-st.md#integer-powers)
 or `RunStRoot` to inspect [integer square-root rounding](docs/wide-st.md#integer-square-roots).
 Enable `RunStDouble` to try [binary64 Structured Text](docs/lreal-expressions.md#structured-text)

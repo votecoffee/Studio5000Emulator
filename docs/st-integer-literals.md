@@ -1,4 +1,4 @@
-# Typed integer literals in Structured Text
+# Integer literals in Structured Text
 
 App `26.1029.234052` adds decimal integer suffixes to the bounded v35 ControlLogix
 5580 [wide ST profile](wide-st.md). Constants retain their declared type and
@@ -45,6 +45,20 @@ watch retains exact decimal values and the ST viewer highlights the
 whole literal, including its suffix. The
 [Rockwell immediate-value reference](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/37-02/contents-ditamap/instruction-set/immediate-values.html)
 describes zero-fill and the suffix types.
+
+### Signed DINT radix words
+
+An unsuffixed binary, octal or hexadecimal word is a signed 32-bit DINT.
+Short words are zero-filled. `16#FFFF` is 65535, `16#FFFF FFFF` is −1,
+and `16#8000_0000` is −2147483648. Expressions and
+[CASE labels](st-case-selection.md#numeric-profiles-and-labels) accept spaces
+and underscores as digit separators. Explicit unary signs apply after
+decoding the word. Words wider than 32 bits fail preflight.
+
+In **Integer lab**, enable RunStDintRadix and step. The grouped word sets
+StDintRadixWord to −1. With the default input of −1, the sign-bit mask
+sets StDintRadixMasked to −2147483648 and the octal CASE label matches.
+Set StDintRadixInput to 1 to produce a zero mask result and take ELSE.
 
 ## Type rules and execution
 

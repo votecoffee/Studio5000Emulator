@@ -22,9 +22,9 @@ inside a body takes effect at the next CASE execution.
 
 SINT, INT and DINT selector operands use the existing DINT expression profile.
 Labels for an integer expression must be integers within signed DINT range.
-Existing signed radix labels remain available. Decimal, fractional and exponent
-labels are available for REAL expressions; signs may be separated from a number
-by whitespace. Branch labels must be literals. Typed L/U/UL labels require the
+Unsuffixed [binary, octal and hexadecimal words](st-integer-literals.md#signed-dint-radix-words)
+decode as signed DINT before comparison. REAL labels can also use decimal,
+fractional and exponent forms. Whitespace may separate a sign from a value. Branch labels must be literals. Typed L/U/UL labels require the
 matching wide integer selector type.
 
 The expression determines the comparison profile. Within the narrow
@@ -62,7 +62,7 @@ scalar LINT, USINT, UINT, UDINT or ULINT expressions. Selector arithmetic is
 checked at the declared width. Untyped labels must fit both DINT and the
 selector type. Use L, U or UL on decimal or radix labels to select the full
 LINT, UDINT or ULINT range. Suffix matching is case-insensitive. Radix labels
-support underscore grouping and signed LINT bit patterns such as
+support space or underscore grouping and signed LINT bit patterns such as
 `16#FFFF_FFFF_FFFF_FFFFL` for -1. The exact integer profile requires integer
 labels.
 

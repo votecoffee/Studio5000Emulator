@@ -95,6 +95,27 @@ class NumericCaseTests(unittest.TestCase):
         e=self.checked('CASE Selector OF 2147483647: State:=9; END_CASE;',2147483647,'DINT')
         e.step();self.assertEqual(e.memory.read('State'),9)
 
+    def test_grouped_radix_labels_decode_signed_dint_before_matching(self):
+        source=('CASE Selector OF 16#8000 0000..8#377_7777_7777: State:=10; '
+                '2#1111 1111,16#FFFF: State:=20; ELSE State:=-1; END_CASE;')
+        for dtype in ('DINT','REAL','LREAL'):
+            with self.subTest(dtype=dtype):
+                e=self.checked(source,0,dtype)
+                for value,expected in ((-2**31,10),(-1,10),(0,-1),(255,20),(65535,20)):
+                    e.memory.write('Selector',value)
+                    e.step()
+                    self.assertEqual(e.memory.read('State'),expected)
+
+    def test_case_radix_grouping_preserves_typed_labels_and_rejects_oversize_words(self):
+        e=self.checked('CASE Selector OF 16#FFFF FFFF FFFF FFFFUL: State:=7; END_CASE;',
+                       2**64-1,'ULINT')
+        e.step()
+        self.assertEqual(e.memory.read('State'),7)
+        for label in ('16#1 0000 0000','-16#8000 0000','2#10 0020'):
+            with self.subTest(label=label):
+                source=f'IF FALSE THEN CASE Selector OF {label}: State:=1; END_CASE; END_IF;'
+                self.assertTrue(self.engine(source,1,'DINT').blockers)
+
     def test_real_labels_do_not_promote_integer_selector(self):
         for label in ('1.0','1e0','1..2.0'):
             self.assertTrue(self.engine('CASE Selector OF '+label+': State:=1; END_CASE;',1,'DINT').blockers)
