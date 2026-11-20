@@ -1,4 +1,4 @@
-"""Scoped binary64 expressions and selected REAL ladder expressions."""
+"""Scoped binary64 and selected binary32 expressions for ladder and ST."""
 import math
 import operator
 
@@ -33,20 +33,26 @@ def immediate(value):
 
 
 def analyze(expression, memory, scope='', destination_type=None, *, consumer='CPT', precision='LREAL'):
+    st = consumer == 'ST'
     declared = {ref: memory.resolve(ref, scope)[2] for ref in expression.refs}
     binary64 = destination_type == 'LREAL' or 'LREAL' in declared.values() or 'LREAL' in expression.literal_types
+    if precision is None:
+        precision = 'LREAL' if binary64 else 'REAL'
     if precision == 'REAL':
+        extended = bool(expression.typed_types or expression.radix_types or destination_type in WIDE_TYPES or WIDE_TYPES.intersection(declared.values()))
+        if binary64 or not extended:
+            return None
+
         def floating_literal(node):
             return node[0] == 'literal' and type(node[1]) is float or any(floating_literal(x) for x in node[1:] if isinstance(x,tuple))
         selected = (destination_type == 'REAL' or 'REAL' in declared.values()
-                    or floating_literal(expression.tree) or bool(expression.functions & IMPLICIT_REAL))
-        extended = bool(expression.typed_types or expression.radix_types or destination_type in WIDE_TYPES or WIDE_TYPES.intersection(declared.values()))
-        if binary64 or not selected or not extended:return None
+                    or floating_literal(expression.tree) or (not st and bool(expression.functions & IMPLICIT_REAL)))
+        if not selected:
+            return None
     elif precision != 'LREAL':raise ModelError('Unsupported floating expression precision')
     elif not binary64:return None
     if not available(memory.project):
         raise ModelError(precision+' expressions require the v35 ControlLogix 5580 profile')
-    st = consumer == 'ST'
     condition = consumer == 'CMP' or (st and destination_type in (None, 'BOOL'))
     if not condition and destination_type not in NUMERIC:
         raise ModelError(f'{precision} {consumer} requires a numeric scalar destination')
@@ -63,7 +69,7 @@ def analyze(expression, memory, scope='', destination_type=None, *, consumer='CP
             continue
         if dtype not in NUMERIC and not (condition and dtype == 'BOOL'):
             if st:
-                raise ModelError('LREAL ST requires numeric scalar operands or BOOL tags in conditions')
+                raise ModelError(precision+' ST requires numeric scalar operands or BOOL tags in conditions')
             raise ModelError(precision+' expressions require numeric scalar operands or CMP BOOL/string tags')
         key, parts, _ = memory.resolve(ref, scope)
         if isinstance(memory.at(key, parts), (dict, list)):
@@ -125,6 +131,18 @@ def analyze(expression, memory, scope='', destination_type=None, *, consumer='CP
 def evaluate(expression, memory, scope, profile):
     precision = profile.get('precision','LREAL')
     def number(value):
+        if precision == 'REAL' and type(value) is int:
+            magnitude = abs(value)
+            shift = magnitude.bit_length() - 24
+            if shift > 0:
+                # Round exact integers before Python converts them to binary64.
+                # Going through a double first can move them onto a binary32 midpoint.
+                significand, remainder = divmod(magnitude, 1 << shift)
+                halfway = 1 << (shift - 1)
+                if remainder > halfway or (remainder == halfway and significand & 1):
+                    significand += 1
+                magnitude = significand << shift
+                value = -magnitude if value < 0 else magnitude
         return coerce(value, precision)
 
     def visit(node):
@@ -180,8 +198,9 @@ def evaluate(expression, memory, scope, profile):
         return visit(expression.tree)
     except OverflowError as error:
         # FAL's existing REAL overflow handler preserves completed cells and retry POS.
-        if precision == 'REAL':raise
-        raise ModelError('LREAL expression arithmetic domain/range failure: '+str(error)) from error
+        if precision == 'REAL' and profile['consumer'] != 'ST':
+            raise
+        raise ModelError(precision+' expression arithmetic domain/range failure: '+str(error)) from error
     except (ValueError, ZeroDivisionError) as error:
         raise ModelError(precision+' expression arithmetic domain/range failure: '+str(error)) from error
 
@@ -224,7 +243,10 @@ def real_description(project):
                 selection='A REAL tag, unsuffixed floating literal, implicit REAL math function or CPT/FAL REAL destination; at least one wide integer source/result tag, typed integer literal or signed DINT radix word',
                 implicit_real_functions=sorted(IMPLICIT_REAL),
                 integer_functions='ABS/SQR/TRN/TRUNC do not select REAL by themselves; exact integer forms retain their existing qualification',
-                priority='LREAL selection first; existing narrow REAL, exact integer, string-only and generic/ST/index consumers remain separate',
+                priority='LREAL selection first; narrow REAL, exact integer, string-only and generic/index consumers retain their existing paths',
+                structured_text=dict(selection='REAL tag, untyped floating literal or REAL destination with a wide integer tag or typed integer literal',
+                    operators='Existing ST arithmetic/functions; Boolean conditions and checked numeric assignments; pure integer roots stay exact',
+                    native_runtime_parity=False),
                 constants='Bounded DINT/finite REAL; declared decimal/radix L/U/UL words, signed DINT words and immediate unary range checks before float32 conversion',
                 arithmetic='Finite float32 sources and every numeric intermediate; existing unary math, arithmetic and bounded power',
                 operators=sorted(ARITHMETIC),functions=sorted(FUNCTIONS),exponent_limit=1024,

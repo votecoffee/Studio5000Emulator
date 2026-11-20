@@ -1,4 +1,4 @@
-# Mixed REAL ladder expressions
+# Mixed REAL expressions
 
 The bounded v35 ControlLogix 5580 profile supports wide integer tags and typed
 decimal/radix integer constants in selected REAL CPT, CMP, FAL and FSC expressions.
@@ -111,7 +111,8 @@ false-rung, prescan, file hold/done/inhibit and numeric-continuation rules apply
 Aliases, selected string elements, UDT members and qualified AOI bindings retain
 their existing address rules. Strings cannot be math operands or numeric results;
 this adds no string literal syntax or native status/fault/layout qualification.
-String-only and legacy narrow/generic/ST/index expression paths stay separate.
+String-only and legacy narrow/generic/index expression paths follow their
+existing rules.
 
 In **Wide expression lab**, set StringNumericIndex=1 and StringNumericEnabled=true.
 StringNumericRealMatch and StringNumericDoubleMatch become true. Change
@@ -119,3 +120,26 @@ StringNumericNeedle.DATA[5] from 65 to 66 to make both false, or restore 65 to
 match PART-A. The example combines STRING array elements with a declared
 CODE_12 string. Index99 or StringNumericLateDivisor=0 demonstrates rollback.
 StringNumericInhibit also clears both results while all operands remain required.
+
+## Structured Text
+
+A REAL tag, unsuffixed floating literal or REAL destination selects the
+binary32 profile when an ST expression includes a wide integer tag or
+typed integer literal. It accepts all eight integer tag types alongside REAL,
+and decimal or radix L/U/UL literals. Sources pass their declared range checks
+before promotion. Integer-to-REAL promotion rounds directly to binary32,
+including values adjacent to a rounding midpoint.
+
+Each arithmetic result rounds to finite binary32. Numeric assignments apply
+the existing destination conversion and comparisons can feed Boolean conditions.
+An LREAL operand or destination selects [binary64](lreal-expressions.md#structured-text).
+Functions alone do not select this extended ST profile. The existing exact
+integer powers and roots use their integer evaluator when the expression has
+no REAL selection. Invalid calculated or stored results roll back the scan.
+Native v35 behavior remains unverified.
+[Rockwell data conversion reference](https://www.rockwellautomation.com/en-gb/docs/studio-5000-logix-designer/37-00/contents-ditamap/data-conversions.html)
+
+Enable `RunStRealWide` in **Integer Lab**. LINT 16777217 rounds to the saved
+REAL 16777216, so `StRealWideDiff` is zero and `StRealWideSame` is true.
+Set `StRealWideInput` to 16777219 to see a difference of 4. Set
+`StRealWideDivisor` to zero to exercise rollback, then restore one.

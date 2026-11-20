@@ -378,6 +378,11 @@
       <Tag Name="StDoubleNarrowInput" DataType="LREAL" TagType="Base"><Data Format="Decorated"><DataValue DataType="LREAL" Value="3.5" /></Data></Tag>
       <Tag Name="StDoubleNarrowInt" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
       <Tag Name="StDoubleNarrowReal" DataType="REAL" TagType="Base"><Data Format="Decorated"><DataValue DataType="REAL" Value="0.0" /></Data></Tag>
+      <Tag Name="RunStRealWide" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="StRealWideInput" DataType="LINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="LINT" Value="16777217" /></Data></Tag>
+      <Tag Name="StRealWideDivisor" DataType="REAL" TagType="Base"><Data Format="Decorated"><DataValue DataType="REAL" Value="1.0" /></Data></Tag>
+      <Tag Name="StRealWideDiff" DataType="REAL" TagType="Base"><Data Format="Decorated"><DataValue DataType="REAL" Value="0.0" /></Data></Tag>
+      <Tag Name="StRealWideSame" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="StDivisor" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
         <Data Format="Decorated">
           <DataValue DataType="LINT" Radix="Decimal" Value="3" />
@@ -1142,6 +1147,7 @@
               <Line Number="17">IF RunStDouble THEN StDoubleMixedResult:=DoubleResultsPrecise-RealCompareHigh+16#1L; StDoubleMixedAbove:=DoubleResultsPrecise&gt;RealCompareHigh+0.0L; END_IF;</Line>
               <Line Number="18">IF RunStDouble THEN StDoubleDelta:=(DoubleInput-1.0L)/StDoubleDivisor; StDoubleAboveOne:=DoubleInput&gt;1.0L; END_IF;</Line>
               <Line Number="19">IF RunStDoubleNarrow THEN StDoubleNarrowInt:=StDoubleNarrowInput-1.0L; StDoubleNarrowReal:=DoubleInput; END_IF;</Line>
+              <Line Number="20">IF RunStRealWide THEN StRealWideSame:=StRealWideInput=RealCompareHigh AND 16777217U=RealCompareHigh; StRealWideDiff:=(StRealWideInput-RealCompareHigh)/StRealWideDivisor; END_IF;</Line>
             </STContent>
           </Routine>
           <Routine Name="NarrowRealOutputs" Type="RLL">

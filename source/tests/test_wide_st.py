@@ -113,13 +113,13 @@ class WideStructuredTests(unittest.TestCase):
         self.assertEqual(e.memory.values,before)
 
     def test_mixed_types_and_destinations_block_even_in_unreached_branches(self):
-        for types in (('LINT','DINT','LINT'),('LINT','ULINT','LINT'),('LINT','LINT','DINT'),('ULINT','REAL','ULINT')):
+        for types in (('LINT','DINT','LINT'),('LINT','ULINT','LINT'),('LINT','LINT','DINT')):
             self.assertTrue(self.engine('IF FALSE THEN WideDest:=WideA+WideB; END_IF;',types=types).blockers,types)
         for source in ('WideDest:=SpeedCommand;','SpeedCommand:=WideA;','WideDest:=TRUE;','WideDest:=WideA+StartPB;'):
             self.assertTrue(self.engine(source).blockers,source)
 
-    def test_wide_real_malformed_and_untyped_out_of_dint_immediates_remain_unqualified(self):
-        for expr in ('2147483648','9007199254740993','1.0','1LU','WideA+2147483648','WideA+1.0'):
+    def test_malformed_and_untyped_out_of_dint_immediates_remain_unqualified(self):
+        for expr in ('2147483648','9007199254740993','1LU','WideA+2147483648'):
             self.assertTrue(self.engine('WideDest:='+expr+';').blockers,expr)
         for expr in ('-1','WideA+(-1)'):
             self.assertTrue(self.engine('WideDest:='+expr+';',dtype='ULINT').blockers,expr)
@@ -163,7 +163,7 @@ class WideStructuredTests(unittest.TestCase):
                 self.assertEqual(e.memory.values, before)
 
     def test_power_requires_matching_types_and_integer_operands(self):
-        for source in ('WideDest:=WideA**2.5;', 'WideDest:=WideA**2UL;', 'WideDest:=WideA**StartPB;'):
+        for source in ('WideDest:=WideA**2UL;', 'WideDest:=WideA**StartPB;'):
             self.assertTrue(self.engine(source).blockers, source)
 
     def test_square_root_accepts_all_wide_types_and_signed_magnitudes(self):

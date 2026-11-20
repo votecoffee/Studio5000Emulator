@@ -16,9 +16,9 @@ class STExpression(Expression):
         temporal = time_values.expression_profile(self, memory, scope, destination_type, consumer='ST')
         if temporal is not None:
             return ('bool' if temporal['condition'] else 'temporal'), False, {}
-        lreal = lreal_expressions.analyze(self, memory, scope, destination_type, consumer='ST')
-        if lreal is not None:
-            return lreal['result_type'], True, lreal['types']
+        floating = lreal_expressions.analyze(self, memory, scope, destination_type, consumer='ST', precision=None)
+        if floating is not None:
+            return floating['result_type'], True, floating['types']
         wide=wide_st.analyze(self,memory,scope,destination_type)
         if wide is not None:return wide[1],False,wide[2]
         return self.analyze_standard(memory, scope)
@@ -66,9 +66,9 @@ class STExpression(Expression):
         temporal = time_values.expression_profile(self, memory, scope, destination_type, consumer='ST')
         if temporal is not None:
             return time_values.evaluate_expression(self, memory, scope, temporal)
-        lreal = lreal_expressions.analyze(self, memory, scope, destination_type, consumer='ST')
-        if lreal is not None:
-            return lreal_expressions.evaluate(self, memory, scope, lreal)
+        floating = lreal_expressions.analyze(self, memory, scope, destination_type, consumer='ST', precision=None)
+        if floating is not None:
+            return lreal_expressions.evaluate(self, memory, scope, floating)
         wide=wide_st.analyze(self,memory,scope,destination_type)
         if wide is not None:return wide_st.evaluate(self,memory,scope,wide)
         _,real,types=self.analyze_standard(memory,scope)

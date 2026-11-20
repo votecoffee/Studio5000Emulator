@@ -17,9 +17,10 @@ All numeric tag operands in an expression must have one matching declared type.
 A numeric assignment destination must match that type. Literal-only assignments
 use the destination's declared wide type. Untyped immediates are signed DINT
 integers representable in the selected type. [Decimal L/U/UL literals](st-integer-literals.md)
-now provide full-width constants with matching declared types. REAL operands,
-mixed signed/unsigned promotions and additional literal forms remain blocked,
-including expressions in unreachable branches.
+now provide full-width constants with matching declared types.
+[REAL-selected expressions](real-expressions.md#structured-text) use their
+own promotion rules. A mixed integer-only expression must still meet the
+integer profile's type rules, including in unreachable branches.
 
 Supported operations are addition, subtraction, multiplication, exact integer
 division/remainder, integer powers and roots, unary plus/minus, ABS,

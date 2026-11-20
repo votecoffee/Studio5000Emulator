@@ -30,6 +30,49 @@ class StructuredTests(unittest.TestCase):
             E.SubElement(E.SubElement(tag, 'Data', Format='Decorated'), 'DataValue',
                          DataType=dtype, Value=str(value))
 
+    def test_real_wide_expressions_use_binary32_and_yield_to_lreal(self):
+        self.scalar_tags('LINT', IntegerSource=16777217)
+        self.scalar_tags('REAL', Threshold=16777216, Loss=0, LiteralLoss=0)
+        self.scalar_tags('LREAL', DoubleDifference=0)
+        e = self.engine(
+            'Loss:=(IntegerSource+1L)-16777216L; LiteralLoss:=16777217U-16777216.0; '
+            'Done:=IntegerSource=Threshold; State:=2UL+0.5; '
+            'DoubleDifference:=IntegerSource-Threshold+0.0L;')
+        self.assertEqual(e.blockers, [])
+        e.step()
+        self.assertEqual(e.memory.read('Loss'), 0.0)
+        self.assertEqual(e.memory.read('LiteralLoss'), 0.0)
+        self.assertIs(e.memory.read('Done'), True)
+        self.assertEqual(e.memory.read('State'), 2)
+        self.assertEqual(e.memory.read('DoubleDifference'), 1.0)
+
+    def test_real_wide_integer_conversion_avoids_double_rounding_at_midpoint(self):
+        self.scalar_tags('ULINT', IntegerSource=0)
+        self.scalar_tags('REAL', Rounded=0)
+        e = self.engine('Rounded:=IntegerSource;')
+        self.assertEqual(e.blockers, [])
+        low = 1 << 63
+        midpoint = low + (1 << 39)
+        for source, expected in ((midpoint-1, low), (midpoint, low), (midpoint+1, low+(1 << 40))):
+            e.memory.write('IntegerSource', source)
+            e.step()
+            self.assertEqual(e.memory.read('Rounded'), expected)
+
+    def test_real_wide_calc_overflow_has_line_context_and_rolls_back(self):
+        self.scalar_tags('ULINT', IntegerSource=(1 << 64)-1)
+        self.scalar_tags('REAL', LargeFactor=1e30, Rounded=3)
+        e = self.engine('State:=17;\nIF Enable THEN Rounded:=IntegerSource*LargeFactor; END_IF;')
+        self.assertEqual(e.blockers, [])
+        e.memory.write('Enable', False)
+        e.step()
+        self.assertEqual(e.memory.read('Rounded'), 3.0)
+        e.memory.write('Enable', True)
+        e.memory.write('State', 99)
+        before = copy.deepcopy(e.memory.values)
+        with self.assertRaisesRegex(ModelError, 'ST line 2: .*REAL expression arithmetic domain/range failure'):
+            e.step()
+        self.assertEqual(e.memory.values, before)
+
     def test_lreal_binary64_assignments_conditions_and_explicit_literal_precision(self):
         self.scalar_tags('LREAL', Binary64=1.0000000000000002, Delta=0, Promoted=0, Root=0)
         e = self.engine(

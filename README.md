@@ -853,6 +853,7 @@ or `RunStRoot` to inspect [integer square-root rounding](docs/wide-st.md#integer
 Enable `RunStDouble` to try [binary64 Structured Text](docs/lreal-expressions.md#structured-text)
 with mixed numeric tags and typed integer constants. `RunStDoubleNarrow`
 demonstrates checked result conversion to DINT and REAL.
+Enable `RunStRealWide` to try [mixed binary32 ST expressions](docs/real-expressions.md#structured-text).
 Complete mixed-type arithmetic,
 additional expression forms and native math flags remain unfinished.
 

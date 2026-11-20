@@ -109,14 +109,17 @@ class StructuredLiteralTests(unittest.TestCase):
             with self.subTest(dtype=dtype, source=source):
                 self.assertTrue(self.engine('IF FALSE THEN WideDest:='+source+'; END_IF;', dtype=dtype).blockers)
 
-    def test_real_exponent_and_grouped_decimal_forms_remain_unqualified(self):
-        for text in ('1.0L','1e3L','.5UL','1_000L'):
-            self.assertTrue(self.engine('WideDest:='+text+';').blockers,text)
+    def test_floating_lreal_forms_and_integer_suffix_boundaries(self):
+        e = self.checked('WideDest:=1.0L+1e3L;')
+        e.step()
+        self.assertEqual(e.memory.read('WideDest'), 1001)
+        for text in ('.5UL', '1e3UL', '1_000L'):
+            self.assertTrue(self.engine('WideDest:='+text+';').blockers, text)
 
     def test_mixed_literal_types_and_numeric_destinations_are_rejected(self):
         for dtype,text in (('LINT','1U'),('ULINT','1L'),('UINT','1U'),('USINT','1U'),('LINT','1L+1U'),('LINT','WideA+1UL')):
             self.assertTrue(self.engine('WideDest:='+text+';',dtype=dtype).blockers,(dtype,text))
-        for source in ('SpeedCommand:=1L;','Result:=1UL;','WideDest:=1L+0.0;'):
+        for source in ('SpeedCommand:=1L;','Result:=1UL;','WideDest:=1L+FALSE;'):
             self.assertTrue(self.engine(source).blockers,source)
 
     def test_profile_gate_applies_to_typed_constants_without_tag_operands(self):
