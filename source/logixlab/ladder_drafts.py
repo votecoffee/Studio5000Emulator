@@ -66,7 +66,7 @@ def _draft_nodes(text, number):
 def _read(project, draft):
     if (type(draft) is not dict or set(draft) - {'base_logic_sha256'} != FIELDS
             or draft['format'] != 'logixlab-rll-draft'
-            or type(draft['version']) is not int or draft['version'] not in (1, 2)):
+            or type(draft['version']) is not int or draft['version'] not in (1, 2, 3)):
         raise ModelError('Unsupported ladder draft file format')
     if draft['source_sha256'] != project.sha256:
         raise ModelError('This draft belongs to a different project source')
@@ -84,13 +84,15 @@ def _read(project, draft):
     rows = draft['rungs']
     if type(rows) is not list or not rows or len(set(numbers)) != len(numbers):
         raise ModelError('Draft rung numbers must match the loaded routine in order')
-    if draft['version'] == 1 and len(rows) != len(numbers):
+    version = draft['version']
+    if version == 1 and len(rows) != len(numbers):
         raise ModelError('Draft rung numbers must match the loaded routine in order')
 
     base_indices = []
+    retained = set()
     last_retained = -1
     for index, row in enumerate(rows):
-        if draft['version'] == 1:
+        if version == 1:
             if type(row) is not dict or set(row) != RUNG_FIELDS or any(type(value) is not str for value in row.values()):
                 raise ModelError('Each draft rung must contain number, comment and text strings')
             if row['number'] != numbers[index]:
@@ -102,8 +104,11 @@ def _read(project, draft):
                 raise ModelError('Each draft rung must contain a base index, comment and text')
             base_index = row['base_index']
             if base_index is not None:
-                if type(base_index) is not int or not last_retained < base_index < len(numbers):
-                    raise ModelError('Retained draft rungs must refer to unique base indices in order')
+                if (type(base_index) is not int or not 0 <= base_index < len(numbers) or base_index in retained
+                        or (version == 2 and base_index <= last_retained)):
+                    order = ' in order' if version == 2 else ''
+                    raise ModelError('Retained draft rungs must refer to unique base indices' + order)
+                retained.add(base_index)
                 last_retained = base_index
             base_indices.append(base_index)
 
@@ -119,7 +124,7 @@ def _read(project, draft):
 
 def reopen(project, draft):
     _, restored, base_indices, _ = _read(project, draft)
-    if draft['version'] == 2:
+    if draft['version'] != 1:
         return [{**row, 'base_index': index} for row, index in zip(restored, base_indices, strict=True)]
     return restored
 

@@ -500,6 +500,7 @@
         if (options.onDraftInsertRung(index)) focusDraftRung(index, '.lv-draft-gap');
       });
       button('Edit comment', 'comment', () => options.onDraftComment(index));
+      button('Move rung', 'move', () => options.onDraftMoveRung(index)).disabled = current.draft.rungs.length === 1;
       button('Delete rung', 'delete', () => {
         if (options.onDraftRemoveRung(index)) {
           focusDraftRung(Math.min(index, documents.length - 1), '[data-rung-action="insert"]');

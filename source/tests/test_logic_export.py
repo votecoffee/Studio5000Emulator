@@ -264,5 +264,71 @@ class LogicExportTests(unittest.TestCase):
         self.assertEqual(exported.find('Extension').get('Name'), 'KeepSibling')
         self.assertEqual(self.app.engine.project.path.read_bytes(), original)
 
+    def test_reordered_draft_changes_scan_order_and_keeps_source_rung_metadata(self):
+        xml = ET.parse(self.app.engine.project.path)
+        location = ".//Routine[@Name='MainRoutine']/RLLContent"
+        content = xml.find(location)
+        original_rungs = content.findall('Rung')
+        for rung, name, value in ((original_rungs[0], 'First', 11), (original_rungs[-1], 'Last', 22)):
+            rung.set('SourceMetadata', name)
+            rung.find('Text').text = f'MOV({value},SpeedSetpoint);'
+            rung.find('Comment').text = name + ' assignment'
+        content.insert(1, ET.Element('Extension', Name='KeepFirstSlot'))
+        original = ET.tostring(xml.getroot(), encoding='utf-8')
+        initial = self.app.command('load', {'name': 'ReorderDraft.L5X',
+            'content': base64.b64encode(original).decode()})
+        state = self.app.command('step', {'dt': 10})
+        self.assertEqual(self.app.engine.memory.read('SpeedSetpoint'), 22)
+        key = 'MainProgram/MainRoutine'
+
+        def request_for(current):
+            rungs = next(row['rungs'] for row in current['routines'] if row['key'] == key)
+            draft = {'format': 'logixlab-rll-draft', 'version': 3, 'routine': key,
+                     'source_sha256': current['source_sha256'], 'base_revision': current['routine_edits']['revision'],
+                     'base_logic_sha256': current['routine_edits']['logic_sha256'],
+                     'rungs': [{'base_index': i, 'comment': rung['comment'], 'text': rung['text']}
+                               for i, rung in enumerate(rungs)]}
+            return {'project_generation': current['project_generation'], 'draft': draft}
+
+        request = request_for(state)
+        rows = request['draft']['rungs']
+        rows.insert(0, rows.pop())
+        with self.assertRaisesRegex(ModelError, 'indices in order'):
+            self.app.command('ladder-draft-open', {**request, 'draft': {**request['draft'], 'version': 2}})
+        duplicate = [{**rows[0]}, *rows]
+        with self.assertRaisesRegex(ModelError, 'unique base indices'):
+            self.app.command('ladder-draft-open', {**request, 'draft': {**request['draft'], 'rungs': duplicate}})
+        opened = self.app.command('ladder-draft-open', request)['rungs']
+        self.assertEqual([rung['base_index'] for rung in opened], [len(rows) - 1, *range(len(rows) - 1)])
+        self.assertEqual(opened[0]['comment'], 'Last assignment')
+        self.assertEqual(self.app.state(), state)
+        self.assertTrue(self.app.command('ladder-draft-validate', request)['valid'])
+        applied = self.app.command('ladder-draft-apply', request)
+        self.assertEqual(applied['tags'], state['tags'])
+        self.app.command('step', {'dt': 10})
+        self.assertEqual(self.app.engine.memory.read('SpeedSetpoint'), 11)
+        first = self.app.command('export-edited-l5x', {})
+        moved = ET.fromstring(first['content']).find(location)
+        self.assertEqual(moved[0].get('SourceMetadata'), 'Last')
+        self.assertEqual(moved[1].get('Name'), 'KeepFirstSlot')
+        self.assertEqual(moved[2].get('SourceMetadata'), 'First')
+        self.assertEqual(moved[0].findtext('Comment'), 'Last assignment')
+
+        second = request_for(applied)
+        second['draft']['rungs'].append(second['draft']['rungs'].pop(0))
+        self.app.command('ladder-draft-apply', second)
+        result = self.app.command('export-edited-l5x', {})
+        restored = ET.fromstring(result['content']).find(location)
+        self.assertEqual(restored[0].get('SourceMetadata'), 'First')
+        self.assertEqual(restored[-1].get('SourceMetadata'), 'Last')
+        self.assertEqual(self.app.engine.project.path.read_bytes(), original)
+
+        loaded = self.app.command('load', {'name': first['filename'],
+            'content': base64.b64encode(first['content'].encode()).decode()})
+        self.assertEqual(loaded['routine_edits']['revision'], initial['routine_edits']['revision'])
+        self.assertEqual(self.app.engine.memory.read('SpeedSetpoint'), 50)
+        self.app.command('step', {'dt': 10})
+        self.assertEqual(self.app.engine.memory.read('SpeedSetpoint'), 11)
+
 
 if __name__=='__main__':unittest.main()

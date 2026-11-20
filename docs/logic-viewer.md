@@ -149,8 +149,10 @@ dot and press Enter. Esc cancels the selection of a destination.
 Choose **Insert rung above** on a rung or **Add rung at end** in the toolbar.
 The new rung starts with an empty wire. Choose **Edit comment** to add, change
 or clear its comment, or **Delete rung** to remove the rung and its contents.
-The routine must retain at least one rung. Adding or deleting a rung renumbers
-the draft in order. Undo restores the prior layout and numbers.
+Choose **Move rung** to place the whole rung before another rung or at the
+end of the routine. The routine must retain at least one rung. Layout changes
+renumber the draft in execution order. Undo restores the prior layout and
+numbers.
 
 Drag the square on a branch's right rail to a highlighted wire dot. A dot
 after the branch wraps the intervening instructions into the top leg. A dot
@@ -171,7 +173,7 @@ source identifiers. To reopen it after closing the browser, load the original pr
 and select the original routine. Choose **Edit draft**, then **Open draft
 JSON**. LogixLab checks the project source, base logic revision and references
 to retained rungs, then parses the draft text with its Python ladder parser.
-Earlier saved files that identify rungs by number still open. A
+Current draft files store rung order and earlier draft versions still open. A
 successful open replaces the browser draft in one undoable step. It accepts
 unfinished operand placeholders and keeps the loaded simulator logic active.
 
@@ -189,8 +191,9 @@ ones, appear after the instance in definition order.
 
 Choose **Review changes** to compare the loaded and drafted rung text and
 comments side by side. A retained rung is matched to its original rung even
-if its number changed. Open **Renumbering only** to see numbering changes
-without edits to the rung's logic or comment. **Go to rung** returns to the
+if its number changed. **Reordered** identifies rungs whose positions changed
+relative to other retained rungs. Open **Renumbering only** to see numbering
+changes without a change to retained order, logic, or comment. **Go to rung** returns to the
 draft and focuses an insertion point on the selected rung.
 
 Use **Validate draft** to check the edited routine with the

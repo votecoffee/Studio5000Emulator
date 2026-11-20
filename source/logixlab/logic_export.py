@@ -13,7 +13,8 @@ from .model import ModelError, Project
 
 def _update_draft_rungs(content, rows, origins):
     originals = content.findall('Rung')
-    replacements = {}
+    retained = set()
+    replacements = []
     inserted = []
     for row, origin in zip(rows, origins, strict=True):
         if origin is None:
@@ -21,7 +22,7 @@ def _update_draft_rungs(content, rows, origins):
             ET.SubElement(rung, 'Text')
             inserted.append(rung)
         else:
-            if not 0 <= origin < len(originals) or origin in replacements:
+            if not 0 <= origin < len(originals) or origin in retained:
                 raise ModelError('The source L5X no longer has the original Standard rung layout')
             rung = originals[origin]
             if (rung.get('Type', 'N') != 'N' or len(rung.findall('Text')) != 1
@@ -29,7 +30,8 @@ def _update_draft_rungs(content, rows, origins):
                 raise ModelError('The source L5X no longer has the original Standard rung layout')
             if rung.get('Number', str(origin)) != row['number']:
                 rung.set('Number', row['number'])
-            replacements[origin] = [*inserted, rung]
+            retained.add(origin)
+            replacements.append([*inserted, rung])
             inserted.clear()
         text = rung.find('Text')
         if text.text != row['text']:
@@ -41,12 +43,14 @@ def _update_draft_rungs(content, rows, origins):
         if comment is not None and (comment.text or '') != row['comment']:
             comment.text = row['comment']
 
-    # Reuse retained elements in their source order, keeping non-rung siblings.
+    # Fill retained slots in draft order, keeping non-rung siblings in place.
+    groups = iter(replacements)
     children = []
     origin = 0
     for child in content:
         if child.tag == 'Rung':
-            children.extend(replacements.get(origin, ()))
+            if origin in retained:
+                children.extend(next(groups))
             origin += 1
             if origin == len(originals):
                 children.extend(inserted)

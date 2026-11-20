@@ -25,6 +25,7 @@ const logicView = LogixLogicView.create({canvas: $('rungs'), inspector: $('instr
   onDraftRemoveLeg(rung, id, leg) {return changeDraft(draft => draft.removeLeg(rung, id, leg));},
   onDraftInsertRung(index) {return changeDraft(draft => draft.insertRung(index));},
   onDraftRemoveRung(index) {return changeDraft(draft => draft.removeRung(index));},
+  onDraftMoveRung(index) {openDraftRungMove(index);},
   onDraftComment(index) {openDraftComment(index);}});
 let logicZoom = 1;
 function updateZoom(value) {
@@ -337,7 +338,7 @@ function setDraftFileStatus(message, failed = false) {
   status.classList.toggle('failed', failed);
 }
 function draftDocument(draft) {
-  return {format: 'logixlab-rll-draft', version: 2, routine: selected,
+  return {format: 'logixlab-rll-draft', version: 3, routine: selected,
     source_sha256: state.source_sha256, base_revision: state.routine_edits?.revision ?? 0,
     base_logic_sha256: state.routine_edits?.logic_sha256 ?? null,
     rungs: draft.rungs.map(({base_index, comment, text}) => ({base_index, comment, text}))};
@@ -359,6 +360,32 @@ function openDraftComment(index) {
   };
   dialog.showModal();
 }
+function openDraftRungMove(index) {
+  const key = editingDraft, draft = ladderDrafts.get(key), rungs = draft?.rungs;
+  if (!rungs?.[index] || rungs.length < 2 || draftApplyPending) return;
+  const dialog = $('ladder-rung-move-dialog'), destination = $('ladder-rung-destination');
+  $('ladder-rung-move-heading').textContent = 'Move rung ' + rungs[index].number;
+  const placeholder = new Option('Choose a destination', '');
+  placeholder.disabled = true;
+  destination.replaceChildren(placeholder);
+  const remaining = rungs.filter((_, position) => position !== index);
+  for (let to = 0; to <= remaining.length; to++) {
+    if (to === index) continue;
+    const label = remaining[to] ? 'Before rung ' + remaining[to].number : 'End of routine';
+    destination.add(new Option(label, String(to)));
+  }
+  destination.value = '';
+  $('ladder-rung-move-form').onsubmit = event => {
+    event.preventDefault();
+    dialog.close();
+    if (event.submitter?.value === 'cancel' || !destination.value || !draftIsActive(key, draft) || draft.rungs !== rungs) return;
+    const to = Number(destination.value);
+    if (changeDraft(active => active.moveRung(index, to))) {
+      logicView.focusDraftRung(to, '[data-rung-action="move"]');
+    }
+  };
+  dialog.showModal();
+}
 function draftReviewColumn(side, rung, showComment) {
   const column = document.createElement('div'), heading = document.createElement('h4');
   heading.textContent = side + ' rung ' + rung.number;
@@ -376,7 +403,7 @@ function draftReviewColumn(side, rung, showComment) {
 function renderDraftReview(draft) {
   displayedReviewRungs = draft.rungs;
   $('ladder-draft-review-routine').textContent = selected;
-  const counts = {added: 0, removed: 0, edited: 0, renumbered: 0};
+  const counts = {added: 0, removed: 0, edited: 0, reordered: 0, renumbered: 0};
   const numberChanges = [], content = document.createDocumentFragment();
   for (const item of draft.review()) {
     counts[item.kind]++;
@@ -388,8 +415,12 @@ function renderDraftReview(draft) {
     row.dataset.reviewKind = item.kind;
     header.className = 'lv-draft-review-row-head';
     const heading = document.createElement('h3');
-    heading.textContent = item.kind === 'added' ? 'Added' : item.kind === 'removed' ? 'Removed' :
-      item.logic && item.comment ? 'Logic and comment changed' : item.logic ? 'Logic changed' : 'Comment changed';
+    let label = item.kind[0].toUpperCase() + item.kind.slice(1);
+    if (item.kind === 'edited') {
+      label = item.logic && item.comment ? 'Logic and comment changed' : item.logic ? 'Logic changed' : 'Comment changed';
+      if (item.reordered) label += ' · Reordered';
+    }
+    heading.textContent = label;
     header.append(heading);
     if (item.after) {
       const jump = document.createElement('button');

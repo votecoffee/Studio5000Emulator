@@ -54,8 +54,10 @@ def record_revision(previous, project, key, base_revision, *, rung_origins=None)
     for name,routine in sorted(project.routines.items()):
         if routine.kind=='FBD':
             payload=routine.diagram
-        elif rung_origins is not None:
+        elif rung_origins is not None or name in origins:
             payload=[(r['number'],r['text'],r['comment']) for r in routine.rungs]
+            if name in origins:
+                payload=(payload,origins[name])
         else:
             payload=[r['text'] for r in routine.rungs]
         content.append((name,routine.kind,payload))

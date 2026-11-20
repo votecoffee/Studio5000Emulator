@@ -328,11 +328,11 @@ test('review pairs rungs by source identity and separates numbering from content
   assert.deepEqual(changes, [
     {kind: 'added', after: {number: '0', text: ';', comment: ''}, index: 0},
     {kind: 'edited', before: {number: '8', text: '  XIC(Start) OTE(Run);', comment: 'Seal in'},
-      after: {number: '1', text: '  XIC(Start) OTE(Run);', comment: 'New comment\nSecond line'}, logic: false, comment: true, index: 1},
+      after: {number: '1', text: '  XIC(Start) OTE(Run);', comment: 'New comment\nSecond line'}, logic: false, comment: true, reordered: false, index: 1},
     {kind: 'edited', before: {number: '19', text: 'MOV(0, Count);', comment: 'Reset'},
-      after: {number: '2', text: 'MOV(8,Count);', comment: 'Reset'}, logic: true, comment: false, index: 2},
-    {kind: 'removed', before: {number: '21', text: 'NOP();', comment: ''}},
-    {kind: 'renumbered', from: '24', to: '3'}
+      after: {number: '2', text: 'MOV(8,Count);', comment: 'Reset'}, logic: true, comment: false, reordered: false, index: 2},
+    {kind: 'renumbered', from: '24', to: '3'},
+    {kind: 'removed', before: {number: '21', text: 'NOP();', comment: ''}}
   ]);
   changes[1].after.comment = 'Changed the review only';
   assert.equal(draft.rungs[1].comment, 'New comment\nSecond line');
@@ -342,4 +342,31 @@ test('review pairs rungs by source identity and separates numbering from content
   for (let index = 0; index < 4; index++) assert(draft.undo());
   assert.deepEqual(draft.review(), []);
   assert.equal(draft.changed, false);
+});
+
+test('whole-rung moves carry the graph and source identity through undo, review and reopen', () => {
+  const routine = fixture(), draft = createDraft(routine);
+  const graphic = graph.compile(draft.rungs[1], routine.key, true);
+  assert.equal(draft.moveRung(0, 0), false);
+  assert.equal(draft.moveRung(1, 2), false);
+  assert(draft.moveRung(1, 0));
+  assert.deepEqual(draft.rungs.map(rung => [rung.number, rung.base_index, rung.comment]), [
+    ['0', 1, 'Reset'], ['1', 0, 'Seal in']
+  ]);
+  assert.deepEqual(graph.compile(draft.rungs[0], routine.key, true).order, graphic.order);
+  assert.equal(draft.rungs[0].text, 'MOV(0, Count);');
+  assert.deepEqual(draft.review().map(item => [item.kind, item.before.number, item.after.number]), [
+    ['reordered', '1', '0'], ['reordered', '0', '1']
+  ]);
+  const reopened = createDraft(routine);
+  assert(reopened.restore(draft.rungs));
+  assert.deepEqual(reopened.review(), draft.review());
+  assert.throws(() => reopened.restore([draft.rungs[0], {...draft.rungs[0], number: '1'}]), /does not match/);
+  assert(draft.undo());
+  assert.equal(draft.changed, false);
+  assert(draft.redo());
+  assert(draft.setComment(0, 'On top'));
+  assert.equal(draft.review()[0].reordered, true);
+  assert(draft.moveRung(0, 1));
+  assert.deepEqual(draft.review().map(item => [item.kind, item.reordered]), [['edited', false]]);
 });

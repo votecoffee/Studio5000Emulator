@@ -96,6 +96,17 @@
     <div class="dialog-actions"><button value="cancel">Cancel</button><button value="save" class="primary">Save comment</button></div>
   </form>
 </dialog>
+<dialog id="ladder-rung-move-dialog" aria-labelledby="ladder-rung-move-heading">
+  <form id="ladder-rung-move-form" method="dialog">
+    <h2 id="ladder-rung-move-heading">Move rung</h2>
+    <label for="ladder-rung-destination">Destination</label>
+    <select id="ladder-rung-destination" class="full" required autofocus></select>
+    <div class="dialog-actions">
+      <button value="cancel" formnovalidate>Cancel</button>
+      <button value="move" class="primary">Move rung</button>
+    </div>
+  </form>
+</dialog>
 <dialog id="ladder-draft-review-dialog" aria-labelledby="ladder-draft-review-heading">
   <header class="lv-draft-review-header">
     <div>

@@ -147,25 +147,29 @@
     function review() {
       const changes = [];
       const detail = ({number, text, comment}) => ({number, text, comment});
-      let loadedIndex = 0;
+      const retained = new Set(rungs.map(rung => rung.base_index)), loadedOrder = new Map();
+      for (const [index] of base.entries()) {
+        if (retained.has(index)) loadedOrder.set(index, loadedOrder.size);
+      }
+      let draftPosition = 0;
       for (const [index, rung] of rungs.entries()) {
         if (rung.base_index === null) {
           changes.push({kind: 'added', after: detail(rung), index});
           continue;
         }
-        while (loadedIndex < rung.base_index) {
-          changes.push({kind: 'removed', before: detail(base[loadedIndex++])});
-        }
-        const before = base[loadedIndex++];
+        const before = base[rung.base_index];
+        const reordered = draftPosition++ !== loadedOrder.get(rung.base_index);
         const logic = before.text !== rung.text, comment = before.comment !== rung.comment;
         if (logic || comment) {
-          changes.push({kind: 'edited', before: detail(before), after: detail(rung), logic, comment, index});
+          changes.push({kind: 'edited', before: detail(before), after: detail(rung), logic, comment, reordered, index});
+        } else if (reordered) {
+          changes.push({kind: 'reordered', before: detail(before), after: detail(rung), index});
         } else if (before.number !== rung.number) {
           changes.push({kind: 'renumbered', from: before.number, to: rung.number});
         }
       }
-      while (loadedIndex < base.length) {
-        changes.push({kind: 'removed', before: detail(base[loadedIndex++])});
+      for (const [index, rung] of base.entries()) {
+        if (!retained.has(index)) changes.push({kind: 'removed', before: detail(rung)});
       }
       return changes;
     }
@@ -188,6 +192,14 @@
       removeRung(index) {
         if (!Number.isInteger(index) || !rungs[index] || rungs.length === 1) return false;
         record(renumber(rungs.filter((_, i) => i !== index)));
+        return true;
+      },
+      moveRung(from, to) {
+        if (!Number.isInteger(from) || !Number.isInteger(to) || !rungs[from] || !rungs[to] || from === to) return false;
+        const next = rungs.slice();
+        const [rung] = next.splice(from, 1);
+        next.splice(to, 0, rung);
+        record(renumber(next));
         return true;
       },
       setComment(index, comment) {
@@ -283,13 +295,13 @@
         }
         const legacy = !Object.hasOwn(rows[0], 'base_index');
         const incoming = legacy ? rows.map((row, i) => ({...row, base_index: i})) : rows;
-        let prior = -1;
+        const seen = new Set();
         const expected = numbers(incoming);
         if (incoming.some(({base_index: index, number}, i) => {
           if (number !== expected[i]) return true;
           if (index === null) return false;
-          if (!Number.isInteger(index) || index <= prior || index >= base.length) return true;
-          prior = index;
+          if (!Number.isInteger(index) || index < 0 || index >= base.length || seen.has(index)) return true;
+          seen.add(index);
           return false;
         }) || (legacy && incoming.length !== base.length)) {
           throw new Error('The opened draft does not match this routine');

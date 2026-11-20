@@ -32,7 +32,7 @@ Development is maintained on `main`.
 instructions on the wires, resize branches, edit operands, and manage branch legs.
 The Insert menu uses the emulator's ladder instruction catalog and includes
 Add-On Instructions defined in the loaded project.
-Add or delete rungs and edit their comments.
+Add, move, or delete rungs and edit their comments.
 Undo and redo cover each draft change.
 Save and reopen draft JSON against the original project and routine.
 Use **Review changes** to compare draft rungs with the loaded routine.

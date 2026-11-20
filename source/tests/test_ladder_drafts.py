@@ -8,11 +8,24 @@ from xml.etree import ElementTree as ET
 
 from logixlab.ladder_drafts import reopen, validate
 from logixlab.model import ARITIES, ModelError, Project, Routine, parse_rung
+from logixlab.routine_edits import record_revision
 from logixlab.runtime import Engine
 from logixlab.server import Application
 
 
 class LadderDraftTests(unittest.TestCase):
+    def test_revision_digest_distinguishes_identical_rungs_with_different_source_origins(self):
+        routine = Routine('MainProgram', 'Main', 'RLL')
+        routine.rungs = [{'number': str(index), 'comment': '', 'text': 'NOP();', 'nodes': parse_rung('NOP();')}
+                         for index in range(2)]
+        key = routine.key.lower()
+        original = SimpleNamespace(routines={key: routine})
+        same_order = SimpleNamespace(routines=original.routines)
+        reversed_order = SimpleNamespace(routines=original.routines)
+        record_revision(original, same_order, key, 0, rung_origins=(0, 1))
+        record_revision(original, reversed_order, key, 0, rung_origins=(1, 0))
+        self.assertNotEqual(same_order.runtime_logic_sha256, reversed_order.runtime_logic_sha256)
+
     def test_report_offers_only_ladder_instructions_and_the_loaded_project_aois(self):
         with tempfile.TemporaryDirectory() as directory:
             app = Application(directory)
