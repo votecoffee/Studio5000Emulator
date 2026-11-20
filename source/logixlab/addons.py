@@ -3,6 +3,8 @@
 Local values absent from the export remain unknown. Definition DefaultData is
 not evidence of the saved state of an existing instance.
 """
+from contextlib import contextmanager
+
 from .model import ModelError, coerce, dimensions, literal, operations
 from .numeric_storage import available as numeric_available, typed_literal
 
@@ -23,6 +25,20 @@ class AddOns:
     def __init__(self,engine):
         self.engine=engine;self.memory=engine.memory
         self.validated=set();self.active=set();self.instances={}
+        self.caller_program = None
+        self.prescanning = False
+
+    @contextmanager
+    def program_context(self, scope, *, prescan=False):
+        """Keep the outer Program and prescan state across nested AOI calls."""
+        previous = self.caller_program, self.prescanning
+        if scope not in self.memory.frames:
+            self.caller_program = scope
+        self.prescanning = self.prescanning or prescan
+        try:
+            yield
+        finally:
+            self.caller_program, self.prescanning = previous
 
     def bind(self,op,scope,*,resolve_outputs_and_inouts=True):
         definition=self.engine.project.aois[op.name]
@@ -86,33 +102,34 @@ class AddOns:
     def validate(self,op,scope,stack=()):
         definition,frame,address=self.bind(op,scope)
         if definition.name.upper() in stack:raise ModelError('Recursive AOI call: '+definition.name)
-        identity=(definition.name.upper(),frame,tuple(op.args[1:]),scope)
-        if identity in self.validated:return
-        self.validated.add(identity);self.active.add(definition.name)
-        previous=self.memory.validating;self.memory.validating=True
-        try:
-            names=['logic']+[name.lower() for name in ('Prescan','EnableInFalse') if definition.modes[name]]
-            # Postscan is an SFC behavior. SFC execution remains blocked.
-            for name in names:
-                routine=definition.routines[name]
-                if routine.problems:raise ModelError(routine.key+': '+'; '.join(routine.problems))
-                if routine.kind=='ST':self.engine.structured.validate(routine,frame)
-                self.engine._build_labels(routine)
-                for rung in routine.rungs:
-                    for nested in operations(rung['nodes']):
-                        old_structural=self.memory.structural
-                        if routine.kind=='ST':self.memory.structural=True
-                        try:
-                            if nested.name in ('JSR','SBR','RET','FOR','BRK'):raise ModelError('JSR/SBR/RET/FOR/BRK within an AOI is unsupported')
-                            if nested.name in self.engine.project.aois:
-                                self.validate(nested,frame,stack+(definition.name.upper(),))
-                            else:
-                                if not(routine.kind=='ST' and nested.name=='MID'):self.engine._validate(nested,frame)
-                                if nested.name=='JMP' and nested.args[0].lower() not in self.engine.labels[routine.key.lower()]:
-                                    raise ModelError('Missing label '+nested.args[0])
-                        except ModelError as e:raise ModelError(f'{routine.key}, rung {rung["number"]}: {nested.name}: {e}') from e
-                        finally:self.memory.structural=old_structural
-        finally:self.memory.validating=previous
+        with self.program_context(scope):
+            identity=(definition.name.upper(),frame,tuple(op.args[1:]),scope,self.caller_program)
+            if identity in self.validated:return
+            self.validated.add(identity);self.active.add(definition.name)
+            previous=self.memory.validating;self.memory.validating=True
+            try:
+                names=['logic']+[name.lower() for name in ('Prescan','EnableInFalse') if definition.modes[name]]
+                # Postscan is an SFC behavior. SFC execution remains blocked.
+                for name in names:
+                    routine=definition.routines[name]
+                    if routine.problems:raise ModelError(routine.key+': '+'; '.join(routine.problems))
+                    if routine.kind=='ST':self.engine.structured.validate(routine,frame)
+                    self.engine._build_labels(routine)
+                    for rung in routine.rungs:
+                        for nested in operations(rung['nodes']):
+                            old_structural=self.memory.structural
+                            if routine.kind=='ST':self.memory.structural=True
+                            try:
+                                if nested.name in ('JSR','SBR','RET','FOR','BRK'):raise ModelError('JSR/SBR/RET/FOR/BRK within an AOI is unsupported')
+                                if nested.name in self.engine.project.aois:
+                                    self.validate(nested,frame,stack+(definition.name.upper(),))
+                                else:
+                                    if not(routine.kind=='ST' and nested.name=='MID'):self.engine._validate(nested,frame)
+                                    if nested.name=='JMP' and nested.args[0].lower() not in self.engine.labels[routine.key.lower()]:
+                                        raise ModelError('Missing label '+nested.args[0])
+                            except ModelError as e:raise ModelError(f'{routine.key}, rung {rung["number"]}: {nested.name}: {e}') from e
+                            finally:self.memory.structural=old_structural
+            finally:self.memory.validating=previous
 
     def call(self,op,power,scope,depth,prescan=False):
         if depth>32:raise ModelError('AOI nesting limit exceeded')
@@ -136,15 +153,16 @@ class AddOns:
                         else:source_type='REAL'
                         value=coerce(value,source_type)
                 self.memory.write(parameter.get('Name'),value,frame)
-        if prescan:
-            self.engine._prescan_routine(definition.routines['logic'],frame,depth+1)
-            if definition.modes['Prescan']:
-                self.engine._execute_routine(definition.routines['prescan'],frame,depth+1,address)
-        elif power:
-            self.engine._execute_routine(definition.routines['logic'],frame,depth+1,address)
-        elif definition.modes['EnableInFalse']:
-            self.engine._execute_routine(definition.routines['enableinfalse'],frame,depth+1,address)
         if copy_outputs:
+            with self.program_context(scope, prescan=prescan):
+                if prescan:
+                    self.engine._prescan_routine(definition.routines['logic'],frame,depth+1)
+                    if definition.modes['Prescan']:
+                        self.engine._execute_routine(definition.routines['prescan'],frame,depth+1,address)
+                elif power:
+                    self.engine._execute_routine(definition.routines['logic'],frame,depth+1,address)
+                else:
+                    self.engine._execute_routine(definition.routines['enableinfalse'],frame,depth+1,address)
             for parameter,argument in zip(definition.required,op.args[1:]):
                 if parameter.get('Usage')=='Output':
                     self.memory.write(argument,self.memory.read(parameter.get('Name'),frame),scope)

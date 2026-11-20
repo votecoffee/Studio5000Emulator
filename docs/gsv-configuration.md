@@ -135,6 +135,13 @@ string. It follows nested calls and returns to the caller's routine context
 when a call ends. AOI Routine Name reads require THIS. Native execution
 remains unverified. [Rockwell Add-On Instructions manual](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm010_-en-p.pdf)
 
+`GSV(Program,THIS,Name,Destination)` and `GSV(Task,THIS,Name,Destination)`
+inside a Standard AOI read the outer calling Program and its scheduled Task
+in ladder and ST. Calls resolve these names independently, even when two
+Programs share one AOI instance. An explicit AOI Prescan routine uses the
+unique scheduled owner during startup. Isolated routine harnesses and
+ambiguous schedules cannot supply this context.
+
 Task Instance reads the zero-based Task slot in the current emulator registry.
 Slots follow the loaded Task inventory. A changed registry makes the attribute
 unavailable until reload. These values are separate from native CIP instance

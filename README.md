@@ -233,7 +233,8 @@ measurement. **System lab** demonstrates reads and resets in ladder and ST.
 [Object identity GSV](docs/gsv-configuration.md#object-identity-reads) reads
 Program and Routine names plus Task registry slots in ladder and ST.
 **System lab** shows how Routine THIS follows a called routine. Inside an
-AOI it reads the active Logic, Prescan or EnableInFalse routine name.
+AOI it reads the active Logic, Prescan or EnableInFalse routine name. Program
+and Task THIS Name reads inside an AOI follow its scheduled caller.
 [AOI definition GSV](docs/gsv-configuration.md#aoi-definition-reads)
 reads the name, revision, vendor, last-edit time and exported signature of a
 Standard AOI. Use its definition name in Program logic or THIS inside the AOI.

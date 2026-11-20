@@ -211,6 +211,62 @@ class AddOnTests(unittest.TestCase):
                 engine = self.engine(['LabAccumulator(AccumulatorA,StepA,TotalA,SharedA);'])
                 self.assertTrue(any(message in item for item in engine.blockers), engine.blockers)
 
+    def test_owner_this_tracks_the_same_aoi_instance_across_programs_and_tasks(self):
+        from test_string_operations import string_data
+
+        controller = self.root.find('Controller')
+        for suffix in ('Program', 'Task'):
+            E.SubElement(self.definition().find('Parameters'), 'Parameter', Name='Seen' + suffix,
+                         DataType='STRING', Usage='InOut', Required='true')
+            for prefix in ('Main', 'Aux'):
+                tag = E.SubElement(controller.find('Tags'), 'Tag', Name=prefix + suffix + 'Name',
+                                   DataType='STRING', TagType='Base')
+                string_data(E.SubElement(tag, 'Data', Format='Decorated'), 'saved')
+        for mode in ('Logic', 'Prescan', 'EnableInFalse'):
+            text = self.body(mode=mode)[0].find('Text')
+            text.text = text.text.removesuffix(';') + (
+                'GSV(Program,THIS,Name,SeenProgram)GSV(Task,THIS,Name,SeenTask);')
+
+        call = 'LabAccumulator(AccumulatorA,StepA,TotalA,SharedA,{prefix}ProgramName,{prefix}TaskName);'
+        auxiliary = E.SubElement(controller.find('Programs'), 'Program', Name='AuxProgram',
+                                 MainRoutineName='AuxLogic', Class='Standard')
+        E.SubElement(auxiliary, 'Tags')
+        routine = E.SubElement(E.SubElement(auxiliary, 'Routines'), 'Routine', Name='AuxLogic', Type='ST')
+        E.SubElement(E.SubElement(routine, 'STContent'), 'Line', Number='0').text = call.format(prefix='Aux')
+        task = E.SubElement(controller.find('Tasks'), 'Task', Name='AuxTask', Type='PERIODIC', Class='Standard',
+                            Rate='10', Priority='2', Watchdog='500', InhibitTask='false', DisableUpdateOutputs='false')
+        E.SubElement(E.SubElement(task, 'ScheduledPrograms'), 'ScheduledProgram', Name='AuxProgram')
+
+        engine = self.engine(['XIC(EnableA)' + call.format(prefix='Main')])
+        self.assertEqual(engine.blockers, [])
+        expected = {'MainProgramName': 'MainProgram', 'MainTaskName': 'MainTask',
+                    'AuxProgramName': 'AuxProgram', 'AuxTaskName': 'AuxTask'}
+        for tag, name in expected.items():
+            self.assertEqual(engine.memory.string(tag), name)  # Startup Prescan.
+            engine.memory.write_string(tag, '')
+        engine.memory.write('EnableA', False)
+        engine.step()
+        for tag, name in expected.items():
+            self.assertEqual(engine.memory.string(tag), name)
+
+    def test_nested_st_aoi_inherits_the_calling_program_and_task_names(self):
+        scale = self.definition('LabScale')
+        for name in ('SeenProgram', 'SeenTask'):
+            E.SubElement(scale.find('LocalTags'), 'LocalTag', Name=name, DataType='STRING')
+        logic = scale.find('Routines/Routine[@Name="Logic"]')
+        logic.remove(logic.find('RLLContent'))
+        logic.set('Type', 'ST')
+        E.SubElement(E.SubElement(logic, 'STContent'), 'Line', Number='0').text = (
+            'GSV(Program,THIS,Name,SeenProgram); GSV(Task,THIS,Name,SeenTask); Result := Raw * Gain;')
+        engine = self.engine()
+        self.assertEqual(engine.blockers, [])
+        engine.step()
+        self.assertEqual(engine.memory.string('NestedScale.Core.SeenProgram'), 'MainProgram')
+        self.assertEqual(engine.memory.string('NestedScale.Core.SeenTask'), 'MainTask')
+
+        harness = self.engine(mode='routine', routine='MainProgram/MainRoutine')
+        self.assertTrue(any('ordinary v35 5580 project' in blocker for blocker in harness.blockers), harness.blockers)
+
     def test_definition_gsv_reads_own_metadata_in_ladder_and_nested_st(self):
         accumulator = self.definition()
         accumulator.attrib.update(Revision='7.002', RevisionExtension='production',
