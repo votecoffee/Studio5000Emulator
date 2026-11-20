@@ -84,7 +84,7 @@ zero causes a later divide fault. Correct the input before retrying. See
 Fractional or exponent suffix forms, grouped decimal digits, other prefixes,
 mixed numeric conversions, typed instruction-call arguments, wide FOR/CASE/index
 forms and typed CASE labels remain unqualified. CPT/CMP and ladder operand lexers retain their own formats.
-Power/other wide functions and native precision/status/fault/intermediate parity
+Additional wide functions and native precision/status/fault/intermediate parity
 remain unfinished. Software checks do not establish native Studio/controller
 acceptance of these new forms.
 

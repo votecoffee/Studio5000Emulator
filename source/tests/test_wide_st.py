@@ -124,8 +124,50 @@ class WideStructuredTests(unittest.TestCase):
         for expr in ('-1','WideA+(-1)'):
             self.assertTrue(self.engine('WideDest:='+expr+';',dtype='ULINT').blockers,expr)
 
-    def test_power_other_functions_and_numeric_bool_comparisons_are_rejected(self):
-        for source in ('WideDest:=WideA**2;','WideDest:=TRUNC(WideA);','WideDest:=SQRT(WideA);','Result:=WideA=StartPB;'):
+    def test_power_accepts_exact_homogeneous_integer_operands(self):
+        for dtype, base, exponent, expected in (
+            ('USINT', 2, 7, 128),
+            ('UINT', 2, 15, 32768),
+            ('UDINT', 2, 31, 2147483648),
+            ('LINT', -2, 63, -(1 << 63)),
+            ('ULINT', 3, 40, 12157665459056928801),
+            ('LINT', 0, 0, 1),
+        ):
+            with self.subTest(dtype=dtype, base=base, exponent=exponent):
+                e = self.checked('WideDest:=WideA**WideB; Result:=WideA**WideB=WideDest;', dtype, base, exponent)
+                e.step()
+                self.assertEqual(e.memory.read('WideDest'), expected)
+                self.assertIs(e.memory.read('Result'), True)
+        e = self.checked('WideDest:=2L**3L**2L;')
+        e.step()
+        self.assertEqual(e.memory.read('WideDest'), 64)
+        e = self.checked('WideDest:=2L**(3L**2L);')
+        e.step()
+        self.assertEqual(e.memory.read('WideDest'), 512)
+
+    def test_power_range_and_overflow_faults_only_on_reached_expression(self):
+        for exponent, message in ((-1, 'exponent must be in 0..63'),
+                                  (64, 'exponent must be in 0..63'),
+                                  (63, 'LINT overflow')):
+            with self.subTest(exponent=exponent):
+                e = self.checked('WideDest:=7; IF StartPB THEN WideDest:=WideA**WideB; END_IF;',
+                                 a=2, b=exponent, dest=99)
+                e.memory.write('StartPB', False)
+                e.step()
+                self.assertEqual(e.memory.read('WideDest'), 7)
+                e.memory.write('StartPB', True)
+                e.memory.write('WideDest', 42)
+                before = copy.deepcopy(e.memory.values)
+                with self.assertRaisesRegex(ModelError, message):
+                    e.step()
+                self.assertEqual(e.memory.values, before)
+
+    def test_power_requires_matching_types_and_integer_operands(self):
+        for source in ('WideDest:=WideA**2.5;', 'WideDest:=WideA**2UL;', 'WideDest:=WideA**StartPB;'):
+            self.assertTrue(self.engine(source).blockers, source)
+
+    def test_other_functions_and_numeric_bool_comparisons_are_rejected(self):
+        for source in ('WideDest:=TRUNC(WideA);','WideDest:=SQRT(WideA);','Result:=WideA=StartPB;'):
             self.assertTrue(self.engine(source).blockers,source)
 
     def test_wide_for_case_and_array_index_forms_remain_explicitly_blocked(self):

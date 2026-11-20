@@ -30,8 +30,8 @@ def analyze(expression,memory,scope='',destination_type=None,*,consumer='ST'):
     ladder_math = consumer in ('CPT','CMP','FAL')
     bcd = {'FRD','TOD'} if expression.bcd and ladder_math and not mixed else set()
     roots = {'SQR'} if ladder_math else set()
-    if expression.functions-{'ABS'}-bcd-roots or '**' in expression.operators and not ladder_math:
-        raise ModelError(label+' supports ABS, homogeneous FRD/TOD and qualified integer SQR/power; other functions remain unqualified')
+    if expression.functions-{'ABS'}-bcd-roots:
+        raise ModelError(label+' supports ABS and qualified ladder FRD/TOD/SQR; other functions remain unqualified')
     types={ref:'string' if ref in strings else 'bool' if kind=='BOOL' else 'number' for ref,kind in declared.items()}
     for ref in declared:
         if ref in strings:
@@ -213,11 +213,12 @@ def ladder_description(project):
 def description(project):
     return dict(profile='v35-5580-homogeneous-wide-ST',types=sorted(WIDE_TYPES),
                 available=project.version=='35' and project.processor.upper() in CONTROLLERS,
-                operators=['+','-','*','/','MOD','AND','OR','XOR','NOT','ABS','comparisons'],
+                operators=['+','-','*','/','MOD','**','AND','OR','XOR','NOT','ABS','comparisons'],
+                power='Integer exponent from zero to one less than the type width; exact checked result',
                 literals='Untyped signed DINT integers or matching decimal and binary/octal/hexadecimal L/U/UL literals within declared width',
                 arithmetic='Exact integers, quotient toward zero; every numeric intermediate must fit its declared type',
                 conditions='Wide comparisons with BOOL operands/logic; eager operand evaluation',
                 mixed_numeric_types=False,native_runtime_parity=False,
-                remaining=['Mixed numeric types/conversions and typed instruction arguments','Power/other functions',
+                remaining=['Mixed numeric types/conversions and typed instruction arguments','Additional math functions',
                            'Wide FOR/CASE/index forms','File-expression consumers',
                            'Native math/status/fault/overflow/intermediate parity'])

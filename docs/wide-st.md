@@ -22,7 +22,7 @@ mixed signed/unsigned promotions and additional literal forms remain blocked,
 including expressions in unreachable branches.
 
 Supported operations are addition, subtraction, multiplication, exact integer
-division/remainder, unary plus/minus, ABS, AND/OR/XOR/NOT and comparisons. Every
+division/remainder, integer powers, unary plus/minus, ABS, AND/OR/XOR/NOT and comparisons. Every
 numeric intermediate must fit its declared type. Bitwise operations use that
 type's width; unsigned NOT retains the full unsigned result. Quotients truncate
 toward zero and remainders retain the dividend's sign. Values above 2^53 remain
@@ -34,6 +34,19 @@ unqualified even when they occur in separate comparisons. Split such comparisons
 into BOOL results. Operands are evaluated eagerly. A skipped branch does not
 execute its body, but a false operand of AND does not suppress a required fault
 in another operand.
+
+## Integer powers
+
+Use `**` with matching declared integer types or qualifying literals.
+The exponent must be between zero and one less than the type's bit width.
+For example, `3UL**40UL` gives 12157665459056928801 with an ULINT result.
+Each power must fit its expression type. Chained powers follow the existing
+ST left-to-right evaluation at equal precedence. The emulator defines `0**0` as
+one and checks powers at execution. An invalid exponent or overflowing
+result rolls back the advance. Wide ST uses the existing checked ladder
+integer evaluator for power. Native v35 wide exponent behavior remains
+unverified.
+[Rockwell Structured Text arithmetic operators](https://www.rockwellautomation.com/en-be/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/structured-text-attributes/use-operators-and-functions.html)
 
 ## Context and failures
 
@@ -57,6 +70,9 @@ The unsigned sum reaches 18446744073709551615 and its complement example is 1.
 StDelta and StDivisor are independent ST inputs. Change StDelta to 3 to see
 StAllMatches become false. Restore it to 2 to match again. StDivisor zero causes
 a later ST fault after ladder work; correct the input to 3 before retrying.
+Enable `RunStPower` to evaluate `3UL**StPowerExponent`. The result is exact
+with the default exponent 40. Exponent 41 overflows ULINT and rolls back the
+advance. Restore 40 to retry.
 See [IntegerLab.L5X](../source/samples/IntegerLab.L5X) and
 [implementation](../source/logixlab/wide_st.py).
 
@@ -64,7 +80,7 @@ See [IntegerLab.L5X](../source/samples/IntegerLab.L5X) and
 
 Wide FOR counters/bounds, CASE selectors and array-index expressions remain
 blocked. [Narrow ST/CPT/CMP integer division](integer-expressions.md) has a
-separate DINT-intermediate profile. Power/other wide math functions, mixed
+separate DINT-intermediate profile. Additional wide math functions, mixed
 conversions, additional literal forms, wide file-expression consumers, LREAL/time types
 and native intermediate/status/fault parity remain unfinished. The controller
 gate is an explicit software profile; native Studio/controller acceptance of
