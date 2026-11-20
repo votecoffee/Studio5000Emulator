@@ -1,5 +1,5 @@
 """Numeric FLL selection and conversion for the bounded v35 5580 profile."""
-from .integer_math import CONTROLLERS, bit_value
+from .integer_math import CONTROLLERS, bit_value, dint_radix
 from .model import INT_BITS, ModelError, coerce, literal
 from .numeric_copy import static_reference, location, prefix
 from .real_math import real
@@ -11,9 +11,15 @@ MAX_ELEMENTS = 100000
 AGGREGATE_SCALARS = frozenset((*INT_BITS,*time_values.TYPES,'BOOL','REAL','LREAL','BIT'))
 
 
-def operand_type(memory, ref, scope, *, length=False):
-    try:value = literal(ref)
+def source_literal(ref):
+    word = dint_radix(ref)
+    return literal(ref) if word is None else word
+
+
+def operand_spec(memory, ref, scope, *, length=False):
+    try:value = literal(ref) if length else source_literal(ref)
     except ValueError:
+        value = None
         key, parts, dtype = memory.resolve(ref, scope)
         if isinstance(memory.at(key, parts), (list, dict)):
             raise ModelError('Numeric FLL requires scalar source and length operands')
@@ -24,7 +30,7 @@ def operand_type(memory, ref, scope, *, length=False):
     allowed = INTEGERS if length else NUMERIC
     if dtype not in allowed:
         raise ModelError('Numeric FLL ' + ('length requires SINT/INT/DINT' if length else 'source requires SINT/INT/DINT/REAL'))
-    return dtype
+    return dtype, value
 
 
 def converted(value, source_type, destination_type):
@@ -51,8 +57,8 @@ def handle(engine, op, scope, *, execute=False):
         _, _, dtype = memory.check_writable(op.args[1], scope)
         if dtype not in NUMERIC:return False
         memory.region(op.args[1], 0, scope)
-        source_type = operand_type(memory, op.args[0], scope)
-        operand_type(memory, op.args[2], scope, length=True)
+        source_type, immediate = operand_spec(memory, op.args[0], scope)
+        operand_spec(memory, op.args[2], scope, length=True)
     finally:
         memory.structural = previous
     if not execute:return True
@@ -65,7 +71,8 @@ def handle(engine, op, scope, *, execute=False):
     key, paths, dtype = prefix(memory,op.args[1],scope,count,writable=True)
     memory.check_writable(op.args[1], scope)
     if count:
-        value = converted(memory.read(op.args[0], scope), source_type, dtype)
+        source = immediate if immediate is not None else memory.read(op.args[0], scope)
+        value = converted(source, source_type, dtype)
         for path in paths:memory.store(key, path, value)
     return True
 
@@ -156,15 +163,16 @@ def aggregate_handle(engine,op,scope,*,execute=False):
         pattern=template if dtype=='CONTROL' else zero_value(template)
         ones_pattern=None
         memory.region(op.args[1],0,scope)
-        try:source=literal(op.args[0])
+        try:source=source_literal(op.args[0])
         except ValueError:
+            source=None
             key,parts,source_type=memory.resolve(op.args[0],scope)
             if source_type not in INTEGERS or isinstance(memory.at(key,parts),(dict,list)):
                 raise ModelError('Aggregate FLL source requires scalar SINT, INT or DINT')
         else:
             if type(source) is not int or source not in (0,-1):raise ModelError('Aggregate FLL supports integer zero or -1 only')
             if source==-1:ones_pattern=all_ones_value(project,dtype,template)
-        operand_type(memory,op.args[2],scope,length=True)
+        operand_spec(memory,op.args[2],scope,length=True)
         try:count=literal(op.args[2])
         except ValueError:pass
         else:
@@ -176,7 +184,7 @@ def aggregate_handle(engine,op,scope,*,execute=False):
     if type(count) is not int or not 0<=count<=MAX_ELEMENTS:raise ModelError('Aggregate FLL length must be an integer in 0..100000')
     key,paths,_=prefix(memory,op.args[1],scope,count,writable=True)
     if count:
-        source=memory.read(op.args[0],scope)
+        if source is None:source=memory.read(op.args[0],scope)
         if type(source) is not int or source not in (0,-1):raise ModelError('Aggregate FLL supports integer zero or -1 only')
         if source==-1:pattern=ones_pattern if ones_pattern is not None else all_ones_value(project,dtype,template)
         engine.budget-=len(paths)*scalar_count(pattern)
@@ -187,7 +195,7 @@ def aggregate_handle(engine,op,scope,*,execute=False):
 
 def aggregate_description(project):
     return dict(available=project.version=='35' and project.processor.upper() in CONTROLLERS,language='RLL',instructions=['FLL'],
-                source='Scalar SINT/INT/DINT zero or -1, or matching immediate; length SINT/INT/DINT or bounded DINT immediate',
+                source='Scalar SINT/INT/DINT zero or -1, or matching decimal or grouped DINT radix immediate; length SINT/INT/DINT or bounded DINT immediate',
                 destinations='TIMER/COUNTER/CONTROL/STRING/PID and explicit nested qualified UDTs, selected arrays, aliases and existing AOI bindings',
                 zero='Typed values built from declared schema; full records establish unknowns, including BOOL/REAL/LREAL/time/date members and unused string DATA',
                 pid=dict(pattern='Zero only: CTL and every represented REAL field/DATA element receive typed zero',
@@ -210,7 +218,7 @@ def description(project):
     return dict(available=project.version == '35' and project.processor.upper() in CONTROLLERS, profile='v35-5580-numeric-FLL', language='RLL', types=sorted(NUMERIC),
                 integer_conversion='Preserve low destination bits when narrowing; sign-extend when widening',
                 real_conversion='Finite float32; nearest-even integer results must fit the signed destination',
-                operands='Scalar source; SINT/INT/DINT length; bounded DINT/finite REAL immediates',
+                operands='Scalar source; decimal or grouped radix DINT and finite REAL source immediates; SINT/INT/DINT length',
                 selection='Structural preflight; false/prescan skip live operands; true calls sample length, destination window and source before stores',
                 zero_length='Validate the live destination reference without reading the source value',
                 storage='Whole arrays or selected elements; row-major traversal within the logical array/member; aliases and existing AOI bindings',

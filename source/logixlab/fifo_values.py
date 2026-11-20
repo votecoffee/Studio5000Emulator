@@ -1,6 +1,6 @@
 """Logical basic-record/STRING/UDT queue copies and qualified narrow numeric conversions."""
 import copy
-from .integer_math import CONTROLLERS
+from .integer_math import CONTROLLERS, dint_radix
 from .model import ModelError,coerce,INT_BITS
 from . import numeric_storage, time_values
 
@@ -40,6 +40,9 @@ def numeric_type(memory,ref,scope,*,destination=False):
 
 def read(memory,ref,scope,dtype):
     if not aggregate(dtype) and numeric_storage.available(memory.project):
+        word = dint_radix(ref)
+        if word is not None:
+            return numeric_storage.convert(word, 'DINT', dtype)
         source=numeric_type(memory,ref,scope)
         return numeric_storage.convert(memory.read(ref,scope),source,dtype)
     value=memory.read(ref,scope)

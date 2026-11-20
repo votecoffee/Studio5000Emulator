@@ -162,6 +162,20 @@ class AggregateFillTests(unittest.TestCase):
         e.memory.write('Masks[1].Count',42)
         self.assertEqual(e.memory.read('Masks[2].Count'),-1)
 
+    def test_radix_sources_use_existing_zero_and_all_ones_record_patterns(self):
+        engine = self.checked([
+            'FLL(16#ffff ffff,Masks[1],1);',
+            'FLL(2#0000_0000,Records[1],1);',
+        ], self.integral_fields)
+        engine.step()
+        self.assert_mask_ones(engine.memory.read('Masks')[1])
+        self.assert_cell_zero(engine.memory.read('Records')[1])
+
+        for source, record in (('16#ffff', 'Masks'), ('16#ffff_ffff', 'Records')):
+            with self.subTest(source=source, record=record):
+                self.assertTrue(self.engine([f'AFI()FLL({source},{record}[0],1);'],
+                                            self.integral_fields).blockers)
+
     def test_all_ones_basic_records_and_each_signed_source_width(self):
         for name in ('Timers','Counters','Controls'):
             e=self.checked([f'FLL(-1,{name}[0],1);'])

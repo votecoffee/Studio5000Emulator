@@ -72,6 +72,32 @@ class NumericQueueTests(unittest.TestCase):
         e=self.checked(['XIC(StartPB)FFL(128.0,Queue[0],Ctl,?,?);'],dtype='SINT',length=1,queue=(0,0,0,99))
         e.step();e.memory.write('StartPB',True);self.fault(e,'overflow')
 
+    def test_radix_loads_decode_sign_and_respect_edge_and_full_paths(self):
+        for op in ('FFL', 'LFL'):
+            for source, dtype, expected in (
+                ('8#377_777_777_77', 'REAL', -1.0),
+                ('16#ffff ffff', 'DINT', -1),
+                ('16#ffff', 'DINT', 65535),
+                ('2#1000_0000_0000_0000_0000_0000_1000_0000', 'SINT', -128),
+            ):
+                with self.subTest(op=op, source=source, dtype=dtype):
+                    engine = self.checked([f'XIC(StartPB){op}({source},Queue[0],Ctl,?,?);'],
+                                          dtype=dtype, length=1, queue=(11,22,33,99))
+                    engine.step()
+                    self.assertEqual(engine.memory.read('Queue'), [11,22,33,99])
+                    engine.memory.write('StartPB', True)
+                    engine.step()
+                    self.assertEqual(engine.memory.read('Ctl.POS'), 1)
+                    self.assertEqual(engine.memory.read('Queue'), [expected,22,33,99])
+                    engine.memory.write('Queue[0]', 42)
+                    engine.step()
+                    engine.memory.write('StartPB', False)
+                    engine.step()
+                    engine.memory.write('StartPB', True)
+                    engine.step()
+                    self.assertEqual(engine.memory.read('Queue'), [42,22,33,99])
+                    self.assertEqual(engine.memory.read('Ctl.POS'), 1)
+
     def test_fifo_shift_and_lifo_pop_keep_array_type_and_other_slots(self):
         for op,expected,remaining in [('FFU',2,[2.5,7.25,0.0,99]),('LFU',2,[1.5,0.0,7.25,99])]:
             e=self.checked([f'XIC(StartPB){op}(Queue[0],Outgoing,Ctl,?,?);'],dtype='REAL',dest_type='DINT',length=3,position=2,queue=(1.5,2.5,7.25,99))
@@ -159,7 +185,8 @@ class NumericQueueTests(unittest.TestCase):
                 rung='FFL(Incoming,Queue[0],Ctl,?,?);' if load else 'FFU(Queue[0],Outgoing,Ctl,?,?);'
                 e=self.engine([rung],source_type=dtype if load else 'DINT',dest_type='DINT' if load else dtype,source=1)
                 self.assertTrue(e.blockers,(dtype,load))
-        for text in ('FFL(2147483648,Queue[0],Ctl,?,?);','FFL(3.4e99,Queue[0],Ctl,?,?);','FFU(Queue[0],1,Ctl,?,?);'):
+        for text in ('FFL(2147483648,Queue[0],Ctl,?,?);','FFL(3.4e99,Queue[0],Ctl,?,?);','FFU(Queue[0],1,Ctl,?,?);',
+                     'FFL(16#1_0000_0000,Queue[0],Ctl,?,?);','LFL(16#ffff_ffffU,Queue[0],Ctl,?,?);'):
             self.assertTrue(self.engine([text],length=2).blockers,text)
         def constant(root):root.find('./Controller/Tags/Tag[@Name="Outgoing"]').set('Constant','true')
         self.assertTrue(self.engine(['FFU(Queue[0],Outgoing,Ctl,?,?);'],mutate=constant).blockers)

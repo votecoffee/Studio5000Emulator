@@ -23,7 +23,9 @@ App `26.1112.192411` also supports `FLL(-1,Records[Start],Length)` for records
 containing only signed/unsigned integers, BOOLs, their arrays, TIMER, COUNTER,
 CONTROL and nested integral UDTs. Signed fields receive -1, unsigned fields their
 maximum pattern and Boolean fields true. The source can be a scalar SINT/INT/DINT
-tag holding -1. Existing zero fills retain their broader record/string profile.
+tag holding -1. An unsuffixed DINT word such as `16#FFFF_FFFF` is equivalent
+to the decimal -1. Existing zero fills also accept grouped zero words and retain
+their broader record/string profile.
 
 All-ones fills exclude floating-point, time/date and string members. Unsupported literal
 patterns are rejected structurally; a dynamic source is checked when consumed.

@@ -9,6 +9,9 @@ FLL(Source,Destination,Length);
 
 Length is a scalar SINT/INT/DINT tag or bounded DINT immediate, with an executed
 value in 0..100000. Sources also accept bounded DINT or finite REAL immediates.
+Unsuffixed binary, octal and hexadecimal source words accept grouped digits.
+For example, `FLL(16#FFFF_FFFF,Values[0],3)` uses signed DINT -1.
+The shorter word `16#FFFF` uses DINT 65535 before any destination conversion.
 Whole numeric arrays or selected elements, aliases, member arrays and existing
 AOI InOut/local bindings use canonical logical storage. BOOL, wide/unsigned and
 aggregate sources are excluded from this numeric profile.

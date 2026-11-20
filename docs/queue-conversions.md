@@ -22,6 +22,9 @@ For example, REAL 3.5 loads as INT 4; DINT 4660 loads as SINT 52; SINT -1 unload
 as DINT -1. DINT 16777217 converts to REAL 16777216.
 
 Load immediates are bounded signed-DINT integers or finite REAL constants.
+FFL and LFL decode unsuffixed binary, octal and hexadecimal source words before
+conversion. For example, `FFL(16#FFFF_FFFF,Queue[0],Ctl,?,?)` loads -1.0 into
+a REAL queue, while the shorter word `16#FFFF` loads 65535.0.
 Different numeric types do not permit BOOL, LINT, unsigned, LREAL, string or
 record conversions. Existing [string/UDT queues](record-queues.md) still require
 the exact same declared record type. AOI call parameters and InOut array

@@ -713,7 +713,9 @@ string capacity reads, lazy unknown-value handling and signed/unsigned TRN resul
 In **Data lab**, enable `InspectData` to see array and string DATA sizes.
 
 [Numeric file fills](docs/numeric-fill.md) add integer narrowing/sign extension,
-structural validation and lazy operand reads for FLL. In **Data lab**, enable
+structural validation and lazy operand reads for FLL. Grouped binary, octal and
+hexadecimal DINT sources also work in FLL and
+[numeric queue loads](docs/queue-conversions.md). In **Data lab**, enable
 FillNumeric to compare guarded byte, word, signed and rounded REAL fills.
 
 [Numeric conversions](docs/numeric-conversions.md) support 8/16/32/64-bit packed BCD.

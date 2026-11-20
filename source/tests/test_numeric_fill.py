@@ -36,6 +36,22 @@ class NumericFillTests(unittest.TestCase):
         for source,dest,value,expected in (('DINT','SINT',0x12345678,120),('DINT','INT',0x12345678,22136),('INT','SINT',0x12ff,-1),('DINT','SINT',-129,127),('DINT','INT',-32769,32767),('DINT','SINT',128,-128)):
             e=self.checked(source_type=source,dest_type=dest,value=value);e.step();self.assertEqual(e.memory.read('Fills')[1:4],[expected]*3)
 
+    def test_radix_sources_follow_signed_dint_fill_conversions(self):
+        cases = (
+            ('16#ffff ffff', 'REAL', -1.0),
+            ('16#ffff', 'DINT', 65535),
+            ('8#377_777_777_77', 'INT', -1),
+            ('2#1000_0000_0000_0000_0000_0000_1000_0000', 'SINT', -128),
+        )
+        for source, dtype, expected in cases:
+            with self.subTest(source=source, dtype=dtype):
+                engine = self.checked([f'XIC(StartPB)FLL({source},Fills[1],3);'], dest_type=dtype)
+                engine.step()
+                self.assertEqual(engine.memory.read('Fills'), [11,22,33,44,55])
+                engine.memory.write('StartPB', True)
+                engine.step()
+                self.assertEqual(engine.memory.read('Fills'), [11,expected,expected,expected,55])
+
     def test_widening_sign_extends_without_bit_move_zero_fill(self):
         for source,dest,value in (('SINT','INT',-128),('SINT','DINT',-1),('INT','DINT',-32768)):
             e=self.checked(source_type=source,dest_type=dest,value=value);e.step();self.assertEqual(e.memory.read('Fills')[1:4],[value]*3)
@@ -103,7 +119,9 @@ class NumericFillTests(unittest.TestCase):
     def test_wrong_source_length_destination_and_constants_stay_blocked(self):
         for source in ('BOOL','LINT','USINT','UINT','UDINT','ULINT'):
             self.assertTrue(self.engine(source_type=source).blockers)
-        for text in ('FLL(Source,Fills[1],TRUE);','FLL(Source,Fills[1],1.0);','FLL(TRUE,Fills[1],1);','FLL(2147483648,Fills[1],1);'):
+        for text in ('FLL(Source,Fills[1],TRUE);','FLL(Source,Fills[1],1.0);','FLL(TRUE,Fills[1],1);','FLL(2147483648,Fills[1],1);',
+                     'FLL(16#1_0000_0000,Fills[1],1);','FLL(16#FFFF_FFFFU,Fills[1],1);',
+                     'FLL(2#1010_2222,Fills[1],1);'):
             self.assertTrue(self.engine([text]).blockers)
         def constant(root):root.find('./Controller/Tags/Tag[@Name="Fills"]').set('Constant','true')
         self.assertTrue(self.engine(mutate=constant).blockers)
