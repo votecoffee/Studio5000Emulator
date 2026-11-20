@@ -30,6 +30,48 @@ class AddOnTests(unittest.TestCase):
             self.assertEqual(e.memory.read(ref),value,ref)
         self.assertEqual(e.memory.read('NestedScale.Core.Scaled'),25.5)
 
+    def test_grouped_dint_inputs_copy_during_prescan_and_false_and_true_calls(self):
+        self.definition().set('ExecuteEnableInFalse', 'false')
+        for source, expected in (('2#0000 0011', 3), ('8#377 7777 7777', -1), ('16#FFFF FFFE', -2)):
+            with self.subTest(source=source):
+                engine = self.engine([f'XIC(EnableA)LabAccumulator(AccumulatorA,{source},TotalA,SharedA);'])
+                self.assertEqual(engine.blockers, [])
+                self.assertEqual(engine.memory.read('AccumulatorA.Step'), expected)
+
+                engine.memory.write('EnableA', False)
+                engine.memory.write('AccumulatorA.Step', 123)
+                engine.memory.write('TotalA', 77)
+                engine.step()
+                self.assertEqual(engine.memory.read('AccumulatorA.Step'), expected)
+                self.assertEqual(engine.memory.read('TotalA'), 77)
+
+                engine.memory.write('EnableA', True)
+                engine.step()
+                self.assertEqual(engine.memory.read('TotalA'), expected)
+
+    def test_grouped_dint_input_keeps_real_conversion_in_st_and_nested_calls(self):
+        main = self.root.find('./Controller/Programs/Program/Routines/Routine')
+        main.remove(main.find('RLLContent'))
+        main.set('Type', 'ST')
+        E.SubElement(E.SubElement(main, 'STContent'), 'Line', Number='0').text = (
+            'LabWrapper(NestedScale,16#FFFF FFFE,ScaledValue);')
+        self.body('LabWrapper')[0].find('Text').text = 'LabScale(Core,16#FFFF FFFD,2.0,Result);'
+        engine = self.engine()
+        self.assertEqual(engine.blockers, [])
+        engine.step()
+        self.assertEqual(engine.memory.read('NestedScale.Raw'), -2.0)
+        self.assertEqual(engine.memory.read('NestedScale.Core.Raw'), -3.0)
+        self.assertEqual(engine.memory.read('ScaledValue'), -6.0)
+
+    def test_grouped_aoi_inputs_keep_profile_width_and_writable_operand_guards(self):
+        for operands in ('2#0000 0020,TotalA,SharedA', '16#1 0000 0000,TotalA,SharedA',
+                         '16#0000 0001U,TotalA,SharedA', '1,16#0000 0001,SharedA',
+                         '1,TotalA,16#0000 0001'):
+            with self.subTest(operands=operands):
+                self.assertTrue(self.engine([f'AFI()LabAccumulator(AccumulatorA,{operands});']).blockers)
+        self.root.find('Controller').set('MajorRev', '34')
+        self.assertTrue(self.engine(['LabAccumulator(AccumulatorA,2#0000 0011,TotalA,SharedA);']).blockers)
+
     def test_false_mode_copies_input_executes_false_routine_and_copies_output(self):
         e=self.engine();e.step();e.memory.write('EnableA',False);e.memory.write('StepA',7);e.step()
         self.assertEqual(e.memory.read('AccumulatorA.Step'),7)

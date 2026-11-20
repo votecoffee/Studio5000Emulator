@@ -1,6 +1,7 @@
 const {test}=require('node:test'),assert=require('node:assert/strict');
 const {readFileSync}=require('node:fs'),{join}=require('node:path');
-const {create}=require('../../web/logic-values.js'),{parameterRadix}=require('../../web/logic-view.js');
+const {create}=require('../../web/logic-values.js');
+const {parameterRadix,ladderWordRadix}=require('../../web/logic-view.js');
 const graph=require('../../web/ladder-graph.js');
 
 test('typed radix call values retain exact declared types and signed widths',()=>{
@@ -31,6 +32,20 @@ test('typed radix AOI monitoring selects required Input fields only',()=>{
   assert(parameterRadix(node,'16#FFL',definitions));
   for(const ref of ['Instance','Dest','Binding','Instance.Optional','Missing'])assert(!parameterRadix(node,ref,definitions),ref);
   assert(!parameterRadix(node,'16#FFL',{}));assert(!parameterRadix(undefined,'16#FFL'));
+});
+
+test('AOI monitor decodes grouped DINT values for qualified required inputs',()=>{
+  const definitions={Lab:{name:'Lab',parameters:[
+    {name:'Input',usage:'Input',type:'DINT',required:true,visible:true},
+    {name:'Output',usage:'Output',type:'DINT',required:true,visible:true}]}};
+  const input='16#FFFF FFFE', output='8#0000 0001';
+  const node={opcode:'LAB',operands:['Instance',input,output]};
+  const enabled=(ref,version)=>ladderWordRadix(node,ref,version,'1756-L85E',parameterRadix(node,ref,definitions));
+  assert.equal(enabled(input,'35'),true);
+  assert.equal(enabled(output,'35'),false);
+  assert.equal(enabled(input,'34'),false);
+  assert.deepEqual(create([]).read(input,{dintRadix:enabled(input,'35')}),{
+    name:input,type:'DINT radix literal',value:'-2'});
 });
 
 test('typed radix call option preserves invalid and unrelated literal boundaries',()=>{

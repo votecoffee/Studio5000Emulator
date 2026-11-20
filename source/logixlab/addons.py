@@ -7,9 +7,9 @@ from .model import ModelError, coerce, dimensions, literal, operations
 from .numeric_storage import available as numeric_available, typed_literal
 
 
-def typed_input(project,argument):
-    """Keep typed numeric AOI inputs local to the qualified v35 profile."""
-    return typed_literal(argument) if numeric_available(project) and ('#' not in argument or argument.rstrip().upper().endswith(('L','U'))) else None
+def input_immediate(project, argument):
+    """Decode declared numeric constants in the qualified v35 profile."""
+    return typed_literal(argument) if numeric_available(project) else None
 
 
 def shape(value):
@@ -50,10 +50,11 @@ class AddOns:
                 if t!=expected or isinstance(self.memory.at(k,p),(dict,list)):
                     raise ModelError(parameter.get('Name')+': Output destination type must match exactly')
             else:
-                typed=typed_input(self.engine.project,argument)
-                if typed is not None:
-                    source_type,value=typed
-                    if source_type!=expected:raise ModelError('Typed AOI Input constant must match its declared parameter type')
+                immediate=input_immediate(self.engine.project,argument)
+                if immediate is not None:
+                    source_type,value=immediate
+                    if source_type!='DINT' and source_type!=expected:
+                        raise ModelError('Typed AOI Input constant must match its declared parameter type')
                 else:
                     try:value=literal(argument);source_type='BOOL' if isinstance(value,bool) else 'REAL' if isinstance(value,float) else 'DINT'
                     except ValueError:
@@ -109,9 +110,9 @@ class AddOns:
         self.memory.write('EnableOut',bool(power) if not prescan else False,frame)
         for parameter,argument in zip(definition.required,op.args[1:]):
             if parameter.get('Usage')=='Input':
-                typed=typed_input(self.engine.project,argument)
-                if typed is not None:
-                    value=typed[1]
+                immediate=input_immediate(self.engine.project,argument)
+                if immediate is not None:
+                    value=immediate[1]
                 else:
                     value=self.memory.read(argument,scope)
                     if isinstance(value,float):
@@ -144,6 +145,10 @@ class AddOns:
                     radix_bases=[2,8,16],syntax='Decimal and attached radix L/l, U/u and UL/ul/Ul/uL integers; finite floating L/l values',
                     contract='Required scalar Input parameters only; exact declared type and literal range; ordinary copied-input lifecycle',
                     excluded='Time/date/aggregate literals, numeric promotion, Output/InOut constants and other controller profiles',native_runtime_parity=False),
+                'dint_radix_inputs':dict(available=numeric_available(project),radix_bases=[2,8,16],
+                    contract='Grouped unsuffixed signed DINT words, with existing DINT input conversions',
+                    lifecycle='Required scalar Inputs are copied in prescan and on reached calls, including false ladder calls',
+                    native_runtime_parity=False),
                 'local_state_policy':'Hidden saved local values remain unknown; Prescan or normal writes must establish them before reads',
                 'definition_issues':{a.name:a.problems for a in project.aois.values() if a.problems},
                 'instructions':{a.name:dict(__import__('collections').Counter(op.name for r in a.routines.values()

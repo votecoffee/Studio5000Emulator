@@ -42,6 +42,19 @@ FBD definitions and native packing/status/lifecycle qualification remain outside
 this increment. The separate [JSR/RET constant profile](indirect-routine-calls.md#typed-numeric-constants)
 uses its own exact routine-parameter contract.
 
+## Grouped DINT inputs
+
+Required scalar Inputs in v35 ControlLogix 5580 ladder and ST calls accept
+grouped, unsuffixed binary, octal and hexadecimal DINT words. Short patterns
+zero-fill to 32 bits before the value is read as signed. For example,
+`16#FFFF FFFE` passes -2. The existing DINT-to-input conversions, including
+conversion to REAL, apply to the decoded value. The ladder viewer shows the
+signed source value beside its authored operand.
+
+An Input receives the same decoded value during prescan, on a false ladder
+call, and when the AOI runs. Output and InOut arguments require writable
+references. Suffixed constants keep their exact declared type rules.
+
 ## Typed radix parameters
 
 App `26.1113.063603` also accepts attached binary, octal and hexadecimal L/l, U/u
@@ -50,8 +63,7 @@ and ULINT patterns use 64 bits; UDINT uses 32. Short patterns zero-fill and the
 LINT top bit represents a negative number. `16#FFFFFFFFL` is positive
 4294967295; `16#FFFFFFFFFFFFFFFFL` is -1. Values above 2^53 stay exact.
 Invalid digits, overwide patterns and type mismatches block false calls too.
-Unsuffixed radix operands retain their earlier DINT rules. These forms do not
-expand expression parsing, numeric conversion or other controller profiles.
+These suffixed forms apply to immediate Inputs in the qualified profile.
 Native Studio import, numerical/fault and lifecycle parity remain unverified.
 
 AOI constants lab now supplies the same values using hexadecimal Signed,

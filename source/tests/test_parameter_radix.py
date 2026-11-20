@@ -118,7 +118,7 @@ class ParameterRadixTests(unittest.TestCase):
     def test_call_invalid_ranges_exact_types_destinations_and_parser_boundaries_remain_guarded(self):
         for dtype,token in [('LINT','16#10000000000000000L'),('UDINT','16#100000000U'),('ULINT','8#8UL'),
                             ('LINT','16#FFLU'),('LINT','16#FF_L'),('LINT','16#FF U'),('LINT','-16#FFL'),
-                            ('DINT','16#FFFFFFFF'),('LREAL','16#1L'),('LINT','16#1UL')]:
+                            ('DINT','16#1 0000 0000'),('LREAL','16#1L'),('LINT','16#1UL')]:
             self.assertTrue(self.call(dtype,token,gate=True,checked=False).blockers,(dtype,token))
         def constant_sbr(root):root.find('./Controller/Programs/Program/Routines/Routine[@Name="LiteralWorker"]/RLLContent/Rung/Text').text='SBR(16#1L);'
         for kwargs in [dict(dest='16#1L'),dict(ret='16#1U'),dict(extra=lambda root:root.find('Controller').set('ProcessorType','1756-L75')),

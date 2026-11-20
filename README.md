@@ -193,6 +193,8 @@ arithmetic, mixed numeric tags, [checked integer/REAL results](docs/lreal-result
 and copied AOI parameters. [Typed AOI input constants](docs/aoi-constants.md)
 now preserve decimal and binary/octal/hexadecimal L/U/UL values, plus finite
 LREAL inputs; choose **AOI constants lab** to try them.
+[Grouped DINT words](docs/aoi-constants.md#grouped-dint-inputs) also work for
+required scalar Inputs in ladder and Structured Text.
 [Routine call constants](docs/indirect-routine-calls.md#typed-radix-parameters)
 share the exact type contract. [Floating constants](docs/lreal-literals.md) now support
 REAL defaults and explicit LREAL suffixes in CPT/CMP. Wide expression lab
