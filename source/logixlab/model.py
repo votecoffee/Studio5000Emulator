@@ -1059,7 +1059,11 @@ class Memory:
                 value=self.read(parsed.tree[1],scope)
                 if type(value) is not int:raise ModelError('Array index tag requires a known integer')
                 return coerce(value,dtype)
-        if self.structural and not re.fullmatch(r'\d+',expr.strip()):
+        if self.structural:
+            from .st_literals import DINT_RADIX_TOKEN
+            token=expr.strip()
+            if re.fullmatch(r'\d+',token) or DINT_RADIX_TOKEN.fullmatch(token):
+                return parsed.evaluate(self,scope,index=True)
             if not self.structural_constant_indices or parsed.refs:
                 parsed.validate(self,scope,index=True);return 0
         return parsed.evaluate(self,scope,index=True)

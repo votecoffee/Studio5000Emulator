@@ -39,9 +39,17 @@
       const tokens = [], precedence = {OR: 1, XOR: 2, AND: 3, '+': 4, '-': 4, '*': 5, '/': 5};
       for (let i = 0; i < text.length;) {
         if (/\s/.test(text[i])) {i++;continue;}
-        const rest = text.slice(i), number = rest.match(/^(?:(2|8|16)#([\da-fA-F_]+)|\d+)/);
+        const rest = text.slice(i), number = rest.match(/^(?:(2|8|16)#([\da-fA-F_]+(?: +[\da-fA-F_]+)*)(?!\w)|\d+)/);
         if (number) {
-          const value = number[1] ? BigInt(({'2': '0b', '8': '0o', '16': '0x'})[number[1]] + number[2].replaceAll('_', '')) : BigInt(number[0]);
+          let value;
+          if (number[1]) {
+            const prefix = {'2': '0b', '8': '0o', '16': '0x'}[number[1]];
+            const word = BigInt(prefix + number[2].replace(/[ _]/g, ''));
+            if (word > 0xffffffffn) throw Error('Index radix width');
+            value = BigInt.asIntN(32, word);
+          } else {
+            value = BigInt(number[0]);
+          }
           tokens.push(['number', value]);i += number[0].length;
         } else if (/^[A-Za-z_]/.test(rest)) {
           const start = i;i += rest.match(/^[A-Za-z_][\w:]*/)[0].length;
@@ -134,7 +142,12 @@
               indices.push(value.toString());part = j + 1;
             }
           }
-          name += '[' + indices.join(',') + ']';
+          if (name.endsWith('.')) {
+            if (indices.length !== 1 || i !== text.length) return null;
+            name += indices[0].toString();
+          } else {
+            name += '[' + indices.join(',') + ']';
+          }
         }
       } catch (_) {return null;}
       return address(name);

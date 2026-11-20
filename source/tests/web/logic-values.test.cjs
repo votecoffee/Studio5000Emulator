@@ -78,6 +78,18 @@ test('division and bitwise indices select snapshot rows with checked DINT arithm
     assert.equal(view.read('Data['+expr+']').value,want,expr);
   }
 });
+test('grouped radix subscripts use signed DINT words for array and bit selection', () => {
+  const view = create([row('Index', 2), row('Bits', 2), row('Data[1]', 22), row('Data[2]', 33)]);
+  assert.equal(view.read('Data[Index + 16#FFFF FFFF]').value, 22);
+  assert.equal(view.read('Data[Index AND 2#00 11]').value, 33);
+  assert.equal(view.read('Bits.[Index + 8#377_7777_7777]').value, true);
+  assert.equal(view.resolve('Bits.[Index + 16#FFFF FFFF]'), 'Bits.1');
+  for (const expr of ['16#FFFF FFFF', '16#1 0000 0000', '2#10 0020', '16#1U', '-16#8000 0000']) {
+    assert.equal(view.resolve('Data[' + expr + ']'), null, expr);
+  }
+  assert.equal(view.resolve('Bits.[1,2]'), null);
+  assert.equal(view.resolve('Bits.[1].0'), null);
+});
 test('simple wide indices remain exact and are excluded from arithmetic', () => {
   const view = create([row('Wide','18446744073709551615','ULINT'),row('Small','1','ULINT'),row('Data[1]',77),row('Unsafe',9007199254740992,'ULINT')]);
   assert.equal(view.read('Data[Small]').value,77);assert.equal(view.resolve('Data[Wide]'),'Data[18446744073709551615]');

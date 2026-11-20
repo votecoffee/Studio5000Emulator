@@ -403,6 +403,13 @@
       <Tag Name="StDintRadixWord" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
       <Tag Name="StDintRadixMasked" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
       <Tag Name="StDintRadixCase" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="RunStRadixIndex" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="StRadixIndex" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="2" /></Data></Tag>
+      <Tag Name="StRadixTable" DataType="DINT" TagType="Base" Dimensions="4"><Data Format="Decorated"><Array DataType="DINT" Dimensions="4"><Element Index="[0]" Value="11" /><Element Index="[1]" Value="22" /><Element Index="[2]" Value="33" /><Element Index="[3]" Value="44" /></Array></Data></Tag>
+      <Tag Name="StRadixIndexedValue" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="StRadixIndexedMask" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="StRadixBits" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="2" /></Data></Tag>
+      <Tag Name="StRadixIndexedBit" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="StDivisor" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
         <Data Format="Decorated">
           <DataValue DataType="LINT" Radix="Decimal" Value="3" />
@@ -1204,6 +1211,11 @@
               <Line Number="54">        ELSE StDintRadixCase:=0;</Line>
               <Line Number="55">    END_CASE;</Line>
               <Line Number="56">END_IF;</Line>
+              <Line Number="57">IF RunStRadixIndex THEN</Line>
+              <Line Number="58">    StRadixIndexedValue:=StRadixTable[StRadixIndex + 16#FFFF FFFF];</Line>
+              <Line Number="59">    StRadixIndexedMask:=StRadixTable[StRadixIndex AND 2#00 11];</Line>
+              <Line Number="60">    StRadixIndexedBit:=StRadixBits.[StRadixIndex + 8#377 7777 7777];</Line>
+              <Line Number="61">END_IF;</Line>
             </STContent>
           </Routine>
           <Routine Name="NarrowRealOutputs" Type="RLL">

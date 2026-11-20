@@ -375,9 +375,11 @@ SQL/SQI sources and complete 32-bit patterns, with sequencer-specific guards.
 with checked DINT arguments/results and matching snapshot values. **Bit lab**
 includes nested conversions, rounded roots and fault recovery.
 
-[Array-index expressions](docs/array-index-expressions.md) add exact division
-and bitwise operators, plus single wide integer tag indices. **Bit lab** includes
-a gated example with lazy operands and atomic recovery.
+[Array-index expressions](docs/array-index-expressions.md) support exact
+division, bitwise operators and single wide integer tag indices. **Bit lab**
+demonstrates lazy operands and rollback. Enable `RunStRadixIndex` in **Integer lab**
+to try [grouped signed DINT words](docs/array-index-expressions.md#signed-radix-words-in-subscripts)
+as array offsets, masks and indirect bit indices.
 
 [REAL-result math](docs/real-destination-math.md) adds float32 input conversion
 for basic arithmetic, power and eleven unary forms across integer/REAL sources.

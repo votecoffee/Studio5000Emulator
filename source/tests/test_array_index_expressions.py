@@ -40,6 +40,43 @@ class ArrayIndexExpressionTests(unittest.TestCase):
         for a,b,want in ((7,2,3),(-7,2,-3),(7,-2,-3),(-7,-2,3),(-2147483648,3,-715827882)):
             e=self.checked(['NOP();'],index=a,divisor=b);self.assertEqual(e.memory.index('Index/Divisor',''),want)
 
+    def test_grouped_radix_indices_select_ladder_source_and_destination(self):
+        e=self.checked(['MOV(Inputs[Index + 16#FFFF FFFF],Results[2#00 01]);'])
+        e.memory.write('Inputs[2]',77)
+        e.step()
+        self.assertEqual(e.memory.read('Results'),[None,77,None])
+        self.assertEqual(e.memory.index('16#FFFF',''),65535)
+        self.assertEqual(e.memory.index('8#377 7777 7777',''),-1)
+
+    def test_grouped_radix_st_selection_and_bounds_fault_preserve_state(self):
+        source=('SpeedCommand:=2; '
+                'Results[Index+16#FFFF FFFF]:=Inputs[Index AND 2#00 11]; '
+                'RunLatch:=SpeedCommand.[Index+8#377 7777 7777];')
+        e=self.checked(source,index=2,st=True)
+        e.memory.write('Inputs[2]',77)
+        e.step()
+        self.assertEqual(e.memory.read('Results'),[None,77,None])
+        self.assertTrue(e.memory.read('RunLatch'))
+        e.memory.write('Index',0)
+        e.memory.write('SpeedCommand',7)
+        self.fault(e,'outside bounds')
+        self.assertEqual(e.memory.read('SpeedCommand'),7)
+
+    def test_direct_radix_indices_validate_range_even_in_skipped_logic(self):
+        for index in ('16#FFFF FFFF','16#00 03','16#1 0000 0000','8#8','2#02','16#1U'):
+            with self.subTest(index=index):
+                self.assertTrue(self.engine([f'AFI()MOV(Source,Results[{index}]);']).blockers)
+
+    def test_radix_expression_uses_checked_dint_arithmetic_and_lazy_selection(self):
+        e=self.checked(['XIC(StartPB)MOV(Source,Results[Index + 16#FFFF FFFF]);'],index=0)
+        e.step()
+        self.assertEqual(e.memory.read('Results'),[None]*3)
+        e.memory.write('StartPB',True)
+        self.fault(e,'outside bounds')
+        for expr in ('-16#8000 0000','16#7FFF FFFF+1','Index+8#400 0000 0000'):
+            with self.subTest(expr=expr), self.assertRaises(ModelError):
+                e.memory.index(expr,'')
+
     def test_all_eight_integer_tags_select_scalar_array_elements(self):
         for dtype in INT_BITS:
             e=self.checked(['MOV(Source,Results[Index]);'],index=1,index_type=dtype);e.step()

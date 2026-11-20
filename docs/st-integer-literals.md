@@ -52,8 +52,10 @@ An unsuffixed binary, octal or hexadecimal word is a signed 32-bit DINT.
 Short words are zero-filled. `16#FFFF` is 65535, `16#FFFF FFFF` is −1,
 and `16#8000_0000` is −2147483648. Expressions and
 [CASE labels](st-case-selection.md#numeric-profiles-and-labels) accept spaces
-and underscores as digit separators. Explicit unary signs apply after
-decoding the word. Words wider than 32 bits fail preflight.
+and underscores as digit separators, as do
+[array subscripts and indirect bit selectors](array-index-expressions.md#signed-radix-words-in-subscripts).
+Explicit unary signs apply after decoding the word. Words wider than 32 bits
+fail preflight.
 
 In **Integer lab**, enable RunStDintRadix and step. The grouped word sets
 StDintRadixWord to −1. With the default input of −1, the sign-bit mask

@@ -13,6 +13,31 @@ MOV(Input[(NOT Position) AND 7],Selected);
 MOV(Input[(Position XOR 3) OR 1],Selected);
 ```
 
+## Signed radix words in subscripts
+
+Ladder and Structured Text array subscripts and indirect bit selectors accept
+unsuffixed binary, octal and hexadecimal DINT words with space or underscore
+grouping. Short words zero-fill. Full 32-bit words use signed DINT
+interpretation, so `16#FFFF FFFF` works as a −1 offset. Arithmetic and
+bounds checks still apply. A single radix word used as an index is checked
+during preflight, like a decimal index. Tag-based expressions check their
+result when reached.
+
+```text
+Value := Table[Index + 16#FFFF FFFF];
+MaskedValue := Table[Index AND 2#00 11];
+SelectedBit := Flags.[Index + 8#377 7777 7777];
+```
+
+In **Integer lab**, enable `RunStRadixIndex` and step. With
+StRadixIndex=2, the three results are 22, 33 and true. Setting the index
+to 0 produces a negative offset and faults the advance. Restore it to 2
+to retry. The logic viewer resolves the same element or bit from its tag snapshot.
+See [Rockwell's index reference](https://www.rockwellautomation.com/en-za/docs/studio-5000-logix-designer/37-01/contents-ditamap/instruction-set/index-through-arrays.html)
+and [immediate values](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/37-02/contents-ditamap/instruction-set/immediate-values.html).
+
+## Scalar tag indices
+
 A single scalar integer tag may also be a subscript: SINT, INT, DINT, LINT,
 USINT, UINT, UDINT or ULINT. Its exact declared value is checked against the
 array boundary; it is not rounded through REAL or truncated to DINT. Aliases,

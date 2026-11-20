@@ -4,7 +4,7 @@ from .integer_math import CONTROLLERS, quotient, integer_power
 import re
 from .model import ModelError, coerce, literal
 from .real_math import square_root
-from .st_literals import RADIX_TOKEN as ST_RADIX_TOKEN, scan as typed_integer
+from .st_literals import DINT_RADIX_TOKEN, RADIX_TOKEN as ST_RADIX_TOKEN, scan as typed_integer
 from . import time_values
 
 FUNCTIONS = {'ABS': abs, 'SQR': square_root, 'SQRT': square_root, 'TRN': math.trunc,
@@ -73,9 +73,11 @@ class Expression:
                 self.tokens.append(('string',bytes(x&255 for x in ascii_bytes(text[start:pos].replace('$I','$L').replace('$i','$L'))).decode('latin-1')))
                 continue
             if structured and text[pos]=='&':self.tokens.append(('AND','AND'));pos+=1;continue
-            if (structured or radix_literals and integer_literals) and text[pos].isdigit():
+            if (structured or subscript or radix_literals and integer_literals) and text[pos].isdigit():
                 if structured:
                     radix = ST_RADIX_TOKEN.match(text, pos)
+                elif subscript:
+                    radix = DINT_RADIX_TOKEN.match(text, pos)
                 else:
                     radix = re.match(r'(?:2|8|16)#[0-9A-Fa-f_ ]+(?:[Uu][Ll]?|[Ll])(?![\w.])', text[pos:])
                 if radix:
