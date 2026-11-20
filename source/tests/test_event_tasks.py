@@ -464,6 +464,57 @@ class EventTaskTests(unittest.TestCase):
         self.assertEqual(engine.memory.read('SpeedCommand'), 3)
         self.assertEqual(engine.memory.read('Count1'), 3)
 
+    def test_for_can_dispatch_through_nested_ladder_and_st_subroutines(self):
+        def subroutines(root):
+            routines = root.find('./Controller/Programs/Program[@Name="Program0"]/Routines')
+            worker = E.SubElement(E.SubElement(routines, 'Routine', Name='Worker', Type='RLL'), 'RLLContent')
+            E.SubElement(E.SubElement(worker, 'Rung', Number='0', Type='N'), 'Text').text = 'JSR(Trigger,0);'
+            trigger = E.SubElement(E.SubElement(routines, 'Routine', Name='Trigger', Type='ST'), 'STContent')
+            E.SubElement(trigger, 'Line', Number='0').text = 'UID(); EVENT(Task1); UIE();'
+
+        engine = self.checked([
+            ['FOR SpeedCommand:=0 TO 2 DO JSR(Worker,0); Count0:=Count0+Count1; END_FOR;'],
+            ['ADD(Count1,1,Count1);'],
+        ], st=True, mutate=subroutines)
+        engine.step()
+        self.assertEqual(engine.memory.read('Count0'), 6)
+        self.assertEqual(engine.memory.read('SpeedCommand'), 3)
+        self.assertEqual(engine.scheduler_description()['tasks'][1]['executions'], 3)
+
+    def test_for_dispatch_from_ladder_subroutine_rolls_back_loop_counter_change(self):
+        for instruction, rung in (('EVENT', 'EVENT(Task1);'), ('UIE', 'UID()EVENT(Task1)UIE();')):
+            with self.subTest(instruction=instruction):
+                def subroutine(root):
+                    routines = root.find('./Controller/Programs/Program[@Name="Program0"]/Routines')
+                    worker = E.SubElement(E.SubElement(routines, 'Routine', Name='Worker', Type='RLL'), 'RLLContent')
+                    E.SubElement(E.SubElement(worker, 'Rung', Number='0', Type='N'), 'Text').text = rung
+
+                engine = self.checked([
+                    ['FOR SpeedCommand:=0 TO 2 DO JSR(Worker,0); END_FOR;'],
+                    ['ADD(Count1,1,Count1)ADD(SpeedCommand,1,SpeedCommand);'],
+                ], st=True, mutate=subroutine)
+                before = copy.deepcopy(engine.memory.values)
+                schedule = engine.scheduler_description()
+                with self.assertRaisesRegex(ModelError, f'{instruction} dispatch changed an active FOR'):
+                    engine.step()
+                self.assertEqual(engine.memory.values, before)
+                self.assertEqual(engine.scheduler_description(), schedule)
+
+    def test_for_subroutine_can_queue_event_that_changes_counter_after_loop_exits(self):
+        def subroutine(root):
+            routines = root.find('./Controller/Programs/Program[@Name="Program0"]/Routines')
+            worker = E.SubElement(E.SubElement(routines, 'Routine', Name='Worker', Type='RLL'), 'RLLContent')
+            E.SubElement(E.SubElement(worker, 'Rung', Number='0', Type='N'), 'Text').text = 'EVENT(Task1);'
+
+        engine = self.checked([
+            ['UID(); FOR SpeedCommand:=0 TO 2 DO JSR(Worker,0); END_FOR; UIE();'],
+            ['ADD(Count1,1,Count1)ADD(SpeedCommand,1,SpeedCommand);'],
+        ], st=True, mutate=subroutine)
+        engine.step()
+        self.assertEqual(engine.memory.read('SpeedCommand'), 4)
+        self.assertEqual(engine.memory.read('Count1'), 1)
+        self.assertEqual(engine.scheduler_description()['tasks'][1]['executions'], 1)
+
     def test_while_condition_observes_event_writes_and_instruction_budget_is_shared(self):
         e=self.checked([['WHILE Count1<3 DO EVENT(Task1); END_WHILE;'],['ADD(Count1,1,Count1);']],st=True);e.step()
         self.assertEqual(e.memory.read('Count1'),3);self.assertEqual(e.scheduler_description()['tasks'][1]['executions'],3)

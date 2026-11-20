@@ -1,6 +1,7 @@
 """Bounded Structured Text parser and execution; never Python eval/exec."""
 import copy
 import re
+from contextlib import nullcontext
 from dataclasses import dataclass,field
 from .model import ModelError,Op,operand_problem
 from .st_expression import STExpression
@@ -321,7 +322,7 @@ class Structured:
     def execute(self,routine,scope,depth,context=''):
         from .runtime import ReturnRoutine
         from .calls import BreakLoop
-        active_for = []
+        dispatch = self.engine._event_dispatch
 
         def loop_state(loop):
             return (
@@ -364,12 +365,6 @@ class Structured:
                             elif n.op.name in st_curves.INSTRUCTIONS:st_curves.execute(self.engine,n.op,scope)
                             elif n.op.name in st_pi.INSTRUCTIONS:st_pi.execute(self.engine,n.op,scope)
                             elif n.op.name in st_bit_moves.INSTRUCTIONS:st_bit_moves.execute(self.engine,n.op,scope)
-                            elif active_for and n.op.name in ('EVENT', 'UIE'):
-                                # A dispatched task can write beyond the caller's known effects.
-                                before = [loop_state(loop) for loop in active_for]
-                                self.engine._op(n.op, True, scope, depth)
-                                if before != [loop_state(loop) for loop in active_for]:
-                                    raise ModelError(f'{n.op.name} dispatch changed an active FOR counter, limit, or increment')
                             else:self.engine._op(n.op,True,scope,depth)
                         except ReturnRoutine:
                             detail = 'temporary end' if n.op.name == 'TND' else 'return'
@@ -390,21 +385,18 @@ class Structured:
                         self.trace(routine,n,context,detail=value);run(chosen)
                     elif n.kind=='for':
                         self.memory.write(n.target,self.integer(n.start,scope),scope)
-                        # Bounds and increment are re-evaluated at each loop test.
-                        while True:
-                            self.tick();step=self.integer(n.step,scope);limit=self.integer(n.limit,scope)
-                            if not step:raise ModelError('FOR step cannot be zero')
-                            current=self.memory.read(n.target,scope)
-                            if (step>0 and current>limit) or (step<0 and current<limit):break
-                            self.trace(routine,n,context,detail=current)
-                            active_for.append(n)
-                            try:
-                                run(n.body)
-                            except ExitLoop:
-                                break
-                            finally:
-                                active_for.pop()
-                            self.memory.write(n.target,self.memory.read(n.target,scope)+step,scope)
+                        watch = dispatch.watch_for_operands(lambda: loop_state(n)) if dispatch else nullcontext()
+                        with watch:
+                            # Bounds and increment are re-evaluated at each loop test.
+                            while True:
+                                self.tick();step=self.integer(n.step,scope);limit=self.integer(n.limit,scope)
+                                if not step:raise ModelError('FOR step cannot be zero')
+                                current=self.memory.read(n.target,scope)
+                                if (step>0 and current>limit) or (step<0 and current<limit):break
+                                self.trace(routine,n,context,detail=current)
+                                try:run(n.body)
+                                except ExitLoop:break
+                                self.memory.write(n.target,self.memory.read(n.target,scope)+step,scope)
                     elif n.kind in ('while','repeat'):
                         while True:
                             self.tick()

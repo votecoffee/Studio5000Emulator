@@ -46,7 +46,8 @@ unverified.
 
 In [Structured Text FOR loops](event-tasks.md#structured-text-for-loops),
 UID and UIE use the same nesting rules. Work dispatched by UIE must preserve
-the active loop counter, limit, and increment values.
+the active loop counter, limit, and increment values, including when a called
+ladder or Structured Text routine issues the UIE.
 
 ## Event lab
 

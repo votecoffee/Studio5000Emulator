@@ -64,13 +64,16 @@ live loop data and separate per-task call stacks.
 
 ## Structured Text FOR loops
 
-Direct EVENT, UID, and UIE calls work in an ST FOR body, including inside its
-conditional branches and nested loops. Immediate and deferred requests follow
-the normal priority and interrupt rules. Tasks released by EVENT or by the
-outermost UIE may write other tags. If dispatch changes the live counter, limit
-value, or increment of any active enclosing FOR, the advance faults and restores
-both task and tag state. The check compares values before and after dispatch.
-Existing restrictions on direct writes to bound or increment tags still apply.
+EVENT, UID, and UIE work in an ST FOR body, including inside conditional
+branches and nested loops. The same checks apply when a ladder or ST subroutine
+reached through JSR issues the instruction. Immediate and deferred requests
+follow the normal priority and interrupt rules.
+
+The scheduler compares the caller's active FOR counters, limit values, and
+increments before and after synchronous dispatch by EVENT or the outermost UIE.
+A change faults the advance and restores both task and tag state. An Event
+queued during the loop can update those tags once the loop exits. JSR calls
+within FOR still require bounds and increments without tag dependencies.
 
 Rockwell documents [EVENT and FOR syntax in Structured Text](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm014_-en-p.pdf).
 The loop operand check is an emulator policy. Native sampling and timing remain

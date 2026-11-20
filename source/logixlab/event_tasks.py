@@ -1,6 +1,7 @@
 """Instruction-only Event tasks with bounded logical priority dispatch."""
 import heapq
 import re
+from contextlib import contextmanager
 
 from .integer_math import CONTROLLERS
 from .model import ModelError
@@ -89,10 +90,29 @@ class Dispatch:
         self.engine=engine;self.batch=batch;self.run=run;self.active=set()
         self.releases=[];self.overlaps={};self.coalesced={};self.accepted=0
         self.pending=set();self.queue=[];self.interrupt_depth={}
+        self._for_operands = []
         self.status=dict(engine._task_event_status)
         self.overlap_counts=dict(engine._task_scheduler.overlaps)
         self.timeout_due=dict(engine._task_scheduler.timeout_due)
         self.event_timeouts=dict(engine._task_scheduler.event_timeouts)
+
+    @contextmanager
+    def watch_for_operands(self, read_operands):
+        self._for_operands.append((self.engine._executing_task, read_operands))
+        try:
+            yield
+        finally:
+            self._for_operands.pop()
+
+    @contextmanager
+    def protect_for_operands(self, instruction):
+        caller = self.engine._executing_task
+        readers = [read for task, read in self._for_operands if task == caller]
+        before = [read() for read in readers]
+        yield
+        # The dispatcher restores the caller's task and first-scan context.
+        if before != [read() for read in readers]:
+            raise ModelError(f'{instruction} dispatch changed an active FOR counter, limit, or increment')
 
     def masked(self):
         return self.interrupt_depth.get(self.engine._executing_task,0)>0
@@ -111,7 +131,8 @@ class Dispatch:
         elif depth>1:self.interrupt_depth[task]=depth-1
         else:
             del self.interrupt_depth[task]
-            self.drain(self.caller_priority())
+            with self.protect_for_operands(name):
+                self.drain(self.caller_priority())
 
     def complete_task(self,task):
         if self.interrupt_depth.get(task,0):
@@ -133,9 +154,10 @@ class Dispatch:
         self.claim_release()
         if task.name.casefold() in self.status:self.status[task.name.casefold()]|=1
         if priority<caller_priority and not self.masked():
-            self._execute(index,self.engine.time_ms)
-            # Newly queued work may outrank the restored caller, but not the child.
-            self.drain(caller_priority)
+            with self.protect_for_operands('EVENT'):
+                self._execute(index,self.engine.time_ms)
+                # Newly queued work may outrank the restored caller, but not the child.
+                self.drain(caller_priority)
         else:
             self.pending.add(index)
             heapq.heappush(self.queue,(priority,self.accepted,index,self.engine.time_ms))
