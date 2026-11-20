@@ -161,6 +161,20 @@ def add_fault_record_array(root, dtype, name='LabRecords', **initial):
             ET.SubElement(obj,'DataValueMember',Name=member,DataType=data_type,Value=str(int(value)))
 
 
+def nested_aoi_record_fault_fixture(root, dtype, work, **initial):
+    nested_aoi_array_fault_fixture(root, work=work)
+    add_fault_record_array(root, dtype, **initial)
+    controller = root.find('Controller')
+    for definition in controller.findall('./AddOnInstructionDefinitions/AddOnInstructionDefinition'):
+        ET.SubElement(definition.find('Parameters'), 'Parameter', Name='RecordData',
+                      TagType='Base', DataType=dtype, Dimensions='2',
+                      Usage='InOut', Required='true', Visible='true')
+    wrapper = controller.find('./AddOnInstructionDefinitions/AddOnInstructionDefinition[@Name="LabWrapper"]')
+    logic = wrapper.find('./Routines/Routine[@Name="Logic"]/RLLContent/Rung/Text')
+    logic.text = logic.text.replace('Index,Samples)', 'Index,Samples,RecordData)')
+    set_fault_instruction(root, 'LabWrapper(NestedScale,2.5,SpeedCommand,LabIndex,LabValues,LabRecords)')
+
+
 def add_bit_diagnostic_tags(root, *, single=False):
     from logixlab.control_operations import default
 
@@ -657,17 +671,7 @@ class ProgramFaultTests(unittest.TestCase):
                 self.setUp()
 
                 def setup(root):
-                    nested_aoi_array_fault_fixture(root,work=work+'MOV(13,Scaled)')
-                    add_fault_record_array(root,'TIMER',ACC=7)
-                    controller=root.find('Controller')
-                    for definition in controller.findall('./AddOnInstructionDefinitions/AddOnInstructionDefinition'):
-                        ET.SubElement(definition.find('Parameters'),'Parameter',Name='RecordData',
-                                      TagType='Base',DataType='TIMER',Dimensions='2',
-                                      Usage='InOut',Required='true',Visible='true')
-                    wrapper=controller.find('./AddOnInstructionDefinitions/AddOnInstructionDefinition[@Name="LabWrapper"]')
-                    logic=wrapper.find('./Routines/Routine[@Name="Logic"]/RLLContent/Rung/Text')
-                    logic.text=logic.text.replace('Index,Samples)','Index,Samples,RecordData)')
-                    set_fault_instruction(root,'LabWrapper(NestedScale,2.5,SpeedCommand,LabIndex,LabValues,LabRecords)')
+                    nested_aoi_record_fault_fixture(root, 'TIMER', work+'MOV(13,Scaled)', ACC=7)
 
                 engine=self.engine(mutate=setup)
                 self.assertEqual(engine.blockers,[])
@@ -681,6 +685,119 @@ class ProgramFaultTests(unittest.TestCase):
                 self.assertEqual([engine.memory.read(f'LabRecords[{i}].ACC') for i in range(2)],[7,31])
                 engine.step()
                 self.assertEqual([engine.memory.read(f'LabRecords[{i}].ACC') for i in range(2)],expected)
+
+    def test_nested_aoi_timer_array_fault_preserves_record_and_execution_time(self):
+        for name in ('TON', 'TOF', 'RTO'):
+            with self.subTest(instruction=name):
+                self.setUp()
+                # TOF must keep running with false incoming power inside the enabled AOI.
+                gate = 'AFI()' if name == 'TOF' else ''
+                work = f'{gate}{name}(RecordData[Index+1],?,?)MOV(13,Scaled)'
+                engine = self.engine(mutate=lambda root:nested_aoi_record_fault_fixture(root, 'TIMER', work))
+                self.assertEqual(engine.blockers, [])
+                engine.enter_run()
+                engine.memory.write('LabRecords[1].ACC', 4)
+                engine.memory.write('LabRecords[1].DN', name == 'TOF')
+                engine.memory.write('StartPB', True)
+                engine.step(dt=10)
+                before = copy.deepcopy(engine.memory.read('LabRecords'))
+                clock = engine.last_timer.copy()
+                self.assertIn(('labrecords', (1,)), clock)
+                engine.memory.write('LabIndex', 2)
+                engine.memory.write('SpeedCommand', 50)
+                engine.step(dt=10)
+                fault = engine.last_cleared_program_fault
+                self.assertEqual((fault['type'], fault['code'], fault['instruction']), (4, 20, 'LABWRAPPER'))
+                self.assertIn(f'AOI:LabScale/Logic, {name}: Array index outside bounds', fault['detail'])
+                self.assertEqual(engine.memory.read('LabRecords'), before)
+                self.assertEqual(engine.last_timer, clock)
+                self.assertEqual(engine.memory.read('LabIndex'), 0)
+                self.assertEqual(engine.memory.read('SpeedCommand'), 51)
+                engine.step(dt=10)
+                self.assertEqual(engine.memory.read('LabRecords[1].ACC'), before[1]['ACC']+20)
+                self.assertEqual(engine.memory.read('LabRecords')[0], before[0])
+                self.assertIs(engine.last_cleared_program_fault, fault)
+
+    def test_nested_aoi_counter_array_fault_keeps_first_valid_edge(self):
+        for name, edge, delta in (('CTU','CU',1), ('CTD','CD',-1)):
+            with self.subTest(instruction=name):
+                self.setUp()
+                work = f'{name}(RecordData[Index+1],?,?)MOV(RecordData[1].ACC,Scaled)'
+                engine = self.engine(mutate=lambda root:nested_aoi_record_fault_fixture(root, 'COUNTER', work))
+                self.assertEqual(engine.blockers, [])
+                engine.enter_run()
+                engine.memory.write(f'LabRecords[1].{edge}', False)
+                engine.memory.write('LabIndex', 2**31-1)
+                engine.memory.write('StartPB', True)
+                before = copy.deepcopy(engine.memory.read('LabRecords'))
+                engine.step()
+                fault = engine.last_cleared_program_fault
+                self.assertEqual((fault['code'], fault['instruction']), (20, 'LABWRAPPER'))
+                self.assertIn(f'AOI:LabScale/Logic, {name}: DINT overflow in subscript', fault['detail'])
+                self.assertEqual(engine.memory.read('LabRecords'), before)
+                self.assertEqual(engine.memory.read('LabIndex'), 0)
+                engine.step()
+                self.assertTrue(engine.memory.read(f'LabRecords[1].{edge}'))
+                self.assertEqual(engine.memory.read('LabRecords[1].ACC'), before[1]['ACC']+delta)
+                engine.step()
+                self.assertEqual(engine.memory.read('LabRecords[1].ACC'), before[1]['ACC']+delta)
+                self.assertEqual(engine.memory.read('LabRecords')[0], before[0])
+                self.assertIs(engine.last_cleared_program_fault, fault)
+
+    def test_nested_aoi_reset_array_fault_preserves_records_and_control_progress(self):
+        for dtype in ('TIMER', 'COUNTER', 'CONTROL'):
+            with self.subTest(dtype=dtype):
+                self.setUp()
+                work = 'XIC(Samples[1].0)RES(RecordData[Index+1])MOV(13,Scaled)'
+                engine = self.engine(mutate=lambda root:nested_aoi_record_fault_fixture(root, dtype, work))
+                self.assertEqual(engine.blockers, [])
+                engine.enter_run()
+                engine.memory.write('LabIndex', 2)
+                engine.memory.write('StartPB', True)
+                before = copy.deepcopy(engine.memory.read('LabRecords'))
+                selected, sibling = ('labrecords', (1,)), ('labrecords', (0,))
+                progress = {selected, sibling} if dtype == 'CONTROL' else set()
+                engine._file_incremental.update(progress)
+                engine._file_arithmetic_retry.update(progress)
+                engine.memory.write('LabValues[1]', 12)
+                engine.step()
+                self.assertIsNone(engine.last_cleared_program_fault)
+                self.assertEqual(engine.memory.read('LabIndex'), 2)
+                self.assertEqual(engine.memory.read('LabRecords'), before)
+                self.assertEqual(engine._file_incremental, progress)
+                self.assertEqual(engine._file_arithmetic_retry, progress)
+                engine.memory.write('LabValues[1]', 13)
+                engine.step()
+                fault = engine.last_cleared_program_fault
+                self.assertEqual((fault['code'], fault['instruction']), (20, 'LABWRAPPER'))
+                self.assertIn('AOI:LabScale/Logic, RES: Array index outside bounds', fault['detail'])
+                self.assertEqual(engine.memory.read('LabRecords'), before)
+                self.assertEqual(engine._file_incremental, progress)
+                self.assertEqual(engine._file_arithmetic_retry, progress)
+                engine.step()
+                retained, cleared = ('LEN','POS') if dtype == 'CONTROL' else ('PRE','ACC')
+                self.assertEqual(engine.memory.read('LabRecords')[1], {
+                    field: value if field == retained else 0 if field == cleared else False
+                    for field, value in before[1].items()
+                })
+                self.assertEqual(engine.memory.read('LabRecords')[0], before[0])
+                self.assertEqual(engine._file_incremental, progress-{selected})
+                self.assertEqual(engine._file_arithmetic_retry, progress-{selected})
+
+    def test_nested_aoi_negative_timer_field_keeps_existing_rollback(self):
+        work = 'TON(RecordData[Index+1],?,?)MOV(13,Scaled)'
+        engine = self.engine(mutate=lambda root:nested_aoi_record_fault_fixture(root, 'TIMER', work))
+        self.assertEqual(engine.blockers, [])
+        engine.enter_run()
+        engine.memory.write('StartPB', True)
+        engine.memory.write('LabRecords[1].PRE', -1)
+        before = copy.deepcopy(engine.memory.values)
+        with self.assertRaisesRegex(ModelError, 'Type 4 Code 34'):
+            engine.step()
+        self.assertEqual(engine.memory.values, before)
+        self.assertEqual(engine.scan_count, 0)
+        self.assertFalse(engine.last_timer)
+        self.assertIsNone(engine.last_cleared_program_fault)
 
     def test_invalid_fill_length_in_aoi_rolls_back_without_handler(self):
         work='FLL(28,Samples[0],Index)MOV(Samples[1],Scaled)'

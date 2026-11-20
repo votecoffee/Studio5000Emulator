@@ -91,6 +91,8 @@ outermost enabled AOI instruction with the incoming rung power.
 - Bitwise and bit transfers: AND, OR, XOR, NOT, MVM and BTD.
 - Contacts and comparisons: XIC, XIO, EQU, NEQ, LES, LEQ, GRT, GEQ, LIM,
   MEQ and CMP.
+- Timer and counter coverage includes TON, TOF, RTO, CTU and CTD. RES supports
+  TIMER, COUNTER and CONTROL.
 
 The faulting instruction and the remaining statements in each interrupted AOI
 are skipped. Interrupted invocations also skip their output copies. The
@@ -105,8 +107,12 @@ destination untouched, including an invalid FLL destination with a zero
 length. Scalar arithmetic, CLR, bitwise operations and bit transfers likewise
 leave the destination untouched on an array fault. Contacts, comparisons and
 bit transfers skip indexed operands when their incoming rung is false.
-Invalid lengths, division by zero and arithmetic result overflow still
-cause scan rollback.
+Timers and counters can reach indexed operands on a false inner rung
+because their state may need to update. On an array fault, the emulator
+preserves the records, last timer execution time, counter edge and CONTROL
+file progress. A false RES skips the indexed record. Invalid lengths,
+division by zero, arithmetic result overflow and negative timer fields
+still cause scan rollback in the AOI.
 
 AOI argument, output-transfer, Structured Text and prescan faults remain
 outside this profile. Native v35 behavior remains unverified.
