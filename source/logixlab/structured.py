@@ -6,7 +6,7 @@ from dataclasses import dataclass,field
 from .model import ModelError,Op,operand_problem,split_indices
 from .expressions import Expression
 from .st_expression import STExpression
-from .time_values import scan as scan_time_literal
+from . import time_values
 from . import system_values, array_sort, st_cases, st_timers, st_counter, st_oneshot, st_scale, st_signal, st_rate, st_moving, st_capture, st_filter, st_digital, st_accumulate, st_select, st_derivative, st_curves, st_pi, st_bit_moves, numeric_copy, numeric_fill
 from .integer_math import WIDE_TYPES
 
@@ -83,7 +83,7 @@ class Parser:
                 pos+=1
             else:
                 try:
-                    temporal = scan_time_literal(self.source, pos) if c in 'TtLlDd' else None
+                    temporal = time_values.scan(self.source, pos) if c in 'TtLlDd' else None
                 except ValueError as error:
                     raise ModelError(f'ST line {line+1}: {error}') from error
                 if temporal is not None:
@@ -302,7 +302,20 @@ class Structured:
             for n in nodes:
                 try:
                     if n.kind=='assign':
-                        _,_,dtype=self.memory.check_writable(n.target,scope);result=self.type(n.expr,scope,dtype)
+                        key, parts, dtype = self.memory.check_writable(n.target, scope)
+                        if dtype in time_values.TYPES:
+                            if not time_values.available(self.engine.project):
+                                raise ModelError('ST time/date assignment requires the v35 ControlLogix 5580 profile')
+                            if isinstance(self.memory.at(key, parts), (list, dict)):
+                                raise ModelError('ST time/date assignment requires a scalar destination')
+                            try:
+                                source_type = time_values.operand_type(self.memory, n.expr, scope)
+                            except ValueError as error:
+                                raise ModelError(str(error)) from error
+                            if source_type != dtype:
+                                raise ModelError('ST time/date assignment requires a matching tag or typed literal')
+                            continue
+                        result = self.type(n.expr, scope, dtype)
                         if isinstance(self.memory.read(n.target,scope),list):raise ModelError('Whole-array ST assignment is unsupported; use COP')
                         if dtype=='BOOL':
                             tree=self.expression(n.expr).tree
@@ -396,7 +409,11 @@ class Structured:
                 self.tick()
                 try:
                     if n.kind=='assign':
-                        key,parts,dtype=self.memory.check_writable(n.target,scope);value=self.value(n.expr,scope,dtype)
+                        key, parts, dtype = self.memory.check_writable(n.target, scope)
+                        if dtype in time_values.TYPES:
+                            value = time_values.read_operand(self.memory, n.expr, scope)
+                        else:
+                            value = self.value(n.expr, scope, dtype)
                         if isinstance(value,str):
                             tree=self.expression(n.expr).tree
                             if tree[0]=='ref':

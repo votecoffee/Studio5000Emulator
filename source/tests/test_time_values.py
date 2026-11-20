@@ -91,7 +91,7 @@ class TimeValueTests(unittest.TestCase):
             routine = root.find('.//Routine')
             routine.set('Type', 'ST')
             routine.remove(routine.find('RLLContent'))
-            E.SubElement(E.SubElement(routine, 'STContent'), 'Line', Number='0').text = 'Dest := Source;'
+            E.SubElement(E.SubElement(routine, 'STContent'), 'Line', Number='0').text = 'Dest := Source * Source;'
         self.assertTrue(self.engine([], mutate=structured).blockers)
 
     @staticmethod

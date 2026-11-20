@@ -53,6 +53,9 @@ enable `TimeDateDemo` for duration arithmetic, or set `MicrosecondIndex=1` and
 enable `MicrosecondBridge` for an exact legacy timestamp round trip.
 [Time and date storage](docs/time-date-storage.md)
 
+[Structured Text time and date assignments](docs/time-date-storage.md#structured-text-time-and-date-assignments)
+copy matching scalar tags or typed literals at exact tick precision.
+
 **Literal ladder CONTROL settings** initialize LEN/POS when importing supported
 shifts, queues, sequencers, statistics and file operations. **Control lab**
 demonstrates a bit shift and FIFO with values supplied by the rung.

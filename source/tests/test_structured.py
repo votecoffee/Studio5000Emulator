@@ -33,6 +33,91 @@ class StructuredTests(unittest.TestCase):
         for ref,value in expected.items():self.assertEqual(e.memory.read(ref),value,ref)
         self.assertEqual(e.memory.string('Message'),'SCAN 3');self.assertEqual(e.memory.string('Shadow'),'SCAN 3')
 
+    def time_tag(self, name, dtype, value=None, *, elements=None):
+        tags = self.root.find('./Controller/Tags')
+        tag = E.SubElement(tags, 'Tag', Name=name, TagType='Base', DataType=dtype)
+        data = E.SubElement(tag, 'Data', Format='Decorated')
+        if elements is None:
+            E.SubElement(data, 'DataValue', DataType=dtype, Value=str(value))
+        else:
+            tag.set('Dimensions', str(len(elements)))
+            array = E.SubElement(data, 'Array', DataType=dtype, Dimensions=str(len(elements)))
+            for index, item in enumerate(elements):
+                if item is not None:
+                    E.SubElement(array, 'Element', Index=f'[{index}]', Value=str(item))
+
+    def test_temporal_assignments_copy_exact_types_and_literal_ticks(self):
+        expected = {}
+        lines = []
+        for dtype, source, ticks in (
+            ('TIME32', 'T32#-1ms_2us', -1002),
+            ('TIME', 'T#1s_3us', 1000003),
+            ('LTIME', 'LT#1s_1ns', 1000000001),
+            ('DT', 'DT#1970-01-01-05:30:00.000_001(UTC+05:30)', 1),
+            ('LDT', 'LDT#2020-10-25-11:05:20.123_456_789', 1603623920123456789),
+        ):
+            formal, result = 'Source' + dtype, 'Result' + dtype
+            self.time_tag(formal, dtype, 0)
+            self.time_tag(result, dtype, 0)
+            lines.extend([f'{formal}:={source};', f'{result}:={formal};'])
+            expected[formal] = expected[result] = ticks
+
+        e = self.engine('\n'.join(lines))
+        self.assertEqual(e.blockers, [])
+        e.step()
+        for name, ticks in expected.items():
+            self.assertEqual(e.memory.read(name, allow_time=True), ticks)
+
+    def test_temporal_assignment_resolves_indirect_alias_only_in_reached_branch(self):
+        ticks = 1603623920123456789
+        self.time_tag('SavedTimes', 'LDT', elements=(None, ticks))
+        self.time_tag('ResultTimes', 'LDT', elements=(None, None))
+        tags = self.root.find('./Controller/Tags')
+        E.SubElement(tags, 'Tag', Name='TimeView', TagType='Alias', AliasFor='SavedTimes')
+        e = self.engine('IF Enable THEN ResultTimes[BitIndex]:=TimeView[Selector]; END_IF;')
+        self.assertEqual(e.blockers, [])
+        e.memory.write('Enable', False)
+        e.memory.write('Selector', 99)
+        e.memory.write('BitIndex', 99)
+        e.step()
+        self.assertEqual(e.memory.read('ResultTimes', allow_time=True), [None, None])
+        e.memory.write('Enable', True)
+        e.memory.write('Selector', 0)
+        e.memory.write('BitIndex', 1)
+        before = copy.deepcopy(e.memory.values)
+        with self.assertRaisesRegex(ModelError, 'Unknown initial byte/value'):
+            e.step()
+        self.assertEqual(e.memory.values, before)
+        e.memory.write('Selector', 1)
+        e.step()
+        self.assertEqual(e.memory.read('ResultTimes', allow_time=True), [None, ticks])
+
+    def test_temporal_nonretentive_assignment_and_late_fault_rollback(self):
+        self.time_tag('Stamp', 'LDT', 777)
+        e = self.engine(
+            'IF FALSE THEN Stamp [:=] LDT#1970-01-01-00:00:00.000_000_001; END_IF; '
+            'Stamp:=LDT#2020-10-25-11:05:20.123_456_789; State:=1/0;')
+        self.assertEqual(e.blockers, [])
+        self.assertEqual(e.memory.read('Stamp', allow_time=True), 0)
+        with self.assertRaisesRegex(ModelError, 'zero'):
+            e.step()
+        self.assertEqual(e.memory.read('Stamp', allow_time=True), 0)
+        self.assertEqual(e.scan_count, 0)
+
+    def test_temporal_assignment_rejects_conversions_and_whole_arrays(self):
+        self.time_tag('Stamp', 'LDT', 0)
+        self.time_tag('Microseconds', 'DT', 0)
+        self.time_tag('Times', 'LDT', elements=(0, 0))
+        for statement, message in (
+            ('Stamp:=Microseconds;', 'matching tag or typed literal'),
+            ('Stamp:=1;', 'matching tag or typed literal'),
+            ('Times:=Stamp;', 'requires a scalar destination'),
+            ('Stamp:=Times;', 'requires one scalar element'),
+        ):
+            with self.subTest(statement=statement):
+                e = self.engine('IF FALSE THEN ' + statement + ' END_IF;')
+                self.assertIn(message, str(e.blockers))
+
     def test_if_elsif_else_select_first_true_branch(self):
         source='IF Selector=1 THEN State:=1; ELSIF Selector>0 THEN State:=2; ELSIF Selector=3 THEN State:=3; ELSE State:=-1; END_IF;'
         e=self.engine(source);self.assertEqual(e.blockers,[])

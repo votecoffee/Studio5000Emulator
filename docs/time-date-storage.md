@@ -32,6 +32,23 @@ state/snapshot use decimal text to preserve all digits. The ladder inspector
 shows the exact parsed ticks and declared type for each valid time literal.
 Enter a decimal tick count when editing from the browser. A matching typed literal is also accepted by the local write API.
 
+## Structured Text time and date assignments
+
+In the v35 ControlLogix 5580 emulator profile, Structured Text can assign a
+matching TIME32, TIME, LTIME, DT or LDT tag or typed literal to a writable
+scalar of the same type. An assignment such as
+`Stamp := LDT#2020-10-25-11:05:20.123_456_789;` copies exact nanosecond ticks.
+Aliases, members and indexed elements use the normal reference rules.
+A reached assignment can establish an unknown destination. Preflight checks
+the declared types and scalar shape, and a skipped branch leaves live indices
+and source values unevaluated.
+
+A non-retentive `[:=]` destination clears to zero ticks during modeled
+prescan. A later fault restores the advance's earlier writes. Cross-type
+arithmetic and aggregate ST assignments remain outside this scope.
+Rockwell describes [Structured Text uses of time and date data](https://www.rockwellautomation.com/en-mde/docs/studio-5000-logix-designer/37-01/contents-ditamap/instruction-set/time-and-date-data-types.html).
+Native v35 assignment behavior remains unverified.
+
 ## Exact mixed operands
 
 MOV scales ticks within the duration family (TIME32, TIME, LTIME) or the
