@@ -1,4 +1,4 @@
-"""Numeric CASE selection across narrow, wide integer and float32 selectors."""
+"""Numeric CASE selection across narrow, wide integer and floating selectors."""
 import copy
 import unittest
 from pathlib import Path
@@ -168,6 +168,65 @@ class NumericCaseTests(unittest.TestCase):
         e.step()
         self.assertEqual(e.memory.read('Sum'),2)
 
+    def test_lreal_case_keeps_adjacent_labels_and_first_match(self):
+        expression=('CASE Selector OF 1.0L: State:=10; '
+                    '1.0000000000000002L..1.0000000000000004L,1e300L: State:=20; '
+                    '1.0000000000000004l: State:=30; ELSE State:=-1; END_CASE;')
+        e=self.checked(expression,1,'LREAL')
+        for value,expected in ((1.0,10),(1.0000000000000002,20),(1.0000000000000004,20),
+                               (1.0000000000000007,-1),(1e300,20)):
+            with self.subTest(value=value):
+                e.memory.write('Selector',value)
+                e.step()
+                self.assertEqual(e.memory.read('State'),expected)
+
+    def test_lreal_selector_preserves_declared_precision_of_mixed_operands(self):
+        source=('CASE 16777217.0L-16777217.0+4294967295U-4294967295.0L OF '
+                '1: State:=10; ELSE State:=-1; END_CASE;')
+        e=self.checked(source)
+        e.step()
+        self.assertEqual(e.memory.read('State'),10)
+
+    def test_lreal_case_uses_binary32_for_unsuffixed_fractional_labels(self):
+        source='CASE Selector OF .1: State:=10; 0.1L: State:=20; -.25L: State:=30; ELSE State:=-1; END_CASE;'
+        e=self.checked(source,0.1,'LREAL')
+        for value,expected in ((0.1,20),(0.10000000149011612,10),(-0.25,30)):
+            with self.subTest(value=value):
+                e.memory.write('Selector',value)
+                e.step()
+                self.assertEqual(e.memory.read('State'),expected)
+
+    def test_lreal_labels_in_invalid_profiles_or_ranges_block_even_when_skipped(self):
+        for dtype,label in (('DINT','1.0L'),('REAL','1e0L'),('LINT','1.0L'),
+                           ('LREAL','1L'),('LREAL','1e309L'),('LREAL','1e39'),
+                           ('LREAL','2147483648'),('LREAL','0.1..0.1000000002L'),
+                           ('LREAL','2.0L..1.0L')):
+            with self.subTest(dtype=dtype,label=label):
+                source=f'IF FALSE THEN CASE Selector OF {label}: State:=1; END_CASE; END_IF;'
+                self.assertTrue(self.engine(source,1,dtype).blockers)
+
+    def test_lreal_case_rejects_non_numeric_selector_or_unqualified_firmware(self):
+        self.assertTrue(self.engine('CASE Selector=1.0L OF 1.0L: State:=1; END_CASE;',
+                                    1,'LREAL').blockers)
+        def older_firmware(root):
+            root.find('./Controller').set('MajorRev','34')
+        self.assertTrue(self.engine('CASE Selector OF 1.0L: State:=1; END_CASE;',
+                                    1,'LREAL',mutate=older_firmware).blockers)
+
+    def test_lreal_selector_fault_rolls_back_and_accepts_retry(self):
+        source='State:=7; CASE 1e300L/Selector OF 1e300L: Sum:=3; ELSE Sum:=2; END_CASE;'
+        e=self.checked(source,0,'LREAL')
+        before=copy.deepcopy(e.memory.values)
+        schedule=e.scheduler_description()
+        with self.assertRaisesRegex(ModelError,'LREAL expression divide by zero'):
+            e.step()
+        self.assertEqual(e.memory.values,before)
+        self.assertEqual(e.scheduler_description(),schedule)
+        self.assertEqual((e.scan_count,e.time_ms),(0,0))
+        e.memory.write('Selector',1)
+        e.step()
+        self.assertEqual(e.memory.read('Sum'),3)
+
     def test_nested_case_and_nearest_loop_exit(self):
         e=self.checked('State:=0; FOR Index:=0 TO 3 DO CASE Selector OF 1.0: CASE Index OF 1: EXIT; ELSE State:=State+1; END_CASE; ELSE State:=99; END_CASE; END_FOR;',1)
         e.step();self.assertEqual(e.memory.read('State'),1);self.assertEqual(e.memory.read('Index'),1)
@@ -206,6 +265,7 @@ class NumericCaseTests(unittest.TestCase):
     def test_case_report_exposes_profile_without_claiming_native_parity(self):
         report=self.checked('CASE Selector OF 1.0: State:=1; END_CASE;').report()['structured_text']
         self.assertIn('CASE (integer/REAL)',report['supported']);self.assertIn('ULINT',report['case']['numeric_types']);self.assertIn('REAL',report['case']['numeric_types'])
+        self.assertIn('LREAL',report['case']['numeric_types'])
         self.assertFalse(report['case']['native_runtime_parity'])
 
     def test_bundled_text_lab_case_fault_rolls_back_prior_work_and_recovers(self):

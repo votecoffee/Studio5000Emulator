@@ -1,12 +1,16 @@
 """Parse and normalize immediate CASE labels in the selector comparison type."""
 import re
 from .integer_math import WIDE_TYPES
+from .lreal_expressions import immediate as floating_immediate
 from .model import ModelError,coerce,literal
 from .numeric_storage import typed_literal
 
 RADIX=r'(?:2|8|16)#[0-9a-fA-F_]+'
 TYPED_NUMBER=rf'(?:{RADIX}|\d+)(?:[Uu][Ll]?|[Ll])(?!\w)'
-NUMBER=rf'{TYPED_NUMBER}|{RADIX}|(?:\d+(?:\.(?!\.)\d*)?|\.\d+)(?:[eE][+-]?\d+)?'
+FRACTION=r'(?:\d+\.(?!\.)\d*|\.\d+)'
+EXPONENT=r'[eE][+-]?\d+'
+LREAL_NUMBER=rf'(?:{FRACTION}(?:{EXPONENT})?|\d+{EXPONENT})[Ll](?!\w)'
+NUMBER=rf'{LREAL_NUMBER}|{TYPED_NUMBER}|{RADIX}|(?:{FRACTION}|\d+)(?:{EXPONENT})?'
 
 
 def labels(text):
@@ -19,7 +23,7 @@ def labels(text):
             if match is None:raise ModelError('CASE labels require numeric literals')
             sign,token=match.groups()
             try:
-                if re.fullmatch(TYPED_NUMBER,token):
+                if token[-1] in 'LlUu':
                     if '#' in token:
                         dtype,value=typed_literal(token)
                         value=coerce(-value if sign=='-' else value,dtype)
@@ -45,17 +49,21 @@ def normalize(ranges,dtype):
         for value,label_type in pair:
             if label_type is not None and label_type!=dtype:
                 raise ModelError(f'{label_type} CASE label requires a matching selector')
-            if dtype!='REAL' and type(value) is not int:
-                raise ModelError('Integer CASE requires integer labels')
-            if dtype in WIDE_TYPES and label_type is None:
-                coerce(value,'DINT')
+            if dtype in ('REAL','LREAL'):
+                if dtype=='LREAL' and label_type is None:
+                    value=floating_immediate(value)
+            else:
+                if type(value) is not int:raise ModelError('Integer CASE requires integer labels')
+                if dtype in WIDE_TYPES and label_type is None:coerce(value,'DINT')
             try:converted.append(coerce(value,dtype))
-            except (ValueError,OverflowError) as error:raise ModelError('CASE label outside finite REAL range') from error
+            except (ValueError,OverflowError) as error:raise ModelError(f'CASE label outside finite {dtype} range') from error
+        if converted[0]>converted[1]:
+            raise ModelError('Descending CASE range after label conversion')
         result.append(tuple(converted))
     return result
 
 
 def description():
-    return dict(numeric_types=['SINT','INT','DINT',*sorted(WIDE_TYPES),'REAL'],labels='Immediate numeric values, lists and inclusive ascending ranges',
-                comparison='DINT or exact wide integers, or float32 REAL; labels follow the selector type',
+    return dict(numeric_types=['SINT','INT','DINT',*sorted(WIDE_TYPES),'REAL','LREAL'],labels='Immediate numeric values, lists and inclusive ascending ranges',
+                comparison='DINT or exact wide integers, float32 REAL or binary64 LREAL; labels follow the selector type',
                 selection='First matching branch; otherwise ELSE or retain previous values',native_runtime_parity=False)

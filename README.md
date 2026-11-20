@@ -857,10 +857,10 @@ Enable `RunStRealWide` to try [mixed binary32 ST expressions](docs/real-expressi
 Complete mixed-type arithmetic,
 additional expression forms and native math flags remain unfinished.
 
-[Numeric CASE selection](docs/st-case-selection.md) supports exact integer
-and float32 REAL expressions with immediate lists, ranges and first-match
-execution. **Integer lab** distinguishes adjacent ULINT values above 2^53.
-**Text lab** demonstrates float32 ranges and late-fault rollback.
+[Numeric CASE selection](docs/st-case-selection.md) supports exact integer,
+float32 REAL and binary64 LREAL comparisons with immediate lists, ranges and
+first-match execution. **Integer lab** demonstrates adjacent ULINT and LREAL
+values. **Text lab** demonstrates float32 ranges and late-fault rollback.
 [Temporary End](docs/ladder-loops.md#temporary-end-in-ladder-and-structured-text)
 ends the current ladder or ST routine when reached. Execution resumes in the
 caller or at the next scheduled program.

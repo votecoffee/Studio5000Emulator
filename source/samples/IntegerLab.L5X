@@ -386,6 +386,10 @@
       <Tag Name="RunStWideCase" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="StWideCaseInput" DataType="ULINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="ULINT" Value="9007199254740993" /></Data></Tag>
       <Tag Name="StWideCaseResult" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="RunStDoubleCase" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="StDoubleCaseInput" DataType="LREAL" TagType="Base"><Data Format="Decorated"><DataValue DataType="LREAL" Value="1.0000000000000002" /></Data></Tag>
+      <Tag Name="StDoubleCaseDivisor" DataType="LREAL" TagType="Base"><Data Format="Decorated"><DataValue DataType="LREAL" Value="1.0" /></Data></Tag>
+      <Tag Name="StDoubleCaseResult" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
       <Tag Name="StDivisor" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
         <Data Format="Decorated">
           <DataValue DataType="LINT" Radix="Decimal" Value="3" />
@@ -1158,6 +1162,13 @@
               <Line Number="25">        ELSE StWideCaseResult:=-1;</Line>
               <Line Number="26">    END_CASE;</Line>
               <Line Number="27">END_IF;</Line>
+              <Line Number="28">IF RunStDoubleCase THEN</Line>
+              <Line Number="29">    CASE StDoubleCaseInput/StDoubleCaseDivisor OF</Line>
+              <Line Number="30">        1.0L: StDoubleCaseResult:=10;</Line>
+              <Line Number="31">        1.0000000000000002L..1.0000000000000004L, 1e300L: StDoubleCaseResult:=20;</Line>
+              <Line Number="32">        ELSE StDoubleCaseResult:=-1;</Line>
+              <Line Number="33">    END_CASE;</Line>
+              <Line Number="34">END_IF;</Line>
             </STContent>
           </Routine>
           <Routine Name="NarrowRealOutputs" Type="RLL">

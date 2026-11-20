@@ -1,8 +1,8 @@
 # Numeric CASE selection in Structured Text
 
-CASE supports DINT, exact wide integer and float32 REAL comparisons. Branch
-labels are immediate numeric values, comma-separated lists, ascending inclusive
-ranges, or combinations.
+CASE supports DINT, exact wide integer, float32 REAL and binary64 LREAL
+comparisons. Branch labels are immediate numeric values, comma-separated lists,
+ascending inclusive ranges, or combinations.
 
 ```text
 CASE Temperature / ScaleFactor OF
@@ -27,8 +27,9 @@ labels are available for REAL expressions; signs may be separated from a number
 by whitespace. Branch labels must be literals. Typed L/U/UL labels require the
 matching wide integer selector type.
 
-The expression determines the comparison profile. A REAL operand or literal in
-the expression selects modeled float32 arithmetic. REAL labels are converted to
+The expression determines the comparison profile. Within the narrow
+expression profile, a REAL operand or fractional literal selects modeled
+float32 arithmetic. REAL labels are converted to
 float32 before comparison; integer labels in that context are also converted to
 float32. Labels do not promote an integer expression. Thus `CASE 5/2 OF` selects
 integer 2, while `CASE 5.0/2 OF` can select REAL 2.5.
@@ -63,6 +64,32 @@ RunStWideCase and step. The default StWideCaseInput is 9007199254740993, which
 selects StWideCaseResult=20. Set the input to 9007199254740992 for result 10,
 or 9007199254740996 for ELSE=-1.
 
+### Binary64 selectors
+
+An LREAL tag or an L-suffixed fractional or exponent literal in the expression
+selects the emulator's binary64 profile for v35 ControlLogix 5580. Mixed numeric
+operands follow the [binary64 ST expression rules](lreal-expressions.md#structured-text).
+Label-only suffixes leave the selector profile unchanged.
+
+Use L or l after a fraction or exponent to specify a finite binary64 label.
+Unsuffixed fractional and exponent labels round to REAL before widening.
+Unsuffixed integer labels must fit DINT. Ranges must be ascending both before
+and after conversion. An integer token such as `1L` is a LINT label. Use
+`1.0L` for an LREAL label.
+
+```text
+CASE Reading / Scale OF
+    1.0L: Band := 10;
+    1.0000000000000002L..1.0000000000000004L, 1e300L: Band := 20;
+    ELSE Band := -1;
+END_CASE;
+```
+
+In **Integer lab**, enable RunStDoubleCase. The default input
+1.0000000000000002 yields StDoubleCaseResult=20. Change StDoubleCaseInput to
+1.0 to select 10. Set StDoubleCaseDivisor to zero to fault the advance, then
+restore it to 1.0 and step again.
+
 ### Execution and faults
 
 Selected bodies retain the existing ST call, nested CASE, loop EXIT, prescan
@@ -87,10 +114,11 @@ comparison profile and retain `native_runtime_parity=false`.
 
 ## Remaining scope
 
-Mixed numeric CASE selectors, binary64 label comparison, additional
-literal/conversion forms, nonfinite REAL execution and native
-compiler/status/fault parity remain unqualified. Studio 5000 v35 acceptance of
-the emulator's wide CASE forms has not been verified.
+Mixed-width integer selectors, mixed REAL and wide integer expressions with
+no LREAL operand, additional literal/conversion forms, nonfinite floating
+execution and native compiler/status/fault parity remain unqualified. Wide
+integer and LREAL CASE are emulator extensions. Native v35 acceptance remains
+unverified.
 
 The installed v35 CASE_OF help and Rockwell's
 [CASE_OF reference](https://www.rockwellautomation.com/en-mde/docs/studio-5000-logix-designer/37-01/contents-ditamap/instruction-set/structured-text-attributes/case_of.html)

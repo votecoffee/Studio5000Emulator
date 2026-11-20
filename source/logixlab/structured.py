@@ -362,17 +362,18 @@ class Structured:
     def case_contract(self,node,scope):
         expression=self.expression(node.expr)
         declared={self.memory.resolve(ref,scope)[2] for ref in expression.refs}
+        destination='LREAL' if 'LREAL' in declared or 'LREAL' in expression.literal_types else None
         profile=None
-        if expression.typed_types or declared & WIDE_TYPES:
+        if destination is None and (expression.typed_types or declared & WIDE_TYPES):
             if expression.literal_types or expression.temporal_types:
                 raise ModelError('Wide integer CASE selectors require integer operands')
             profile=wide_st.analyze(expression,self.memory,scope)
             dtype,kind,_=profile
         else:
-            kind,real,_=expression.analyze(self.memory,scope)
-            dtype='REAL' if real else 'DINT'
+            kind,real,_=expression.analyze(self.memory,scope,destination)
+            dtype=destination or ('REAL' if real else 'DINT')
         if kind!='number':raise ModelError('CASE requires a numeric expression')
-        return [(st_cases.normalize(ranges,dtype),body) for ranges,body in node.cases],profile
+        return [(st_cases.normalize(ranges,dtype),body) for ranges,body in node.cases],profile,destination
 
     def tick(self):
         self.engine.budget-=1
@@ -465,8 +466,8 @@ class Structured:
                             if self.boolean(expr,scope):chosen=body;result=True;break
                         self.trace(routine,n,context,result,detail='branch selected' if result else 'else / no branch');run(chosen)
                     elif n.kind=='case':
-                        cases,profile=self.case_contract(n,scope)
-                        if profile is None:value=self.value(n.expr,scope)
+                        cases,profile,destination=self.case_contract(n,scope)
+                        if profile is None:value=self.value(n.expr,scope,destination)
                         else:value=wide_st.evaluate(self.expression(n.expr),self.memory,scope,profile)
                         chosen=n.otherwise
                         for ranges,body in cases:
