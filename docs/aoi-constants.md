@@ -63,7 +63,12 @@ with a saved backing word, which can come from a whole-word alias. An import
 with a saved bit and an omitted backing word blocks execution. Overlapping
 whole-word and bit aliases of the same direction are rejected.
 
-Dynamic indices, named UDT bit overlays and fields of other built-in records
+A BOOL alias can also select a named UDT `BIT` member, such as
+`State.Ready`, when it has a unique bit in a hidden scalar SINT host. The
+emulator uses the named BOOL value. A saved alias can establish that value
+when the named member was omitted. A conflicting saved value blocks execution.
+
+Dynamic indices, visible-host overlaps and fields of other built-in records
 remain outside the supported profile. Native Studio 5000 import and packed
 layout remain unverified.
 See Rockwell's [Add-On Instructions manual](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm010_-en-p.pdf).

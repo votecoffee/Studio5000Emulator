@@ -382,6 +382,22 @@ class LocalAlias:
 LADDER_RECORD_TYPES = ('TIMER', 'COUNTER', 'CONTROL')
 
 
+def validate_local_bit_alias(schema, member):
+    """Qualify a named BOOL cell without exposing its hidden host as storage."""
+    nodes = schema.findall('Members/Member')
+    target = member.get('Target', '')
+    hosts = [node for node in nodes if node.get('Name') == target]
+    bit = member.get('BitNumber', '')
+    if (len(hosts) != 1 or hosts[0].get('DataType') != 'SINT'
+            or hosts[0].get('Hidden', 'false').lower() != 'true'
+            or dimensions(hosts[0].get('Dimension', '0'))
+            or dimensions(member.get('Dimension', '0')) or not re.fullmatch('[0-7]', bit)):
+        raise ModelError('named BIT alias requires one scalar bit in a hidden SINT host')
+    if any(node is not member and node.get('DataType') == 'BIT' and node.get('Target') == target
+           and int(node.get('BitNumber', '-1')) == int(bit) for node in nodes):
+        raise ModelError('overlapping named BIT alias targets are unsupported')
+
+
 def local_alias_target(reference, locals_by_name, project):
     """Resolve a fixed path through declared local storage before reading tag data."""
     name = r'[A-Za-z_][A-Za-z_0-9]*'
@@ -429,6 +445,9 @@ def local_alias_target(reference, locals_by_name, project):
         parts.append(member.get('Name'))
         dtype = member.get('DataType', '').upper()
         dims = dimensions(member.get('Dimension', '0'))
+        if dtype == 'BIT':
+            validate_local_bit_alias(schema, member)
+            dtype = 'BOOL'
     if dims:
         raise ModelError('select one scalar value')
     return LocalAlias(tuple(parts), dtype)

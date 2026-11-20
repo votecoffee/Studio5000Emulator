@@ -473,6 +473,65 @@ class AddOnTests(unittest.TestCase):
         parameters.find('Parameter[@Name="Step"]').set('AliasFor','Flags[1].32')
         self.assertTrue(any('bit must be within' in value for value in self.engine(rung).blockers))
 
+    def named_bit_alias_record(self):
+        definition = self.local_alias_record('State.Ready')
+        definition.set('ExecuteEnableInFalse','false')
+        for name in ('Step','Total'):
+            definition.find(f'Parameters/Parameter[@Name="{name}"]').set('DataType','BOOL')
+        members = self.root.find('Controller/DataTypes/DataType[@Name="AliasState"]/Members')
+        E.SubElement(members,'Member',Name='HiddenFlags',DataType='SINT',Dimension='0',Hidden='true')
+        for name,number in (('Ready','0'),('Fault','7')):
+            E.SubElement(members,'Member',Name=name,DataType='BIT',Dimension='0',
+                         Target='HiddenFlags',BitNumber=number)
+        for name in ('AccumulatorA','AccumulatorB'):
+            state = self.root.find(
+                f'Controller/Tags/Tag[@Name="{name}"]/Data/Structure/StructureMember[@Name="State"]')
+            E.SubElement(state,'DataValueMember',Name='Fault',DataType='BOOL',Value='1')
+        self.body()[0].find('Text').text = 'XIC(Step)OTE(Total);'
+        self.body(mode='Prescan')[0].find('Text').text = 'CLR(Count);'
+        return members
+
+    def test_named_bit_alias_shares_its_bool_and_preserves_other_fields(self):
+        self.named_bit_alias_record()
+        engine = self.engine(['LabAccumulator(AccumulatorA,EnableB,AReady,SharedA);'])
+        self.assertEqual(engine.blockers, [])
+        engine.step()
+        self.assertTrue(all(engine.memory.read(ref) for ref in
+                            ('AccumulatorA.Step','AccumulatorA.Total','AccumulatorA.State.Ready','AReady')))
+        engine.memory.write('EnableB',False)
+        engine.step()
+        self.assertFalse(engine.memory.read('AccumulatorA.State.Ready'))
+        self.assertFalse(engine.memory.read('AReady'))
+        self.assertTrue(engine.memory.read('AccumulatorA.State.Fault'))
+        self.assertEqual(engine.memory.read('AccumulatorA.State.Position'),21)
+        engine.memory.write('AccumulatorA.Total',True)
+        self.assertTrue(engine.memory.read('AccumulatorA.Step'))
+        self.assertTrue(engine.memory.read('AccumulatorA.State.Ready'))
+        self.assertNotIn('HiddenFlags',engine.memory.read('AccumulatorA.State'))
+
+    def test_named_bit_alias_saved_value_needs_no_hidden_byte_and_rejects_conflicts(self):
+        self.named_bit_alias_record()
+        saved = self.root.find('Controller/Tags/Tag[@Name="AccumulatorA"]/Data/Structure')
+        E.SubElement(saved,'DataValueMember',Name='Total',DataType='BOOL',Value='1')
+        rung = ['LabAccumulator(AccumulatorA,EnableB,AReady,SharedA);']
+        engine = self.engine(rung)
+        self.assertEqual(engine.blockers, [])
+        self.assertTrue(engine.project.initial['accumulatora']['State']['Ready'])
+        E.SubElement(saved.find('StructureMember[@Name="State"]'),
+                     'DataValueMember',Name='Ready',DataType='BOOL',Value='0')
+        self.assertTrue(any('Conflicting decorated AOI values for State.Ready' in blocker
+                            for blocker in self.engine(rung).blockers))
+
+    def test_named_bit_alias_rejects_visible_hosts_and_overlapping_bits(self):
+        members = self.named_bit_alias_record()
+        host = members.find('Member[@Name="HiddenFlags"]')
+        rung = ['LabAccumulator(AccumulatorA,EnableB,AReady,SharedA);']
+        host.set('Hidden','false')
+        self.assertTrue(any('hidden SINT host' in blocker for blocker in self.engine(rung).blockers))
+        host.set('Hidden','true')
+        members.find('Member[@Name="Fault"]').set('BitNumber','00')
+        self.assertTrue(any('overlapping named BIT alias' in blocker for blocker in self.engine(rung).blockers))
+
     def test_recursive_aoi_call_is_blocked(self):
         E.SubElement(self.definition().find('Parameters'),'Parameter',Name='Peer',DataType='LabAccumulator',Usage='InOut',Required='true')
         self.body()[0].find('Text').text='AFI()LabAccumulator(Peer,Step,Total,Shared,Peer);'
