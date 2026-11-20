@@ -156,6 +156,50 @@ class GsvWallClockTests(unittest.TestCase):
         with patch(MONOTONIC,return_value=1_001_000), patch('logixlab.wall_clock.time.time_ns',return_value=MICROSECONDS*1000):
             self.fault(e,'zero')
 
+    @staticmethod
+    def dst_destinations(root):
+        tags = root.find('./Controller/Tags')
+        configuration.scalar(tags, 'DstEnabled', 'SINT', -7)
+        tag = E.SubElement(tags, 'Tag', Name='DstMinutes', DataType='INT', TagType='Base', Dimensions='3')
+        array = E.SubElement(E.SubElement(tag, 'Data', Format='Decorated'), 'Array', DataType='INT', Dimensions='3')
+        for index, value in ((0, -13), (2, 77)):
+            E.SubElement(array, 'Element', Index=f'[{index}]', Value=str(value))
+        E.SubElement(tags, 'Tag', Name='DstAlias', DataType='INT', TagType='Alias', AliasFor='DstMinutes[ClockIndex]')
+
+    def test_dst_policy_reads_match_static_wall_clock_attributes_in_ladder_and_st(self):
+        for logic, st in (
+            (['XIC(ReadClock)GSV(WallClockTime,,ApplyDST,DstEnabled);',
+              'XIC(ReadClock)GSV(WallClockTime,,DSTAdjustment,DstAlias);'], False),
+            (['IF ReadClock THEN GSV(WallClockTime,,ApplyDST,DstEnabled); '
+              'GSV(WallClockTime,,DSTAdjustment,DstAlias); END_IF;'], True),
+        ):
+            with self.subTest(st=st):
+                e = self.checked(logic, mutate=self.dst_destinations, st=st)
+                with patch('logixlab.wall_clock.current_value_microseconds', side_effect=AssertionError('Static read')):
+                    e.step()
+                    self.assertEqual(e.memory.read('DstEnabled'), -7)
+                    self.assertEqual(e.memory.read('DstMinutes'), [-13, None, 77])
+                    e.memory.write('ReadClock', True)
+                    self.fault(e, 'outside bounds')
+                    e.memory.write('ClockIndex', 1)
+                    e.step()
+                policy = e.project.wall_clock.attributes()
+                self.assertEqual(e.memory.read('DstEnabled'), struct.unpack('<b', policy[10])[0])
+                self.assertEqual(e.memory.read('DstMinutes'), [-13, struct.unpack('<h', policy[9])[0], 77])
+
+    def test_dst_policy_reads_require_exact_destinations_and_explicit_utc(self):
+        for logic, local in (
+            ('GSV(WallClockTime,,ApplyDST,DstEnabled);', False),
+            ('GSV(WallClockTime,,DSTAdjustment,DstAlias);', False),
+            ('GSV(WallClockTime,,ApplyDST,PriorityOut);', True),
+            ('GSV(WallClockTime,,DSTAdjustment,DstEnabled);', True),
+            ('GSV(WallClockTime,,DSTAdjustment,DstMinutes);', True),
+            ('SSV(WallClockTime,,ApplyDST,DstEnabled);', True),
+            ('SSV(WallClockTime,,DSTAdjustment,DstAlias);', True),
+        ):
+            with self.subTest(logic=logic, local=local):
+                self.assertTrue(self.engine(['AFI()' + logic], mutate=self.dst_destinations, local=local).blockers)
+
     def test_coordinated_scope_and_duration_types_are_checked(self):
         for logic,local in (('GSV(CST,This,CurrentValue,Elapsed);',True),
                             ('GSV(CST,,CurrentStatus,Elapsed);',True),
@@ -354,3 +398,4 @@ class GsvWallClockTests(unittest.TestCase):
         e=self.checked(['NOP();']);report=e.report()['system_values']['wall_clock']
         self.assertIn('time.time_ns',report['source']);self.assertIn('separate calls',report['sampling'])
         self.assertTrue(report['clock_setters']);self.assertFalse(report['native_runtime_parity']);self.assertFalse(report['ptp'])
+        self.assertIn('ApplyDST to SINT and DSTAdjustment to INT', report['dst_policy'])

@@ -350,6 +350,7 @@ calendar fields to ladder and existing ST calls through the same host clock
 as the CIP endpoint. In **System lab**, enable ReadClock to fill a calendar
 record with [named DINT fields](docs/wall-clock-gsv.md#calendar-records)
 and read [software CST and its UTC offset](docs/wall-clock-gsv.md#coordinated-system-time).
+`ReadClock` also reads the [UTC daylight-saving policy](docs/wall-clock-gsv.md#daylight-saving-policy-reads).
 ReadTypedTimes shows a DT timestamp, its exact LDT conversion and typed Task
 measurements.
 

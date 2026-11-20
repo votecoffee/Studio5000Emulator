@@ -2,6 +2,7 @@
 import struct
 from datetime import datetime, timezone
 
+from .gsv_configuration import destination as configuration_destination
 from .integer_math import CONTROLLERS
 from .model import ModelError, coerce, dimensions
 from .numeric_copy import static_reference
@@ -14,7 +15,8 @@ SYNC_NANO = "TimeSynchronize.CurrentTimeNanoseconds"
 SYNC_ATTRIBUTES = {"currenttimemicroseconds": (SYNC_MICRO, 2),
                    "currenttimenanoseconds": (SYNC_NANO, 2)}
 ATTRIBUTES = {'currentvalue': (6, 2), 'datetime': (7, 7), 'localdatetime': (5, 7),
-              'cstoffset': (CST_OFFSET, 2)}
+              'cstoffset': (CST_OFFSET, 2), 'dstadjustment': (9, 1), 'applydst': (10, 1)}
+DST_FORMATS = {9: ('INT', '<h'), 10: ('SINT', '<b')}
 
 
 def matches(op):
@@ -41,9 +43,10 @@ def specification(engine,op):
             raise ModelError('CST GSV supports CurrentValue')
         return CST_CURRENT, 2
     if attribute not in ATTRIBUTES:raise ModelError('Unsupported WallClockTime GSV attribute '+op.args[2])
-    if attribute in ('localdatetime', 'cstoffset') and not project.wall_clock.legacy_utc:
+    number, count = ATTRIBUTES[attribute]
+    if (attribute in ('localdatetime', 'cstoffset') or number in DST_FORMATS) and not project.wall_clock.legacy_utc:
         raise ModelError(f'{op.args[2]} GSV requires the explicit source UTC local-time policy')
-    return ATTRIBUTES[attribute]
+    return number, count
 
 
 def _calendar_record_paths(memory, key, parts, count, *, role='destination'):
@@ -83,6 +86,9 @@ def destination(memory,ref,scope,count,scalar_types=('LINT','DT'),*,word_types=(
 
 
 def _clock_destination(memory, ref, scope, number, count):
+    if number in DST_FORMATS:
+        dtype, _ = DST_FORMATS[number]
+        return configuration_destination(memory, ref, scope, dtype, value=None)
     if number == SYNC_NANO:
         key,parts,dtype=memory.check_writable(ref,scope)
         if dtype not in ('LINT','LDT') or isinstance(memory.at(key,parts),(dict,list)):
@@ -157,6 +163,11 @@ def validate(engine,op,scope):
 def execute(engine,op,scope):
     number,count=specification(engine,op);memory=engine.memory
     key,paths,dtype=_clock_destination(memory,op.args[3],scope,number,count)
+    if number in DST_FORMATS:
+        _, fmt = DST_FORMATS[number]
+        value, = struct.unpack(fmt, engine.project.wall_clock.attributes()[number])
+        memory.store(key, paths[0], value)
+        return
     if number is CST_CURRENT:
         ticks = engine.coordinated_clock.microseconds()
         if ticks is None:
@@ -206,6 +217,7 @@ def description():
                     sampling='One sample per reached instruction; separate calls may differ',
                     read_only=True,ptp=False,native_runtime_parity=False),
                 coordinated_time='CST CurrentValue and WallClockTime CSTOffset: scalar TIME, two DINT or two TIME32 cells',
+                dst_policy='UTC-qualified ApplyDST to SINT and DSTAdjustment to INT; read-only static software policy without clock sampling',
                 source='Host time.time_ns UTC plus committed or pending controller adjustment; independent of simulated scan time; microseconds since 1970-01-01',
                 sampling='One sample per reached GSV; separate calls may differ; no scan-wide snapshot',
                 selection='Structural preflight; false/prescan skip live indices and time sampling; reached full writes establish unknown cells',

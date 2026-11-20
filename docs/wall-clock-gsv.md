@@ -57,6 +57,21 @@ scalar TIME range. An invalid sample or destination range faults the
 advance and restores both words.
 [Rockwell CST reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/37-01/contents-ditamap/instruction-set/input-output-instructions/access-the-cst-object.html)
 
+## Daylight-saving policy reads
+
+```text
+GSV(WallClockTime,,ApplyDST,ClockApplyDst);
+GSV(WallClockTime,,DSTAdjustment,ClockDstAdjustment);
+```
+
+Under the explicit UTC local-time policy, ladder and ST can read `ApplyDST`
+into one writable SINT element and `DSTAdjustment` into one writable INT
+element. Both read zero from the same policy as the clock object's CIP
+attributes. These reads sample neither host UTC nor the coordinated clock.
+They report the emulator policy for the source project. DST configuration
+and import of saved extended DST settings are outside this profile.
+[Rockwell WallClockTime reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/37-02/contents-ditamap/instruction-set/input-output-instructions/access-the-wallclocktime-object.html)
+
 ## TimeSynchronize clock reads
 
 Ladder and existing ST GSV calls can read the software controller's UTC counters:
@@ -155,7 +170,8 @@ also writes the seven named members of `ClockRecord`. Its trailing
 reads. The example explicitly selects the UTC-local policy. Array guard
 cells stay 101/999. `ClockCst` and `ClockCstWords[1..2]` show elapsed
 microseconds, and `ClockCstOffset[0..1]` holds the UTC offset. The
-`ClockCstWords` guard cells retain 101 and 999.
+`ClockCstWords` guard cells retain 101 and 999. `ClockApplyDst` and
+`ClockDstAdjustment` change from -1 to 0 when ReadClock reaches the policy reads.
 
 Set `ClockIndex` to 99 while ReadClock is false to observe lazy retention. A
 reached calendar read then faults and rolls back the advance. Restore the index
