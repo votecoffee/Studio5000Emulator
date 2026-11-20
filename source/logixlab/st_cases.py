@@ -66,4 +66,5 @@ def normalize(ranges,dtype):
 def description():
     return dict(numeric_types=['SINT','INT','DINT',*sorted(WIDE_TYPES),'REAL','LREAL'],labels='Immediate numeric values, lists and inclusive ascending ranges',
                 comparison='DINT or exact wide integers, float32 REAL or binary64 LREAL; labels follow the selector type',
+                integer_promotion='Mixed wide selectors use the highest-ranked source tag type when it covers all source tag ranges',
                 selection='First matching branch; otherwise ELSE or retain previous values',native_runtime_parity=False)

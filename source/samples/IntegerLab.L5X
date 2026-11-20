@@ -394,6 +394,10 @@
       <Tag Name="StRealWideCaseInput" DataType="ULINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="ULINT" Value="9223372586610589697" /></Data></Tag>
       <Tag Name="StRealWideCaseDivisor" DataType="REAL" TagType="Base"><Data Format="Decorated"><DataValue DataType="REAL" Value="1.0" /></Data></Tag>
       <Tag Name="StRealWideCaseResult" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="RunStMixedIntegerCase" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="StMixedIntegerCaseInput" DataType="LINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="LINT" Value="9007199254740993" /></Data></Tag>
+      <Tag Name="StMixedIntegerCaseOffset" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="StMixedIntegerCaseResult" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
       <Tag Name="StDivisor" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
         <Data Format="Decorated">
           <DataValue DataType="LINT" Radix="Decimal" Value="3" />
@@ -1180,6 +1184,13 @@
               <Line Number="39">        ELSE StRealWideCaseResult:=-1;</Line>
               <Line Number="40">    END_CASE;</Line>
               <Line Number="41">END_IF;</Line>
+              <Line Number="42">IF RunStMixedIntegerCase THEN</Line>
+              <Line Number="43">    CASE StMixedIntegerCaseInput+StMixedIntegerCaseOffset OF</Line>
+              <Line Number="44">        9007199254740992L: StMixedIntegerCaseResult:=10;</Line>
+              <Line Number="45">        9007199254740993L..9007199254740995L: StMixedIntegerCaseResult:=20;</Line>
+              <Line Number="46">        ELSE StMixedIntegerCaseResult:=-1;</Line>
+              <Line Number="47">    END_CASE;</Line>
+              <Line Number="48">END_IF;</Line>
             </STContent>
           </Routine>
           <Routine Name="NarrowRealOutputs" Type="RLL">

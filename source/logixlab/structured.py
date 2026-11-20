@@ -373,7 +373,7 @@ class Structured:
         elif wide:
             if expression.temporal_types:
                 raise ModelError('Wide integer CASE selectors require integer operands')
-            profile=wide_st.analyze(expression,self.memory,scope)
+            profile=wide_st.analyze(expression,self.memory,scope,consumer='CASE')
             dtype,kind,_=profile
             evaluate=wide_st.evaluate
         else:

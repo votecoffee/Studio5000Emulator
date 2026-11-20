@@ -16,7 +16,7 @@ def analyze(expression,memory,scope='',destination_type=None,*,consumer='ST'):
     strings={ref for ref,kind in declared.items()
              if consumer=='CMP' and memory.project.string_capacity(kind) is not None}
     numeric={kind for ref,kind in declared.items() if ref not in strings}-{'BOOL'}
-    mixed=consumer in ('CPT','CMP','FAL') and len(numeric)>1
+    mixed=consumer in ('CPT','CMP','FAL','CASE') and len(numeric)>1
     if mixed:
         dtype=ordering_type(numeric)
         if expression.typed_types - {dtype}:
@@ -29,7 +29,7 @@ def analyze(expression,memory,scope='',destination_type=None,*,consumer='ST'):
         raise ModelError(label+' numeric destination must match the expression type')
     ladder_math = consumer in ('CPT','CMP','FAL')
     bcd = {'FRD','TOD'} if expression.bcd and ladder_math and not mixed else set()
-    roots = {'SQR', 'SQRT'} if consumer == 'ST' else {'SQR'}
+    roots = {'SQR', 'SQRT'} if consumer in ('ST','CASE') else {'SQR'}
     if expression.functions-{'ABS'}-bcd-roots:
         raise ModelError(label+' supports ABS, qualified square roots and ladder FRD/TOD; other functions remain unqualified')
     types={ref:'string' if ref in strings else 'bool' if kind=='BOOL' else 'number' for ref,kind in declared.items()}
@@ -52,7 +52,8 @@ def analyze(expression,memory,scope='',destination_type=None,*,consumer='ST'):
         return origins[key]
     def require_common(node):
         if not common_operand(node):
-            raise ModelError('Mixed ladder arithmetic requires the common tag type in every arithmetic subexpression')
+            context='CASE' if consumer=='CASE' else 'ladder'
+            raise ModelError(f'Mixed {context} arithmetic requires the common tag type in every arithmetic subexpression')
     def infer(node):
         kind,value=node[:2]
         if kind=='literal':

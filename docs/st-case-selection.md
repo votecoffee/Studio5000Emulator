@@ -63,8 +63,8 @@ checked at the declared width. Untyped labels must fit both DINT and the
 selector type. Use L, U or UL on decimal or radix labels to select the full
 LINT, UDINT or ULINT range. Suffix matching is case-insensitive. Radix labels
 support underscore grouping and signed LINT bit patterns such as
-`16#FFFF_FFFF_FFFF_FFFFL` for -1. Floating labels and mixed numeric selector
-expressions are outside the wide CASE profile.
+`16#FFFF_FFFF_FFFF_FFFFL` for -1. The exact integer profile requires integer
+labels.
 
 ```text
 CASE PartId OF
@@ -78,6 +78,24 @@ The adjacent labels above 2^53 remain distinct. In **Integer lab**, set
 RunStWideCase and step. The default StWideCaseInput is 9007199254740993, which
 selects StWideCaseResult=20. Set the input to 9007199254740992 for result 10,
 or 9007199254740996 for ELSE=-1.
+
+### Selectors with mixed integer widths
+
+When a selector mixes integer tag types and includes a wide integer, the
+highest-ranked source tag type must cover the full range of every source
+type. LINT with DINT and ULINT with UDINT qualify. ULINT with LINT fails
+validation because ULINT cannot represent negative LINT values.
+
+Each arithmetic subexpression must include a source tag of the common type.
+Typed integer constants and labels must match that type. Intermediates are
+checked at the common width, and mixed integer bitwise expressions remain
+unqualified. The ranking follows the emulator's
+[mixed integer arithmetic](ladder-wide-expressions.md#mixed-integer-arithmetic) rules.
+
+In **Integer lab**, enable RunStMixedIntegerCase. The default LINT input
+9007199254740993 and DINT offset 0 select StMixedIntegerCaseResult=20. Set
+StMixedIntegerCaseOffset to -1 to select 10. The selector evaluates both
+inputs exactly above 2^53.
 
 ### Binary64 selectors
 
@@ -129,10 +147,11 @@ comparison profile and retain `native_runtime_parity=false`.
 
 ## Remaining scope
 
-Mixed-width integer-only selectors, additional literal/conversion forms,
-nonfinite floating execution and native compiler/status/fault parity remain
-unqualified. Wide integer, mixed REAL/wide and LREAL CASE profiles have been
-tested in the emulator. Native v35 acceptance remains unverified.
+Mixed integers without a common source type, mixed-width bitwise operations,
+additional literal/conversion forms, nonfinite floating execution and native
+compiler/status/fault parity remain unqualified. Wide integer, mixed REAL/wide
+and LREAL CASE profiles have been tested in the emulator. Native v35 acceptance
+remains unverified.
 
 The installed v35 CASE_OF help and Rockwell's
 [CASE_OF reference](https://www.rockwellautomation.com/en-mde/docs/studio-5000-logix-designer/37-01/contents-ditamap/instruction-set/structured-text-attributes/case_of.html)

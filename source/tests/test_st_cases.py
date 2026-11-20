@@ -12,6 +12,7 @@ from logixlab.runtime import Engine
 class NumericCaseTests(unittest.TestCase):
     setUp=fixtures.StructuredTests.setUp
     text=fixtures.StructuredTests.text
+    scalar_tags=fixtures.StructuredTests.scalar_tags
 
     def engine(self,source,value=0.0,dtype='REAL',mutate=None):
         tag=self.root.find('./Controller/Tags/Tag[@Name="Selector"]');tag.set('DataType',dtype)
@@ -167,6 +168,57 @@ class NumericCaseTests(unittest.TestCase):
         e.memory.write('Selector',2**64-2)
         e.step()
         self.assertEqual(e.memory.read('Sum'),2)
+
+    def test_mixed_integer_case_uses_exact_highest_range_and_matching_labels(self):
+        for dtype,value,offset_type,offset,label in (
+            ('LINT',2**53+2,'DINT',-1,'9007199254740993L'),
+            ('UDINT',2**32-2,'UINT',1,'4294967295U'),
+            ('DINT',-2**31,'USINT',255,'-2147483393'),
+            ('ULINT',2**64-2,'UDINT',1,'16#FFFF_FFFF_FFFF_FFFFUL'),
+        ):
+            with self.subTest(dtype=dtype,offset_type=offset_type):
+                tag='Offset'+dtype
+                self.scalar_tags(offset_type,**{tag:offset})
+                source=f'CASE Selector+{tag} OF {label}: State:=10; ELSE State:=-1; END_CASE;'
+                e=self.checked(source,value,dtype)
+                e.step()
+                self.assertEqual(e.memory.read('State'),10)
+
+    def test_mixed_integer_case_exact_root_and_typed_selector_constant(self):
+        self.scalar_tags('INT',Offset=8)
+        e=self.checked('CASE SQRT(Selector+Offset+1L) OF 5L: State:=10; ELSE State:=-1; END_CASE;',
+                       16,'LINT')
+        e.step()
+        self.assertEqual(e.memory.read('State'),10)
+
+    def test_mixed_integer_case_rejects_lossy_promotion_and_unqualified_subexpressions(self):
+        self.scalar_tags('DINT',Offset=1)
+        for dtype,expr,label in (
+            ('ULINT','Selector+Offset','1UL'),
+            ('LINT','Selector+(Offset*2)','1L'),
+            ('LINT','Selector+Offset+1U','1L'),
+            ('LINT','Selector+Offset','1U'),
+            ('LINT','Selector AND Offset','1L'),
+            ('LINT','Selector=Offset','1L'),
+        ):
+            with self.subTest(dtype=dtype,expr=expr,label=label):
+                source=f'IF FALSE THEN CASE {expr} OF {label}: State:=1; END_CASE; END_IF;'
+                self.assertTrue(self.engine(source,1,dtype).blockers)
+
+    def test_mixed_integer_case_checks_intermediates_and_rolls_back(self):
+        self.scalar_tags('DINT',Offset=1)
+        source='State:=7;\nCASE (Selector+Offset)-Offset OF 9223372036854775806L: Sum:=1; END_CASE;'
+        e=self.checked(source,2**63-1,'LINT')
+        before=copy.deepcopy(e.memory.values)
+        schedule=e.scheduler_description()
+        with self.assertRaisesRegex(ModelError,'ST line 2: LINT overflow'):
+            e.step()
+        self.assertEqual(e.memory.values,before)
+        self.assertEqual(e.scheduler_description(),schedule)
+        self.assertEqual((e.scan_count,e.time_ms),(0,0))
+        e.memory.write('Selector',2**63-2)
+        e.step()
+        self.assertEqual(e.memory.read('Sum'),1)
 
     def test_mixed_real_case_rounds_ulint_directly_at_binary32_midpoint(self):
         low=1<<63
