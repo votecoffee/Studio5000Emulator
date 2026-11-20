@@ -280,7 +280,9 @@ Unqualified values, runtime attributes and broader SSV remain unsupported;
 [Task InhibitTask](task-inhibition.md) has a separate runtime profile.
 
 JSR/SBR/RET require exact parameter counts, compatible types and dimensions,
-static references and bounded call nesting. Calls cannot target a main routine;
+and bounded call nesting. The v35 5580 profile supports
+[indirect selected elements in ladder and ST](indirect-routine-calls.md).
+Calls cannot target a main routine;
 RET in a main routine is blocked. Parameterized subroutines require their caller
 when selecting a routine harness.
 

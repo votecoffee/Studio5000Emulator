@@ -9,6 +9,7 @@ from .numeric_storage import typed_literal
 
 
 MAX_NESTING = 25
+INDIRECT_CALLEE_LANGUAGES = ('RLL', 'ST')
 
 
 class BreakLoop(Exception):
@@ -130,7 +131,7 @@ class Calls:
         if problem:raise ModelError(problem)
         indirect=self.indirect_profile(scope)
         if op.name!='JSR':
-            self._callee_operands(op,scope,indirect=indirect and kind=='RLL',structural=True)
+            self._callee_operands(op,scope,indirect=indirect and kind in INDIRECT_CALLEE_LANGUAGES,structural=True)
             return
         previous=self.memory.structural
         if indirect:self.memory.structural=True
@@ -170,7 +171,7 @@ class Calls:
         if routine.name.lower()==self.engine.project.programs[scope]['main'].lower():raise ModelError('JSR cannot call a main routine')
         header,returns=self.signature(routine);count=int(op.args[1])
         sources=[self._caller_operand(op,x,scope) for x in op.args[2:2+count]]
-        indirect=self.indirect_profile(scope) and routine.kind=='RLL'
+        indirect=self.indirect_profile(scope) and routine.kind in INDIRECT_CALLEE_LANGUAGES
         inputs=self._callee_operands(header,scope,indirect=indirect,structural=True) if header else []
         self.check_pairs(sources,inputs)
         destinations=[self._caller_operand(op,x,scope,writable=True) for x in op.args[2+count:]]
@@ -303,7 +304,7 @@ class Calls:
             return
         frame=self.stack[-1]
         if frame['received']:raise ModelError('SBR executed more than once in one call')
-        indirect=self.indirect_profile(scope) and self.engine._executing_routine.kind=='RLL'
+        indirect=self.indirect_profile(scope) and self.engine._executing_routine.kind in INDIRECT_CALLEE_LANGUAGES
         destinations=self._callee_operands(op,scope,indirect=indirect)
         self.check_pairs(frame['sources'],destinations)
         self.store(destinations,frame['values']);frame['received']=True
@@ -315,7 +316,7 @@ class Calls:
             if op.args:raise ModelError('RET has no JSR caller')
             return
         frame=self.stack[-1]
-        indirect=self.indirect_profile(scope) and self.engine._executing_routine.kind=='RLL'
+        indirect=self.indirect_profile(scope) and self.engine._executing_routine.kind in INDIRECT_CALLEE_LANGUAGES
         sources=self._callee_operands(op,scope,indirect=indirect)
         self.check_pairs(sources,frame['destinations'])
         values = self.values(sources)
@@ -327,7 +328,7 @@ class Calls:
 
     def report(self):
         return {'calls':self.edges,'nesting_limit':MAX_NESTING,'parameters_per_direction':40,
-                'contract':'Exact counts/types/dimensions; copied values; bounded indirect JSR and ladder SBR/RET elements; cross-parameter overlap rejected; prescan does not transfer parameters',
+                'contract':'Exact counts/types/dimensions; copied values; bounded indirect JSR, SBR and RET elements in ladder and ST; cross-parameter overlap rejected; prescan does not transfer parameters',
                 'typed_constants':dict(available=self.indirect_profile(''),types=['LINT','UDINT','ULINT','LREAL'],
                     radix_bases=[2,8,16],syntax='Decimal and attached radix L/l, U/u and UL/ul/Ul/uL integers; floating L/l constants',
                     transfers='JSR inputs and RET values keep their declared type; exact matching formal/return types; literal range checked before execution',
@@ -339,6 +340,6 @@ class Calls:
                 'indirect':dict(available=self.indirect_profile(''),profile='v35-5580-caller-elements',
                                 selection='Structural JSR preflight; false/prescan skip live caller indices and values',
                                 capture='Input and return-destination addresses captured at call entry before input copies; current values copied before SBR writes',
-                                callee='Ladder SBR destinations and RET sources select live elements only on the reached transfer, with all addresses and values captured before the first write',
-                                boundaries='One selected element per explicit indirect operand; ST SBR/RET retain static rules; FOR uses its separate profile; preflight defers element overlap for explicit indirect operands until the live call or transfer',
+                                callee='Ladder and ST SBR destinations and RET sources select live elements on the reached transfer, with all addresses and values captured before the first write',
+                                boundaries='One selected element per explicit indirect operand; FOR uses its separate profile; preflight defers element overlap for explicit indirect operands until the live call or transfer',
                                 native_runtime_parity=False)}

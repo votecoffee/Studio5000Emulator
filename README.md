@@ -481,8 +481,8 @@ transactional rollback. The [ladder monitor shows the held index and last bound 
 [Indirect routine arguments](docs/indirect-routine-calls.md) let JSR callers
 select input and return elements at runtime with copied values and captured
 call-entry addresses. Two JSR return operands can select distinct elements
-of the same array. Ladder SBR and RET select the callee's indexed elements
-when their transfer runs. The [ladder monitor shows captured call operands](docs/logic-viewer.md#call-operand-values)
+of the same array. Ladder and Structured Text SBR and RET select the callee's
+indexed elements when their transfer runs. The [ladder monitor shows captured call operands](docs/logic-viewer.md#call-operand-values)
 when a transfer has executed. [Typed routine constants](docs/indirect-routine-calls.md#typed-numeric-constants)
 add exact LINT/unsigned and binary64 values to JSR inputs and RET outputs.
 [Grouped DINT words](docs/indirect-routine-calls.md#grouped-dint-parameters)

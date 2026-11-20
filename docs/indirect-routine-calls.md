@@ -120,8 +120,19 @@ indices. Caller return destinations still come from JSR entry.
 Preflight checks the declared shapes and permissions of all transfers.
 Overlap checks involving an explicitly indexed callee operand use
 the actual locations at transfer time. Bounds, unknown consumed
-values and overlap errors in SBR or RET roll back the scan. ST SBR and RET
-keep their static operand rules.
+values and overlap errors in SBR or RET roll back the scan.
+
+### Indexed Structured Text SBR and RET
+
+The v35 ControlLogix 5580 profile also supports runtime-selected callee elements
+in Structured Text. An ST subroutine can declare `SBR(Work[InputSlot]);` and
+return `RET(Work[ResultSlot]);` through the same transfer rules. Callee
+selectors are evaluated when the transfer runs. Caller destinations remain
+bound to the addresses selected at JSR entry. Only the reached RET reads its
+source values, including when a branch returns early.
+
+Rockwell documents the [Structured Text call and transfer forms](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/37-02/contents-ditamap/instruction-set/program-control-instructions/jump-to-subroutine--jsr---subroutine--sbr---and-re.html).
+Native sampling of indirect ST operands remains unverified.
 
 ## Guards and rollback
 

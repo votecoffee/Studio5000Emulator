@@ -13,6 +13,13 @@ class CallReferenceTests(unittest.TestCase):
     routine = fixtures.CallTests.routine
     body = fixtures.CallTests.body
 
+    def structured_routine(self, name, *lines):
+        routines = self.root.find('./Controller/Programs/Program/Routines')
+        routine = E.SubElement(routines, 'Routine', Name=name, Type='ST')
+        content = E.SubElement(routine, 'STContent')
+        for number, line in enumerate(lines):
+            E.SubElement(content, 'Line', Number=str(number)).text = line
+
     def engine(self, rungs, mutate=None):
         self.root = E.parse(Path(__file__).resolve().parents[1] / 'samples/CallLab.L5X').getroot()
         tags = self.root.find('./Controller/Tags')
@@ -290,6 +297,64 @@ class CallReferenceTests(unittest.TestCase):
         self.assertEqual(e.memory.read('Inputs'),[77,20,None])
         self.assertEqual(e.memory.read('Outputs'),[None,20,None])
 
+    def test_structured_callee_uses_transfer_time_indices_and_captured_caller_destination(self):
+        def setup(root):
+            self.structured_routine('Selected',
+                'SBR(InputIndex,Inputs[InputIndex]);',
+                'OutputIndex:=2;',
+                'RET(Inputs[InputIndex-1]);')
+
+        e = self.checked(['XIC(IndirectEnabled)JSR(Selected,2,2,InputValue,Outputs[OutputIndex]);'], setup)
+        e.step()
+        self.assertEqual(e.memory.read('Inputs'), [None, None, None])
+        e.memory.write('InputIndex', 1)
+        e.memory.write('OutputIndex', 0)
+        e.memory.write('IndirectEnabled', True)
+        e.step()
+        self.assertEqual(e.memory.read('Inputs'), [None, 7, None])
+        self.assertEqual(e.memory.read('InputIndex'), 2)
+        self.assertEqual(e.memory.read('OutputIndex'), 2)
+        self.assertEqual(e.memory.read('Outputs'), [7, None, None])
+        self.assertEqual(e.calls.stack, [])
+
+    def test_structured_callee_checks_actual_sbr_overlap_before_copying(self):
+        def setup(root):
+            self.structured_routine('Selected',
+                'SBR(Inputs[InputIndex],Inputs[OutputIndex]);',
+                'RET(Inputs[InputIndex],Inputs[OutputIndex]);')
+
+        e = self.checked(['JSR(Selected,2,17,23,Outputs[0],Outputs[1]);'], setup)
+        e.memory.write('InputIndex', 1)
+        e.memory.write('OutputIndex', 1)
+        before = self.snapshot(e)
+        with self.assertRaisesRegex(ModelError, 'Overlapping parameter destinations'):
+            e.step()
+        self.assertEqual(self.snapshot(e), before)
+        e.memory.write('OutputIndex', 2)
+        e.step()
+        self.assertEqual(e.memory.read('Inputs'), [None, 17, 23])
+        self.assertEqual(e.memory.read('Outputs'), [17, 23, None])
+
+    def test_unreached_structured_ret_leaves_live_index_unevaluated(self):
+        def setup(root):
+            self.structured_routine('Selected',
+                'WorkValue:=77;',
+                'IF EarlyReturn THEN RET(Inputs[InputIndex]); END_IF;',
+                'RET(Inputs[1]);')
+
+        e = self.checked(['JSR(Selected,0,Outputs[0]);'], setup)
+        e.memory.write('Inputs[1]', 29)
+        e.memory.write('InputIndex', 99)
+        e.memory.write('EarlyReturn', False)
+        e.step()
+        self.assertEqual(e.memory.read('Outputs'), [29, None, None])
+        e.memory.write('WorkValue', 11)
+        e.memory.write('EarlyReturn', True)
+        before = self.snapshot(e)
+        with self.assertRaisesRegex(ModelError, 'Array index outside bounds'):
+            e.step()
+        self.assertEqual(self.snapshot(e), before)
+
     def test_types_literal_bounds_and_older_profiles_remain_guarded(self):
         for text in ('JSR(DoubleValue,1,Inputs[99],Result);', 'JSR(DoubleValue,1,PackedWord.0,Result);', 'JSR(DoubleValue,1,RealInputs[InputIndex],Outputs[OutputIndex]);'):
             self.assertTrue(self.engine(['AFI()' + text]).blockers, text)
@@ -305,13 +370,11 @@ class CallReferenceTests(unittest.TestCase):
             older(root)
             self.routine('Bad',['SBR(Inputs[InputIndex]);'])
         self.assertTrue(self.engine(['AFI()JSR(Bad,1,InputValue);'],older_callee).blockers)
-        def st_callee(root):
-            self.routine('Bad',[])
-            target = root.find('./Controller/Programs/Program/Routines/Routine[@Name="Bad"]')
-            target.remove(target.find('RLLContent'))
-            target.set('Type','ST')
-            E.SubElement(E.SubElement(target,'STContent'),'Line',Number='0').text='RET(Inputs[InputIndex]);'
-        self.assertTrue(self.engine(['AFI()JSR(Bad,0,Result);'],st_callee).blockers)
+        def older_st_callee(root):
+            older(root)
+            self.structured_routine('Bad', 'RET(Inputs[InputIndex]);')
+        e = self.engine(['AFI()JSR(Bad,0,Result);'], older_st_callee)
+        self.assertIn('Routine parameters require static array indices', str(e.blockers))
         def fixed_overlap(root):
             E.SubElement(root.find('./Controller/Tags'),'Tag',Name='FixedOutput',TagType='Alias',AliasFor='Outputs[0]')
             self.routine('Two',['RET(WorkValue,NestedOutput);'])
