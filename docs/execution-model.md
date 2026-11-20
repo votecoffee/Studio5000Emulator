@@ -406,7 +406,7 @@ destinations clear during modeled prescan, including inside conditional code.
 Prescan walks lexical ST sites rather than executing normal loop iterations.
 Native prescan-order and iteration parity have not been established.
 
-### Indirect Structured Text FOR counters
+### Indirect Structured Text FOR operands
 
 The v35 ControlLogix 5580 profile accepts a writable array element selected
 at runtime as an ST FOR counter. For example, `FOR Counters[Station] := 0 TO 2 DO`
@@ -418,10 +418,14 @@ usual.
 
 A selected counter must be scalar SINT, INT or DINT. If it overlaps a tag used
 by the limit or increment, the emulator faults before initializing the counter.
-Invalid reached subscripts also fault and roll back the advance. Limits and
-increments retain their existing reference rules. Rockwell documents the
-[FOR counter types](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm007_-en-p.pdf).
-Native sampling of an indirect counter remains unverified.
+Limits and BY increments can use indirect scalar reads, such as
+`TO Limits[Station] BY Increments[Station]`. Live selection checks keep those
+reads and their selector tags separate from the active counter. Preflight
+conservatively protects every possible destination in an indirectly read tag,
+as well as the selector dependencies, from known loop-body writes. Out-of-range
+reached subscripts and overlap with the counter roll back the advance.
+Rockwell documents the [FOR operand types](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm007_-en-p.pdf).
+Native sampling of indirect operands remains unverified.
 
 ### Subroutine calls in Structured Text FOR loops
 

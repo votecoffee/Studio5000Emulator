@@ -174,6 +174,59 @@ class StructuredTests(unittest.TestCase):
         self.root.find('Controller').set('MajorRev', '34')
         self.assertTrue(self.engine(source).blockers)
 
+    def test_for_indirect_limit_and_increment_support_selectors_and_aliases(self):
+        tags = self.root.find('./Controller/Tags')
+        E.SubElement(tags, 'Tag', Name='Bounds', TagType='Alias', AliasFor='Values')
+        engine = self.engine(
+            'Sum:=0; FOR Index:=4 TO Bounds[Selector] BY Values[Selector+1] DO '
+            'Sum:=Sum+Index; END_FOR;')
+        self.assertEqual(engine.blockers, [])
+        engine.memory.write('Selector', 1)
+        engine.memory.write('Values[1]', 0)
+        engine.memory.write('Values[2]', -2)
+        engine.step()
+        self.assertEqual(engine.memory.read('Sum'), 6)
+        self.assertEqual(engine.memory.read('Index'), -2)
+
+    def test_for_indirect_bounds_protect_subscript_dependencies_and_candidate_cells(self):
+        for body in ('Selector:=2;', 'Values[4]:=2;'):
+            with self.subTest(body=body):
+                engine = self.engine(f'FOR Index:=0 TO Values[Selector] DO {body} END_FOR;')
+                self.assertIn('FOR body cannot modify tags', str(engine.blockers))
+        engine = self.engine('FOR Index:=0 TO Values[Values[Index]] DO Sum:=Sum+1; END_FOR;')
+        self.assertIn('FOR bounds/step cannot depend on its counter', str(engine.blockers))
+
+    def test_for_indirect_limit_checks_overlap_and_skips_unreached_indices(self):
+        engine = self.engine(
+            'IF Enable THEN FOR Values[0]:=0 TO Values[Selector] DO '
+            'Sum:=Sum+1; END_FOR; END_IF;')
+        self.assertEqual(engine.blockers, [])
+        engine.memory.write('Enable', False)
+        engine.memory.write('Selector', 99)
+        engine.step()
+        engine.memory.write('Enable', True)
+        engine.memory.write('Selector', 1)
+        engine.memory.write('Values[1]', 1)
+        engine.step()
+        self.assertEqual(engine.memory.read('Values[0]'), 2)
+        engine.memory.write('Selector', 0)
+        before = copy.deepcopy(engine.memory.values)
+        with self.assertRaisesRegex(ModelError, 'FOR bounds/step cannot depend on its counter'):
+            engine.step()
+        self.assertEqual(engine.memory.values, before)
+        self.assertEqual(engine.scan_count, 2)
+
+    def test_for_jsr_rolls_back_a_write_to_the_selected_indirect_limit(self):
+        engine = self.engine(
+            'FOR Index:=0 TO Values[Selector] DO JSR(LadderScale,1,Index,Values[1]); END_FOR;')
+        self.assertEqual(engine.blockers, [])
+        engine.memory.write('Selector', 1)
+        engine.memory.write('Values[1]', 4)
+        before = copy.deepcopy(engine.memory.values)
+        with self.assertRaisesRegex(ModelError, 'JSR changed an active FOR limit or increment'):
+            engine.step()
+        self.assertEqual(engine.memory.values, before)
+
     def test_for_read_only_tag_bound_is_supported(self):
         e=self.engine('Sum:=0; FOR Index:=0 TO Step DO Sum:=Sum+Index; END_FOR;');self.assertEqual(e.blockers,[]);e.step()
         self.assertEqual(e.memory.read('Sum'),3)

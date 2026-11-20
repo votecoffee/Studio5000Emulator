@@ -3,7 +3,8 @@ import copy
 import re
 from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass,field
-from .model import ModelError,Op,operand_problem
+from .model import ModelError,Op,operand_problem,split_indices
+from .expressions import Expression
 from .st_expression import STExpression
 from . import system_values, array_sort, st_cases, st_timers, st_counter, st_oneshot, st_scale, st_signal, st_rate, st_moving, st_capture, st_filter, st_digital, st_accumulate, st_select, st_derivative, st_curves, st_pi, st_bit_moves, numeric_copy, numeric_fill
 from .integer_math import WIDE_TYPES
@@ -207,23 +208,50 @@ class Structured:
         if isinstance(value,bool) or not isinstance(value,int):raise ModelError('ST loop operand requires an integer')
         return value
 
-    def loop_operands(self, node, scope):
+    def loop_references(self, node):
+        pending = [ref for expr in (node.limit, node.step) for ref in self.expression(expr).refs]
+        references = {}
+        while pending:
+            ref = pending.pop()
+            if ref in references:
+                continue
+            references[ref] = None
+            # An indirect operand depends on its selector tags as well as the selected cell.
+            depth = 0
+            start = 0
+            for position, character in enumerate(ref):
+                if character == '[':
+                    if depth == 0:
+                        start = position + 1
+                    depth += 1
+                elif character == ']':
+                    depth -= 1
+                    if depth == 0:
+                        for subscript in split_indices(ref[start:position]):
+                            pending.extend(Expression(subscript, subscript=True).refs)
+        return references
+
+    def loop_dependencies(self, references, scope):
+        calls = self.engine.calls
+        indirect = calls.indirect_profile(scope)
+        return [calls.operand(ref, scope, indirect=indirect) for ref in references]
+
+    def check_loop_counter(self, counter, dependencies):
         from .calls import overlaps
+        if any(overlaps(counter, dep) for dep in dependencies):
+            raise ModelError('FOR bounds/step cannot depend on its counter')
+
+    def loop_operands(self, node, scope, references):
         calls = self.engine.calls
         counter = calls.operand(node.target, scope, writable=True, indirect=calls.indirect_profile(scope))
         if counter.dims:
             raise ModelError('FOR counter must select one scalar')
-        dependencies = [
-            calls.operand(ref, scope)
-            for expr in (node.limit, node.step)
-            for ref in self.expression(expr).refs
-        ]
-        if any(overlaps(counter, dep) for dep in dependencies):
-            raise ModelError('FOR bounds/step cannot depend on its counter')
+        dependencies = self.loop_dependencies(references, scope)
+        self.check_loop_counter(counter, dependencies)
         return counter, dependencies
 
     def loop_contract(self,node,scope):
-        _, dependencies = self.loop_operands(node, scope)
+        _, dependencies = self.loop_operands(node, scope, self.loop_references(node))
         writes=[];extra_writes=[]
         for item in walk(node.body):
             if item.kind in ('assign','for'):writes.append(item.target)
@@ -247,10 +275,15 @@ class Structured:
                     positions={'COP':[1],'CPS':[1],'FLL':[1],'SIZE':[2],'CONCAT':[2],'MID':[3],'DTOS':[1],'STOD':[1],'LOWER':[1],'UPPER':[1],'STOR':[1],'RTOS':[1],'FIND':[3],'INSERT':[3],'DELETE':[3],
                                'SWPB':[2],'SBR':list(range(len(op.args)))}.get(op.name,[])
                     writes.extend(op.args[i] for i in positions if i<len(op.args))
+        indirect_bounds = any(dep.deferred_overlap for dep in dependencies)
         for ref in writes:
-            key,parts,_=self.memory.resolve(ref,scope);extra_writes.append((key,parts))
+            key, parts, _ = self.memory.resolve(ref, scope)
+            if indirect_bounds and not numeric_copy.static_reference(self.memory, ref, scope, follow_aliases=True):
+                parts = []
+            extra_writes.append((key, parts))
         for key,parts in extra_writes:
-            if any(dep.key==key and (parts[:len(dep.parts)]==dep.parts or dep.parts[:len(parts)]==parts) for dep in dependencies):
+            if any(dep.key == key and (dep.deferred_overlap or parts[:len(dep.parts)] == dep.parts
+                                      or dep.parts[:len(parts)] == parts) for dep in dependencies):
                 raise ModelError('FOR body cannot modify tags used by its bounds/step')
 
     def validate(self,routine,scope):
@@ -409,12 +442,16 @@ class Structured:
                     elif n.kind=='for':
                         start = self.integer(n.start, scope)
                         # Keep the selected counter cell for this loop invocation.
-                        counter, _ = self.loop_operands(n, scope)
+                        references = self.loop_references(n)
+                        counter, _ = self.loop_operands(n, scope, references)
+                        indexed_bounds = any('[' in ref for ref in references)
                         self.memory.write(counter.ref, start, counter.scope)
                         with watch_loop(n, counter):
                             # Bounds and increment are re-evaluated at each loop test.
                             while True:
                                 self.tick()
+                                if indexed_bounds:
+                                    self.check_loop_counter(counter, self.loop_dependencies(references, scope))
                                 step, limit = loop_bounds(n)
                                 if not step:raise ModelError('FOR step cannot be zero')
                                 current = self.memory.read(counter.ref, counter.scope)
