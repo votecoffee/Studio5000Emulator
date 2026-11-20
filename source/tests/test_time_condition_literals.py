@@ -73,7 +73,9 @@ class TimeConditionLiteralTests(unittest.TestCase):
                 Condition,lambda t:Condition(t,allow_wide=True),lambda t:Condition(t,lreal=True)):
             with self.assertRaises(ModelError):create('T#1us>T#0s')
         with self.assertRaises(ModelError):Expression('T#1us',temporal_literals=True).validate(None)
-        with self.assertRaises(ModelError):Expression('T#1us',condition=True,structured=True,temporal_literals=True)
+        st = Expression('T#1us>T#0s', condition=True, structured=True, temporal_literals=True)
+        self.assertEqual(st.temporal_types, {'TIME'})
+        with self.assertRaises(ModelError):Expression('T#1us', subscript=True, temporal_literals=True)
         for text in ('LT#1nsabc','DT#2026-01-01-00:00:00foo','LT#1ns_','LT#1ns#2'):
             self.assertTrue(self.make([f'AFI()CMP({text}>T#0s)OTE(RunLatch);'],checked=False).blockers,text)
         e=self.make(['NOP();']);condition=e.extensions.condition('LT#1ns>T#0s',allow_wide=True,lreal=True)

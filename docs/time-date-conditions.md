@@ -35,7 +35,7 @@ first-match inhibit/resume, held/done skips and numeric false continuation.
 The temporal expression profile requires at least one temporal tag or typed
 temporal literal. Constant-only conditions are supported. Bare numeric constants
 have no implicit time unit. Unsupported temporal operators, numeric mixtures,
-ST/FBD/SFC execution, new controller profiles and native
+FBD/SFC execution, new controller profiles and native
 numerical/status/fault/layout/lifecycle parity remain separate.
 
 In **Wide expression lab**, set TemporalIndex=1 and TemporalEnabled=true.
@@ -53,6 +53,22 @@ See [temporal storage](time-date-storage.md), [condition parser](../source/logix
 [temporal evaluator](../source/logixlab/time_values.py),
 [FSC](../source/logixlab/file_search.py) and
 [focused cases](../source/tests/test_time_conditions.py).
+
+## Structured Text time and date comparisons
+
+In the v35 ControlLogix 5580 emulator profile, a Structured Text Boolean
+assignment or condition can use one time/date comparison with `=`, `<>`,
+`<`, `<=`, `>` or `>=`. It accepts scalar tags, aliases, indexed elements
+or typed literals. Duration types compare with other durations and timestamp
+types with other timestamps. Both operands use exact integer nanoseconds
+during the comparison, so one-nanosecond differences survive.
+
+Preflight checks the operands even in a skipped branch. A skipped condition
+leaves live indices and values unevaluated. Unknown reached operands and
+invalid selections roll back the advance. Temporal arithmetic and compound
+temporal Boolean expressions are separate from this single-comparison profile.
+Rockwell documents [single-operator ST time/date expressions](https://www.rockwellautomation.com/en-mde/docs/studio-5000-logix-designer/37-01/contents-ditamap/instruction-set/time-and-date-data-types.html).
+Native v35 comparison behavior remains unverified.
 
 ## Typed thresholds and dates
 

@@ -118,6 +118,60 @@ class StructuredTests(unittest.TestCase):
                 e = self.engine('IF FALSE THEN ' + statement + ' END_IF;')
                 self.assertIn(message, str(e.blockers))
 
+    def test_temporal_relations_distinguish_adjacent_nanoseconds(self):
+        self.time_tag('Stamp', 'LDT', 1603623920123456789)
+        for operation, expected in (('=', False), ('<>', True), ('<', True),
+                                    ('<=', True), ('>', False), ('>=', False)):
+            with self.subTest(operation=operation):
+                e = self.engine(f'Done:=Stamp {operation} LDT#2020-10-25-11:05:20.123_456_790;')
+                self.assertEqual(e.blockers, [])
+                e.step()
+                self.assertIs(e.memory.read('Done'), expected)
+
+    def test_temporal_tag_families_compare_across_precisions_in_if_and_while(self):
+        self.time_tag('Delay', 'TIME32', -1002)
+        self.time_tag('Stamp', 'LDT', 1001)
+        self.time_tag('CoarseStamp', 'DT', 1)
+        e = self.engine(
+            'IF Delay=LT#-1ms_2us THEN State:=7; END_IF; '
+            'WhileCount:=0; WHILE Stamp>CoarseStamp DO '
+            'WhileCount:=WhileCount+1; Stamp:=LDT#1970-01-01-00:00:00.000_001_000; END_WHILE;')
+        self.assertEqual(e.blockers, [])
+        e.step()
+        self.assertEqual(e.memory.read('State'), 7)
+        self.assertEqual(e.memory.read('WhileCount'), 1)
+        self.assertEqual(e.memory.read('Stamp', allow_time=True), 1000)
+
+    def test_temporal_if_skips_unreached_indices_and_rolls_back_unknown_reads(self):
+        self.time_tag('Times', 'LDT', elements=(None, 2))
+        e = self.engine(
+            'State:=7; IF Enable THEN '
+            'IF Times[Selector]>LDT#1970-01-01-00:00:00.000_000_001 THEN State:=12; END_IF; '
+            'END_IF;')
+        self.assertEqual(e.blockers, [])
+        e.memory.write('Enable', False)
+        e.memory.write('Selector', 99)
+        e.step()
+        self.assertEqual(e.memory.read('State'), 7)
+        e.memory.write('Enable', True)
+        e.memory.write('Selector', 0)
+        e.memory.write('State', 5)
+        before = copy.deepcopy(e.memory.values)
+        with self.assertRaisesRegex(ModelError, 'Unknown initial byte/value'):
+            e.step()
+        self.assertEqual(e.memory.values, before)
+        e.memory.write('Selector', 1)
+        e.step()
+        self.assertEqual(e.memory.read('State'), 12)
+
+    def test_temporal_comparisons_require_one_relation_and_matching_families(self):
+        self.time_tag('Stamp', 'LDT', 1)
+        self.time_tag('Delay', 'TIME', 0)
+        for condition in ('Stamp>Delay', 'Stamp=1', '(Stamp>Stamp) OR Enable', 'Stamp+Delay>Stamp'):
+            with self.subTest(condition=condition):
+                e = self.engine(f'IF FALSE THEN IF {condition} THEN State:=1; END_IF; END_IF;')
+                self.assertTrue(e.blockers)
+
     def test_if_elsif_else_select_first_true_branch(self):
         source='IF Selector=1 THEN State:=1; ELSIF Selector>0 THEN State:=2; ELSIF Selector=3 THEN State:=3; ELSE State:=-1; END_IF;'
         e=self.engine(source);self.assertEqual(e.blockers,[])

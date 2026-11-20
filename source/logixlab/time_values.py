@@ -203,9 +203,14 @@ def expression_profile(expression, memory, scope='', destination_type=None, *, c
     from .model import ModelError
     declared={ref:memory.resolve(ref,scope)[2] for ref in expression.refs}
     if destination_type not in TYPES and not TYPES.intersection(declared.values()) and not expression.temporal_types:return None
-    if consumer not in ('CPT','CMP','FAL'):raise ModelError('Unsupported temporal expression consumer')
+    if consumer not in ('CPT','CMP','FAL','ST'):raise ModelError('Unsupported temporal expression consumer')
     if not available(memory.project):raise ModelError('Temporal expressions require the v35 ControlLogix 5580 profile')
-    condition=consumer=='CMP'
+    if consumer == 'ST':
+        tree = expression.tree
+        if (tree[0] != 'binary' or tree[1] not in RELATIONS
+                or any(operand[0] not in ('ref', 'time_literal') for operand in tree[2:])):
+            raise ModelError('ST time/date expressions require one comparison of scalar tags or typed literals')
+    condition = consumer in ('CMP', 'ST')
     if not condition and destination_type not in TYPES:raise ModelError('Temporal CPT/FAL requires a temporal scalar destination')
     types={};previous=memory.structural
     try:
@@ -280,7 +285,7 @@ def evaluate_expression(expression, memory, scope, profile):
         if value in ('^^','XOR'):return left!=right
         return bounded(left+right if value=='+' else left-right,category)
     result=visit(expression.tree)
-    if profile['consumer']=='CMP':return result
+    if profile['consumer'] in ('CMP', 'ST'):return result
     dtype=profile['destination_type']
     try:ticks=exact_ticks(result,dtype,profile['consumer']+' temporal result')
     except ValueError as error:raise ModelError(str(error)) from error
@@ -295,5 +300,6 @@ def expression_description(project):
                 destination='CPT/FAL temporal scalar of the result family; exact tick precision and declared range required',
                 conditions='Same-family relations, BOOL/string comparisons and eager Boolean composition',
                 failures='Unknowns, bounds, fractional ticks, range and later faults roll back the advance; FAL temporal errors do not use REAL ER/prefix retry',
-                excluded='Numeric mixtures, multiplication/division/functions, date + date, duration - date, ST/FBD/SFC and native numerical/status/fault/layout parity',
+                st_comparisons='One relation between same-family temporal scalar tags or typed literals',
+                excluded='Numeric mixtures, multiplication/division/functions, date + date, duration - date, ST arithmetic, FBD/SFC and native numerical/status/fault/layout parity',
                 native_runtime_parity=False)

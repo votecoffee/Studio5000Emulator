@@ -33,8 +33,8 @@ PRECEDENCE = {'OR': 1, 'XOR': 2, 'AND': 3, '+': 4, '-': 4,
 class Expression:
     def __init__(self, text, condition=False, structured=False, subscript=False, bcd=False, floating_literals=False, integer_literals=False, radix_literals=False, temporal_literals=False):
         if len(text) > 4096: raise ModelError('Expression exceeds 4096 characters')
-        if temporal_literals and (structured or subscript):
-            raise ModelError('Time/date expression literals require qualified ladder expressions')
+        if temporal_literals and subscript:
+            raise ModelError('Time/date literals are unsupported in array subscripts')
         self.precedence = dict(PRECEDENCE)
         self.minimum = -3 if condition else 0
         self.structured=structured

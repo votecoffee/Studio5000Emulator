@@ -4,17 +4,22 @@ from .integer_math import quotient
 from .expressions import Expression
 from .conditions import RELATIONS
 from .model import ModelError,coerce
-from . import wide_st
+from . import time_values, wide_st
 
 
 class STExpression(Expression):
     def __init__(self,text):
-        try:super().__init__(text,condition=True,structured=True)
+        try:super().__init__(text,condition=True,structured=True,temporal_literals=True)
         except (ValueError,IndexError) as e:raise ModelError('Malformed ST expression') from e
 
     def analyze(self,memory,scope='',destination_type=None):
+        if time_values.expression_profile(self, memory, scope, consumer='ST') is not None:
+            return 'bool', False, {}
         wide=wide_st.analyze(self,memory,scope,destination_type)
         if wide is not None:return wide[1],False,wide[2]
+        return self.analyze_standard(memory, scope)
+
+    def analyze_standard(self, memory, scope):
         real=False;types={};numeric_refs={}
         for ref in self.refs:
             dtype=memory.resolve(ref,scope)[2]
@@ -54,9 +59,12 @@ class STExpression(Expression):
         return result,real,types
 
     def evaluate(self,memory,scope='',destination_type=None):
+        temporal = time_values.expression_profile(self, memory, scope, consumer='ST')
+        if temporal is not None:
+            return time_values.evaluate_expression(self, memory, scope, temporal)
         wide=wide_st.analyze(self,memory,scope,destination_type)
         if wide is not None:return wide_st.evaluate(self,memory,scope,wide)
-        _,real,types=self.analyze(memory,scope)
+        _,real,types=self.analyze_standard(memory,scope)
         def number(x):return coerce(x,'REAL' if real else 'DINT')
         def visit(node):
             kind,value=node[:2]
