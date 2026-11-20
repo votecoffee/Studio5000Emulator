@@ -157,6 +157,13 @@ end of the routine. The routine must retain at least one rung. Layout changes
 renumber the draft in execution order. Undo restores the prior layout and
 numbers.
 
+Use **Copy rung** in a draft, then open **Edit draft** on the destination
+routine and choose **Paste rung**. Paste inserts the copy before the selected
+rung or at the end. The clipboard lives in this browser page for the loaded
+project session. Validation resolves the pasted operands in the destination
+program scope. An explicit preset in a pasted rung must match the saved
+value of its destination backing tag.
+
 Drag the square on a branch's right rail to a highlighted wire dot. A dot
 after the branch wraps the intervening instructions into the top leg. A dot
 inside the top leg releases everything after it to the right of the branch.

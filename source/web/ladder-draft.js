@@ -133,6 +133,17 @@
       record(renumber(next));
       return true;
     }
+    function copyRung(index) {
+      const row = Number.isInteger(index) ? rungs[index] : null;
+      if (!row) return null;
+      return {text: row.text, comment: row.comment, nodes: structuredClone(row.nodes)};
+    }
+    function pasteRung(index, row) {
+      if (!Number.isInteger(index) || index < 0 || index > rungs.length || !row) return false;
+      const nodes = structuredClone(row.nodes);
+      identify(nodes);
+      return addRung(index, {text: row.text, comment: row.comment, nodes});
+    }
     function record(next) {
       past.push(rungs);
       if (past.length > 100) past.shift();
@@ -188,16 +199,15 @@
       get canRedo() {return future.length > 0;},
       operandShape,
       review,
+      copyRung,
+      pasteRung,
       insertRung(index) {
         if (!Number.isInteger(index) || index < 0 || index > rungs.length) return false;
         return addRung(index);
       },
       duplicateRung(index) {
         if (!Number.isInteger(index) || !rungs[index]) return false;
-        const {text, comment, nodes} = rungs[index];
-        const copied = structuredClone(nodes);
-        identify(copied);
-        return addRung(index + 1, {text, comment, nodes: copied});
+        return pasteRung(index + 1, rungs[index]);
       },
       removeRung(index) {
         if (!Number.isInteger(index) || !rungs[index] || rungs.length === 1) return false;

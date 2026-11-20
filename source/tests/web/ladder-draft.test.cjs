@@ -401,3 +401,27 @@ test('duplicating a rung copies its text and nested graph with independent ident
   assert.deepEqual(ids(draft.rungs[1]), copyIds);
   assert.equal(draft.rungs[1].text, source.text);
 });
+
+test('copy and paste use a snapshot and add one undoable change to the destination only', () => {
+  const source = createDraft(fixture());
+  const destination = createDraft({...fixture(), key: 'MainProgram/Other'});
+  const copied = source.copyRung(0);
+  assert(!source.changed);
+  assert(!source.canUndo);
+  assert(source.setComment(0, 'Edited after copying'));
+  assert(destination.pasteRung(0, copied));
+  assert(destination.pasteRung(destination.rungs.length, copied));
+  assert.equal(destination.rungs[0].comment, 'Seal in');
+  assert.equal(destination.rungs.at(-1).comment, 'Seal in');
+  assert.equal(destination.rungs[0].base_index, null);
+  assert.notEqual(destination.rungs[0].nodes[0].draftId, destination.rungs.at(-1).nodes[0].draftId);
+  assert(destination.setOperands(0, destination.rungs[0].nodes[0].draftId, ['DifferentTag']));
+  assert.equal(destination.rungs.at(-1).text, copied.text);
+  assert.equal(source.rungs[0].comment, 'Edited after copying');
+  assert(destination.undo());
+  assert(destination.undo());
+  assert(destination.undo());
+  assert(!destination.changed);
+  assert(destination.redo());
+  assert.equal(destination.rungs[0].text, copied.text);
+});

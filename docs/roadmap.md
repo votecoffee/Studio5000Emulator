@@ -1718,7 +1718,8 @@ tasks, languages, AOIs, UDTs/strings, messages, devices and motion. Add repeatab
 snapshot/restart/replay, resource limits and useful module/axis/chart monitors.
 
 The [offline ladder editor](logic-viewer.md#offline-ladder-drafts) supports
-instruction and branch editing, rung insertion, duplication, reordering and deletion, rung comments,
+instruction and branch editing, rung insertion, duplication, reordering and
+deletion, copying across routines, rung comments,
 undo/redo, draft files, change review, execution preflight and L5X working copies. Durable
 project-wide identities and broader topology and operand validation remain
 planned. Native transfers and online authoring require their own qualification.

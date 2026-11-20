@@ -301,6 +301,56 @@ class LogicExportTests(unittest.TestCase):
             'content': base64.b64encode(exported['content'].encode()).decode()})
         self.assertEqual(self.app.engine.memory.read('StartDelay.PRE'), 321)
 
+    def test_copied_preset_is_checked_against_the_destination_program_saved_tags(self):
+        xml = ET.parse(self.app.engine.project.path)
+        controller = xml.find('./Controller')
+        main = controller.find(".//Routine[@Name='MainRoutine']/RLLContent")
+        source = next(rung for rung in main if 'TON(StartDelay' in rung.findtext('Text', ''))
+        source.find('Text').text = 'XIC(RunLatch)TON(StartDelay,321,0);'
+        alternate = ET.SubElement(controller.find('Programs'), 'Program', Name='Alternate',
+                                  MainRoutineName='Worker', Class='Standard')
+        local = copy.deepcopy(controller.find("./Tags/Tag[@Name='StartDelay']"))
+        local.find(".//DataValueMember[@Name='PRE']").set('Value', '113')
+        ET.SubElement(alternate, 'Tags').append(local)
+        worker = ET.SubElement(ET.SubElement(alternate, 'Routines'), 'Routine', Name='Worker', Type='RLL')
+        rung = ET.SubElement(ET.SubElement(worker, 'RLLContent'), 'Rung', Number='0', Type='N')
+        ET.SubElement(rung, 'Text').text = 'NOP();'
+        state = self.app.command('load', {'name': 'CopiedPreset.L5X',
+            'content': base64.b64encode(ET.tostring(xml.getroot(), encoding='utf-8')).decode()})
+        self.assertEqual(state['blockers'], [])
+        source = next(row for row in state['routines'] if row['key'] == 'MainProgram/MainRoutine')['rungs'][1]
+
+        def pasted_draft(key, text):
+            routine = next(row for row in state['routines'] if row['key'] == key)
+            rows = [{'base_index': i, 'text': rung['text'], 'comment': rung['comment']}
+                    for i, rung in enumerate(routine['rungs'])]
+            rows.append({'base_index': None, 'text': text, 'comment': source['comment']})
+            return {'project_generation': state['project_generation'],
+                    'draft': {'format': 'logixlab-rll-draft', 'version': 3, 'routine': key,
+                              'source_sha256': state['source_sha256'], 'base_revision': 0, 'rungs': rows}}
+
+        wrong_scope = pasted_draft('Alternate/Worker', source['text'])
+        result = self.app.command('ladder-draft-validate', wrong_scope)
+        self.assertFalse(result['valid'])
+        self.assertIn('would change imported tag initial values for StartDelay.PRE', result['diagnostics'][0])
+        with self.assertRaisesRegex(ModelError, 'Alternate/Worker: Rung 1'):
+            self.app.command('ladder-draft-apply', wrong_scope)
+        fixed_scope = pasted_draft('Alternate/Worker', source['text'].replace(',321,', ',113,'))
+        self.assertTrue(self.app.command('ladder-draft-validate', fixed_scope)['valid'])
+        self.assertEqual(self.app.state(), state)
+
+        same_program = pasted_draft('MainProgram/Reporting', source['text'])
+        self.assertTrue(self.app.command('ladder-draft-validate', same_program)['valid'])
+        applied = self.app.command('ladder-draft-apply', same_program)
+        self.assertEqual(applied['routine_edits']['edited_routines'], ['mainprogram/reporting'])
+        model = self.app.engine.project.routines['mainprogram/reporting'].rungs[-1]
+        self.assertEqual(model['nodes'][-1].args, ['StartDelay', '?', '?'])
+        exported = self.app.command('export-edited-l5x', {})
+        self.app.command('load', {'name': exported['filename'],
+            'content': base64.b64encode(exported['content'].encode()).decode()})
+        self.assertEqual(self.app.engine.memory.read('StartDelay.PRE'), 321)
+        self.assertEqual(self.app.engine.memory.read('StartDelay.PRE', 'Alternate'), 113)
+
     def test_reordered_draft_changes_scan_order_and_keeps_source_rung_metadata(self):
         xml = ET.parse(self.app.engine.project.path)
         location = ".//Routine[@Name='MainRoutine']/RLLContent"

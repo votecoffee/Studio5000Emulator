@@ -15,6 +15,7 @@
 <div id="ladder" class="tab-content"><div class="routine-heading"><strong id="routine-name">No routine selected</strong><select id="aoi-context" aria-label="AOI instance" hidden></select><span id="routine-type">RLL</span></div><div class="logic-toolbar" aria-label="Logic view controls"><span id="logic-view-mode" class="logic-readonly">Read-only monitor</span><button id="ladder-draft-mode" type="button" hidden>Edit draft</button><button id="logic-fit" title="Fit diagram width">Fit width</button><button id="logic-zoom-out" aria-label="Zoom logic out">−</button><select id="logic-zoom" aria-label="Logic zoom"><option value="50">50%</option><option value="67">67%</option><option value="80">80%</option><option value="100" selected>100%</option><option value="125">125%</option><option value="150">150%</option><option value="200">200%</option></select><button id="logic-zoom-in" aria-label="Zoom logic in">+</button><label><input id="logic-values" type="checkbox" checked>Values</label><label id="logic-comments-label"><input id="logic-comments" type="checkbox" checked>Comments</label><span id="logic-status" role="status">No execution trace</span></div><div id="ladder-draft-toolbar" class="logic-toolbar lv-draft-toolbar" aria-label="Ladder draft tools" hidden>
   <label for="ladder-draft-palette">Insert<select id="ladder-draft-palette"></select></label><span>Choose a wire dot to insert. Drag instructions or branch handles to edit.</span>
   <button id="ladder-draft-append" type="button">Add rung at end</button>
+  <button id="ladder-draft-paste" type="button" aria-haspopup="dialog" aria-controls="ladder-rung-placement-dialog" disabled>Paste rung</button>
   <button id="ladder-draft-undo" type="button" disabled>Undo</button>
   <button id="ladder-draft-redo" type="button" disabled>Redo</button>
   <button id="ladder-draft-save" type="button" disabled>Save draft JSON</button>
@@ -24,6 +25,7 @@
   <button id="ladder-draft-apply" type="button" disabled>Apply draft</button>
   <input id="ladder-draft-file" type="file" accept=".json,application/json" hidden>
   <button id="ladder-draft-discard" type="button">Discard draft</button>
+  <output id="ladder-draft-clipboard" role="status"></output>
   <output id="ladder-draft-file-status" role="status"></output>
 </div><section id="ladder-draft-validation" aria-label="Draft validation" hidden>
   <output id="ladder-draft-validation-status" role="status"></output>
@@ -96,14 +98,14 @@
     <div class="dialog-actions"><button value="cancel">Cancel</button><button value="save" class="primary">Save comment</button></div>
   </form>
 </dialog>
-<dialog id="ladder-rung-move-dialog" aria-labelledby="ladder-rung-move-heading">
-  <form id="ladder-rung-move-form" method="dialog">
-    <h2 id="ladder-rung-move-heading">Move rung</h2>
+<dialog id="ladder-rung-placement-dialog" aria-labelledby="ladder-rung-placement-heading">
+  <form id="ladder-rung-placement-form" method="dialog">
+    <h2 id="ladder-rung-placement-heading">Rung destination</h2>
     <label for="ladder-rung-destination">Destination</label>
     <select id="ladder-rung-destination" class="full" required autofocus></select>
     <div class="dialog-actions">
       <button value="cancel" formnovalidate>Cancel</button>
-      <button value="move" class="primary">Move rung</button>
+      <button id="ladder-rung-placement-confirm" value="place" class="primary">Place rung</button>
     </div>
   </form>
 </dialog>

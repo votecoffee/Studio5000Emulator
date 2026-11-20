@@ -8,6 +8,7 @@ const moduleInputLabels = {clear:'Cleared',running:'Running',faulted:'Faulted'};
 let locatorTimer = null, locatorRequest = null, locatorDeadline = 0;
 const ladderDrafts = new Map();
 let editingDraft = null, draftFileRequest = 0, draftCheckRequest = 0, draftApplyPending = false;
+let copiedDraftRung = null;
 let displayedDraftCatalog;
 const draftReviewDialog = $('ladder-draft-review-dialog');
 let displayedReviewRungs;
@@ -25,8 +26,9 @@ const logicView = LogixLogicView.create({canvas: $('rungs'), inspector: $('instr
   onDraftRemoveLeg(rung, id, leg) {return changeDraft(draft => draft.removeLeg(rung, id, leg));},
   onDraftInsertRung(index) {return changeDraft(draft => draft.insertRung(index));},
   onDraftDuplicateRung(index) {return changeDraft(draft => draft.duplicateRung(index));},
+  onDraftCopyRung(index) {copyDraftRung(index);},
   onDraftRemoveRung(index) {return changeDraft(draft => draft.removeRung(index));},
-  onDraftMoveRung(index) {openDraftRungMove(index);},
+  onDraftMoveRung(index) {openDraftRungPlacement(index);},
   onDraftComment(index) {openDraftComment(index);}});
 let logicZoom = 1;
 function updateZoom(value) {
@@ -61,6 +63,7 @@ $('ladder-draft-append').onclick = () => {
   const index = ladderDrafts.get(editingDraft)?.rungs.length;
   if (changeDraft(draft => draft.insertRung(index))) logicView.focusDraftRung(index, '.lv-draft-gap');
 };
+$('ladder-draft-paste').onclick = () => openDraftRungPlacement();
 $('ladder-draft-save').onclick = () => {
   const draft = ladderDrafts.get(editingDraft);
   if (!draft?.changed) return;
@@ -236,6 +239,7 @@ function render() {
   const moduleFault = state?.controller?.module_major_fault;
   $('clear-module-fault').hidden = !moduleFault;
   if (!loaded) {
+    copiedDraftRung = null;
     if (draftReviewDialog.open) draftReviewDialog.close();
     return;
   }
@@ -361,28 +365,52 @@ function openDraftComment(index) {
   };
   dialog.showModal();
 }
-function openDraftRungMove(index) {
+function currentCopiedRung() {
+  if (copiedDraftRung && (!state?.loaded || copiedDraftRung.project !== JSON.stringify(draftProjectParts()))) {
+    copiedDraftRung = null;
+  }
+  return copiedDraftRung;
+}
+function updateDraftClipboard() {
+  const copied = currentCopiedRung(), status = $('ladder-draft-clipboard');
+  $('ladder-draft-paste').disabled = draftApplyPending || editingDraft === null || !copied;
+  const message = copied ? 'Copied ' + copied.label : '';
+  if (status.textContent !== message) status.textContent = message;
+}
+function copyDraftRung(index) {
+  const draft = ladderDrafts.get(editingDraft);
+  if (draftApplyPending || !draft) return;
+  const rung = draft.copyRung(index);
+  if (!rung) return;
+  copiedDraftRung = {project: JSON.stringify(draftProjectParts()), rung,
+    label: selected + ' · rung ' + draft.rungs[index].number};
+  updateDraftClipboard();
+}
+function openDraftRungPlacement(index = null) {
   const key = editingDraft, draft = ladderDrafts.get(key), rungs = draft?.rungs;
-  if (!rungs?.[index] || rungs.length < 2 || draftApplyPending) return;
-  const dialog = $('ladder-rung-move-dialog'), destination = $('ladder-rung-destination');
-  $('ladder-rung-move-heading').textContent = 'Move rung ' + rungs[index].number;
+  const moving = index !== null, copied = moving ? null : currentCopiedRung();
+  if (!rungs || draftApplyPending || (moving ? !rungs[index] || rungs.length < 2 : !copied)) return;
+  const dialog = $('ladder-rung-placement-dialog'), destination = $('ladder-rung-destination');
+  $('ladder-rung-placement-heading').textContent = moving ? 'Move rung ' + rungs[index].number : 'Paste rung';
+  $('ladder-rung-placement-confirm').textContent = moving ? 'Move rung' : 'Paste rung';
   const placeholder = new Option('Choose a destination', '');
   placeholder.disabled = true;
   destination.replaceChildren(placeholder);
-  const remaining = rungs.filter((_, position) => position !== index);
+  const remaining = moving ? rungs.filter((_, position) => position !== index) : rungs;
   for (let to = 0; to <= remaining.length; to++) {
     if (to === index) continue;
     const label = remaining[to] ? 'Before rung ' + remaining[to].number : 'End of routine';
     destination.add(new Option(label, String(to)));
   }
   destination.value = '';
-  $('ladder-rung-move-form').onsubmit = event => {
+  $('ladder-rung-placement-form').onsubmit = event => {
     event.preventDefault();
     dialog.close();
     if (event.submitter?.value === 'cancel' || !destination.value || !draftIsActive(key, draft) || draft.rungs !== rungs) return;
+    if (!moving && copied !== currentCopiedRung()) return;
     const to = Number(destination.value);
-    if (changeDraft(active => active.moveRung(index, to))) {
-      logicView.focusDraftRung(to, '[data-rung-action="move"]');
+    if (changeDraft(active => moving ? active.moveRung(index, to) : active.pasteRung(to, copied.rung))) {
+      logicView.focusDraftRung(to, moving ? '[data-rung-action="move"]' : '.lv-draft-gap');
     }
   };
   dialog.showModal();
@@ -484,8 +512,11 @@ function clearDraftCheck() {
 function draftIsActive(key, draft) {
   return key === editingDraft && draftIdentity({key: selected}) === key && draft === ladderDrafts.get(key);
 }
+function draftProjectParts() {
+  return [state.instance_id, state.project_generation, state.source_sha256];
+}
 function draftIdentity(routine) {
-  return JSON.stringify([state.instance_id, state.project_generation, state.source_sha256,
+  return JSON.stringify([...draftProjectParts(),
     state.routine_edits?.revision ?? 0, state.routine_edits?.logic_sha256 ?? null, routine.key]);
 }
 function draftApplyAllowed() {
@@ -539,6 +570,7 @@ function draftControls(routine) {
   mode.textContent = draft ? 'Monitor' : ladderDrafts.get(key)?.changed ? 'Resume draft' : 'Edit draft';
   $('ladder-draft-toolbar').hidden = !draft;
   $('ladder-draft-append').disabled = draftApplyPending;
+  updateDraftClipboard();
   $('ladder-draft-undo').disabled = draftApplyPending || !draft?.canUndo;
   $('ladder-draft-redo').disabled = draftApplyPending || !draft?.canRedo;
   $('ladder-draft-save').disabled = draftApplyPending || !draft?.changed;

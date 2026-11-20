@@ -22,19 +22,16 @@ LAYOUTS = {
 }
 
 
-def literal_operands(project):
-    for routine in project.routines.values():
-        if routine.kind != 'RLL' or routine.problems:
-            continue
-        for rung in routine.rungs:
-            for op in operations(rung['nodes']):
-                if op.name not in LAYOUTS or len(op.args) != ARITIES[op.name]:
-                    continue
-                dtype, records = LAYOUTS[op.name]
-                for reference, first, members in records:
-                    fields = [(i, member) for i, member in enumerate(members, first) if op.args[i] != '?']
-                    if fields:
-                        yield routine, rung, op, dtype, op.args[reference], fields
+def _literal_operands(rungs):
+    for rung in rungs:
+        for op in operations(rung['nodes']):
+            if op.name not in LAYOUTS or len(op.args) != ARITIES[op.name]:
+                continue
+            dtype, records = LAYOUTS[op.name]
+            for reference, first, members in records:
+                fields = [(i, member) for i, member in enumerate(members, first) if op.args[i] != '?']
+                if fields:
+                    yield rung, op, dtype, op.args[reference], fields
 
 
 def _initializer_value(token, member):
@@ -50,10 +47,38 @@ def _initializer_value(token, member):
     raise ModelError(f'{member} initializer requires a decimal DINT, 32-bit radix pattern or ?')
 
 
+def _supported(project):
+    return project.version == '35' and project.processor.upper() in CONTROLLERS
+
+
+def _backing_values(memory, routine, op, expected, reference, fields):
+    program = memory.project.programs[routine.program]
+    if program['class'] != 'Standard' or program['use_as_folder']:
+        raise ModelError('Explicit pseudo-operands require a Standard program routine')
+    if not static_reference(memory, reference, routine.program, follow_aliases=True):
+        raise ModelError('Explicit pseudo-operands require a static backing tag')
+    key, parts, dtype = memory.check_writable(reference, routine.program)
+    if dtype != expected or not isinstance(memory.at(key, parts), dict):
+        raise ModelError(f'{op.name} requires one writable {expected} record per backing tag')
+    for i, member in fields:
+        value = _initializer_value(op.args[i], member)
+        if dtype == 'TIMER' and value < 0:
+            raise ModelError(f'TIMER.{member} initializer must be nonnegative')
+        yield key, (*parts, member), value
+
+
+def _compile_fields(op, fields):
+    if op.source_args is None:
+        op.source_args = op.args.copy()
+    for i, _ in fields:
+        op.args[i] = '?'
+
+
 def initialize_ladder_operands(project):
-    if project.version != '35' or project.processor.upper() not in CONTROLLERS:
+    if not _supported(project):
         return
-    initializers = list(literal_operands(project))
+    initializers = [(routine, *entry) for routine in project.routines.values()
+                    if routine.kind == 'RLL' and not routine.problems for entry in _literal_operands(routine.rungs)]
     if not initializers:
         return
 
@@ -61,21 +86,10 @@ def initialize_ladder_operands(project):
     writes = {}
     for routine, rung, op, expected, reference, fields in initializers:
         try:
-            program = project.programs[routine.program]
-            if program['class'] != 'Standard' or program['use_as_folder']:
-                raise ModelError('Explicit pseudo-operands require a Standard program routine')
-            if not static_reference(memory, reference, routine.program, follow_aliases=True):
-                raise ModelError('Explicit pseudo-operands require a static backing tag')
-            key, parts, dtype = memory.check_writable(reference, routine.program)
-            if dtype != expected or not isinstance(memory.at(key, parts), dict):
-                raise ModelError(f'{op.name} requires one writable {expected} record per backing tag')
-            for i, member in fields:
-                value = _initializer_value(op.args[i], member)
-                if dtype == 'TIMER' and value < 0:
-                    raise ModelError(f'TIMER.{member} initializer must be nonnegative')
-                target = (key, (*parts, member))
+            for key, parts, value in _backing_values(memory, routine, op, expected, reference, fields):
+                target = (key, parts)
                 if target in writes and writes[target] != value:
-                    raise ModelError(f'Conflicting {member} initializers for {reference}')
+                    raise ModelError(f'Conflicting {parts[-1]} initializers for {reference}')
                 writes[target] = value
         except (ModelError, ValueError) as error:
             routine.problems.append(f'Rung {rung["number"]}: {error}')
@@ -87,13 +101,32 @@ def initialize_ladder_operands(project):
         memory.store(key, parts, value)
     project.initial = memory.values
     for _, _, op, _, _, fields in initializers:
-        if op.source_args is None:
-            op.source_args = op.args.copy()
-        for i, _ in fields:
-            op.args[i] = '?'
+        _compile_fields(op, fields)
 
 
-def retain_ladder_operands(previous_rungs, candidate_rungs, *, reuse_matches=False):
+def compile_draft_operands(project, routine, rungs):
+    """Compile explicit settings that agree with the saved destination storage."""
+    if not _supported(project):
+        return []
+    initializers = list(_literal_operands(rungs))
+    if not initializers:
+        return []
+    saved = Memory(project)
+    problems = []
+    for rung, op, expected, reference, fields in initializers:
+        try:
+            for key, parts, value in _backing_values(saved, routine, op, expected, reference, fields):
+                if saved.at(key, parts) != value:
+                    raise ModelError(f'{op.name} would change imported tag initial values for {reference}.{parts[-1]}')
+        except (ModelError, ValueError) as error:
+            problems.append(f'Rung {rung["number"]}: {error}')
+    if not problems:
+        for _, op, _, _, fields in initializers:
+            _compile_fields(op, fields)
+    return problems
+
+
+def retain_ladder_operands(previous_rungs, candidate_rungs):
     """Carry existing compiled pseudo-operands into edited surrounding logic."""
     retained = defaultdict(deque)
     for rung in previous_rungs:
@@ -111,4 +144,4 @@ def retain_ladder_operands(previous_rungs, candidate_rungs, *, reuse_matches=Fal
             matches = retained.get((op.name, tuple(op.args)))
             if matches:
                 op.source_args = op.args.copy()
-                op.args = list(matches[0] if reuse_matches else matches.popleft())
+                op.args = list(matches.popleft())

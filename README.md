@@ -33,6 +33,7 @@ instructions on the wires, resize branches, edit operands, and manage branch leg
 The Insert menu uses the emulator's ladder instruction catalog and includes
 Add-On Instructions defined in the loaded project.
 Add, duplicate, move, or delete rungs and edit their comments.
+Copy and paste rungs between editable ladder routines in the same project.
 Undo and redo cover each draft change.
 Save and reopen draft JSON against the original project and routine.
 Use **Review changes** to compare draft rungs with the loaded routine.
