@@ -13,8 +13,9 @@ class STExpression(Expression):
         except (ValueError,IndexError) as e:raise ModelError('Malformed ST expression') from e
 
     def analyze(self,memory,scope='',destination_type=None):
-        if time_values.expression_profile(self, memory, scope, consumer='ST') is not None:
-            return 'bool', False, {}
+        temporal = time_values.expression_profile(self, memory, scope, destination_type, consumer='ST')
+        if temporal is not None:
+            return ('bool' if temporal['condition'] else 'temporal'), False, {}
         wide=wide_st.analyze(self,memory,scope,destination_type)
         if wide is not None:return wide[1],False,wide[2]
         return self.analyze_standard(memory, scope)
@@ -59,7 +60,7 @@ class STExpression(Expression):
         return result,real,types
 
     def evaluate(self,memory,scope='',destination_type=None):
-        temporal = time_values.expression_profile(self, memory, scope, consumer='ST')
+        temporal = time_values.expression_profile(self, memory, scope, destination_type, consumer='ST')
         if temporal is not None:
             return time_values.evaluate_expression(self, memory, scope, temporal)
         wide=wide_st.analyze(self,memory,scope,destination_type)

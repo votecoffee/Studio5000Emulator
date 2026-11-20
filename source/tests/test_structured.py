@@ -118,6 +118,62 @@ class StructuredTests(unittest.TestCase):
                 e = self.engine('IF FALSE THEN ' + statement + ' END_IF;')
                 self.assertIn(message, str(e.blockers))
 
+    def test_temporal_arithmetic_keeps_exact_mixed_precision_ticks(self):
+        self.time_tag('Clock', 'DT', 1)
+        self.time_tag('Delay', 'TIME', 1)
+        self.time_tag('FineDelay', 'LTIME', 0)
+        self.time_tag('Elapsed', 'LTIME', 0)
+        self.time_tag('Times', 'LDT', elements=(None, None))
+        self.time_tag('Backdated', 'DT', 0)
+        e = self.engine(
+            'FineDelay:=Delay+LT#1ns; '
+            'Times[0]:=Clock+FineDelay; '
+            'Times[1]:=FineDelay+LDT#1970-01-01-00:00:00.000_001_000; '
+            'Elapsed:=Clock-Times[0]; '
+            'FineDelay:=Delay-FineDelay; '
+            'Backdated:=Times[1]-LT#1us_1ns;')
+        self.assertEqual(e.blockers, [])
+        e.step()
+        for ref, ticks in (('FineDelay', -1), ('Elapsed', -1001), ('Times', [2001, 2001]), ('Backdated', 1)):
+            self.assertEqual(e.memory.read(ref, allow_time=True), ticks, ref)
+
+    def test_temporal_arithmetic_defers_faults_and_restores_earlier_writes(self):
+        self.time_tag('Coarse', 'TIME', 7)
+        self.time_tag('Narrow', 'TIME32', 8)
+        self.time_tag('Stamp', 'LDT', 9)
+        for assignment, message in (
+            ('Coarse:=T#1us+LT#1ns;', 'fractional ticks'),
+            ('Narrow:=T32#2147483647us+T32#1us;', 'TIME32 requires exact ticks in range'),
+            ('Stamp:=LDT#1970-01-01-00:00:00-LT#1ns;', 'LDT requires exact ticks in range'),
+        ):
+            with self.subTest(assignment=assignment):
+                e = self.engine(f'State:=7; IF Enable THEN {assignment} END_IF;')
+                self.assertEqual(e.blockers, [])
+                e.memory.write('Enable', False)
+                e.step()
+                self.assertEqual(e.memory.read('State'), 7)
+                e.memory.write('State', 5)
+                e.memory.write('Enable', True)
+                before = copy.deepcopy(e.memory.values)
+                with self.assertRaisesRegex(ModelError, message):
+                    e.step()
+                self.assertEqual(e.memory.values, before)
+                self.assertEqual(e.scan_count, 1)
+
+    def test_temporal_arithmetic_rejects_unsupported_shapes_and_result_families(self):
+        self.time_tag('Clock', 'DT', 1)
+        self.time_tag('Delay', 'TIME', 1)
+        for assignment, message in (
+            ('Clock:=Clock+Clock;', 'Temporal arithmetic supports'),
+            ('Delay:=Delay-Clock;', 'Temporal arithmetic supports'),
+            ('Delay:=Clock+Delay;', 'result family must match'),
+            ('Delay:=(Delay+Delay)-Delay;', 'one + or - operation'),
+            ('Delay:=Delay+1;', 'one + or - operation'),
+        ):
+            with self.subTest(assignment=assignment):
+                e = self.engine(f'IF FALSE THEN {assignment} END_IF;')
+                self.assertIn(message, str(e.blockers))
+
     def test_temporal_relations_distinguish_adjacent_nanoseconds(self):
         self.time_tag('Stamp', 'LDT', 1603623920123456789)
         for operation, expected in (('=', False), ('<>', True), ('<', True),

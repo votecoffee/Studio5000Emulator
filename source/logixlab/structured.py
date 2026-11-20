@@ -308,12 +308,7 @@ class Structured:
                                 raise ModelError('ST time/date assignment requires the v35 ControlLogix 5580 profile')
                             if isinstance(self.memory.at(key, parts), (list, dict)):
                                 raise ModelError('ST time/date assignment requires a scalar destination')
-                            try:
-                                source_type = time_values.operand_type(self.memory, n.expr, scope)
-                            except ValueError as error:
-                                raise ModelError(str(error)) from error
-                            if source_type != dtype:
-                                raise ModelError('ST time/date assignment requires a matching tag or typed literal')
+                            self.type(n.expr, scope, dtype)
                             continue
                         result = self.type(n.expr, scope, dtype)
                         if isinstance(self.memory.read(n.target,scope),list):raise ModelError('Whole-array ST assignment is unsupported; use COP')
@@ -410,10 +405,7 @@ class Structured:
                 try:
                     if n.kind=='assign':
                         key, parts, dtype = self.memory.check_writable(n.target, scope)
-                        if dtype in time_values.TYPES:
-                            value = time_values.read_operand(self.memory, n.expr, scope)
-                        else:
-                            value = self.value(n.expr, scope, dtype)
+                        value = self.value(n.expr, scope, dtype)
                         if isinstance(value,str):
                             tree=self.expression(n.expr).tree
                             if tree[0]=='ref':

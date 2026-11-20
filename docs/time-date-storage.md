@@ -44,8 +44,10 @@ the declared types and scalar shape, and a skipped branch leaves live indices
 and source values unevaluated.
 
 A non-retentive `[:=]` destination clears to zero ticks during modeled
-prescan. A later fault restores the advance's earlier writes. Cross-type
-arithmetic and aggregate ST assignments remain outside this scope.
+prescan. A later fault restores the advance's earlier writes. See
+[ST arithmetic](time-date-conditions.md#structured-text-time-and-date-arithmetic)
+for permitted mixed-precision operations. ST assignments require a scalar
+destination.
 Rockwell describes [Structured Text uses of time and date data](https://www.rockwellautomation.com/en-mde/docs/studio-5000-logix-designer/37-01/contents-ditamap/instruction-set/time-and-date-data-types.html).
 Native v35 assignment behavior remains unverified.
 

@@ -57,6 +57,8 @@ enable `MicrosecondBridge` for an exact legacy timestamp round trip.
 copy matching scalar tags or typed literals at exact tick precision.
 [Structured Text comparisons](docs/time-date-conditions.md#structured-text-time-and-date-comparisons)
 use exact ordering in Boolean assignments and conditions.
+[Structured Text time and date arithmetic](docs/time-date-conditions.md#structured-text-time-and-date-arithmetic)
+supports one addition or subtraction with exact destination ticks.
 
 **Literal ladder CONTROL settings** initialize LEN/POS when importing supported
 shifts, queues, sequencers, statistics and file operations. **Control lab**

@@ -205,12 +205,20 @@ def expression_profile(expression, memory, scope='', destination_type=None, *, c
     if destination_type not in TYPES and not TYPES.intersection(declared.values()) and not expression.temporal_types:return None
     if consumer not in ('CPT','CMP','FAL','ST'):raise ModelError('Unsupported temporal expression consumer')
     if not available(memory.project):raise ModelError('Temporal expressions require the v35 ControlLogix 5580 profile')
+    condition = consumer == 'CMP' or (consumer == 'ST' and destination_type not in TYPES)
     if consumer == 'ST':
         tree = expression.tree
-        if (tree[0] != 'binary' or tree[1] not in RELATIONS
-                or any(operand[0] not in ('ref', 'time_literal') for operand in tree[2:])):
-            raise ModelError('ST time/date expressions require one comparison of scalar tags or typed literals')
-    condition = consumer in ('CMP', 'ST')
+        if not condition and tree[0] in ('ref', 'time_literal'):
+            source_type = declared[tree[1]] if tree[0] == 'ref' else tree[2]
+            if source_type != destination_type:
+                raise ModelError('ST time/date assignment requires a matching tag or typed literal')
+        else:
+            operators = RELATIONS if condition else ('+', '-')
+            if (tree[0] != 'binary' or tree[1] not in operators
+                    or any(operand[0] not in ('ref', 'time_literal') for operand in tree[2:])):
+                if condition:
+                    raise ModelError('ST time/date expressions require one comparison of scalar tags or typed literals')
+                raise ModelError('ST time/date assignment requires a matching tag or typed literal, or one + or - operation')
     if not condition and destination_type not in TYPES:raise ModelError('Temporal CPT/FAL requires a temporal scalar destination')
     types={};previous=memory.structural
     try:
@@ -254,7 +262,7 @@ def expression_profile(expression, memory, scope='', destination_type=None, *, c
     result=infer(expression.tree)
     expected='bool' if condition else 'date' if destination_type in DATE_TYPES else 'duration'
     if result!=expected:raise ModelError(consumer+' temporal result family must match its destination')
-    return dict(consumer=consumer,destination_type=destination_type,declared=declared,types=types,nodes=nodes)
+    return dict(consumer=consumer,condition=condition,destination_type=destination_type,declared=declared,types=types,nodes=nodes)
 
 
 def evaluate_condition(expression, memory, scope, profile):
@@ -265,6 +273,14 @@ def evaluate_expression(expression, memory, scope, profile):
     """Use bounded canonical nanoseconds, then require exact destination ticks."""
     from .conditions import RELATIONS
     from .model import ModelError,coerce
+    tree = expression.tree
+    kind, value = tree[:2]
+    if profile['consumer'] == 'ST' and not profile['condition']:
+        if kind == 'ref':
+            return read_operand(memory, value, scope)
+        if kind == 'time_literal':
+            return value
+
     def bounded(value,category):return coerce(value,'LDT' if category=='date' else 'LTIME')
     def visit(node):
         kind,value=node[:2];category=profile['nodes'][id(node)]
@@ -284,8 +300,8 @@ def evaluate_expression(expression, memory, scope, profile):
         if value in ('||','OR'):return left or right
         if value in ('^^','XOR'):return left!=right
         return bounded(left+right if value=='+' else left-right,category)
-    result=visit(expression.tree)
-    if profile['consumer'] in ('CMP', 'ST'):return result
+    result=visit(tree)
+    if profile['condition']:return result
     dtype=profile['destination_type']
     try:ticks=exact_ticks(result,dtype,profile['consumer']+' temporal result')
     except ValueError as error:raise ModelError(str(error)) from error
@@ -301,5 +317,6 @@ def expression_description(project):
                 conditions='Same-family relations, BOOL/string comparisons and eager Boolean composition',
                 failures='Unknowns, bounds, fractional ticks, range and later faults roll back the advance; FAL temporal errors do not use REAL ER/prefix retry',
                 st_comparisons='One relation between same-family temporal scalar tags or typed literals',
-                excluded='Numeric mixtures, multiplication/division/functions, date + date, duration - date, ST arithmetic, FBD/SFC and native numerical/status/fault/layout parity',
+                st_arithmetic='One + or - between temporal scalar tags or typed literals; exact destination ticks and declared range required',
+                excluded='Numeric mixtures, multiplication/division/functions, date + date, duration - date, compound ST expressions, FBD/SFC and native numerical/status/fault/layout parity',
                 native_runtime_parity=False)

@@ -65,8 +65,8 @@ during the comparison, so one-nanosecond differences survive.
 
 Preflight checks the operands even in a skipped branch. A skipped condition
 leaves live indices and values unevaluated. Unknown reached operands and
-invalid selections roll back the advance. Temporal arithmetic and compound
-temporal Boolean expressions are separate from this single-comparison profile.
+invalid selections roll back the advance. This comparison profile accepts
+one relation with two direct operands.
 Rockwell documents [single-operator ST time/date expressions](https://www.rockwellautomation.com/en-mde/docs/studio-5000-logix-designer/37-01/contents-ditamap/instruction-set/time-and-date-data-types.html).
 Native v35 comparison behavior remains unverified.
 
@@ -136,5 +136,28 @@ Selected[1]=2001ns and Match=true (all have TemporalMath prefix). The routine us
 shared TemporalHighStamp/Stamp/HighDuration. Enable TemporalMathCoarseEnabled
 to demonstrate rejected fractional TIME ticks; change TemporalHighDuration to
 1000ns to obtain an exact Coarse=2us. Index99 and LateDivisor0 demonstrate rollback.
-The report exposes temporal_expressions. ST/FBD/SFC arithmetic and native
+The report exposes temporal_expressions. FBD/SFC temporal arithmetic and native
 precision/status/fault/layout/lifecycle parity remain unqualified.
+
+## Structured Text time and date arithmetic
+
+In the v35 ControlLogix 5580 emulator profile, an assignment can use one
+`+` or `-` between scalar temporal tags, selected elements or typed literals.
+Adding or subtracting durations produces a duration. Subtracting two dates
+also produces a duration. Adding a duration to a date in either order or
+subtracting a duration from a date produces a date.
+
+```text
+FineStamp := StartStamp + LT#1ns;
+Elapsed := FineStamp - StartStamp;
+```
+
+Operands and results use exact integer nanoseconds within the shared LTIME
+and LDT bounds. The destination must have the result's family, fit its
+declared range and represent the result in whole ticks. For instance,
+assigning `T#1us + LT#1ns` to TIME faults because 1001 nanoseconds is a
+fractional microsecond. A reached fault rolls back earlier writes in the
+same advance. Unreached branches leave live indices and values unevaluated.
+
+Chained operations and mixed arithmetic with ordinary numbers are outside
+this profile. Native Studio 5000 v35 behavior remains unverified.
