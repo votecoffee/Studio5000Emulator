@@ -96,6 +96,8 @@ outermost enabled AOI instruction with the incoming rung power.
   TIMER, COUNTER and CONTROL.
 - Data transition, sizing and conversions include DTR, SIZE, TRN, FRD,
   TOD and SWPB.
+- Standalone math includes SQR, XPY, LN, LOG, DEG, RAD, SIN, COS, TAN,
+  ASN, ACS and ATN.
 
 The faulting instruction and the remaining statements in each interrupted AOI
 are skipped. Interrupted invocations also skip their output copies. The
@@ -126,6 +128,11 @@ DTR can update its reference on either rung state. A bad index preserves the
 reference until a later scan can reach it. SIZE, TRN, FRD, TOD and SWPB skip
 their result write on an array bounds fault. Invalid SIZE dimensions and
 numeric conversion range errors still roll back the scan.
+
+The standalone math instructions skip live operands on a false inner rung.
+Recovery skips the result write after an array fault in REAL, LREAL or
+checked integer math. Domain and result overflow errors still roll back
+the scan.
 
 AOI argument, output-transfer, Structured Text and prescan faults remain
 outside this profile. Native v35 behavior remains unverified.

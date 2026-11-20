@@ -44,7 +44,7 @@ AOI_ARRAY_FAULT_RECOVERY_OPS = (
     frozenset(('MOV', 'CLR', 'COP', 'CPS', 'FLL', 'CPT', 'CMP',
                'TON', 'TOF', 'RTO', 'CTU', 'CTD', 'RES', 'DTR', 'SIZE', 'TRN'))
     | scalar_math.INSTRUCTIONS | bit_logic.INSTRUCTIONS | bit_transfer.INSTRUCTIONS
-    | comparisons.INSTRUCTIONS | numeric_conversions.INSTRUCTIONS
+    | comparisons.INSTRUCTIONS | numeric_conversions.INSTRUCTIONS | real_math.INSTRUCTIONS
 )
 _CONTROL_PRESCAN = {
     instruction: family.prescan

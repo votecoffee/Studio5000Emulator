@@ -615,6 +615,19 @@ class ProgramFaultTests(unittest.TestCase):
             ('SIZE(Samples[Index+1],0,Scaled)', [88,13], 114),
             ('SIZE(Samples,0,Samples[Index+1])MOV(Samples[1],Scaled)', [88,2], 114),
             ('TRN(-12.75L,Samples[Index+1])MOV(Samples[1],Scaled)', [88,-12], 100),
+            ('SQR(Samples[Index+1],Samples[0])MOV(Samples[0],Scaled)', [4,13], 116),
+            ('SQR(2147483648L,Samples[Index+1])MOV(Samples[1],Scaled)', [88,46341], 46453),
+            ('XPY(2L,Samples[Index+1],Samples[0])MOV(Samples[0],Scaled)', [8192,13], 8304),
+            ('LN(Samples[Index+1],Samples[0])MOV(Samples[0],Scaled)', [3,13], 115),
+            ('LOG(100,Samples[Index+1])MOV(Samples[1],Scaled)', [88,2], 114),
+            ('DEG(1,Samples[Index+1])MOV(Samples[1],Scaled)', [88,57], 169),
+            ('RAD(180,Samples[Index+1])MOV(Samples[1],Scaled)', [88,3], 115),
+            ('SIN(1.5707963267948966L,Samples[Index+1])MOV(Samples[1],Scaled)', [88,1], 113),
+            ('COS(0,Samples[Index+1])MOV(Samples[1],Scaled)', [88,1], 113),
+            ('TAN(0,Samples[Index+1])MOV(Samples[1],Scaled)', [88,0], 112),
+            ('ASN(1,Samples[Index+1])MOV(Samples[1],Scaled)', [88,2], 114),
+            ('ACS(0,Samples[Index+1])MOV(Samples[1],Scaled)', [88,2], 114),
+            ('ATN(1,Samples[Index+1])MOV(Samples[1],Scaled)', [88,1], 113),
         )
         for work,values,result in cases:
             with self.subTest(work=work):
@@ -639,9 +652,10 @@ class ProgramFaultTests(unittest.TestCase):
                 self.assertEqual(engine.memory.read('SpeedCommand'),result)
                 self.assertIs(engine.last_cleared_program_fault,fault)
 
-    def test_nested_aoi_false_branch_skips_indexed_comparison_and_bit_transfer(self):
+    def test_nested_aoi_false_branch_skips_indexed_operands(self):
         work = ('[AFI()XIC(Samples[Index+1].0)CMP(Samples[Index+1]=13)'
-                'MVM(5,7,Samples[Index+1]),NOP()]MOV(13,Scaled)')
+                'MVM(5,7,Samples[Index+1])SQR(Samples[Index+1],Scaled)'
+                'XPY(2L,Samples[Index+1],Samples[0]),NOP()]MOV(13,Scaled)')
         engine = self.engine(mutate=lambda root:nested_aoi_array_fault_fixture(root,work=work))
         self.assertEqual(engine.blockers,[])
         engine.memory.write('StartPB',True)
@@ -769,6 +783,9 @@ class ProgramFaultTests(unittest.TestCase):
             ('CPT(Scaled,Samples[1]/Index)', 0, 'divide by zero'),
             ('TOD(-1,Samples[0])', 0, 'TOD source outside'),
             ('SIZE(Samples,Index,Scaled)', 1, 'SIZE dimension exceeds array rank'),
+            ('LN(-1,Scaled)', 0, 'LN outside the finite'),
+            ('ACS(2.0L,Samples[1])', 0, 'ACS outside the finite LREAL'),
+            ('XPY(2L,64,Samples[0])', 0, 'DINT overflow in XPY'),
         ):
             with self.subTest(work=work):
                 self.setUp()
