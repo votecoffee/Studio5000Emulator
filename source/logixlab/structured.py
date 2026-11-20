@@ -413,7 +413,11 @@ class Structured:
                                 if st!=dtype:raise ModelError('ST string tag assignment currently requires matching declared types')
                                 self.memory.store(key,parts,copy.deepcopy(self.memory.read(tree[1],scope)))
                             else:self.memory.write_string(n.target,value,scope)
-                        else:self.memory.write(n.target,value,scope)
+                        else:
+                            try:
+                                self.memory.write(n.target, value, scope)
+                            except OverflowError as error:
+                                raise ModelError(f'ST assignment result exceeds finite {dtype} range') from error
                         self.trace(routine,n,context,detail=n.target+' = '+str(value))
                     elif n.kind=='call':
                         try:

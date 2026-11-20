@@ -23,15 +23,15 @@ class StructuredTests(unittest.TestCase):
         path=Path(self.tmp.name)/'fixture.L5X';E.ElementTree(self.root).write(path,encoding='utf-8',xml_declaration=True)
         return Engine(Project(path))
 
-    def lreal_tags(self, **values):
+    def scalar_tags(self, dtype, **values):
         tags = self.root.find('./Controller/Tags')
         for name, value in values.items():
-            tag = E.SubElement(tags, 'Tag', Name=name, TagType='Base', DataType='LREAL')
+            tag = E.SubElement(tags, 'Tag', Name=name, TagType='Base', DataType=dtype)
             E.SubElement(E.SubElement(tag, 'Data', Format='Decorated'), 'DataValue',
-                         DataType='LREAL', Value=str(value))
+                         DataType=dtype, Value=str(value))
 
     def test_lreal_binary64_assignments_conditions_and_explicit_literal_precision(self):
-        self.lreal_tags(Binary64=1.0000000000000002, Delta=0, Promoted=0, Root=0)
+        self.scalar_tags('LREAL', Binary64=1.0000000000000002, Delta=0, Promoted=0, Root=0)
         e = self.engine(
             'Delta := Binary64 - 1.0L; Promoted := 1.0000000000000002; '
             'Done := TRUE AND Binary64 > Promoted; '
@@ -44,7 +44,7 @@ class StructuredTests(unittest.TestCase):
         self.assertIs(e.memory.read('Done'), True)
 
     def test_lreal_mixed_tags_preserve_stored_real_and_convert_integer_values(self):
-        self.lreal_tags(Delta=0)
+        self.scalar_tags('LREAL', Delta=0)
         tags = self.root.find('./Controller/Tags')
         tag = E.SubElement(tags, 'Tag', Name='RoundedReal', TagType='Base', DataType='REAL')
         E.SubElement(E.SubElement(tag, 'Data', Format='Decorated'), 'DataValue',
@@ -59,7 +59,7 @@ class StructuredTests(unittest.TestCase):
         self.assertIs(e.memory.read('Done'), True)
 
     def test_lreal_typed_integer_sources_round_only_after_declared_range_checks(self):
-        self.lreal_tags(Rounded=0, SignedMinimum=0, UnsignedMaximum=0)
+        self.scalar_tags('LREAL', Rounded=0, SignedMinimum=0, UnsignedMaximum=0)
         e = self.engine(
             'Rounded:=9007199254740993L; SignedMinimum:=-9223372036854775808L; '
             'UnsignedMaximum:=16#FFFF_FFFF_FFFF_FFFFUL; '
@@ -74,7 +74,7 @@ class StructuredTests(unittest.TestCase):
         self.assertIs(e.memory.read('Truth'), True)
 
     def test_lreal_runtime_faults_roll_back_prior_assignments_and_skip_unreached_branch(self):
-        self.lreal_tags(Binary64=1e308, Delta=42)
+        self.scalar_tags('LREAL', Binary64=1e308, Delta=42)
         for expression, message in (
             ('Binary64/0.0L', 'divide by zero'),
             ('Binary64*2.0L', 'Nonfinite LREAL'),
@@ -94,14 +94,54 @@ class StructuredTests(unittest.TestCase):
                 self.assertEqual(e.memory.values, before)
 
     def test_lreal_rejects_nonfinite_literals_and_unqualified_types_in_false_branches(self):
-        self.lreal_tags(Binary64=1.0, Delta=0)
+        self.scalar_tags('LREAL', Binary64=1.0, Delta=0)
         for statement in (
             'Delta:=1e309L;', 'Delta:=1e309;', 'Delta:=18446744073709551616UL;',
-            'Delta:=9223372036854775808L;', 'State:=Binary64;', 'Delta:=Binary64+Enable;',
+            'Delta:=9223372036854775808L;', 'Done:=Binary64;', 'Delta:=Binary64+Enable;',
             'Delta:=Binary64 AND Binary64;', 'Delta:=Binary64>0.0L;',
         ):
             with self.subTest(statement=statement):
                 self.assertTrue(self.engine('IF FALSE THEN '+statement+' END_IF;').blockers)
+
+    def test_lreal_assignment_rounds_each_integer_destination_after_evaluation(self):
+        self.scalar_tags('LREAL', Binary64=3.5)
+        self.scalar_tags('REAL', RealOutput=0)
+        dtypes = ('SINT', 'INT', 'DINT', 'LINT', 'USINT', 'UINT', 'UDINT', 'ULINT')
+        targets = ['Result'+dtype for dtype in dtypes]
+        for dtype, target in zip(dtypes, targets):
+            self.scalar_tags(dtype, **{target: 0})
+        expression = ' '.join(f'{target}:=Binary64-1.0L;' for target in targets)
+        e = self.engine(expression + ' State:=16777217.0L; RealOutput:=16777217.0L;')
+        self.assertEqual(e.blockers, [])
+        for source, expected in ((3.5, 2), (4.5, 4), (0.5, 0)):
+            e.memory.write('Binary64', source)
+            e.step()
+            for target in targets:
+                self.assertEqual(e.memory.read(target), expected, target)
+            self.assertEqual(e.memory.read('State'), 16777217)
+            self.assertEqual(e.memory.read('RealOutput'), 16777216.0)
+
+    def test_lreal_final_storage_overflow_has_line_and_rolls_back(self):
+        self.scalar_tags('LREAL', Binary64=1e100)
+        self.scalar_tags('REAL', RealOutput=19)
+        self.scalar_tags('ULINT', UnsignedOutput=17)
+        for assignment, message in (
+            ('RealOutput:=Binary64;', 'finite REAL range'),
+            ('State:=2147483647.5L;', 'DINT overflow'),
+            ('UnsignedOutput:=18446744073709551615UL+0.0L;', 'ULINT overflow'),
+        ):
+            with self.subTest(assignment=assignment):
+                e = self.engine('ScanTotal:=17;\nIF Enable THEN '+assignment+' END_IF;')
+                self.assertEqual(e.blockers, [])
+                e.memory.write('Enable', False)
+                e.step()
+                e.memory.write('Enable', True)
+                e.memory.write('ScanTotal', 33)
+                before = copy.deepcopy(e.memory.values)
+                with self.assertRaisesRegex(ModelError, 'ST line 2: .*'+message):
+                    e.step()
+                self.assertEqual(e.memory.values, before)
+                self.assertEqual(e.scan_count, 1)
 
     def test_text_lab_full_scan_and_prescan(self):
         e=self.engine();self.assertEqual(e.blockers,[])

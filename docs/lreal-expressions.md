@@ -131,9 +131,13 @@ and radix L/U/UL integer constants are checked against their declared type
 before binary64 conversion. Integers beyond 53 significant bits can round.
 An integer suffix alone still selects the existing integer rules.
 
-A numeric assignment target must be LREAL. Every intermediate must be finite.
-Division by zero, nonfinite arithmetic and function-domain errors roll back
-the scan when reached. Native v35 behavior remains unverified.
+An ST assignment can store the result in any of the ten scalar numeric types.
+Evaluation finishes in finite binary64 before the
+[final destination conversion](lreal-results.md#final-conversion). Integer
+destinations round to nearest even and check the declared range. REAL
+destinations round once to finite binary32. Faults during evaluation or final
+conversion roll back the scan when reached. Native v35 behavior remains
+unverified.
 [Rockwell floating-point values reference](https://www.rockwellautomation.com/en-mde/docs/studio-5000-logix-designer/37-02/contents-ditamap/floating-point-values.html)
 
 Enable `RunStDouble` in **Integer Lab**. `StDoubleDelta` shows 2^-52 and
@@ -142,3 +146,9 @@ Enable `RunStDouble` in **Integer Lab**. `StDoubleDelta` shows 2^-52 and
 Boolean comparison, `StDoubleMixedAbove`, also becomes true.
 Set `StDoubleDivisor` to zero to exercise scan rollback, then restore one
 to retry.
+
+Enable `RunStDoubleNarrow` to see `StDoubleNarrowInt` store 2 after
+evaluating 3.5 minus 1.0. `StDoubleNarrowReal` stores 1.0 after rounding
+`DoubleInput`. Set `DoubleInput` to a large finite number such as 1e100
+to make the REAL conversion fault and roll back the earlier integer write.
+Restore the saved input to retry.

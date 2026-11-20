@@ -851,7 +851,8 @@ model. **Integer lab** compares RLL/ST results and demonstrates exact
 Enable `RunStPower` to try [exact wide integer powers](docs/wide-st.md#integer-powers)
 or `RunStRoot` to inspect [integer square-root rounding](docs/wide-st.md#integer-square-roots).
 Enable `RunStDouble` to try [binary64 Structured Text](docs/lreal-expressions.md#structured-text)
-with mixed numeric tags and typed integer constants.
+with mixed numeric tags and typed integer constants. `RunStDoubleNarrow`
+demonstrates checked result conversion to DINT and REAL.
 Complete mixed-type arithmetic,
 additional expression forms and native math flags remain unfinished.
 

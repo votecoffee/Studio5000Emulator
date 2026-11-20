@@ -48,8 +48,6 @@ def analyze(expression, memory, scope='', destination_type=None, *, consumer='CP
         raise ModelError(precision+' expressions require the v35 ControlLogix 5580 profile')
     st = consumer == 'ST'
     condition = consumer == 'CMP' or (st and destination_type in (None, 'BOOL'))
-    if st and not condition and destination_type != 'LREAL':
-        raise ModelError('LREAL ST requires an LREAL numeric destination')
     if not condition and destination_type not in NUMERIC:
         raise ModelError(f'{precision} {consumer} requires a numeric scalar destination')
     functions = frozenset(FUNCTIONS) if precision == 'REAL' else MATH
@@ -210,12 +208,13 @@ def description(project):
                 strings='Built-in STRING and declared DINT LEN/SINT DATA strings; compare active bytes lexically and case-sensitively; validate LEN and required bytes; no string arithmetic/literals',
                 references='Existing structural/lazy scalar, alias, member, array and AOI bindings; full unknown destination writes',
                 failures='Required unknowns, bounds, nonfinite/domain/zero/late faults roll back the modeled advance',
-                structured_text=dict(numeric_tags=sorted(NUMERIC), destination='Scalar LREAL or BOOL',
+                structured_text=dict(numeric_tags=sorted(NUMERIC), destination='Scalar numeric or BOOL',
                     literals='Bounded DINT, finite REAL, floating L/l and decimal or radix L/U/UL integers',
+                    destination_conversion='Evaluate in binary64, then convert once to a checked numeric destination',
                     native_runtime_parity=False),
                 native_runtime_parity=False, native_math_status=False,
                 remaining=['Other separators/typed forms; FRD/TOD and numeric bitwise forms',
-                           'Narrowing ST destinations, FBD/SFC consumers and other controller profiles',
+                           'FBD/SFC consumers and other controller profiles',
                            'Native numerical, status, fault, packed-layout and lifecycle parity'])
 
 

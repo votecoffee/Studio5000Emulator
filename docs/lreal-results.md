@@ -14,7 +14,9 @@ CPT(Selected[Index],SQR(DoubleValue)+SQR(DoubleValue));
 
 ## Final conversion
 
-The expression completes in binary64 before the final destination conversion.
+Ladder CPT and [Structured Text assignments](lreal-expressions.md#structured-text)
+share these final conversion rules. The expression completes in binary64
+before the final destination conversion.
 Operands and intermediate nodes are not rounded to the destination's type.
 For example, an LREAL source of 3.5 minus 1 produces 2.5, then stores DINT 2.
 An LREAL source of 16777217 stores the exact DINT 16777217; converting it to
