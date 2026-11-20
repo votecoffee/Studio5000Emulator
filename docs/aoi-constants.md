@@ -1,4 +1,4 @@
-# Add-On Instruction constants
+# Add-On Instruction parameters
 
 The v35 ControlLogix 5580 software profile accepts decimal LINT, UDINT and ULINT
 constants and finite floating LREAL constants for required scalar AOI Inputs.
@@ -37,10 +37,25 @@ call. Re-enable to copy the constants again. LINT/ULINT API snapshots use exact
 decimal text; LREAL retains binary64 precision.
 
 Time/date and string/aggregate literals, literal Output and InOut actuals,
-other controller profiles, protected definitions, nullable/alias parameters,
+other controller profiles, protected definitions, nullable InOut parameters,
 FBD definitions and native packing/status/lifecycle qualification remain outside
 this increment. The separate [JSR/RET constant profile](indirect-routine-calls.md#typed-numeric-constants)
 uses its own exact routine-parameter contract.
+
+## Aliases to scalar local tags
+
+In the v35 ControlLogix 5580 profile, an ordinary AOI Input or Output can
+declare `AliasFor` to one matching scalar BOOL, SINT, INT, DINT or REAL local
+tag. One Input and one Output can share the same local. The local and its
+aliases refer to one value in each AOI instance. Required Input and Output
+arguments retain the existing copy-in and copy-out rules, including prescan
+and false calls.
+
+Saved decorated values may identify the local or its alias. When both are
+present they must agree. The monitor shows the alias as a public parameter.
+Local members and array elements are outside this first alias profile.
+Native Studio 5000 import and packed layout remain unverified.
+See Rockwell's [Add-On Instructions manual](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm010_-en-p.pdf).
 
 ## Constant InOut parameters
 

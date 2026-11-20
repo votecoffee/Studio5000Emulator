@@ -197,6 +197,8 @@ LREAL inputs; choose **AOI constants lab** to try them.
 required scalar Inputs in ladder and Structured Text.
 [Constant InOut parameters](docs/aoi-constants.md#constant-inout-parameters)
 give AOI logic read-only access to referenced caller data.
+[AOI Input and Output aliases](docs/aoi-constants.md#aliases-to-scalar-local-tags)
+can share the value of a scalar local tag within an instance.
 [Routine call constants](docs/indirect-routine-calls.md#typed-radix-parameters)
 share the exact type contract. [Floating constants](docs/lreal-literals.md) now support
 REAL defaults and explicit LREAL suffixes in CPT/CMP. Wide expression lab

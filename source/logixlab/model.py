@@ -349,11 +349,34 @@ class AddOn:
     problems: list = field(default_factory=list)
     description: str = ''
     constant_inouts: set[str] = field(default_factory=set)
+    local_aliases: dict[str, str] = field(default_factory=dict)
 
     @property
     def required(self):
         return [p for p in self.parameters if p.get('Required','false').lower()=='true'
                 and p.get('Name','').lower() not in ('enablein','enableout')]
+
+
+    def register_local_alias(self, parameter, locals_by_name, used_targets):
+        name = parameter.get('Name', '').lower()
+        usage = parameter.get('Usage')
+        target = parameter.get('AliasFor', '').strip().lower()
+        local = locals_by_name.get(target)
+        dtype = parameter.get('DataType', '').upper()
+        if (usage not in ('Input', 'Output') or name in ('enablein', 'enableout')
+                or parameter.get('Constant', 'false').lower() == 'true'
+                or dtype not in ('BOOL', 'SINT', 'INT', 'DINT', 'REAL')
+                or dimensions(parameter.get('Dimensions', '0'))
+                or local is None or local.get('AliasFor')
+                or dimensions(local.get('Dimensions', '0'))
+                or local.get('DataType', '').upper() != dtype):
+            self.problems.append(f'{parameter.get("Name")}: AOI alias requires a matching scalar local tag and an ordinary Input or Output')
+            return
+        if (usage, target) in used_targets:
+            self.problems.append(f'{parameter.get("Name")}: AOI local may have only one {usage} alias')
+            return
+        used_targets.add((usage, target))
+        self.local_aliases[name] = local.get('Name')
 
 
 class Project:
@@ -430,14 +453,21 @@ class Project:
             members=ET.SubElement(schema,'Members')
             from .integer_math import CONTROLLERS
             copied_types = {'BOOL', *INT_BITS, 'REAL'}
-            if self.version == '35' and self.processor.upper() in CONTROLLERS:copied_types.add('LREAL')
+            qualified = self.version == '35' and self.processor.upper() in CONTROLLERS
+            if qualified:copied_types.add('LREAL')
+            locals_by_name = {item.get('Name', '').lower(): item for item in aoi.locals}
+            used_alias_targets = set()
             for item in aoi.parameters+aoi.locals:
                 name=item.get('Name','');usage=item.get('Usage','Local')
                 if not name or name.lower() in names:aoi.problems.append('Duplicate or missing parameter/local name')
                 names.add(name.lower())
-                if item.get('AliasFor'):aoi.problems.append('Alias parameters are unsupported')
+                if item.get('AliasFor') or item.get('TagType') == 'Alias':
+                    if qualified and item in aoi.parameters:
+                        aoi.register_local_alias(item, locals_by_name, used_alias_targets)
+                    else:aoi.problems.append('Local aliases require v35 ControlLogix 5580 AOI Input or Output parameters')
+                    continue
                 if item.get('Constant','false').lower()=='true':
-                    if usage=='InOut' and self.version=='35' and self.processor.upper() in CONTROLLERS:
+                    if usage=='InOut' and qualified:
                         aoi.constant_inouts.add(name.lower())
                     else:aoi.problems.append('Constant is supported only for v35 ControlLogix 5580 AOI InOut parameters')
                 if usage not in ('Input','Output','InOut','Local'):aoi.problems.append('Unknown parameter usage')
@@ -753,10 +783,27 @@ class Project:
         if element.tag in ("Structure", "StructureMember"):
             result = unknown_shape(default)
             if not isinstance(result, dict): raise ModelError("Structure data mismatch")
+            definition = self.aois.get(element.get("DataType", "").upper())
+            aliases = definition.local_aliases if definition else {}
+            saved_alias_values = {}
             for child in element:
                 name = child.get("Name")
-                if name not in result: raise ModelError(f"Unknown decorated member {name}")
-                result[name] = self.decorated(child, result[name])
+                target = aliases.get((name or "").lower())
+                if target is None:
+                    if name not in result: raise ModelError(f"Unknown decorated member {name}")
+                    result[name] = self.decorated(child, result[name])
+                    continue
+                local = next(item for item in definition.locals if item.get('Name') == target)
+                if (target not in result or child.tag != 'DataValueMember' or child.get('Value') is None
+                        or child.get('DataType', '').upper() != local.get('DataType', '').upper()):
+                    raise ModelError(f"Invalid decorated AOI alias {name}")
+                value = self.decorated(child, result[target])
+                if saved_alias_values.setdefault(target, value) != value:
+                    raise ModelError(f"Conflicting decorated AOI values for {target}")
+            for target, value in saved_alias_values.items():
+                if result[target] is not None and result[target] != value:
+                    raise ModelError(f"Conflicting decorated AOI values for {target}")
+                result[target] = value
             return result
         if element.tag in ("Array", "ArrayMember"):
             result = unknown_shape(default)
@@ -1035,6 +1082,9 @@ class Memory:
                             parts.extend(['FLAGS', ('bit', bit, 16, True)])
                             dtype, value = 'BOOL', bool((value['FLAGS'] >> bit) & 1)
                             continue
+                    definition = self.project.aois.get(dtype.upper())
+                    if definition:
+                        item = definition.local_aliases.get(item.lower(), item)
                     actual = next((k for k in value if k.lower() == item.lower()), None)
                     if actual is None: raise ModelError(f"Unknown member {ref}")
                     if dtype.upper() in ("TIMER", "COUNTER", "CONTROL"):
@@ -1332,6 +1382,12 @@ class Memory:
                 definition=self.project.aois.get(dtype)
                 locals={p.get('Name').lower() for p in definition.locals} if definition else set()
                 for k, v in value.items(): walk(f"{name}.{k}", v, tag,local or k.lower() in locals)
+                if definition and definition.local_aliases:
+                    for parameter in definition.parameters:
+                        alias = parameter.get('Name', '')
+                        target = definition.local_aliases.get(alias.lower())
+                        if target is not None:
+                            walk(f"{name}.{alias}", value[target], tag, local)
             elif isinstance(value, list):
                 def array(path,obj):
                     if isinstance(obj,list):

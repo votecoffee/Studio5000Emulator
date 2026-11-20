@@ -202,15 +202,79 @@ class AddOnTests(unittest.TestCase):
         rr=self.definition().find('Routines');rr.remove(rr.find('./Routine[@Name="EnableInFalse"]'))
         self.assertTrue(any('missing or protected' in b for b in self.engine().blockers))
 
-    def test_st_protected_safety_and_alias_definitions_are_blocked(self):
+    def test_st_protected_safety_and_nonlocal_alias_definitions_are_blocked(self):
         for change in ('st','protected','safety','alias'):
             with self.subTest(change=change):
                 root=copy.deepcopy(self.root);d=self.definition()
                 if change=='st':d.find('./Routines/Routine').set('Type','ST')
                 elif change=='protected':d.find('Routines').clear()
                 elif change=='safety':d.set('Class','Safety')
-                else:d.find('./Parameters/Parameter[@Name="Step"]').set('AliasFor','Count')
+                else:d.find('./Parameters/Parameter[@Name="Step"]').set('AliasFor','Limit')
                 self.assertTrue(self.engine().blockers);self.root=root
+
+    def alias_accumulator(self, *, include_input=True):
+        definition = self.definition()
+        names = ('Step', 'Total') if include_input else ('Total',)
+        for name in names:
+            item = definition.find(f'Parameters/Parameter[@Name="{name}"]')
+            item.set('TagType', 'Alias')
+            item.set('AliasFor', 'Count')
+        for name in ('AccumulatorA', 'AccumulatorB'):
+            saved = self.root.find(f'Controller/Tags/Tag[@Name="{name}"]/Data/Structure')
+            for parameter in names:
+                saved.remove(saved.find(f'DataValueMember[@Name="{parameter}"]'))
+        return definition
+
+    def test_input_and_output_alias_share_one_local_in_ladder_and_st(self):
+        definition = self.alias_accumulator()
+        definition.set('ExecuteEnableInFalse', 'false')
+        logic = definition.find('Routines/Routine[@Name="Logic"]')
+        self.body()[0].find('Text').text = 'ADD(Step,1,Count);'
+        for kind in ('RLL', 'ST'):
+            with self.subTest(kind=kind):
+                if kind == 'ST':
+                    logic.remove(logic.find('RLLContent'))
+                    logic.set('Type', 'ST')
+                    E.SubElement(E.SubElement(logic,'STContent'),'Line',Number='0').text = 'Count := Step + 1;'
+                engine = self.engine()
+                self.assertEqual(engine.blockers, [])
+                engine.step()
+                refs = ('AccumulatorA.Step', 'AccumulatorA.Total', 'AccumulatorA.Count', 'TotalA')
+                self.assertEqual([engine.memory.read(ref) for ref in refs], [3, 3, 3, 3])
+                self.assertNotIn('Step', engine.memory.values['accumulatora'])
+                engine.memory.write('StepA', 7)
+                engine.memory.write('EnableA', False)
+                engine.step()
+                self.assertEqual([engine.memory.read(ref) for ref in refs], [7, 7, 7, 3])
+
+    def test_saved_output_alias_loads_local_and_rejects_conflicting_saved_values(self):
+        definition = self.alias_accumulator(include_input=False)
+        definition.set('ExecutePrescan', 'false')
+        saved = self.root.find('Controller/Tags/Tag[@Name="AccumulatorA"]/Data/Structure')
+        E.SubElement(saved, 'DataValueMember', Name='Total', DataType='DINT', Value='17')
+        second = self.root.find('Controller/Tags/Tag[@Name="AccumulatorB"]/Data/Structure')
+        E.SubElement(second, 'DataValueMember', Name='Total', DataType='DINT', Value='0')
+        engine = self.engine()
+        self.assertEqual(engine.blockers, [])
+        self.assertEqual(engine.memory.read('AccumulatorA.Count'), 17)
+        engine.memory.write('AccumulatorA.Total', 24)
+        rows = {row['name']: row for row in engine.memory.leaves()}
+        self.assertEqual(rows['AccumulatorA.Total']['value'], 24)
+        self.assertFalse(rows['AccumulatorA.Total']['aoi_local'])
+        self.assertEqual(rows['AccumulatorA.Count']['value'], 24)
+        E.SubElement(saved, 'DataValueMember', Name='Count', DataType='DINT', Value='18')
+        self.assertTrue(any('Conflicting decorated AOI values' in blocker for blocker in self.engine().blockers))
+
+    def test_aois_reject_duplicate_aliases_of_same_usage_and_inexact_types(self):
+        definition = self.alias_accumulator()
+        second = E.SubElement(definition.find('Parameters'), 'Parameter', Name='StepAgain', Usage='Input',
+                              DataType='DINT', AliasFor='Count')
+        self.assertTrue(any('only one Input alias' in blocker for blocker in self.engine().blockers))
+        second.set('Usage', 'InOut')
+        self.assertTrue(any('ordinary Input or Output' in blocker for blocker in self.engine().blockers))
+        second.set('Usage', 'Input')
+        second.set('DataType', 'REAL')
+        self.assertTrue(any('matching scalar local tag' in blocker for blocker in self.engine().blockers))
 
     def test_recursive_aoi_call_is_blocked(self):
         E.SubElement(self.definition().find('Parameters'),'Parameter',Name='Peer',DataType='LabAccumulator',Usage='InOut',Required='true')
