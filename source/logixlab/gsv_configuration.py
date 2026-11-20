@@ -111,21 +111,29 @@ AOI_DEFINITION_FIELDS = {
     'MajorRevision': ('DINT', 'major_revision'),
     'MinorRevision': ('DINT', 'minor_revision'),
     'LastEditDate': ('LINT', 'last_edit_date'),
+    'SignatureID': ('DINT', 'signature_id'),
 }
 AOI_DEFINITION_ATTRIBUTES = {name.casefold(): field for name, field in AOI_DEFINITION_FIELDS.items()}
 
 
-def aoi_definition(engine, instance, attribute, scope):
+def aoi_definition(engine, instance, attribute, scope, *, executing):
     memory = engine.memory
-    if instance.casefold() != 'this' or scope not in memory.frames:
-        raise ModelError('GSV AddOnInstructionDefinition requires THIS inside an AOI')
+    in_aoi = scope in memory.frames
+    if in_aoi:
+        if instance.casefold() != 'this':
+            raise ModelError('GSV AddOnInstructionDefinition requires THIS inside an AOI')
+        _, _, name = memory.resolve(scope.removeprefix('@AOI:'))
+    else:
+        if not instance or instance.casefold() == 'this':
+            raise ModelError('GSV AddOnInstructionDefinition requires a definition name in a Program routine')
+        current_instance(engine, 'Program', 'THIS', scope, executing=executing, allow_event=True)
+        name = instance.upper()
     field = AOI_DEFINITION_ATTRIBUTES.get(attribute)
     if field is None:
         raise ModelError('Unsupported GSV AddOnInstructionDefinition attribute ' + attribute)
-    _, _, instance_type = memory.resolve(scope.removeprefix('@AOI:'))
     definitions = engine.project.aoi_catalog.metadata or ()
-    definition = next((row for row in definitions if row.name.upper() == instance_type), None)
-    if definition is None or definition.protected or definition.classification != 'Standard':
+    definition = next((row for row in definitions if row.name.upper() == name), None)
+    if definition is None or definition.classification != 'Standard' or (in_aoi and definition.protected):
         raise ModelError('GSV AddOnInstructionDefinition requires an explicit Standard AOI definition')
     dtype, member = field
     value = getattr(definition, member)
@@ -534,7 +542,7 @@ def source(engine, op, scope='', *, executing=False):
     if cls=='timesynchronize' and attribute in GSV_SETTINGS:
         return time_sync_attribute(project,instance,attribute)
     if cls == 'addoninstructiondefinition':
-        return aoi_definition(engine, instance, attribute, scope)
+        return aoi_definition(engine, instance, attribute, scope, executing=executing)
     if cls == 'controllerdevice':
         return controller_device(engine, instance, attribute, executing=executing)
     if cls == 'module':
@@ -730,7 +738,7 @@ def description():
                     priority='Signed SINT storage retains the unsigned 0..255 byte pattern',
                     clock_sampling=False,read_only=True,ptp=False,native_runtime_parity=False),
                 program=['Name'],routine=['Name'],
-                aoi_definition=dict(instance='THIS inside Standard AOIs', read_only=True,
+                aoi_definition=dict(instance='THIS inside Standard AOIs or a definition name in ordinary scheduled Program routines', read_only=True,
                     attributes={name: dtype for name, (dtype, _) in AOI_DEFINITION_FIELDS.items()}),
                 module=['ForceStatus','LEDStatus','Mode','EntryStatus','FaultCode','FaultInfo','Path'],
                 module_path='Counted CIP route for a local slot, an explicit IPv4 device, or a slot under a qualified remote EN2T/EN2TR.',
@@ -756,5 +764,5 @@ def description():
                 st_for_effects='Complete static destinations; aliases/AOI/changing selections conservatively cover enclosing arrays',
                 native_runtime_equivalence=False, ssv=True,
                 current_instance='Task, Program and Routine THIS in ordinary scheduled Continuous/Periodic/qualified Event Program routines. AddOnInstructionDefinition THIS inside Standard AOIs.',
-                remaining=['Other THIS contexts, AOI signatures, empty instances and native instance IDs','Continuous priority/rate and zero-watchdog defaults',
+                remaining=['Other THIS contexts, calculated/Safety AOI signatures, empty instances and native instance IDs','Continuous priority/rate and zero-watchdog defaults',
                            'Scan-time/interval/status/fault attributes','Other classes/attributes and broader SSV'])

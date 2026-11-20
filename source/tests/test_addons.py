@@ -203,10 +203,10 @@ class AddOnTests(unittest.TestCase):
     def test_definition_gsv_rejects_wrong_context_operand_type_and_unknown_metadata(self):
         gsv = 'GSV(AddOnInstructionDefinition,THIS,MajorRevision,Total);'
         ordinary = self.engine([gsv.replace(',Total)', ',TotalA)')])
-        self.assertTrue(any('requires THIS inside an AOI' in b for b in ordinary.blockers))
+        self.assertTrue(any('requires a definition name' in b for b in ordinary.blockers))
         for logic, message in (
             (gsv.replace(',THIS,', ',LabAccumulator,'), 'requires THIS inside an AOI'),
-            (gsv.replace('MajorRevision', 'SignatureID'), 'Unsupported GSV AddOnInstructionDefinition'),
+            (gsv.replace('MajorRevision', 'SafetySignatureID'), 'Unsupported GSV AddOnInstructionDefinition'),
             (gsv.replace('MajorRevision', 'Name'), 'string tag'),
             (gsv.replace('MajorRevision', 'RevisionExtendedText'), 'is unavailable'),
             (gsv.replace('GSV', 'SSV'), 'SSV'),
@@ -222,6 +222,67 @@ class AddOnTests(unittest.TestCase):
                 self.definition().set('EditedDate', saved)
                 engine = self.engine(['LabAccumulator(AccumulatorA,StepA,TotalA,SharedA);'])
                 self.assertTrue(any('lasteditdate is unavailable' in b for b in engine.blockers), engine.blockers)
+
+    def test_definition_gsv_reads_named_standard_headers_in_ladder_and_st(self):
+        self.definition().set('Revision', '7.002')
+        sections = self.root.find('Controller/AddOnInstructionDefinitions')
+        sealed = E.SubElement(sections, 'EncodedData', EncodedType='AddOnInstructionDefinition',
+                              Name='SealedLibrary', Class='Standard', Revision='5.1', SignatureID='A2345678')
+        E.SubElement(sealed, 'Data').text = 'opaque-definition'
+        reads = [
+            'GSV(AddOnInstructionDefinition,lAbAcCuMuLaToR,MajorRevision,TotalA);',
+            'GSV(AddOnInstructionDefinition,sealedlibrary,SignatureID,TotalB);',
+        ]
+        engine = self.engine(reads)
+        self.assertEqual(engine.blockers, [])
+        engine.step()
+        self.assertEqual(engine.memory.read('TotalA'), 7)
+        self.assertEqual(engine.memory.read('TotalB'), 0xA2345678 - (1 << 32))
+
+        main = self.root.find('Controller/Programs/Program/Routines/Routine')
+        main.remove(main.find('RLLContent'))
+        main.set('Type', 'ST')
+        body = E.SubElement(main, 'STContent')
+        for number, text in enumerate(reads):
+            E.SubElement(body, 'Line', Number=str(number)).text = text
+        engine = self.engine()
+        self.assertEqual(engine.blockers, [])
+        engine.step()
+        self.assertEqual(engine.memory.read('TotalA'), 7)
+        self.assertEqual(engine.memory.read('TotalB'), 0xA2345678 - (1 << 32))
+
+    def test_definition_gsv_named_read_rejects_instance_tag_and_harness(self):
+        for name, reason in (('AccumulatorA', 'explicit Standard AOI definition'),
+                             ('', 'requires a definition name')):
+            with self.subTest(name=name):
+                engine = self.engine([f'GSV(AddOnInstructionDefinition,{name},MajorRevision,TotalA);'])
+                self.assertTrue(any(reason in b for b in engine.blockers), engine.blockers)
+        engine = self.engine(['GSV(AddOnInstructionDefinition,LabAccumulator,MajorRevision,TotalA);'],
+                             mode='routine', routine='MainProgram/MainRoutine')
+        self.assertTrue(any('ordinary v35 5580 project' in b for b in engine.blockers), engine.blockers)
+
+    def test_definition_gsv_signature_uses_only_unambiguous_header_value(self):
+        definition = self.definition()
+        history = E.SubElement(definition, 'SignatureHistory')
+        E.SubElement(history, 'HistoryEntry', SignatureID='12345678')
+        self.body()[0].find('Text').text = 'GSV(AddOnInstructionDefinition,THIS,SignatureID,Total);'
+        calls = ['LabAccumulator(AccumulatorA,StepA,TotalA,SharedA);']
+        for header in (None, '123456789', '16#ABCD', '12G45678'):
+            with self.subTest(header=header):
+                if header is not None:
+                    definition.set('SignatureID', header)
+                engine = self.engine(calls)
+                self.assertTrue(any('signatureid is unavailable' in b for b in engine.blockers), engine.blockers)
+        for header, expected in (('7f123456', 2131899478), ('FFFFFFFF', -1), ('00000000', 0)):
+            with self.subTest(header=header):
+                definition.set('SignatureID', header)
+                engine = self.engine(calls)
+                self.assertEqual(engine.blockers, [])
+                engine.step()
+                self.assertEqual(engine.memory.read('TotalA'), expected)
+        definition.set('{urn:ambiguous}SignatureID', '7F123456')
+        engine = self.engine(calls)
+        self.assertTrue(any('signatureid is unavailable' in b for b in engine.blockers), engine.blockers)
 
     def test_inout_wrong_type_constant_and_literal_are_blocked(self):
         for argument in ('RawValue','3','AccumulatorA.Count.0'):

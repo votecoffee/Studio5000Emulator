@@ -25,6 +25,7 @@ class DefinitionMetadata:
     revision_extension: str | None
     vendor: str | None
     last_edit_date: int | None
+    signature_id: int | None
     protected: bool = False
     routines: tuple | None = None
 
@@ -46,11 +47,22 @@ def header_text(value):
     return None
 
 
-def last_edit_date(node):
-    fields = [key for key in node.attrib if key.rsplit('}', 1)[-1].casefold() == 'editeddate']
-    if fields != ['EditedDate']:
+def header_field(node, name):
+    fields = [key for key in node.attrib if key.rsplit('}', 1)[-1].casefold() == name.casefold()]
+    return node.get(name) if fields == [name] else None
+
+
+def signature_id(node):
+    value = header_field(node, 'SignatureID')
+    if value is None or not re.fullmatch(r'[0-9A-Fa-f]{8}', value):
         return None
-    value = node.get('EditedDate')
+    return struct.unpack('>i', bytes.fromhex(value))[0]
+
+
+def last_edit_date(node):
+    value = header_field(node, 'EditedDate')
+    if value is None:
+        return None
     if not re.fullmatch(r'[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]{1,6})?Z', value):
         return None
     try:
@@ -126,7 +138,7 @@ def source_metadata(root,controller):
         names.add(name.casefold())
         result.append(DefinitionMetadata(
             name, classification, major, minor, header_text(node.get('RevisionExtension')),
-            header_text(node.get('Vendor')), None if protected else last_edit_date(node),
+            header_text(node.get('Vendor')), last_edit_date(node), signature_id(node),
             protected=protected, routines=None if protected else routine_metadata(node, classification),
         ))
     return tuple(result)

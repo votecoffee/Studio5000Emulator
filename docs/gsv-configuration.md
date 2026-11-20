@@ -154,7 +154,10 @@ remain separate.
 Ladder and Structured Text inside a Standard AOI can use
 `GSV(AddOnInstructionDefinition,THIS,Attribute,Destination)` in the v35
 ControlLogix 5580 profile. `THIS` selects the current instance's definition,
-including when the caller is another AOI.
+including when the caller is another AOI. In an ordinary scheduled Standard
+Program, supply the definition name. Names are case-insensitive and do not
+require an instance tag. Encoded Standard definitions can supply explicit
+header values to a named read.
 
 | Attribute | Destination | L5X source |
 | --- | --- | --- |
@@ -163,19 +166,23 @@ including when the caller is another AOI.
 | RevisionExtendedText | Writable scalar LEN/DATA string | `RevisionExtension` |
 | MajorRevision, MinorRevision | Exact DINT scalar | `Revision` major and minor components |
 | LastEditDate | Exact LINT scalar | `EditedDate` UTC microseconds since 1970-01-01 |
+| SignatureID | Exact DINT scalar | Eight hexadecimal digits in the definition header |
 
 ```text
 GSV(AddOnInstructionDefinition,THIS,MajorRevision,SoftwareMajor);
 GSV(AddOnInstructionDefinition,THIS,LastEditDate,EditedAt);
+GSV(AddOnInstructionDefinition,LabAccumulator,SignatureID,ExportedSignature);
 ```
 
 Use the loaded L5X definition's explicit values. For `EditedDate`, the
 emulator accepts an ISO 8601 UTC timestamp ending in `Z` with up to six
 fractional digits. Text fields must be ASCII within the source's 40-character
-limit. Missing or malformed values block the corresponding reads. Signature
-attributes, setters and named definitions remain outside this profile. Studio
-5000 and physical controller execution remain unverified.
+limit. Missing, ambiguous or malformed values block the corresponding reads.
+SignatureID preserves the exported 32-bit pattern in signed DINT storage.
+Signature calculation, historical entries, Safety signatures and setters
+remain outside this profile. Native execution remains unverified.
 [Rockwell Add-On Instructions manual](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm010_-en-p.pdf)
+[Rockwell Import/Export reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm014_-en-p.pdf)
 
 ## Controller source flags
 
