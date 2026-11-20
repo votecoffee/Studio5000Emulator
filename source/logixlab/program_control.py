@@ -1,7 +1,7 @@
 """Program DisableFlag instructions for an ordinary scheduled Program."""
 from dataclasses import dataclass
 
-from .gsv_configuration import current_instance
+from .gsv_configuration import current_instance, read_caller_context
 from .integer_math import CONTROLLERS
 from .model import ModelError, operations
 from .numeric_copy import static_reference
@@ -72,8 +72,10 @@ def activation_routines(project):
 def target(engine, op, scope, *, executing=False):
     if len(op.args) != 4 or any(not isinstance(value, str) for value in op.args):
         raise ModelError('Program DisableFlag requires four neutral-text operands')
-    caller = current_instance(engine, 'Program', 'THIS', scope, executing=executing, allow_event=True)
     instance = op.args[1]
+    if op.name == 'GSV' and instance.casefold() == 'this':
+        scope, executing = read_caller_context(engine, scope, executing)
+    caller = current_instance(engine, 'Program', 'THIS', scope, executing=executing, allow_event=True)
     key = (caller if instance.casefold() == 'this' else instance).casefold()
     project = engine.project
     name = next((name for name in project.programs if name.casefold() == key), None)
@@ -114,11 +116,14 @@ def execute(engine, op, scope):
     memory = engine.memory
     key, parts = operand(memory, op, scope)
     advance = engine._program_advance
-    if advance is None:
+    reading = op.name == 'GSV'
+    aoi_prescan_read = reading and engine.addons.prescanning and scope in memory.frames
+    if advance is None and not aoi_prescan_read:
         raise ModelError('Program DisableFlag requires an active advance')
-    if op.name == 'GSV':
+    if reading:
         inactive_source = source_disabled and name not in engine._program_activation
-        memory.store(key, parts, int(inactive_source or name in advance.disabled))
+        disabled = engine._disabled_programs if advance is None else advance.disabled
+        memory.store(key, parts, int(inactive_source or name in disabled))
         return
     value = memory.at(key, parts)
     if type(value) is not int:
@@ -152,6 +157,7 @@ def description(engine):
         source='Scheduled ordinary Standard Program with a main. An omitted Disabled flag starts enabled in the emulator. Named SSV plans imported-disabled targets.',
         activation='Imported-disabled Programs remain dormant until enabled. Prescan precedes their first permitted execution in the Run cycle.',
         operand='SSV SINT: zero enables, nonzero disables. GSV SINT/DINT returns 0 or 1.',
+        aoi_readback='GSV THIS reads the calling Program in Standard AOIs, including explicit Prescan.',
         effect='Active invocation completes. Later entries check the live flag. Re-enable marks the next invocation first-scan.',
         lifecycle='Run entry and detached routine replacement retain the flag. Reset and reload restore source.',
         native_attribute=ATTRIBUTE, native_attribute_requires_explicit_source=True,

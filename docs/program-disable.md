@@ -37,8 +37,19 @@ target. The target needs a main routine and a complete controller export.
 An explicit Disabled value must be the canonical true or false. When the
 attribute is omitted on an ordinary Program, the emulator starts that Program
 enabled, matching its existing scheduler default. THIS selects the calling
-Program. Folders, unscheduled Programs, Safety, AOIs and isolated routine
+Program. Folders, unscheduled Programs, Safety and isolated routine
 harnesses remain outside this control profile.
+
+## Readback inside AOIs
+
+Standard ladder and Structured Text AOIs use
+`GSV(Program,THIS,DisableFlag,Destination)` to read the calling Program's
+effective flag into a writable SINT or DINT. A Program that disables itself
+can finish its current invocation, so an AOI called later in that invocation
+observes the new flag. An explicit AOI Prescan routine can read the committed
+flag at startup. A later fault rolls back both the flag change and the
+readback. Named targets and writes inside AOIs remain outside this profile.
+Native Studio 5000 execution remains unverified.
 
 ## Enabling an imported disabled Program
 

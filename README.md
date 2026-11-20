@@ -850,7 +850,8 @@ provides independent controls for its Fast and Slow tasks.
 Programs in ladder and ST while their Tasks continue releasing. **System lab**
 demonstrates both controls, activation of a Program imported disabled, and
 first-scan behavior. Ordinary Programs with an omitted Disabled field start
-enabled in the emulator.
+enabled in the emulator. AOIs can read their calling Program's flag through
+GSV Program THIS.
 
 [String and UDT queues](docs/record-queues.md) extend FIFO/LIFO to complete
 matching records, including custom strings, arrays and exact 64-bit fields.

@@ -420,6 +420,59 @@ class AddOnTests(unittest.TestCase):
         engine = self.engine(['LabAccumulator(AccumulatorA,StepA,TotalA,SharedA);'])
         self.assertTrue(any('AOI/harness' in blocker for blocker in engine.blockers), engine.blockers)
 
+    def test_aoi_program_disable_this_reads_live_self_disable_and_restores_after_fault(self):
+        from test_gsv_configuration import scalar
+
+        scalar(self.root.find('Controller/Tags'), 'DisableCommand', 'SINT', -1)
+        locals_node = self.definition().find('LocalTags')
+        E.SubElement(locals_node, 'LocalTag', Name='SeenDisable', DataType='SINT')
+        E.SubElement(locals_node, 'LocalTag', Name='StartupDisable', DataType='SINT')
+        self.body()[0].find('Text').text = 'GSV(Program,tHiS,DisableFlag,SeenDisable)MOV(SeenDisable,Total);'
+        prescan = self.body(mode='Prescan')[0].find('Text')
+        prescan.text = prescan.text.removesuffix(';') + 'GSV(Program,THIS,DisableFlag,StartupDisable);'
+
+        scale = self.definition('LabScale')
+        E.SubElement(scale.find('LocalTags'), 'LocalTag', Name='SeenDisable', DataType='DINT')
+        logic = scale.find('Routines/Routine[@Name="Logic"]')
+        logic.remove(logic.find('RLLContent'))
+        logic.set('Type', 'ST')
+        E.SubElement(E.SubElement(logic, 'STContent'), 'Line', Number='0').text = (
+            'GSV(Program,THIS,DisableFlag,SeenDisable); Result := Raw * Gain;')
+
+        engine = self.engine([
+            'SSV(Program,THIS,DisableFlag,DisableCommand);',
+            'LabAccumulator(AccumulatorA,StepA,TotalA,SharedA);',
+            'LabWrapper(NestedScale,RawValue,ScaledValue);',
+            'DIV(1,Truncated,TotalB);',
+        ])
+        self.assertEqual(engine.blockers, [])
+        self.assertEqual(engine.memory.read('AccumulatorA.StartupDisable'), 0)
+
+        before = copy.deepcopy(engine.memory.values)
+        with self.assertRaisesRegex(ModelError, 'divide'):
+            engine.step()
+        self.assertEqual(engine.memory.values, before)
+        self.assertEqual(engine._disabled_programs, set())
+
+        engine.memory.write('Truncated', 1)
+        engine.step()
+        self.assertEqual(engine.memory.read('TotalA'), 1)
+        self.assertEqual(engine.memory.read('NestedScale.Core.SeenDisable'), 1)
+        self.assertEqual(engine._disabled_programs, {'mainprogram'})
+
+        engine.memory.write('DisableCommand', 0)
+        engine.step()
+        self.assertEqual(engine.memory.read('TotalA'), 1)
+        self.assertEqual(engine._disabled_programs, {'mainprogram'})
+
+    def test_aoi_program_disable_blocks_named_reads_and_setters(self):
+        for statement in ('GSV(Program,MainProgram,DisableFlag,Total);',
+                          'SSV(Program,THIS,DisableFlag,Total);'):
+            with self.subTest(statement=statement):
+                self.body()[0].find('Text').text = statement
+                engine = self.engine(['LabAccumulator(AccumulatorA,StepA,TotalA,SharedA);'])
+                self.assertTrue(any('AOI/harness' in blocker for blocker in engine.blockers), engine.blockers)
+
     def test_definition_gsv_reads_own_metadata_in_ladder_and_nested_st(self):
         accumulator = self.definition()
         accumulator.attrib.update(Revision='7.002', RevisionExtension='production',

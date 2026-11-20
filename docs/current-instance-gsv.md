@@ -50,6 +50,12 @@ Empty/numeric instance aliases and broader SSV forms remain unchanged.
 [SSV InhibitTask](task-inhibition.md) now permits THIS for supported ordinary Tasks. Existing named AOI reads retain their prior software profile.
 No FBD/SFC, CPU-preemption or new controller-profile behavior is introduced.
 
+## AOI Program DisableFlag
+
+[Program DisableFlag readback](program-disable.md#readback-inside-aois) uses
+the calling Program. An AOI can see a same-scan change as well as the startup
+value in an explicit Prescan routine.
+
 ## AOI Task configuration
 
 In a Standard AOI, ladder and Structured Text GSV Task THIS can read Name,
