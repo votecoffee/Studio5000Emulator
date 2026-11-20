@@ -7,7 +7,7 @@ from .st_expression import STExpression
 from . import system_values, array_sort, st_cases, st_timers, st_counter, st_oneshot, st_scale, st_signal, st_rate, st_moving, st_capture, st_filter, st_digital, st_accumulate, st_select, st_derivative, st_curves, st_pi, st_bit_moves, numeric_copy, numeric_fill
 from .integer_math import WIDE_TYPES
 
-ST_CALLS={'COP','CPS','FLL','SIZE','CONCAT','MID','DTOS','STOD','FIND','INSERT','DELETE','LOWER','UPPER','STOR','RTOS','EVENT','UID','UIE','JSR','SBR','RET','GSV','SSV','SWPB','SRT',*st_timers.INSTRUCTIONS,*st_counter.INSTRUCTIONS,*st_oneshot.INSTRUCTIONS,*st_scale.INSTRUCTIONS,*st_signal.INSTRUCTIONS,*st_rate.INSTRUCTIONS,*st_moving.INSTRUCTIONS,*st_capture.INSTRUCTIONS,*st_filter.INSTRUCTIONS,*st_digital.INSTRUCTIONS,*st_accumulate.INSTRUCTIONS,*st_select.INSTRUCTIONS,*st_derivative.INSTRUCTIONS,*st_curves.INSTRUCTIONS,*st_pi.INSTRUCTIONS,*st_bit_moves.INSTRUCTIONS}
+ST_CALLS={'COP','CPS','FLL','SIZE','CONCAT','MID','DTOS','STOD','FIND','INSERT','DELETE','LOWER','UPPER','STOR','RTOS','EVENT','UID','UIE','JSR','SBR','RET','TND','GSV','SSV','SWPB','SRT',*st_timers.INSTRUCTIONS,*st_counter.INSTRUCTIONS,*st_oneshot.INSTRUCTIONS,*st_scale.INSTRUCTIONS,*st_signal.INSTRUCTIONS,*st_rate.INSTRUCTIONS,*st_moving.INSTRUCTIONS,*st_capture.INSTRUCTIONS,*st_filter.INSTRUCTIONS,*st_digital.INSTRUCTIONS,*st_accumulate.INSTRUCTIONS,*st_select.INSTRUCTIONS,*st_derivative.INSTRUCTIONS,*st_curves.INSTRUCTIONS,*st_pi.INSTRUCTIONS,*st_bit_moves.INSTRUCTIONS}
 
 
 @dataclass
@@ -358,7 +358,9 @@ class Structured:
                             elif n.op.name in st_bit_moves.INSTRUCTIONS:st_bit_moves.execute(self.engine,n.op,scope)
                             else:self.engine._op(n.op,True,scope,depth)
                         except ReturnRoutine:
-                            self.trace(routine,n,context,detail='return');raise
+                            detail = 'temporary end' if n.op.name == 'TND' else 'return'
+                            self.trace(routine,n,context,detail=detail)
+                            raise
                         except BreakLoop:
                             self.trace(routine,n,context,detail='break');raise
                         self.trace(routine,n,context,detail=n.op.name)

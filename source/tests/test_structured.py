@@ -62,6 +62,38 @@ class StructuredTests(unittest.TestCase):
     def test_ordinary_assignment_retains_imported_value_until_executed(self):
         e=self.engine('IF FALSE THEN ClearedOnRun:=7; END_IF;');self.assertEqual(e.memory.read('ClearedOnRun'),99)
 
+    def test_tnd_ends_the_routine_from_a_loop_and_prescan_still_visits_following_lines(self):
+        engine = self.engine(
+            'State:=1;\n'
+            'FOR Index:=0 TO 2 DO\n'
+            '  IF Index=1 AND Enable THEN\n'
+            '    TND();\n'
+            '  END_IF;\n'
+            '  State:=State+1;\n'
+            'END_FOR;\n'
+            'ClearedOnRun [:=] 12;')
+        self.assertEqual(engine.blockers, [])
+        self.assertEqual(engine.memory.read('ClearedOnRun'), 0)
+
+        engine.memory.write('Enable', True)
+        engine.step()
+        self.assertEqual(engine.memory.read('State'), 2)
+        self.assertEqual(engine.memory.read('Index'), 1)
+        self.assertEqual(engine.memory.read('ClearedOnRun'), 0)
+        terminal = engine.trace[-1]
+        self.assertEqual((terminal['number'], terminal['detail']), ('3', 'temporary end'))
+
+        engine.memory.write('Enable', False)
+        engine.step()
+        self.assertEqual(engine.memory.read('State'), 4)
+        self.assertEqual(engine.memory.read('Index'), 3)
+        self.assertEqual(engine.memory.read('ClearedOnRun'), 12)
+        self.assertFalse(any(row.get('detail') == 'temporary end' for row in engine.trace))
+
+    def test_tnd_rejects_operands_during_preflight_even_when_unreached(self):
+        engine = self.engine('IF FALSE THEN TND(State); END_IF;')
+        self.assertTrue(any('TND' in blocker and 'operand' in blocker for blocker in engine.blockers))
+
     def test_for_positive_negative_zero_iterations_and_terminal_counter(self):
         for start,end,step,total,index in ((0,4,1,10,5),(4,0,-2,6,-2),(4,0,1,0,4),(0,4,-1,0,0)):
             with self.subTest(start=start,end=end,step=step):

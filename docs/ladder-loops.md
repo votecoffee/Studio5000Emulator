@@ -44,6 +44,24 @@ The installed v35 flowchart treats zero step as nonnegative. A zero-step loop
 therefore runs until BRK, a changing operand or the instruction budget stops it.
 ST FOR/EXIT has a separate profile and rejects zero step.
 
+## Temporary End in ladder and Structured Text
+
+In ladder, a true rung reaching `TND()` ends the current routine. In Structured
+Text, an executed `TND();` does the same, including from inside a conditional or
+loop. A subroutine returns to its caller and an ending main routine leaves the
+next scheduled program in the same task eligible to run. The earlier writes
+remain part of the scan transaction.
+
+The instruction takes no operands and has no prescan action. Prescan still
+visits following rungs or statements, including ST nonretentive assignments.
+Structured Text traces label the terminating line **temporary end**. TND has
+no return values. Calls that require explicit RET values retain that check.
+
+These cases use the installed v35 help topic 14678 and the published
+[Temporary End reference](https://www.rockwellautomation.com/en-be/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/program-control-instructions/temporary-end--tnd-.html).
+The emulator verifies scheduled and called routine transfers. Native controller
+execution and previously bounded MCR and fault-handler contexts remain separate.
+
 ## Scheduling, lifecycle and faults
 
 FOR and JSR share the existing 25-level call limit. Each FOR test consumes

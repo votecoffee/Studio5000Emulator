@@ -179,6 +179,52 @@ class TaskSchedulerTests(unittest.TestCase):
         self.assertEqual(e.memory.read('SpeedCommand'), 3)
         self.assertEqual([e.memory.read('First0'), e.memory.read('First1')], [1, 1])
 
+    def test_ladder_and_structured_tnd_resume_the_caller_and_next_program(self):
+        for main_language, child_language in (('RLL', 'ST'), ('ST', 'RLL')):
+            with self.subTest(main=main_language, child=child_language):
+                def configure(root):
+                    controller = root.find('Controller')
+                    tasks = controller.find('Tasks')
+                    follower = tasks[1].find('ScheduledPrograms')
+                    node = follower[0]
+                    follower.remove(node)
+                    tasks[0].find('ScheduledPrograms').append(node)
+                    routines = controller.find("./Programs/Program[@Name='Program0']/Routines")
+                    if main_language == 'ST':
+                        main = routines.find('Routine')
+                        main.remove(main.find('RLLContent'))
+                        main.set('Type', 'ST')
+                        source = E.SubElement(main, 'STContent')
+                        for line, text in enumerate((
+                            'Count0:=1;', 'JSR(Child,0);', 'Count0:=Count0+4;', 'TND();', 'Count0:=999;',
+                        )):
+                            E.SubElement(source, 'Line', Number=str(line)).text = text
+
+                    child = E.SubElement(routines, 'Routine', Name='Child', Type=child_language)
+                    if child_language == 'ST':
+                        source = E.SubElement(child, 'STContent')
+                        for line, text in enumerate(('Count0:=Count0+2;', 'TND();', 'Count0:=999;')):
+                            E.SubElement(source, 'Line', Number=str(line)).text = text
+                    else:
+                        source = E.SubElement(child, 'RLLContent')
+                        for line, text in enumerate(('ADD(Count0,2,Count0);', 'TND();', 'MOV(999,Count0);')):
+                            E.SubElement(E.SubElement(source, 'Rung', Number=str(line), Type='N'), 'Text').text = text
+
+                engine = self.engine(
+                    [dict(Type='CONTINUOUS'), {}],
+                    [['MOV(1,Count0);', 'JSR(Child,0);', 'ADD(Count0,4,Count0);', 'TND();', 'MOV(999,Count0);'],
+                     ['MOV(Count0,Count1);', 'XIC(S:FS)ADD(First1,1,First1);']],
+                    mutate=configure)
+                self.assertEqual(engine.blockers, [])
+                engine.step(10)
+                self.assertEqual(engine.memory.read('Count0'), 7)
+                self.assertEqual(engine.memory.read('Count1'), 7)
+                self.assertEqual(engine.memory.read('First1'), 1)
+                transfers = [row['routine'] for row in engine.trace
+                             if row.get('control') == 'return' or row.get('detail') == 'temporary end']
+                self.assertEqual(transfers, ['Program0/Child', 'Program0/Main'])
+                self.assertEqual(engine.trace[-1]['routine'], 'Program1/Main')
+
     def test_bundled_task_lab_counts_and_timer_are_repeatable(self):
         path = Path(__file__).resolve().parents[1] / 'samples/TaskLab.L5X'
         e = Engine(Project(path)); self.assertEqual(e.blockers, [])
