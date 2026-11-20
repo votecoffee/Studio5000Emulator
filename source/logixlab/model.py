@@ -72,6 +72,9 @@ ARITIES = {"XIC": 1, "XIO": 1, "OTE": 1, "OTL": 1, "OTU": 1,
 
 ST_ONLY_ARITIES = {"TONR":1,"TOFR":1,"RTOR":1,"CTUD":1,"OSRI":1,"OSFI":1,"SCL":1,"HLL":1,"SNEG":1,"SSUM":1,"RLIM":1,"MAVE":3,"MSTD":2,"MAXC":1,"MINC":1,"LPF":1,"DFF":1,"JKFF":1,"RESD":1,"SETD":1,"UPDN":1,"INTG":1,"ESEL":1,"DERV":1,"FGEN":5,"DEDT":2,"PI":1,"BTDT":1,"MVMT":1}
 
+ROUTINE_PARAMETER_LIMIT = 40
+ALMD_OPERAND_COUNTS = (ARITIES['ALMD'], 7)
+
 
 def operand_problem(op):
     if op.name=='JSR':
@@ -79,15 +82,16 @@ def operand_problem(op):
         if not re.fullmatch(r'[A-Za-z_][\w]*',op.args[0]):return 'Invalid JSR routine name'
         if not re.fullmatch(r'\d+',op.args[1]):return 'JSR input count must be a decimal literal'
         count=int(op.args[1])
-        if not 0<=count<=40 or not 0<=len(op.args)-2-count<=40:return 'JSR requires 0..40 input and 0..40 return operands'
+        if not 0<=count<=ROUTINE_PARAMETER_LIMIT or not 0<=len(op.args)-2-count<=ROUTINE_PARAMETER_LIMIT:
+            return f'JSR requires 0..{ROUTINE_PARAMETER_LIMIT} input and 0..{ROUTINE_PARAMETER_LIMIT} return operands'
     elif op.name=='MAVE':
         if len(op.args) not in (2,3):return 'MAVE requires record, storage and optional weight array'
     elif op.name=='FGEN':
         if len(op.args) not in (3,5):return 'FGEN requires record/X1/Y1 and an optional complete X2/Y2 pair'
     elif op.name=='ALMD':
-        if len(op.args) not in (5,7):return 'ALMD requires five operands or a legacy preset and accumulator pair'
+        if len(op.args) not in ALMD_OPERAND_COUNTS:return 'ALMD requires five operands or a legacy preset and accumulator pair'
     elif op.name in ('SBR','RET'):
-        if len(op.args)>40:return op.name+' permits at most 40 operands'
+        if len(op.args)>ROUTINE_PARAMETER_LIMIT:return f'{op.name} permits at most {ROUTINE_PARAMETER_LIMIT} operands'
     elif len(op.args)!=ARITIES.get(op.name,ST_ONLY_ARITIES.get(op.name)):return f'{op.name} operand count {len(op.args)} unsupported'
     return ''
 

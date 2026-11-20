@@ -3,12 +3,28 @@
 import copy
 from dataclasses import replace
 
-from .model import ModelError, ascii_literal_end, ladder_operand_problem, operations, parse_rung
+from .model import (ALMD_OPERAND_COUNTS, ARITIES, ROUTINE_PARAMETER_LIMIT, ModelError,
+                    ascii_literal_end, ladder_operand_problem, operations, parse_rung)
 
 
 FIELDS = {'format', 'version', 'routine', 'source_sha256', 'base_revision', 'rungs'}
 RUNG_FIELDS = {'number', 'comment', 'text'}
 LAYOUT_FIELDS = {'base_index', 'comment', 'text'}
+
+
+def instruction_catalog(aois):
+    """Expose the operand forms accepted by the ladder parser for draft authoring."""
+    catalog = {name: {'min_args': count, 'max_args': count, 'step': 1}
+               for name, count in ARITIES.items()}
+    catalog['JSR'].update(max_args=ARITIES['JSR'] + 2 * ROUTINE_PARAMETER_LIMIT, defaults=['?', '0'])
+    for name in ('SBR', 'RET'):
+        catalog[name]['max_args'] = ROUTINE_PARAMETER_LIMIT
+    minimum, maximum = ALMD_OPERAND_COUNTS
+    catalog['ALMD'].update(max_args=maximum, step=maximum - minimum)
+    for name, definition in aois.items():
+        count = 1 + len(definition.required)
+        catalog[name] = {'min_args': count, 'max_args': count, 'step': 1, 'add_on': definition.name}
+    return catalog
 
 
 def _check_operand(ref):

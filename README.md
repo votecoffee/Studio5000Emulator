@@ -30,6 +30,8 @@ Development is maintained on `main`.
 
 **Edit draft** on an ordinary ladder routine lets you insert and move
 instructions on the wires, resize branches, edit operands, and manage branch legs.
+The Insert menu uses the emulator's ladder instruction catalog and includes
+Add-On Instructions defined in the loaded project.
 Add or delete rungs and edit their comments.
 Undo and redo cover each draft change.
 Save and reopen draft JSON against the original project and routine.

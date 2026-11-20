@@ -7,12 +7,31 @@ from unittest.mock import patch
 from xml.etree import ElementTree as ET
 
 from logixlab.ladder_drafts import reopen, validate
-from logixlab.model import ModelError, Project, Routine, parse_rung
+from logixlab.model import ARITIES, ModelError, Project, Routine, parse_rung
 from logixlab.runtime import Engine
 from logixlab.server import Application
 
 
 class LadderDraftTests(unittest.TestCase):
+    def test_report_offers_only_ladder_instructions_and_the_loaded_project_aois(self):
+        with tempfile.TemporaryDirectory() as directory:
+            app = Application(directory)
+            self.addCleanup(app.close)
+            app.command('demo', {'sample': 'ConveyorDemo'})
+            report = app.command('report', {})
+            catalog = report['ladder_instruction_catalog']
+            self.assertEqual(set(catalog), set(ARITIES))
+            self.assertEqual(catalog['NOT'], {'min_args': 2, 'max_args': 2, 'step': 1})
+            self.assertEqual(catalog['JSR'], {'min_args': 2, 'max_args': 82, 'step': 1, 'defaults': ['?', '0']})
+            self.assertEqual(catalog['SBR'], {'min_args': 0, 'max_args': 40, 'step': 1})
+            self.assertEqual(catalog['ALMD'], {'min_args': 5, 'max_args': 7, 'step': 2})
+            app.command('demo', {'sample': 'AOIConstantsLab'})
+            aois = app.command('report', {})['ladder_instruction_catalog']
+            self.assertEqual(aois['LABTYPEDINPUTS'],
+                             {'min_args': 9, 'max_args': 9, 'step': 1, 'add_on': 'LabTypedInputs'})
+            app.command('demo', {'sample': 'ConveyorDemo'})
+            self.assertNotIn('LABTYPEDINPUTS', app.command('report', {})['ladder_instruction_catalog'])
+
     def test_reopen_checks_runtime_digest_even_at_the_same_revision(self):
         routine = Routine('MainProgram', 'Main', 'RLL')
         routine.rungs = [{'number': '0', 'comment': '', 'text': 'NOP();', 'nodes': parse_rung('NOP();')}]

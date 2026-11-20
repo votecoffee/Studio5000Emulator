@@ -209,6 +209,15 @@ test('routine faceplates distinguish input and return arguments from the neutral
   assert(face.rows[0].sourceOnly);assert(!face.rows[1].sourceOnly);
 });
 
+test('draft field labels retain source argument order for fixed, call and AOI instructions', () => {
+  const labels = (opcode, operands, definitions) => instruction.operandLabels({opcode, operands}, definitions);
+  assert.deepEqual(labels('MOV', ['7', 'Count']), ['Source', 'Dest']);
+  assert.deepEqual(labels('TON', ['Timer', '100', '0']), ['Timer', 'Preset', 'Accum']);
+  assert.deepEqual(labels('JSR', ['Worker', '1', 'A', 'B']), ['Routine Name', 'Input count', 'Input Par 1', 'Return Par 1']);
+  assert.deepEqual(labels('JSR', ['Worker', '?', 'A']), ['Routine Name', 'Input count', 'Parameter 1']);
+  assert.deepEqual(labels('QUEUE', ['Driver', '7', 'Array[0]'], aoiDefinition()), ['Instance', 'HiddenArg', 'Buffer']);
+});
+
 function aoiDefinition() {
   return {QUEUE: {name: 'Queue', description: 'Public test definition', parameters: [
     {name: 'EnableIn', type: 'BOOL', usage: 'Input', required: false, visible: false},

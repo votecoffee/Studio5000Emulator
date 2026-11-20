@@ -5,6 +5,15 @@ const draftModel = require('../../web/ladder-draft.js');
 const graph = require('../../web/ladder-graph.js');
 
 const op = (name, ...args) => ({name, args});
+const fixed = count => ({min_args: count, max_args: count, step: 1});
+const catalog = {
+  XIC: fixed(1), XIO: fixed(1), OTE: fixed(1), MOV: fixed(2), ADD: fixed(3), TON: fixed(3),
+  NOT: fixed(2), NOP: fixed(0), QUEUE: {...fixed(3), add_on: 'Queue'},
+  JSR: {min_args: 2, max_args: 82, step: 1, defaults: ['?', '0']},
+  SBR: {min_args: 0, max_args: 40, step: 1}, ALMD: {min_args: 5, max_args: 7, step: 2}
+};
+const createDraft = routine => draftModel.create(routine, catalog);
+
 function fixture() {
   return {kind: 'RLL', key: 'MainProgram/Main', problems: [], rungs: [
     {number: '0', text: '  XIC(Start) OTE(Run);', comment: 'Seal in', nodes: [op('XIC', 'Start'), op('OTE', 'Run')]},
@@ -14,7 +23,7 @@ function fixture() {
 
 test('draft uses wire gaps and preserves source and stable node identity through history', () => {
   const routine = fixture(), original = structuredClone(routine);
-  const draft = draftModel.create(routine);
+  const draft = createDraft(routine);
   const first = graph.compile(draft.rungs[0], routine.key, true);
   const oldIds = first.order.slice();
   const branchId = draft.insert(0, first.edges[1].gap, 'Branch');
@@ -43,7 +52,7 @@ test('draft uses wire gaps and preserves source and stable node identity through
 });
 
 test('nested gaps compile to drawable wires and never appear on the monitor graph', () => {
-  const routine = fixture(), draft = draftModel.create(routine);
+  const routine = fixture(), draft = createDraft(routine);
   assert(draft.insert(0, {legs: [], index: 0}, 'Branch'));
   assert(draft.insert(0, {legs: [[0, 0]], index: 0}, 'Branch'));
   const ladder = graph.compile(draft.rungs[0], routine.key, true);
@@ -60,7 +69,7 @@ test('nested gaps compile to drawable wires and never appear on the monitor grap
 });
 
 test('operand boundary checks are transactional and preserve literal punctuation', () => {
-  const draft = draftModel.create(fixture()), id = draft.rungs[1].nodes[0].draftId;
+  const draft = createDraft(fixture()), id = draft.rungs[1].nodes[0].draftId;
   for (const label of ['A,B', 'A);OTE(B', "'unfinished", 'Index[(1])', " 'dangling$' "]) {
     assert.throws(() => draft.setOperands(1, id, [label, 'Count']), /operand/i);
     assert.equal(draft.canUndo, false);
@@ -77,6 +86,36 @@ test('operand boundary checks are transactional and preserve literal punctuation
   assert.equal(draft.rungs[1].text, 'MOV(0, Count);');
 });
 
+test('catalog controls inserted arity and supports reversible variable operand edits', () => {
+  const draft = createDraft(fixture());
+  const gap = {legs: [], index: 0};
+  assert.equal(draft.insert(0, gap, 'TONR'), null);
+  assert.equal(draft.insert(0, gap, 'toString'), null);
+  const jsr = draft.insert(0, gap, 'JSR');
+  assert.match(draft.rungs[0].text, /^JSR\(\?,0\)/);
+  assert(draft.setOperands(0, jsr, ['Worker', '1', 'Request', 'Result']));
+  assert.match(draft.rungs[0].text, /^JSR\(Worker,1,Request,Result\)/);
+  assert.throws(() => draft.setOperands(0, jsr, ['Worker']), /number of operands/);
+  assert.throws(() => draft.setOperands(0, jsr, ['Worker', '0', ...Array(81).fill('?')]), /number of operands/);
+  assert(draft.undo());
+  assert.match(draft.rungs[0].text, /^JSR\(\?,0\)/);
+  assert(draft.redo());
+  assert(draft.setOperands(0, jsr, ['Worker', '0']));
+  assert.match(draft.rungs[0].text, /^JSR\(Worker,0\)/);
+
+  const sbr = draft.insert(1, gap, 'SBR');
+  assert.match(draft.rungs[1].text, /^SBR\(\)/);
+  assert(draft.setOperands(1, sbr, ['Source']));
+  const alarm = draft.insert(1, gap, 'ALMD');
+  assert.throws(() => draft.setOperands(1, alarm, Array(6).fill('?')), /number of operands/);
+  assert(draft.setOperands(1, alarm, ['Alarm', '?', '?', '?', '?', '50', '0']));
+  const aoi = draft.insert(1, gap, 'QUEUE');
+  assert.throws(() => draft.setOperands(1, aoi, ['Driver', 'Value']), /number of operands/);
+  assert(draft.setOperands(1, aoi, ['Driver', 'Value', 'Buffer']));
+  assert(draft.insert(1, gap, 'NOP'));
+  assert.match(draft.rungs[1].text, /^NOP\(\)QUEUE\(Driver,Value,Buffer\)ALMD\(Alarm,\?,\?,\?,\?,50,0\)SBR\(Source\)/);
+});
+
 test('non-RLL, AOI and diagnosed routines stay in Monitor', () => {
   const routine = fixture();
   for (const override of [{kind: 'ST'}, {kind: 'FBD'}, {key: 'AOI:Sample/Logic'},
@@ -84,11 +123,11 @@ test('non-RLL, AOI and diagnosed routines stay in Monitor', () => {
     assert.equal(draftModel.canEdit({...routine, ...override}), false);
   }
   assert.equal(draftModel.canEdit(routine), true);
-  assert.throws(() => draftModel.create({...routine, kind: 'FBD'}), /read-only/);
+  assert.throws(() => createDraft({...routine, kind: 'FBD'}), /read-only/);
 });
 
 test('moves between rungs preserve the instruction ID and undo both rungs together', () => {
-  const routine = fixture(), draft = draftModel.create(routine);
+  const routine = fixture(), draft = createDraft(routine);
   const id = draft.rungs[0].nodes[0].draftId;
   const same = {legs: [], index: 1};
   assert.equal(draft.canMove(0, id, 0, same), false);
@@ -106,7 +145,7 @@ test('moves between rungs preserve the instruction ID and undo both rungs togeth
 });
 
 test('moves into a later nested branch resolve the destination before removing the source', () => {
-  const routine = fixture(), draft = draftModel.create(routine);
+  const routine = fixture(), draft = createDraft(routine);
   const moved = draft.rungs[0].nodes[0].draftId;
   const outer = draft.insert(0, {legs: [], index: 1}, 'Branch');
   const inner = draft.insert(0, {legs: [[1, 1]], index: 0}, 'Branch');
@@ -120,7 +159,7 @@ test('moves into a later nested branch resolve the destination before removing t
 });
 
 test('branch leg commands preserve remaining nodes and restore nested topology on undo', () => {
-  const routine = fixture(), draft = draftModel.create(routine);
+  const routine = fixture(), draft = createDraft(routine);
   const branch = draft.insert(0, {legs: [], index: 1}, 'Branch');
   const first = draft.insert(0, {legs: [[1, 0]], index: 0}, 'TON');
   const last = draft.insert(0, {legs: [[1, 1]], index: 0}, 'ADD');
@@ -146,7 +185,7 @@ test('resizing wraps following nodes into the top leg and releases a contiguous 
   const parallel = {branch: [[op('XIC', 'C')], [op('XIC', 'D')]]};
   routine.rungs[0].nodes = [branch, parallel, op('ADD', '1', '2', 'Count'), op('OTE', 'Run')];
   routine.rungs[0].text = ' [XIC(A),XIO(B)] [XIC(C),XIC(D)] ADD(1, 2, Count) OTE(Run);';
-  const draft = draftModel.create(routine);
+  const draft = createDraft(routine);
   const [first, adjacent, add, last] = draft.rungs[0].nodes;
   const wrap = {legs: [], index: 3};
   assert(draft.canResize(0, first.draftId, wrap));
@@ -171,7 +210,7 @@ test('resizing stays in the selected branch parent and rejects unrelated and bou
   const inner = {branch: [[op('XIC', 'A')], [op('XIO', 'B')]]};
   routine.rungs[0].nodes = [op('XIC', 'Start'),
     {branch: [[inner, op('XIC', 'C')], [op('XIC', 'D')]]}, op('OTE', 'Run')];
-  const draft = draftModel.create(routine), nested = draft.rungs[0].nodes[1].branch[0][0].draftId;
+  const draft = createDraft(routine), nested = draft.rungs[0].nodes[1].branch[0][0].draftId;
   const original = draft.rungs[0].text;
   for (const gap of [{legs: [], index: 3}, {legs: [[1, 1]], index: 1},
     {legs: [[1, 0], [0, 1]], index: 0}, {legs: [[1, 0], [0, 0]], index: 1},
@@ -192,7 +231,7 @@ test('resizing stays in the selected branch parent and rejects unrelated and bou
 });
 
 test('opening a draft is one reversible edit and preserves untouched rung identities', () => {
-  const routine = fixture(), draft = draftModel.create(routine);
+  const routine = fixture(), draft = createDraft(routine);
   const firstId = draft.rungs[0].nodes[0].draftId;
   const unchanged = draft.rungs[1];
   const opened = [
@@ -217,7 +256,7 @@ test('opening a draft is one reversible edit and preserves untouched rung identi
 });
 
 test('comment-only draft reopens keep instruction identity and count as a change', () => {
-  const routine = fixture(), draft = draftModel.create(routine);
+  const routine = fixture(), draft = createDraft(routine);
   const nodes = draft.rungs[0].nodes;
   assert(draft.restore([{...routine.rungs[0], comment: 'Different comment'}, routine.rungs[1]]));
   assert.equal(draft.changed, true);
@@ -230,7 +269,7 @@ test('rung insert, comment and deletion keep surviving nodes stable through hist
   const routine = fixture();
   routine.rungs[0].number = '8';
   routine.rungs[1].number = '19';
-  const draft = draftModel.create(routine);
+  const draft = createDraft(routine);
   const originalGraph = graph.compile(draft.rungs[1], routine.key, true);
   assert(draft.insertRung(1));
   assert.deepEqual(draft.rungs.map(row => row.number), ['0', '1', '2']);
@@ -266,7 +305,7 @@ test('draft moves retain authored pseudo-operands without changing monitor nodes
   const timer = {...op('TON', 'Timer', '?', '?'), source_args: ['Timer', '250', '0']};
   routine.rungs[0].nodes.push(timer);
   routine.rungs[0].text = 'XIC(Start)OTE(Run)TON(Timer,250,0);';
-  const draft = draftModel.create(routine);
+  const draft = createDraft(routine);
   const timerId = draft.rungs[0].nodes[2].draftId;
   assert(draft.move(0, timerId, 1, {legs: [], index: 0}));
   assert.equal(draft.rungs[1].text, 'TON(Timer,250,0)MOV(0,Count);');

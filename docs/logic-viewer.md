@@ -139,6 +139,8 @@ not durable identities across source reordering.
 
 Open an ordinary ladder routine and select **Edit draft**. Choose an
 instruction or **Branch** from **Insert**, then select a dot on a wire.
+The menu lists the emulator's ladder instructions and groups Add-On
+Instructions from the loaded project separately.
 Each branch leg has its own insertion points. Drag an instruction to a wire
 dot in the same rung, in a branch, or in another rung. For keyboard editing,
 select the instruction, choose **Move instruction**, then focus a destination
@@ -178,7 +180,14 @@ operand editing affect the browser draft only. Scan traces and live values
 are shown in Monitor, where the simulator continues to use the loaded
 routine. A draft retains the original source text of each unchanged rung.
 The operand field checks delimiters to keep each value within its own
-argument. Use **Validate draft** to check the edited routine with the
+argument. Instructions show named operands in source order. For **JSR**,
+**SBR** and **RET**, add or remove operands before choosing **Update operands**.
+For **JSR**, edit **Input count** to mark how many operands follow as inputs.
+The remaining operands are returns. **ALMD** adds or removes its legacy
+preset and accumulator as a pair. Required AOI arguments, including hidden
+ones, appear after the instance in definition order.
+
+Use **Validate draft** to check the edited routine with the
 loaded project's tag definitions, call targets and execution plan. The check
 builds a temporary model with the project's initial tag values and previews
 prescan. It includes the selected routine even when that routine is outside
@@ -188,7 +197,8 @@ runtime can locate the problem. An edit clears the previous result.
 This preflight uses the original initial values. To run the draft with the
 current tag values, switch the emulator to **Program** in whole-project mode
 and choose **Apply draft**. Apply supports complete Standard RLL projects
-within the existing edited L5X export profile. Close any Studio sessions or
+within the existing edited L5X export profile. Projects with AOIs support
+drafting and preflight. Close any Studio sessions or
 native programming reservations on the emulator first.
 
 Apply rechecks the project source and revision, validates the replacement,

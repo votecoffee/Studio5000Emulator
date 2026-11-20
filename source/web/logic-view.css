@@ -8,6 +8,7 @@
 #logic-status {color:#556879;margin-left:auto;font-size:10px}
 .lv-draft-toolbar {background:#eaf1f9;border-bottom-color:#91aaca}
 .lv-draft-toolbar[hidden],.logic-toolbar label[hidden] {display:none}
+#ladder-draft-palette {max-width:230px}
 #ladder-draft-file-status.failed {color:#9c2424}
 #ladder-draft-validation {background:#edf6f0;color:#244f3c;border-bottom:1px solid #b9d3c3;padding:8px 12px;font-size:11px}
 #ladder-draft-validation.failed {background:#fff2ea;color:#80311f;border-bottom-color:#e8c1ad}
@@ -27,6 +28,8 @@
 .lv-draft-operands label {display:grid;gap:3px}
 .lv-draft-operands input,.lv-draft-operands button {border:1px solid #a4b6c8;border-radius:3px;background:#fff;color:#243747;padding:5px 7px}
 .lv-draft-operands input {width:min(240px,60vw);font:12px Consolas,monospace}
+.lv-draft-operand-fields {display:flex;align-items:end;flex-wrap:wrap;gap:7px 12px;flex-basis:100%}
+.lv-draft-operand-fields:empty {display:none}
 .lv-draft-operands span[role="alert"] {color:#9c2424}
 #ladder .routine-heading {background:#dfe8f1;color:#203b56;border-bottom:1px solid #b7c5d2;padding:10px 13px;gap:8px}
 #ladder .routine-heading strong {font:12px Consolas,monospace}

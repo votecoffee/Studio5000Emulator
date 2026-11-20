@@ -8,6 +8,7 @@ const moduleInputLabels = {clear:'Cleared',running:'Running',faulted:'Faulted'};
 let locatorTimer = null, locatorRequest = null, locatorDeadline = 0;
 const ladderDrafts = new Map();
 let editingDraft = null, draftFileRequest = 0, draftCheckRequest = 0, draftApplyPending = false;
+let displayedDraftCatalog;
 const recognized = name => report?.supported_instructions.includes(name) || report?.known_add_on_instructions?.includes(name) || report?.function_blocks?.instructions?.includes(name);
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const logicView = LogixLogicView.create({canvas: $('rungs'), inspector: $('instruction-inspector'), status: $('logic-status'),
@@ -35,17 +36,17 @@ $('logic-zoom-out').onclick=()=>updateZoom(logicView.zoom(logicZoom/1.25));
 $('logic-fit').onclick=()=>updateZoom(logicView.fit());
 $('logic-values').onchange=()=>logicView.values($('logic-values').checked);
 $('logic-comments').onchange=()=>logicView.comments($('logic-comments').checked);
-$('ladder-draft-palette').replaceChildren(...Object.keys(LogixLadderDraft.palette).map(name => new Option(name, name)));
 $('ladder-draft-mode').onclick = () => {
   const routine = state?.routines?.find(row => row.key === selected);
-  if (!LogixLadderDraft.canEdit(routine)) return;
+  const catalog = currentDraftCatalog();
+  if (!catalog || !LogixLadderDraft.canEdit(routine)) return;
   const key = draftIdentity(routine);
   setDraftFileStatus('');
   ++draftFileRequest;
   clearDraftCheck();
   if (editingDraft === key) editingDraft = null;
   else {
-    if (!ladderDrafts.has(key)) ladderDrafts.set(key, LogixLadderDraft.create(routine));
+    if (!ladderDrafts.has(key)) ladderDrafts.set(key, LogixLadderDraft.create(routine, catalog));
     editingDraft = key;
   }
   renderLadder();
@@ -374,6 +375,25 @@ function draftApplyAllowed() {
     (connectivity.active_tcp_clients || connectivity.native_programming_lease?.owned);
   return state?.routine_edits?.draft_apply_available && state.controller?.mode === 'Program' && !nativeBusy;
 }
+function currentDraftCatalog() {
+  return report?.source_l5x_sha256 === state?.source_sha256 ? report?.ladder_instruction_catalog : null;
+}
+function renderDraftPalette(catalog) {
+  if (displayedDraftCatalog === catalog) return;
+  displayedDraftCatalog = catalog;
+  const select = $('ladder-draft-palette'), previous = select.value;
+  const builtIns = document.createElement('optgroup'), addOns = document.createElement('optgroup');
+  builtIns.label = 'Ladder instructions';
+  addOns.label = 'Add-On Instructions';
+  for (const name of Object.keys(catalog).sort()) {
+    const addOn = catalog[name].add_on, title = LogixInstructionView.catalog[name]?.title;
+    const label = addOn || (title && title !== name ? name + ' · ' + title : name);
+    (addOn ? addOns : builtIns).append(new Option(label, name));
+  }
+  select.replaceChildren(builtIns, new Option('Branch', 'Branch'));
+  if (addOns.children.length) select.append(addOns);
+  select.value = previous === 'Branch' || Object.hasOwn(catalog, previous) ? previous : 'XIC';
+}
 function changeDraft(action) {
   const draft = ladderDrafts.get(editingDraft);
   if (!draft || draftApplyPending) return null;
@@ -385,7 +405,8 @@ function changeDraft(action) {
   return result;
 }
 function draftControls(routine) {
-  const editable = LogixLadderDraft.canEdit(routine), key = editable ? draftIdentity(routine) : null;
+  const catalog = currentDraftCatalog(), editable = !!catalog && LogixLadderDraft.canEdit(routine);
+  const key = editable ? draftIdentity(routine) : null;
   if (editingDraft !== null && editingDraft !== key) {
     editingDraft = null;
     ++draftFileRequest;
@@ -393,6 +414,7 @@ function draftControls(routine) {
     clearDraftCheck();
   }
   const draft = ladderDrafts.get(editingDraft), mode = $('ladder-draft-mode');
+  if (draft) renderDraftPalette(catalog);
   mode.hidden = !editable;
   mode.disabled = draftApplyPending;
   mode.textContent = draft ? 'Monitor' : ladderDrafts.get(key)?.changed ? 'Resume draft' : 'Edit draft';

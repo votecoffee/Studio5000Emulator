@@ -684,8 +684,11 @@ class Application:
                 if self.endpoint:self.endpoint.close_native_sessions()
             elif action == 'observe':pass
             elif action == "report":
+                from .ladder_drafts import instruction_catalog
+
                 report = e.report()
                 report["import_provenance"] = self.provenance
+                report["ladder_instruction_catalog"] = instruction_catalog(e.project.aois)
                 return report
             elif action == "snapshot":
                 tags = e.memory.leaves()

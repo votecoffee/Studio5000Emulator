@@ -6,7 +6,6 @@
 })(typeof globalThis === 'object' ? globalThis : this, function () {
   'use strict';
 
-  const palette = Object.freeze({XIC: 1, XIO: 1, OTE: 1, OTL: 1, OTU: 1, MOV: 2, ADD: 3, TON: 3, Branch: 0});
   function canEdit(routine) {
     return routine?.kind === 'RLL' && !routine.key.startsWith('AOI:') &&
       routine.problems.length === 0 && routine.rungs.length > 0 &&
@@ -83,8 +82,11 @@
     return null;
   }
 
-  function create(routine) {
+  function create(routine, instructionCatalog = {}) {
     if (!canEdit(routine)) throw new Error('This routine is read-only');
+    function operandShape(name) {
+      return Object.hasOwn(instructionCatalog, name) ? instructionCatalog[name] : null;
+    }
     let nextId = 0;
     function identify(nodes) {
       for (const node of nodes) {
@@ -149,6 +151,7 @@
         rungs.some((rung, i) => rung.text !== base[i].text || rung.comment !== base[i].comment);},
       get canUndo() {return past.length > 0;},
       get canRedo() {return future.length > 0;},
+      operandShape,
       insertRung(index) {
         if (!Number.isInteger(index) || index < 0 || index > rungs.length) return false;
         const next = rungs.slice();
@@ -169,13 +172,14 @@
         return true;
       },
       insert(rung, gap, opcode) {
-        if (!Object.hasOwn(palette, opcode)) return null;
+        const shape = operandShape(opcode);
+        if (!shape && opcode !== 'Branch') return null;
         return change(rung, nodes => {
           const series = atGap(nodes, gap);
           if (!series) return null;
           const draftId = ++nextId;
           const node = opcode === 'Branch' ? {branch: [[], []], draftId}
-            : {name: opcode, args: Array(palette[opcode]).fill('?'), draftId};
+            : {name: opcode, args: shape.defaults?.slice() ?? Array(shape.min_args).fill('?'), draftId};
           series.splice(gap.index, 0, node);
           return draftId;
         });
@@ -232,10 +236,16 @@
         const args = operands.map(operandText);
         return change(rung, nodes => {
           const found = locate(nodes, id);
-          if (!found || found.node.branch || found.node.args.length !== args.length ||
-              args.every((arg, i) => arg === found.node.args[i])) return null;
-          found.node.args = args;
-          delete found.node.literal_values;
+          const node = found?.node;
+          if (!node || node.branch) return null;
+          const shape = operandShape(node.name);
+          if (shape ? args.length < shape.min_args || args.length > shape.max_args ||
+              (args.length - shape.min_args) % shape.step !== 0 : args.length !== node.args.length) {
+            throw new Error('This instruction does not accept that number of operands');
+          }
+          if (args.length === node.args.length && args.every((arg, i) => arg === node.args[i])) return null;
+          node.args = args;
+          delete node.literal_values;
           return id;
         });
       },
@@ -291,5 +301,5 @@
     };
   }
 
-  return {palette, canEdit, create};
+  return {canEdit, create};
 });

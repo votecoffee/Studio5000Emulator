@@ -315,21 +315,58 @@
       close.onclick = () => select('');
       head.append(move, remove, close);
       inspector.replaceChildren(head);
-      if (!node.operands.length) return;
-      const form = html('form', 'lv-draft-operands'), fields = parameters(node);
-      const inputs = node.operands.map((operand, i) => {
-        const label = html('label', '', fields.find(field => field.argument === i)?.label || 'Operand ' + (i + 1));
-        const input = html('input');input.value = operand;input.spellcheck = false;
-        label.append(input);form.append(label);
-        return input;
-      });
+      const shape = current.draft.operandShape(node.opcode);
+      const variable = shape && shape.max_args > shape.min_args;
+      if (!node.operands.length && !variable) return;
+      const form = html('form', 'lv-draft-operands'), fields = html('div', 'lv-draft-operand-fields');
+      const labels = [], inputs = [];
+      function addField(value = '?') {
+        const label = html('label'), caption = html('span'), input = html('input');
+        input.value = value;input.spellcheck = false;
+        labels.push(caption);inputs.push(input);
+        label.append(caption, input);fields.append(label);
+      }
+      const operandValues = () => inputs.map(input => input.value);
+      function labelFields() {
+        const captions = faceplates.operandLabels({...node, operands: operandValues()}, current.state.aoi_definitions);
+        captions.forEach((caption, i) => {labels[i].textContent = caption;});
+      }
+      node.operands.forEach(addField);
+      labelFields();
+      if (node.opcode === 'JSR' && !shape?.add_on) inputs[1]?.addEventListener('input', labelFields);
+      form.append(fields);
+      if (variable) {
+        const grouping = shape.step > 1 ? ' operand pair' : ' operand';
+        const add = html('button', 'lv-draft-add-operand', 'Add' + grouping);
+        const remove = html('button', 'lv-draft-remove-operand', 'Remove last' + grouping);
+        add.type = remove.type = 'button';
+        function updateLimits() {
+          add.disabled = inputs.length + shape.step > shape.max_args;
+          remove.disabled = inputs.length - shape.step < shape.min_args;
+        }
+        add.onclick = () => {
+          for (let i = 0; i < shape.step; i++) addField();
+          labelFields();updateLimits();
+          inputs.at(-shape.step).focus();
+        };
+        remove.onclick = () => {
+          for (let i = 0; i < shape.step; i++) {
+            inputs.pop().parentElement.remove();
+            labels.pop();
+          }
+          updateLimits();
+          if (remove.disabled) add.focus();
+        };
+        updateLimits();
+        form.append(add, remove);
+      }
       const submit = html('button', '', 'Update operands');
       const feedback = html('span');feedback.setAttribute('role', 'alert');
       form.append(submit, feedback);
       form.onsubmit = event => {
         event.preventDefault();
         try {
-          options.onDraftOperands(doc.rungIndex, node.draftId, inputs.map(input => input.value));
+          options.onDraftOperands(doc.rungIndex, node.draftId, operandValues());
           feedback.textContent = '';
         } catch (error) {feedback.textContent = error.message;}
       };

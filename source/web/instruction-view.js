@@ -57,14 +57,35 @@
   const contacts = new Set(['XIC', 'XIO']), coils = new Set(['OTE', 'OTL', 'OTU']);
   const inline = new Set([...contacts, ...coils, 'ONS', 'AFI', 'NOP', 'MCR', 'TND', 'BRK', 'UID', 'UIE', 'JMP', 'LBL']);
   const control = {BSL: 1, BSR: 1, FFL: 2, FFU: 2, LFL: 2, LFU: 2, SQL: 2, SQO: 3, SQI: 3, AVE: 3, STD: 3, SRT: 2, FSC: 0, FAL: 0};
+  const aoiDefinition = (op, definitions) => Object.values(definitions).find(item => item.name.toUpperCase() === op);
+  const enableParameter = name => ['enablein', 'enableout'].includes(name.toLowerCase());
+  function callLabel(index, inputCount) {
+    return !/^\d+$/.test(inputCount) ? 'Parameter ' + (index + 1)
+      : index < Number(inputCount) ? 'Input Par ' + (index + 1) : 'Return Par ' + (index - Number(inputCount) + 1);
+  }
+  function instructionLabel(op, index) {
+    return catalog[op]?.labels[index] ||
+      (op === 'SBR' ? 'Input Par ' : op === 'RET' ? 'Return Par ' : 'Operand ') + (index + 1);
+  }
+  function operandLabels(node, definitions = {}) {
+    const op = node.opcode.toUpperCase();
+    const definition = aoiDefinition(op, definitions);
+    if (definition) {
+      const names = ['Instance', ...definition.parameters.filter(p => p.required && !enableParameter(p.name)).map(p => p.name)];
+      return node.operands.map((_, i) => names[i] || 'Extra argument ' + i);
+    }
+    return node.operands.map((_, i) => op === 'JSR' && i > 0
+      ? (i === 1 ? 'Input count' : callLabel(i - 2, node.operands[1]))
+      : instructionLabel(op, i));
+  }
   function describe(node, definitions = {}) {
     const op = node.opcode.toUpperCase(), args = node.operands;
-    const definition = Object.values(definitions).find(item => item.name.toUpperCase() === op);
+    const definition = aoiDefinition(op, definitions);
     if (definition) {
       let argument = 1;
       const instance = args[0] || '?', fields = [{label: 'Instance', ref: instance, instance: true, visible: true}];
       for (const parameter of definition.parameters) {
-        if (['enablein', 'enableout'].includes(parameter.name.toLowerCase())) continue;
+        if (enableParameter(parameter.name)) continue;
         // Consume required arguments even when hidden; optional parameters live in the instance.
         const ref = parameter.required ? args[argument++] || '?' : instance + '.' + parameter.name;
         fields.push({label: parameter.name, ref, usage: parameter.usage, type: parameter.type,
@@ -74,12 +95,11 @@
       return {kind: 'aoi', title: definition.name, description: definition.description, fields,
         rows: fields.filter(row => row.visible), flags: ['EnableIn', 'EnableOut'].map((name, i) => ({label: i ? 'ENO' : 'EN', ref: instance + '.' + name}))};
     }
-    const entry = catalog[op], fields = args.map((ref, i) => ({ref, visible: true,
-      label: entry?.labels[i] || (op === 'SBR' ? 'Input Par ' : op === 'RET' ? 'Return Par ' : 'Operand ') + (i + 1)}));
+    const entry = catalog[op], fields = args.map((ref, i) => ({ref, visible: true, label: instructionLabel(op, i)}));
     if (['JSR', 'SBR', 'RET', 'FOR'].includes(op)) fields.forEach((field, argument) => {field.argument = argument;});
     if (op === 'JSR') {
-      const count = Number(args[1]);fields.splice(1, 1);
-      fields.slice(1).forEach((field, i) => {field.label = i < count ? 'Input Par ' + (i + 1) : 'Return Par ' + (i - count + 1);});
+      fields.splice(1, 1);
+      fields.slice(1).forEach((field, i) => {field.label = callLabel(i, args[1]);});
     }
     let flags = [];
     if (['TON', 'TOF', 'RTO', 'CTU', 'CTD'].includes(op)) {
@@ -144,5 +164,5 @@
     return {width: boxWidth + (presentation.flags.length ? 45 : 0), boxWidth, labelWidth: label,
       above: 45, below: presentation.rows.length * 34 + 15, rows: presentation.rows.length, symbol: false};
   }
-  return {describe, dimensions, catalog};
+  return {describe, dimensions, operandLabels, catalog};
 });
