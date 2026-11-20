@@ -35,24 +35,23 @@ def replacement_engine(engine, project):
     return candidate
 
 
-def record_revision(previous, project, key, base_revision, *, offline=False):
+def record_revision(previous, project, key, base_revision, *, rung_origins=None):
     project.instruction_counts=Counter(op.name for r in project.routines.values() for rung in r.rungs for op in operations(rung['nodes']))
     project.instruction_counts.update(node['type'] for r in project.routines.values() for node in r.diagram.get('nodes',[]) if node['kind']=='Block')
     prior_edited=set(getattr(previous,'runtime_edited_routines',()))
-    preserve=set(getattr(previous,'runtime_offline_rungs',()))
-    if offline:
-        if key not in prior_edited:
-            preserve.add(key)
+    origins=dict(getattr(previous,'runtime_rung_origins',{}))
+    if rung_origins is not None:
+        origins[key]=rung_origins
     else:
-        preserve.discard(key)
-    project.runtime_offline_rungs=tuple(sorted(preserve))
+        origins.pop(key,None)
+    project.runtime_rung_origins=origins
     project.runtime_revision=base_revision+1
     project.runtime_edited_routines=tuple(sorted(prior_edited|{key}))
     content=[]
     for name,routine in sorted(project.routines.items()):
         if routine.kind=='FBD':
             payload=routine.diagram
-        elif offline:
+        elif rung_origins is not None:
             payload=[(r['number'],r['text'],r['comment']) for r in routine.rungs]
         else:
             payload=[r['text'] for r in routine.rungs]

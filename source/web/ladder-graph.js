@@ -12,7 +12,8 @@
   const port = (node, name) => ({node, port: name});
 
   function compile(rung, routine = '', editing = false) {
-    const id = `${routine}#${rung.number}`, nodes = [], edges = [], order = [];
+    const id = `${routine}#${editing && rung.draftRungId !== undefined ? 'draft-' + rung.draftRungId : rung.number}`;
+    const nodes = [], edges = [], order = [];
     function add(id, kind, inputs, outputs, extra = {}) {
       const node = {id, kind, ports: [...inputs.map(id => ({id, direction: 'in', type: 'power'})),
         ...outputs.map(id => ({id, direction: 'out', type: 'power'}))], ...extra};

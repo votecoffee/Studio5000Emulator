@@ -19,7 +19,10 @@ const logicView = LogixLogicView.create({canvas: $('rungs'), inspector: $('instr
   onDraftMove(from, id, to, gap) {return changeDraft(draft => draft.move(from, id, to, gap));},
   onDraftResize(rung, id, gap) {return changeDraft(draft => draft.resize(rung, id, gap));},
   onDraftAddLeg(rung, id) {return changeDraft(draft => draft.addLeg(rung, id));},
-  onDraftRemoveLeg(rung, id, leg) {return changeDraft(draft => draft.removeLeg(rung, id, leg));}});
+  onDraftRemoveLeg(rung, id, leg) {return changeDraft(draft => draft.removeLeg(rung, id, leg));},
+  onDraftInsertRung(index) {return changeDraft(draft => draft.insertRung(index));},
+  onDraftRemoveRung(index) {return changeDraft(draft => draft.removeRung(index));},
+  onDraftComment(index) {openDraftComment(index);}});
 let logicZoom = 1;
 function updateZoom(value) {
   logicZoom=value;const percent=Math.round(value*100), select=$('logic-zoom');
@@ -49,6 +52,10 @@ $('ladder-draft-mode').onclick = () => {
 };
 $('ladder-draft-undo').onclick = () => changeDraft(draft => draft.undo());
 $('ladder-draft-redo').onclick = () => changeDraft(draft => draft.redo());
+$('ladder-draft-append').onclick = () => {
+  const index = ladderDrafts.get(editingDraft)?.rungs.length;
+  if (changeDraft(draft => draft.insertRung(index))) logicView.focusDraftRung(index, '.lv-draft-gap');
+};
 $('ladder-draft-save').onclick = () => {
   const draft = ladderDrafts.get(editingDraft);
   if (!draft?.changed) return;
@@ -313,10 +320,27 @@ function setDraftFileStatus(message, failed = false) {
   status.classList.toggle('failed', failed);
 }
 function draftDocument(draft) {
-  return {format: 'logixlab-rll-draft', version: 1, routine: selected,
+  return {format: 'logixlab-rll-draft', version: 2, routine: selected,
     source_sha256: state.source_sha256, base_revision: state.routine_edits?.revision ?? 0,
     base_logic_sha256: state.routine_edits?.logic_sha256 ?? null,
-    rungs: draft.rungs.map(({number, comment, text}) => ({number, comment, text}))};
+    rungs: draft.rungs.map(({base_index, comment, text}) => ({base_index, comment, text}))};
+}
+function openDraftComment(index) {
+  const key = editingDraft, draft = ladderDrafts.get(key), row = draft?.rungs[index];
+  if (!row || draftApplyPending) return;
+  const dialog = $('ladder-comment-dialog'), input = $('ladder-comment-text');
+  $('ladder-comment-heading').textContent = 'Edit comment for rung ' + row.number;
+  input.value = row.comment;
+  $('ladder-comment-form').onsubmit = event => {
+    event.preventDefault();
+    dialog.close();
+    if (event.submitter?.value === 'cancel' || !draftIsActive(key, draft)) return;
+    const current = draft.rungs.findIndex(item => item.draftRungId === row.draftRungId);
+    if (changeDraft(active => active.setComment(current, input.value))) {
+      logicView.focusDraftRung(current, '[data-rung-action="comment"]');
+    }
+  };
+  dialog.showModal();
 }
 function showDraftCheck(message, diagnostics = [], pending = false) {
   const section = $('ladder-draft-validation'), details = $('ladder-draft-diagnostics');
@@ -373,6 +397,7 @@ function draftControls(routine) {
   mode.disabled = draftApplyPending;
   mode.textContent = draft ? 'Monitor' : ladderDrafts.get(key)?.changed ? 'Resume draft' : 'Edit draft';
   $('ladder-draft-toolbar').hidden = !draft;
+  $('ladder-draft-append').disabled = draftApplyPending;
   $('ladder-draft-undo').disabled = draftApplyPending || !draft?.canUndo;
   $('ladder-draft-redo').disabled = draftApplyPending || !draft?.canRedo;
   $('ladder-draft-save').disabled = draftApplyPending || !draft?.changed;

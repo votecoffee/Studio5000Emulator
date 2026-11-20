@@ -30,6 +30,7 @@ Development is maintained on `main`.
 
 **Edit draft** on an ordinary ladder routine lets you insert and move
 instructions on the wires, resize branches, edit operands, and manage branch legs.
+Add or delete rungs and edit their comments.
 Undo and redo cover each draft change.
 Save and reopen draft JSON against the original project and routine.
 Use **Validate draft** to check your changes. In Program mode, **Apply draft**

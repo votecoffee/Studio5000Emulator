@@ -444,6 +444,32 @@
       group.append(marker);bind(group, node.id, label, navigate);
       return {group, monitors: fields, node, graph, title, titleText: title.textContent, label, marker};
     }
+    function focusDraftRung(index, target) {
+      documents[index]?.row?.querySelector(target)?.focus();
+    }
+    function rungActions(index, graph) {
+      const actions = html('div', 'lv-draft-rung-actions');
+      actions.setAttribute('role', 'group');
+      actions.setAttribute('aria-label', 'Actions for rung ' + graph.number);
+      function button(label, action, run) {
+        const control = html('button', '', label);
+        control.type = 'button';
+        control.dataset.rungAction = action;
+        control.onclick = run;
+        actions.append(control);
+        return control;
+      }
+      button('Insert rung above', 'insert', () => {
+        if (options.onDraftInsertRung(index)) focusDraftRung(index, '.lv-draft-gap');
+      });
+      button('Edit comment', 'comment', () => options.onDraftComment(index));
+      button('Delete rung', 'delete', () => {
+        if (options.onDraftRemoveRung(index)) {
+          focusDraftRung(Math.min(index, documents.length - 1), '[data-rung-action="insert"]');
+        }
+      }).disabled = current.draft.rungs.length === 1;
+      return actions;
+    }
     function renderLadder() {
       const graphs = (current.draft?.rungs || current.routine.rungs)
         .map(rung => root.LadderGraph.compile(rung, current.routine.key, !!current.draft));
@@ -451,6 +477,7 @@
       for (const [rungIndex, graph] of graphs.entries()) {
         const geometry = root.LadderGraph.layout(graph, minimum, node => faceplates.dimensions(node, presentation(node))), row = html('section', 'lv-rung');row.dataset.rung = graph.number;
         const comment = html('div', 'lv-rung-comment', graph.comment);comment.hidden = !showComments || !graph.comment;row.append(comment);
+        if (current.draft) row.append(rungActions(rungIndex, graph));
         const picture = svg('svg', {class: 'lv-ladder', viewBox: `0 0 ${geometry.width} ${geometry.height}`, width: geometry.width * zoom,
           height: geometry.height * zoom, 'aria-label': `Rung ${graph.number}: ${graph.source || 'ladder logic'}`});
         picture.append(svg('text', {x: 9, y: geometry.nodes[graph.nodes[0].id].y + 4, class: 'lv-rung-number'}, graph.number));
@@ -633,6 +660,7 @@
       fit() {if (!current) return zoom;const width = Math.max(760, ...documents.filter(d => d.svg).map(d => d.geometry?.width || d.width));return this.zoom(Math.min(1, Math.max(0.1, (canvas.clientWidth - 12) / width)));},
       values(value) {showValues = value;if (current) update();},
       comments(value) {showComments = value;if (current) update();},
+      focusDraftRung,
       graphs() {return documents.filter(d => d.graph).map(d => structuredClone(d.graph));},
       dispose() {endDrag();indicateResize(null);movePick = null;documents = [];current = null;}
     };

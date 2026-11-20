@@ -34,6 +34,10 @@
 #ladder #aoi-context {background:#fff;color:#203b56;border-color:#a5b9cc}
 #rungs.lv-canvas {background:#fff;background-image:none;color:#17212a;min-height:440px;max-height:620px;overflow:auto;scrollbar-color:#b4bdc5 #edf0f3}
 .lv-rung {background:#fff;border-bottom:1px solid #dce2e8;min-width:max-content}
+.lv-draft-rung-actions {display:flex;gap:5px;padding:5px 8px 0;background:#f3f6fa}
+.lv-draft-rung-actions button {background:#fff;color:#315d81;border:1px solid #bdcbd8;border-radius:3px;padding:3px 7px;font-size:11px}
+.lv-draft-rung-actions button:hover:not(:disabled) {background:#e6edf5}
+#ladder-comment-text {resize:vertical;color:var(--text);background:#111a1e;border:1px solid #34434a;border-radius:5px;padding:8px;font:inherit}
 .lv-rung-comment {color:#215c30;background:#f6f9f5;border-bottom:1px solid #e3e9df;font:12px/1.5 Consolas,monospace;padding:8px 24px 8px 78px;max-width:1100px;white-space:pre-wrap;overflow-wrap:anywhere}
 .lv-ladder {display:block;overflow:visible;font:12px Consolas,'Courier New',monospace;user-select:none}
 .lv-rung-number {fill:#64778a;font-size:11px}

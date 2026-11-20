@@ -226,6 +226,41 @@ test('comment-only draft reopens keep instruction identity and count as a change
   assert.equal(draft.changed, false);
 });
 
+test('rung insert, comment and deletion keep surviving nodes stable through history and reopen', () => {
+  const routine = fixture();
+  routine.rungs[0].number = '8';
+  routine.rungs[1].number = '19';
+  const draft = draftModel.create(routine);
+  const originalGraph = graph.compile(draft.rungs[1], routine.key, true);
+  assert(draft.insertRung(1));
+  assert.deepEqual(draft.rungs.map(row => row.number), ['0', '1', '2']);
+  const blank = graph.compile(draft.rungs[1], routine.key, true);
+  assert.deepEqual(blank.order, []);
+  assert(draft.insert(1, blank.edges[0].gap, 'MOV'));
+  assert(draft.setComment(1, 'First line\nSecond line'));
+  assert(draft.removeRung(0));
+  assert.deepEqual(draft.rungs.map(row => row.base_index), [null, 1]);
+  assert.deepEqual(graph.compile(draft.rungs[1], routine.key, true).order, originalGraph.order);
+  const opened = draft.rungs.map(({number, base_index, text, comment, nodes}) => ({number, base_index, text, comment, nodes}));
+  assert.equal(draft.restore(opened), false);
+  assert(draft.undo());
+  assert.equal(draft.rungs[1].comment, 'First line\nSecond line');
+  assert(draft.undo());
+  assert.equal(draft.rungs[1].comment, '');
+  assert(draft.undo());
+  assert.equal(draft.rungs[1].text, ';');
+  assert(draft.undo());
+  assert.equal(draft.changed, false);
+  assert.deepEqual(draft.rungs.map(row => row.number), ['8', '19']);
+  assert(draft.restore(opened));
+  assert.equal(draft.rungs[0].text, 'MOV(?,?);');
+  assert.equal(draft.rungs[0].comment, 'First line\nSecond line');
+  assert(draft.removeRung(0));
+  assert.equal(draft.removeRung(0), false);
+  assert(draft.restore(routine.rungs));
+  assert.equal(draft.changed, false);
+});
+
 test('draft moves retain authored pseudo-operands without changing monitor nodes', () => {
   const routine = fixture();
   const timer = {...op('TON', 'Timer', '?', '?'), source_args: ['Timer', '250', '0']};

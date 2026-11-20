@@ -11,13 +11,26 @@ from xml.etree import ElementTree as ET
 from .model import ModelError, Project
 
 
-def _update_draft_rungs(content, rows):
+def _update_draft_rungs(content, rows, origins):
     originals = content.findall('Rung')
-    if ([rung.get('Number', str(index)) for index, rung in enumerate(originals)] != [row['number'] for row in rows]
-            or any(rung.get('Type', 'N') != 'N' or len(rung.findall('Text')) != 1
-                   or len(rung.findall('Comment')) > 1 for rung in originals)):
-        raise ModelError('The source L5X no longer has the original Standard rung layout')
-    for rung, row in zip(originals, rows):
+    replacements = {}
+    inserted = []
+    for row, origin in zip(rows, origins, strict=True):
+        if origin is None:
+            rung = ET.Element('Rung', Number=row['number'], Type='N')
+            ET.SubElement(rung, 'Text')
+            inserted.append(rung)
+        else:
+            if not 0 <= origin < len(originals) or origin in replacements:
+                raise ModelError('The source L5X no longer has the original Standard rung layout')
+            rung = originals[origin]
+            if (rung.get('Type', 'N') != 'N' or len(rung.findall('Text')) != 1
+                    or len(rung.findall('Comment')) > 1):
+                raise ModelError('The source L5X no longer has the original Standard rung layout')
+            if rung.get('Number', str(origin)) != row['number']:
+                rung.set('Number', row['number'])
+            replacements[origin] = [*inserted, rung]
+            inserted.clear()
         text = rung.find('Text')
         if text.text != row['text']:
             text.text = row['text']
@@ -27,6 +40,21 @@ def _update_draft_rungs(content, rows):
             rung.insert(list(rung).index(text), comment)
         if comment is not None and (comment.text or '') != row['comment']:
             comment.text = row['comment']
+
+    # Reuse retained elements in their source order, keeping non-rung siblings.
+    children = []
+    origin = 0
+    for child in content:
+        if child.tag == 'Rung':
+            children.extend(replacements.get(origin, ()))
+            origin += 1
+            if origin == len(originals):
+                children.extend(inserted)
+        else:
+            children.append(child)
+    if not originals:
+        children.extend(inserted)
+    content[:] = children
 
 
 def export(engine):
@@ -57,8 +85,9 @@ def export(engine):
                 node.get('Class','Standard')!='Standard' or len(contents)!=1):
             raise ModelError('Only ordinary RLL source can be exported')
         content=contents[0]
-        if key in getattr(project,'runtime_offline_rungs',()):
-            _update_draft_rungs(content,routine.rungs)
+        origins=getattr(project,'runtime_rung_origins',{}).get(key)
+        if origins is not None:
+            _update_draft_rungs(content,routine.rungs,origins)
             continue
         # Native replacements may change rung counts and numbering.
         content.text=None

@@ -6,9 +6,10 @@ ladder draft or completing a supported native edit. Release native programming
 reservations before saving.
 
 Browser **Apply draft** validates the replacement and reimports a temporary
-working copy before committing. It preserves original rung numbers and rung
-attributes when editing the original layout. Existing preset literals are
-retained in the draft source. The working copy must reimport with the same
+working copy before committing. Instruction and comment edits preserve
+the rung numbers. Adding or deleting a rung renumbers the routine in order
+and carries the original attributes of surviving rungs into the copy. Existing
+preset literals are retained in the draft source. The working copy must reimport with the same
 initial tag values and edited routine content before the emulator adopts it.
 
 The copy contains the active neutral source and model comments of edited

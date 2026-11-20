@@ -116,5 +116,59 @@ class LogicExportTests(unittest.TestCase):
         with self.assertRaisesRegex(ModelError,'progress'):self.app.command('export-edited-l5x',{})
         self.app.busy=False
 
+    def test_rung_layout_draft_reopens_applies_and_preserves_surviving_l5x_metadata(self):
+        xml = ET.parse(self.app.engine.project.path)
+        content = xml.find(".//Routine[@Name='MainRoutine']/RLLContent")
+        content[0].set('DeletedAttribute', 'discard')
+        content[1].set('Number', '37')
+        content[1].set('CustomAttribute', 'keep')
+        ET.SubElement(content, 'Extension', Name='KeepSibling')
+        original = ET.tostring(xml.getroot(), encoding='utf-8')
+        state = self.app.command('load', {'name': 'LayoutDraft.L5X', 'content': base64.b64encode(original).decode()})
+        key = 'MainProgram/MainRoutine'
+
+        def layout_request(current):
+            rows = next(row['rungs'] for row in current['routines'] if row['key'] == key)
+            draft = {'format': 'logixlab-rll-draft', 'version': 2, 'routine': key,
+                     'source_sha256': current['source_sha256'], 'base_revision': current['routine_edits']['revision'],
+                     'base_logic_sha256': current['routine_edits']['logic_sha256'],
+                     'rungs': [{'base_index': i, 'comment': row['comment'], 'text': row['text']}
+                               for i, row in enumerate(rows)]}
+            return {'project_generation': current['project_generation'], 'draft': draft}
+
+        request = layout_request(state)
+        rows = request['draft']['rungs']
+        for indices in ([False], [len(rows)], [1, 1], [2, None, 1]):
+            invalid = [{**rows[0], 'base_index': index} for index in indices]
+            with self.subTest(indices=indices), self.assertRaisesRegex(ModelError, 'unique base indices in order'):
+                self.app.command('ladder-draft-open', {**request, 'draft': {**request['draft'], 'rungs': invalid}})
+        rows.pop(0)
+        rows.append({'base_index': None, 'comment': 'Speed <limit>\nFor the demo', 'text': 'MOV(71,SpeedSetpoint);'})
+        reopened = self.app.command('ladder-draft-open', request)['rungs']
+        self.assertEqual(reopened[0]['base_index'], 1)
+        self.assertEqual(reopened[0]['number'], '0')
+        self.assertIsNone(reopened[-1]['base_index'])
+        self.assertEqual(self.app.state(), state)
+        self.assertEqual(self.app.command('ladder-draft-validate', request), {'valid': True, 'diagnostics': []})
+        applied = self.app.command('ladder-draft-apply', request)
+        self.assertEqual(self.app.command('step', {'dt': 10, 'count': 1})['scan'], 1)
+        self.assertEqual(self.app.engine.memory.read('SpeedSetpoint'), 71)
+
+        # Reopen at the new revision and insert above the surviving original rung.
+        second = layout_request(applied)
+        second['draft']['rungs'].insert(0, {'base_index': None, 'comment': 'Added first', 'text': ';'})
+        self.app.command('ladder-draft-apply', second)
+        result = self.app.command('export-edited-l5x', {})
+        self.assertEqual(result['logic_revision'], 2)
+        exported = ET.fromstring(result['content']).find(".//Routine[@Name='MainRoutine']/RLLContent")
+        rungs = exported.findall('Rung')
+        self.assertEqual([rung.get('Number') for rung in rungs], [str(i) for i in range(len(rungs))])
+        self.assertEqual(rungs[0].findtext('Text'), ';')
+        self.assertEqual(rungs[1].get('CustomAttribute'), 'keep')
+        self.assertTrue(all(rung.get('DeletedAttribute') is None for rung in rungs))
+        self.assertEqual(rungs[-1].findtext('Comment'), rows[-1]['comment'])
+        self.assertEqual(exported.find('Extension').get('Name'), 'KeepSibling')
+        self.assertEqual(self.app.engine.project.path.read_bytes(), original)
+
 
 if __name__=='__main__':unittest.main()

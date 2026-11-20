@@ -97,18 +97,33 @@
       }
     }
     const base = structuredClone(routine.rungs);
-    for (const rung of base) identify(rung.nodes);
+    for (const [index, rung] of base.entries()) {
+      rung.base_index = index;
+      rung.draftRungId = ++nextId;
+      identify(rung.nodes);
+    }
     let rungs = base;
     const past = [], future = [];
 
     function commit(updates) {
       const next = rungs.slice();
       for (const [index, nodes] of updates) {
+        const original = base[rungs[index].base_index];
         const logic = serialize(nodes);
-        const text = logic === serialize(base[index].nodes) ? base[index].text : logic + ';';
+        const text = original && logic === serialize(original.nodes) ? original.text : logic + ';';
         next[index] = {...rungs[index], nodes, text};
       }
       record(next);
+    }
+    function hasBaseLayout(rows) {
+      return rows.length === base.length && rows.every((rung, i) => rung.base_index === i);
+    }
+    function numbers(rows) {
+      const original = hasBaseLayout(rows);
+      return rows.map((_, i) => original ? base[i].number : String(i));
+    }
+    function renumber(rows) {
+      return numbers(rows).map((number, i) => rows[i].number === number ? rows[i] : {...rows[i], number});
     }
     function record(next) {
       past.push(rungs);
@@ -130,9 +145,29 @@
 
     return {
       get rungs() {return rungs;},
-      get changed() {return rungs.some((rung, i) => rung.text !== base[i].text || rung.comment !== base[i].comment);},
+      get changed() {return !hasBaseLayout(rungs) ||
+        rungs.some((rung, i) => rung.text !== base[i].text || rung.comment !== base[i].comment);},
       get canUndo() {return past.length > 0;},
       get canRedo() {return future.length > 0;},
+      insertRung(index) {
+        if (!Number.isInteger(index) || index < 0 || index > rungs.length) return false;
+        const next = rungs.slice();
+        next.splice(index, 0, {base_index: null, draftRungId: ++nextId, comment: '', text: ';', nodes: []});
+        record(renumber(next));
+        return true;
+      },
+      removeRung(index) {
+        if (!Number.isInteger(index) || !rungs[index] || rungs.length === 1) return false;
+        record(renumber(rungs.filter((_, i) => i !== index)));
+        return true;
+      },
+      setComment(index, comment) {
+        if (!Number.isInteger(index) || !rungs[index] || typeof comment !== 'string' || rungs[index].comment === comment) return false;
+        const next = rungs.slice();
+        next[index] = {...rungs[index], comment};
+        record(next);
+        return true;
+      },
       insert(rung, gap, opcode) {
         if (!Object.hasOwn(palette, opcode)) return null;
         return change(rung, nodes => {
@@ -205,19 +240,39 @@
         });
       },
       restore(rows) {
-        if (!Array.isArray(rows) || rows.length !== rungs.length || rows.some((row, i) =>
-          !row || row.number !== rungs[i].number || typeof row.text !== 'string' ||
+        if (!Array.isArray(rows) || !rows.length || rows.some(row =>
+          !row || typeof row.number !== 'string' || typeof row.text !== 'string' ||
           typeof row.comment !== 'string' || !Array.isArray(row.nodes))) {
           throw new Error('The opened draft does not match this routine');
         }
-        const next = rows.map((row, i) => {
-          const before = rungs[i];
-          if (row.text === before.text) return row.comment === before.comment ? before : {...before, comment: row.comment};
-          const restored = structuredClone(row);
-          identify(restored.nodes);
-          return restored;
+        const legacy = !Object.hasOwn(rows[0], 'base_index');
+        const incoming = legacy ? rows.map((row, i) => ({...row, base_index: i})) : rows;
+        let prior = -1;
+        const expected = numbers(incoming);
+        if (incoming.some(({base_index: index, number}, i) => {
+          if (number !== expected[i]) return true;
+          if (index === null) return false;
+          if (!Number.isInteger(index) || index <= prior || index >= base.length) return true;
+          prior = index;
+          return false;
+        }) || (legacy && incoming.length !== base.length)) {
+          throw new Error('The opened draft does not match this routine');
+        }
+        const retained = new Map(rungs.filter(row => row.base_index !== null).map(row => [row.base_index, row]));
+        const next = incoming.map((row, i) => {
+          const index = row.base_index;
+          const before = index === null
+            ? (rungs[i]?.base_index === null ? rungs[i] : null)
+            : retained.get(index) || base[index];
+          if (before && row.text === before.text) {
+            return row.comment === before.comment && row.number === before.number
+              ? before : {...before, number: row.number, comment: row.comment};
+          }
+          const nodes = structuredClone(row.nodes);
+          identify(nodes);
+          return {...row, nodes, draftRungId: before?.draftRungId ?? ++nextId};
         });
-        if (next.every((row, i) => row === rungs[i])) return false;
+        if (next.length === rungs.length && next.every((row, i) => row === rungs[i])) return false;
         record(next);
         return true;
       },

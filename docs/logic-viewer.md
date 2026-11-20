@@ -144,6 +144,12 @@ dot in the same rung, in a branch, or in another rung. For keyboard editing,
 select the instruction, choose **Move instruction**, then focus a destination
 dot and press Enter. Esc cancels the selection of a destination.
 
+Choose **Insert rung above** on a rung or **Add rung at end** in the toolbar.
+The new rung starts with an empty wire. Choose **Edit comment** to add, change
+or clear its comment, or **Delete rung** to remove the rung and its contents.
+The routine must retain at least one rung. Adding or deleting a rung renumbers
+the draft in order. Undo restores the prior layout and numbers.
+
 Drag the square on a branch's right rail to a highlighted wire dot. A dot
 after the branch wraps the intervening instructions into the top leg. A dot
 inside the top leg releases everything after it to the right of the branch.
@@ -158,11 +164,12 @@ and Ctrl+Y also work outside text fields.
 
 **Monitor** restores the live view. Select **Resume draft** to return to
 a changed draft for the same project generation and routine revision.
-**Save draft JSON** downloads the current rung text, comments and base source
-identifiers. To reopen it after closing the browser, load the original project
+**Save draft JSON** downloads the current rung layout, text, comments and base
+source identifiers. To reopen it after closing the browser, load the original project
 and select the original routine. Choose **Edit draft**, then **Open draft
-JSON**. LogixLab checks the project source, base logic revision and rung
-numbers, then parses the draft text with its Python ladder parser. A
+JSON**. LogixLab checks the project source, base logic revision and references
+to retained rungs, then parses the draft text with its Python ladder parser.
+Earlier saved files that identify rungs by number still open. A
 successful open replaces the browser draft in one undoable step. It accepts
 unfinished operand placeholders and keeps the loaded simulator logic active.
 
@@ -212,8 +219,9 @@ The next authoring stages build on these same instruction nodes and connections:
    offline authoring and simulation.
 
 The draft tools cover wire insertion, drag moves, branch resizing and legs,
-operand editing, deletion, history, reopening saved drafts, execution
-preflight, applying a routine offline and exporting a separate L5X copy.
+operand editing, rung layout and comments, deletion, history, reopening saved
+drafts, execution preflight, applying a routine offline and exporting a
+separate L5X copy.
 
 ## Verification
 
