@@ -355,6 +355,79 @@ class CallReferenceTests(unittest.TestCase):
             e.step()
         self.assertEqual(self.snapshot(e), before)
 
+    def test_packed_bool_parameters_preserve_signed_words_and_captured_destination(self):
+        for dtype, width in (('SINT', 8), ('INT', 16), ('DINT', 32)):
+            with self.subTest(dtype=dtype):
+                sign = 1 << (width - 1)
+
+                def setup(root):
+                    tags = root.find('./Controller/Tags')
+                    for name, value in (('CallerBits', 17-sign), ('FormalBits', 5-sign)):
+                        tag = E.SubElement(tags, 'Tag', Name=name, TagType='Base', DataType=dtype)
+                        data = E.SubElement(tag, 'Data', Format='Decorated')
+                        E.SubElement(data, 'DataValue', DataType=dtype, Value=str(value))
+                    E.SubElement(tags, 'Tag', Name='FirstBit', TagType='Alias', AliasFor='CallerBits.0')
+                    self.structured_routine('BitWorker',
+                        f'SBR(FormalBits.1,FormalBits.{width-1});',
+                        'OutputIndex:=3;',
+                        f'RET(FormalBits.1,FormalBits.{width-1});')
+
+                e = self.checked([
+                    f'JSR(BitWorker,2,FirstBit,FALSE,CallerBits.[OutputIndex],CallerBits.{width-1});',
+                ], setup)
+                e.memory.write('OutputIndex', 2)
+                e.step()
+                self.assertEqual(e.memory.read('OutputIndex'), 3)
+                self.assertEqual(e.memory.read('FormalBits'), 7)
+                self.assertEqual(e.memory.read('CallerBits'), 21)
+
+    def test_packed_bool_dynamic_destinations_reject_the_same_bit(self):
+        def setup(root):
+            tags = root.find('./Controller/Tags')
+            E.SubElement(tags, 'Tag', Name='InputBit', TagType='Alias', AliasFor='PackedWord.[InputIndex]')
+            E.SubElement(tags, 'Tag', Name='OutputBit', TagType='Alias', AliasFor='PackedWord.[OutputIndex]')
+            self.routine('BitWorker', ['SBR(InputBit,OutputBit);'])
+
+        e = self.checked(['JSR(BitWorker,2,TRUE,FALSE);'], setup)
+        e.memory.write('PackedWord', 21)
+        e.memory.write('InputIndex', 1)
+        e.memory.write('OutputIndex', 1)
+        before = self.snapshot(e)
+        with self.assertRaisesRegex(ModelError, 'Overlapping parameter destinations'):
+            e.step()
+        self.assertEqual(self.snapshot(e), before)
+        e.memory.write('OutputIndex', 2)
+        e.step()
+        self.assertEqual(e.memory.read('PackedWord'), 19)
+
+    def test_packed_bool_return_to_unknown_word_rolls_back_earlier_copies(self):
+        def setup(root):
+            self.routine('BitWorker', ['RET(TRUE,TRUE);'])
+
+        e = self.checked(['JSR(BitWorker,0,PackedWord.1,Outputs[0].1);'], setup)
+        before = self.snapshot(e)
+        with self.assertRaisesRegex(ModelError, 'Unknown initial byte/value'):
+            e.step()
+        self.assertEqual(self.snapshot(e), before)
+        e.memory.write('Outputs[0]', 8)
+        e.step()
+        self.assertTrue(e.memory.read('PackedWord.1'))
+        self.assertEqual(e.memory.read('Outputs[0]'), 10)
+
+    def test_packed_bool_guards_keep_word_overlap_and_nonqualified_profiles_blocked(self):
+        def word_overlap(root):
+            self.routine('BitWorker', ['SBR(PackedWord,PackedWord.1);'])
+
+        e = self.engine(['AFI()JSR(BitWorker,2,12,TRUE);'], word_overlap)
+        self.assertIn('Overlapping parameter destinations', str(e.blockers))
+
+        def old(root):
+            root.find('Controller').set('MajorRev', '34')
+            self.routine('BitWorker', ['RET(TRUE);'])
+
+        e = self.engine(['AFI()JSR(BitWorker,0,PackedWord.1);'], old)
+        self.assertIn('Routine parameter bit selections require', str(e.blockers))
+
     def test_types_literal_bounds_and_older_profiles_remain_guarded(self):
         for text in ('JSR(DoubleValue,1,Inputs[99],Result);', 'JSR(DoubleValue,1,PackedWord.0,Result);', 'JSR(DoubleValue,1,RealInputs[InputIndex],Outputs[OutputIndex]);'):
             self.assertTrue(self.engine(['AFI()' + text]).blockers, text)

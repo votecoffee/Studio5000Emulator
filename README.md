@@ -486,7 +486,8 @@ indexed elements when their transfer runs. The [ladder monitor shows captured ca
 when a transfer has executed. [Typed routine constants](docs/indirect-routine-calls.md#typed-numeric-constants)
 add exact LINT/unsigned and binary64 values to JSR inputs and RET outputs.
 [Grouped DINT words](docs/indirect-routine-calls.md#grouped-dint-parameters)
-can also supply those transfers in ladder and ST.
+can also supply those transfers in ladder and ST. [Packed BOOL parameters](docs/indirect-routine-calls.md#packed-bool-parameters)
+can copy individual bits of signed integer words.
 
 [Statistics operand selection](docs/statistics-operands.md) defers dormant
 AVE/STD result indices and establishes unknown REAL/integer result elements.

@@ -134,9 +134,26 @@ source values, including when a branch returns early.
 Rockwell documents the [Structured Text call and transfer forms](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/37-02/contents-ditamap/instruction-set/program-control-instructions/jump-to-subroutine--jsr---subroutine--sbr---and-re.html).
 Native sampling of indirect ST operands remains unverified.
 
+## Packed BOOL parameters
+
+In the v35 ControlLogix 5580 profile, JSR inputs and return destinations,
+SBR destinations and RET sources can use BOOL bits of signed SINT, INT and
+DINT storage in ladder and Structured Text. For example,
+`JSR(CopyReady,1,InputWord.4,OutputWord.[Slot]);` copies the selected input
+bit and captures the return bit at call entry. SBR and RET select their own
+elements when each transfer runs. Aliases to selected bits are supported.
+
+Each write preserves the other bits in its backing integer. Two distinct bits
+can be transferred in one instruction. A repeated destination or a destination
+overlapping its whole backing word faults under the existing overlap checks.
+The backing word must be known when a bit is read or written.
+
+Rockwell documents [BOOL subroutine parameters](https://www.rockwellautomation.com/en-ie/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/program-control-instructions/jump-to-subroutine--jsr---subroutine--sbr---and-re.html).
+Native acceptance and sampling of packed bit operands remain unverified.
+
 ## Guards and rollback
 
-Bit/system selections, constant destinations and mismatched signatures remain
+System selections, constant destinations and mismatched signatures remain
 blocked. FOR has a [separate selection profile](ladder-loops.md#runtime-selected-operands).
 Preflight blocks overlapping static selections and whole-tag overlaps.
 For explicit indirect elements, JSR checks the actual caller destinations

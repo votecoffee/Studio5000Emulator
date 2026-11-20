@@ -6,6 +6,7 @@ from .model import ArrayBoundsError, ModelError, Op, coerce, literal, operand_pr
 from .integer_math import CONTROLLERS
 from .time_values import TYPES as TIME_TYPES
 from .numeric_storage import typed_literal
+from .numeric_copy import static_reference
 
 
 MAX_NESTING = 25
@@ -91,10 +92,20 @@ class Calls:
                     for indices in re.findall(r'\[([^\]]*)\]',ref))
         if dynamic and not indirect:raise ModelError('Routine parameters require static array indices')
         key,parts,dtype=self.memory.check_writable(ref,scope) if writable else self.memory.resolve(ref,scope)
-        if key is None or any(isinstance(p,tuple) for p in parts):raise ModelError('Routine parameter system/bit selections are unsupported')
-        value=self.memory.at(key,parts)
-        if dynamic and shape(value):raise ModelError('Indirect routine arguments must select one complete element')
-        return Operand(self.memory.address(key,parts),'',key,parts,dtype,shape(value),
+        if key is None:
+            raise ModelError('Routine parameter system selections are unsupported')
+        if parts and isinstance(parts[-1], tuple):
+            _, _, width, signed = parts[-1]
+            if not (self.indirect_profile(scope) and signed and width in (8, 16, 32)):
+                raise ModelError('Routine parameter bit selections require v35 5580 SINT, INT or DINT storage')
+            dims = ()
+            # A fixed-looking alias can contain an indirect bit selector.
+            dynamic = dynamic or not static_reference(self.memory, ref, scope, follow_aliases=True)
+        else:
+            dims = shape(self.memory.at(key, parts))
+        if dynamic and dims:
+            raise ModelError('Indirect routine arguments must select one complete element')
+        return Operand(self.memory.address(key,parts),'',key,parts,dtype,dims,
                        self.memory.structural and dynamic)
 
     def check_pairs(self,sources,destinations):
@@ -280,9 +291,13 @@ class Calls:
 
     def store(self,destinations,values):
         for dest,value in zip(destinations,values):
-            # Scalar coercion is unnecessary: the declared types already match.
-            self.memory.check_writable(dest.ref,dest.scope)
-            self.memory.store(dest.key,dest.parts,value)
+            if dest.parts and isinstance(dest.parts[-1], tuple):
+                # A packed BOOL write must preserve the other bits in the stored word.
+                self.memory.write(dest.ref, value, dest.scope)
+            else:
+                # Scalar coercion is unnecessary: the declared types already match.
+                self.memory.check_writable(dest.ref,dest.scope)
+                self.memory.store(dest.key,dest.parts,value)
 
     def call(self,op,scope,depth,event=None):
         if len(self.stack)>=MAX_NESTING:raise ModelError(f'JSR nesting limit of {MAX_NESTING} exceeded')
@@ -328,7 +343,7 @@ class Calls:
 
     def report(self):
         return {'calls':self.edges,'nesting_limit':MAX_NESTING,'parameters_per_direction':40,
-                'contract':'Exact counts/types/dimensions; copied values; bounded indirect JSR, SBR and RET elements in ladder and ST; cross-parameter overlap rejected; prescan does not transfer parameters',
+                'contract':'Exact counts/types/dimensions; copied values; bounded indirect elements and packed BOOL bits in ladder and ST; cross-parameter overlap rejected; prescan does not transfer parameters',
                 'typed_constants':dict(available=self.indirect_profile(''),types=['LINT','UDINT','ULINT','LREAL'],
                     radix_bases=[2,8,16],syntax='Decimal and attached radix L/l, U/u and UL/ul/Ul/uL integers; floating L/l constants',
                     transfers='JSR inputs and RET values keep their declared type; exact matching formal/return types; literal range checked before execution',
