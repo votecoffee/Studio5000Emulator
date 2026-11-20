@@ -93,7 +93,7 @@ def initialize_ladder_operands(project):
             op.args[i] = '?'
 
 
-def retain_ladder_operands(previous_rungs, candidate_rungs):
+def retain_ladder_operands(previous_rungs, candidate_rungs, *, reuse_matches=False):
     """Carry existing compiled pseudo-operands into edited surrounding logic."""
     retained = defaultdict(deque)
     for rung in previous_rungs:
@@ -111,4 +111,4 @@ def retain_ladder_operands(previous_rungs, candidate_rungs):
             matches = retained.get((op.name, tuple(op.args)))
             if matches:
                 op.source_args = op.args.copy()
-                op.args = list(matches.popleft())
+                op.args = list(matches[0] if reuse_matches else matches.popleft())

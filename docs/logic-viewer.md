@@ -147,8 +147,11 @@ select the instruction, choose **Move instruction**, then focus a destination
 dot and press Enter. Esc cancels the selection of a destination.
 
 Choose **Insert rung above** on a rung or **Add rung at end** in the toolbar.
-The new rung starts with an empty wire. Choose **Edit comment** to add, change
-or clear its comment, or **Delete rung** to remove the rung and its contents.
+The new rung starts with an empty wire. **Duplicate rung** puts an independent
+copy directly below the selected rung, including its branches, operands, and
+comment. The copy starts with the same tag references and can be edited
+independently. **Edit comment** adds, changes, or clears a comment. **Delete rung**
+removes the rung and its contents.
 Choose **Move rung** to place the whole rung before another rung or at the
 end of the routine. The routine must retain at least one rung. Layout changes
 renumber the draft in execution order. Undo restores the prior layout and

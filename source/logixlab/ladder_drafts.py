@@ -136,7 +136,9 @@ def _candidate_project(project, draft):
     key = routine.key.lower()
     changed = [row for row, index in zip(rungs, base_indices, strict=True)
                if index is None or row['text'] != routine.rungs[index]['text']]
-    retain_ladder_operands(routine.rungs, changed)
+    # Identical authored preset operands in the same routine compile to the
+    # same backing members. The L5X round trip still checks the saved values.
+    retain_ladder_operands(routine.rungs, changed, reuse_matches=True)
     problems = []
     for rung in rungs:
         number = rung['number']

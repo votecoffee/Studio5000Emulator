@@ -499,6 +499,9 @@
       button('Insert rung above', 'insert', () => {
         if (options.onDraftInsertRung(index)) focusDraftRung(index, '.lv-draft-gap');
       });
+      button('Duplicate rung', 'duplicate', () => {
+        if (options.onDraftDuplicateRung(index)) focusDraftRung(index + 1, '.lv-draft-gap');
+      });
       button('Edit comment', 'comment', () => options.onDraftComment(index));
       button('Move rung', 'move', () => options.onDraftMoveRung(index)).disabled = current.draft.rungs.length === 1;
       button('Delete rung', 'delete', () => {

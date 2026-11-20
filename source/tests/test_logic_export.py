@@ -264,6 +264,43 @@ class LogicExportTests(unittest.TestCase):
         self.assertEqual(exported.find('Extension').get('Name'), 'KeepSibling')
         self.assertEqual(self.app.engine.project.path.read_bytes(), original)
 
+    def test_duplicate_rungs_with_shared_preset_keep_live_and_imported_values(self):
+        xml = ET.parse(self.app.engine.project.path)
+        location = ".//Routine[@Name='MainRoutine']/RLLContent"
+        rungs = xml.findall(location + '/Rung')
+        index = next(i for i, rung in enumerate(rungs) if 'TON(StartDelay' in rung.findtext('Text', ''))
+        source_rung = rungs[index]
+        source_rung.set('SourceMetadata', 'OriginalOnly')
+        source_rung.find('Text').text = 'XIC(RunLatch)TON(StartDelay,321,0);'
+        original = ET.tostring(xml.getroot(), encoding='utf-8')
+        state = self.app.command('load', {'name': 'DuplicateTimer.L5X',
+            'content': base64.b64encode(original).decode()})
+        routine = next(row for row in state['routines'] if row['key'] == 'MainProgram/MainRoutine')
+        rows = [{'base_index': i, 'text': rung['text'], 'comment': rung['comment']}
+                for i, rung in enumerate(routine['rungs'])]
+        copied = {**rows[index], 'base_index': None}
+        rows[index + 1:index + 1] = [copied, copied.copy()]
+        draft = {'format': 'logixlab-rll-draft', 'version': 3, 'routine': routine['key'],
+                 'source_sha256': state['source_sha256'], 'base_revision': 0, 'rungs': rows}
+        request = {'project_generation': state['project_generation'], 'draft': draft}
+        self.app.command('write', {'tag': 'StartDelay.PRE', 'value': 1234})
+        self.assertEqual(self.app.command('ladder-draft-validate', request), {'valid': True, 'diagnostics': []})
+        after = self.app.command('ladder-draft-apply', request)
+        active = next(row for row in after['routines'] if row['key'] == routine['key'])
+        for row in active['rungs'][index:index + 3]:
+            self.assertEqual(row['nodes'][-1]['args'], ['StartDelay', '?', '?'])
+            self.assertEqual(row['nodes'][-1]['source_args'], ['StartDelay', '321', '0'])
+        self.assertEqual(self.app.engine.memory.read('StartDelay.PRE'), 1234)
+        exported = self.app.command('export-edited-l5x', {})
+        rungs = ET.fromstring(exported['content']).findall(location + '/Rung')[index:index + 3]
+        self.assertEqual([rung.get('SourceMetadata') for rung in rungs], ['OriginalOnly', None, None])
+        self.assertEqual([rung.findtext('Text') for rung in rungs], [copied['text']] * 3)
+        self.assertEqual([rung.findtext('Comment') for rung in rungs], [copied['comment']] * 3)
+        self.assertEqual(self.app.engine.project.path.read_bytes(), original)
+        self.app.command('load', {'name': exported['filename'],
+            'content': base64.b64encode(exported['content'].encode()).decode()})
+        self.assertEqual(self.app.engine.memory.read('StartDelay.PRE'), 321)
+
     def test_reordered_draft_changes_scan_order_and_keeps_source_rung_metadata(self):
         xml = ET.parse(self.app.engine.project.path)
         location = ".//Routine[@Name='MainRoutine']/RLLContent"

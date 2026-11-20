@@ -370,3 +370,34 @@ test('whole-rung moves carry the graph and source identity through undo, review 
   assert(draft.moveRung(0, 1));
   assert.deepEqual(draft.review().map(item => [item.kind, item.reordered]), [['edited', false]]);
 });
+
+test('duplicating a rung copies its text and nested graph with independent identities', () => {
+  const routine = fixture(), source = routine.rungs[0];
+  source.text = '  [XIC(Start)[XIO(Stop),],] TON(Timer,321,0);';
+  source.nodes = [
+    {branch: [[op('XIC', 'Start'), {branch: [[op('XIO', 'Stop')], []]}], []]},
+    {...op('TON', 'Timer', '?', '?'), source_args: ['Timer', '321', '0']}
+  ];
+  const draft = createDraft(routine);
+  const original = draft.rungs[0];
+  assert.equal(draft.duplicateRung(6), false);
+  assert(draft.duplicateRung(0));
+  const copy = draft.rungs[1];
+  assert.deepEqual([copy.base_index, copy.number, copy.text, copy.comment], [null, '1', source.text, source.comment]);
+  assert.notEqual(copy.draftRungId, original.draftRungId);
+  const ids = rung => graph.compile(rung, routine.key, true).nodes.flatMap(node => node.draftId ?? []);
+  const copyIds = ids(copy);
+  assert.equal(copyIds.length, ids(original).length);
+  assert(copyIds.every(id => !ids(original).includes(id)));
+  assert.equal(draft.review()[0].kind, 'added');
+  const nestedCopy = copy.nodes[0].branch[0][1].branch[0][0];
+  assert(draft.setOperands(1, nestedCopy.draftId, ['IndependentStop']));
+  assert.match(draft.rungs[1].text, /XIO\(IndependentStop\)/);
+  assert.equal(draft.rungs[0].text, source.text);
+  assert(draft.undo());
+  assert(draft.undo());
+  assert.equal(draft.changed, false);
+  assert(draft.redo());
+  assert.deepEqual(ids(draft.rungs[1]), copyIds);
+  assert.equal(draft.rungs[1].text, source.text);
+});

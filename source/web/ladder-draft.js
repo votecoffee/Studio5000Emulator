@@ -127,6 +127,12 @@
     function renumber(rows) {
       return numbers(rows).map((number, i) => rows[i].number === number ? rows[i] : {...rows[i], number});
     }
+    function addRung(index, {text = ';', comment = '', nodes = []} = {}) {
+      const next = rungs.slice();
+      next.splice(index, 0, {base_index: null, draftRungId: ++nextId, text, comment, nodes});
+      record(renumber(next));
+      return true;
+    }
     function record(next) {
       past.push(rungs);
       if (past.length > 100) past.shift();
@@ -184,10 +190,14 @@
       review,
       insertRung(index) {
         if (!Number.isInteger(index) || index < 0 || index > rungs.length) return false;
-        const next = rungs.slice();
-        next.splice(index, 0, {base_index: null, draftRungId: ++nextId, comment: '', text: ';', nodes: []});
-        record(renumber(next));
-        return true;
+        return addRung(index);
+      },
+      duplicateRung(index) {
+        if (!Number.isInteger(index) || !rungs[index]) return false;
+        const {text, comment, nodes} = rungs[index];
+        const copied = structuredClone(nodes);
+        identify(copied);
+        return addRung(index + 1, {text, comment, nodes: copied});
       },
       removeRung(index) {
         if (!Number.isInteger(index) || !rungs[index] || rungs.length === 1) return false;

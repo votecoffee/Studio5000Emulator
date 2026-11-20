@@ -24,6 +24,7 @@ const logicView = LogixLogicView.create({canvas: $('rungs'), inspector: $('instr
   onDraftAddLeg(rung, id) {return changeDraft(draft => draft.addLeg(rung, id));},
   onDraftRemoveLeg(rung, id, leg) {return changeDraft(draft => draft.removeLeg(rung, id, leg));},
   onDraftInsertRung(index) {return changeDraft(draft => draft.insertRung(index));},
+  onDraftDuplicateRung(index) {return changeDraft(draft => draft.duplicateRung(index));},
   onDraftRemoveRung(index) {return changeDraft(draft => draft.removeRung(index));},
   onDraftMoveRung(index) {openDraftRungMove(index);},
   onDraftComment(index) {openDraftComment(index);}});
