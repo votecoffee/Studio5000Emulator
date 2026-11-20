@@ -6,7 +6,7 @@ from .integer_math import CONTROLLERS
 from .model import ModelError, coerce
 from .numeric_copy import static_reference
 from . import gsv_wall_clock
-from .gsv_configuration import current_instance
+from .gsv_configuration import current_instance, read_caller_context
 
 ATTRIBUTES={'program':{'lastscantime':2,'maxscantime':3},
             'task':{'lastscantime':8,'maxscantime':7,'starttime':13,'minimuminterval':14,'maximuminterval':15}}
@@ -72,6 +72,8 @@ def specification(engine,op,scope='',*,executing=False):
         if number not in RESET_VALUES[cls]:
             raise ModelError('Unsupported timing SSV attribute')
         current_instance(engine,'Program','THIS',scope,executing=executing,allow_event=True)
+    elif op.name == 'GSV' and instance.casefold() == 'this':
+        scope, executing = read_caller_context(engine, scope, executing)
     instance=current_instance(engine,cls,instance,scope,executing=executing,allow_event=True)
     if cls=='task':
         name=next((t['name'] for t in project.tasks if t['name'].casefold()==instance.casefold()),None)
@@ -210,8 +212,8 @@ def description():
                 failures='Unavailable measurements, out-of-range time values, invalid indices and later faults roll back tags, bindings, scheduling and uncommitted measurements',
                 st_for_effects='Exact static cells; aliases/AOI/indirect destinations conservatively cover their enclosing array',
                 native_runtime_parity=False,controller_performance_prediction=False,
-                current_instance='Program/Task THIS in ordinary scheduled Continuous/Periodic/qualified Event Program routines; prior committed snapshot',
-                remaining=['Empty/numeric instances, AOI/harness THIS contexts and broader timing setters',
+                current_instance='Program/Task THIS in scheduled routines and their Standard AOIs; prior committed snapshot or an in-advance reset',
+                remaining=['Empty/numeric instances, harness THIS contexts and AOI/broader timing setters',
                            'Simulated-time intervals and newer shortened interval names',
                            'Multi-Task/Event native protocol timing, Safety/other Event profiles, routine harnesses and other profiles',
                            'Native per-execution visibility, precision, overflow/status/layout/lifecycle parity'])

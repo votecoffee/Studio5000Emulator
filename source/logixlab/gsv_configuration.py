@@ -46,6 +46,17 @@ CONTROLLER_FLAGS = {
 }
 
 
+def read_caller_context(engine, scope, executing):
+    if scope not in engine.memory.frames:
+        return scope, executing
+    program = engine.addons.caller_program
+    if not program:
+        raise ModelError('GSV THIS requires an AOI caller Program')
+    # Startup prescan has a scheduled owner but no active task release.
+    startup_prescan = engine.addons.prescanning and engine._executing_task is None
+    return program, executing and not startup_prescan
+
+
 def current_instance(engine, cls, instance, scope='', *, executing=False, allow_event=False):
     """Resolve THIS from a source-bound scheduled Program, never saved tag data."""
     if instance.casefold()!='this':return instance
@@ -585,14 +596,8 @@ def source(engine, op, scope='', *, executing=False):
     if cls == 'program' and attribute == 'majorfaultrecord':
         return _major_fault_record(engine, instance, scope, executing=executing)
     caller_configuration = cls == 'task' or (cls == 'program' and attribute == 'name')
-    if (op.name == 'GSV' and caller_configuration and instance.casefold() == 'this'
-            and scope in engine.memory.frames):
-        scope = engine.addons.caller_program
-        if not scope:
-            raise ModelError('GSV THIS requires an AOI caller Program')
-        # Startup prescan has a scheduled owner but no active task release.
-        if engine.addons.prescanning and engine._executing_task is None:
-            executing = False
+    if op.name == 'GSV' and caller_configuration and instance.casefold() == 'this':
+        scope, executing = read_caller_context(engine, scope, executing)
     if cls in ('program','routine') and attribute=='name':
         return 'STRING',component_name(engine,cls,instance,scope,executing=executing)
     if cls!='task':raise ModelError('GSV configuration supports Task/Controller settings, ControllerDevice identity, Module status and Program/Routine Name')

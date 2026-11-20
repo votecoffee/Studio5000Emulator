@@ -229,6 +229,8 @@ editor. The current monitor remains read-only.
 [Scan-time GSV reads](docs/scan-time-gsv.md) expose Program and Task
 LastScanTime/MaxScanTime in DINT and TIME32. A zero-source SSV clears either
 measurement. **System lab** demonstrates reads and resets in ladder and ST.
+[AOIs can read caller timing](docs/current-instance-gsv.md#aoi-timing-reads)
+through THIS, including Task start time and interval extrema.
 
 [Object identity GSV](docs/gsv-configuration.md#object-identity-reads) reads
 Program and Routine names plus Task registry slots in ladder and ST.

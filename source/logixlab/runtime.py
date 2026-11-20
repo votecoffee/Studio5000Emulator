@@ -130,11 +130,7 @@ class Engine:
         self._scan_controller_status = None
         self._event_dispatch = None
         self._plan()
-        if not self.blockers:
-            try:self._apply_prescan(preview=defer_prescan,report_fault=False)
-            except ModelError as e:
-                self.blockers.append(f"Prescan: {e}")
-            self.trace=[]
+        # Explicit AOI Prescan routines can read the initial timing snapshot.
         if self.mode=='project' and not self.blockers:
             for name in self._no_main_programs:self._program_timings[name]=ProgramTiming()
             for entry in self.entries:
@@ -148,6 +144,17 @@ class Engine:
             else:
                 self._task_scan_timings={t['name'].casefold():task_runtime.TaskMeasurements() for t in project.tasks
                                          if self.task_scan_timing_eligible(t['name'])}
+        if not self.blockers:
+            try:
+                self._apply_prescan(preview=defer_prescan, report_fault=False)
+            except ModelError as e:
+                self.blockers.append(f"Prescan: {e}")
+                self._program_timings.clear()
+                self._task_scan_timings.clear()
+                self._task_measurements = None
+                self._measured_task = None
+            self.trace=[]
+        if self.mode=='project' and not self.blockers:
             self._task_event_status=event_status.initial(self)
         self._output_defaults, self._output_targets = immediate_output.task_plan(self)
 

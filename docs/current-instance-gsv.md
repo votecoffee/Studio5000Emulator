@@ -44,8 +44,8 @@ a later fault roll back data, bindings, scheduling and uncommitted measurements.
 [Event Task Status](event-task-status.md) separately supports Task THIS inside
 qualified instruction-only Event tasks for Status GSV/SSV. Configuration reads
 and SSV InhibitTask also support Event THIS. Task and Program timing now
-support qualified ordinary Event contexts. Their timing and status reads
-remain limited to ordinary Program contexts.
+support qualified ordinary Event contexts. Status reads use the ordinary
+Program context.
 Empty/numeric instance aliases and broader SSV forms remain unchanged.
 [SSV InhibitTask](task-inhibition.md) now permits THIS for supported ordinary Tasks. Existing named AOI reads retain their prior software profile.
 No FBD/SFC, CPU-preemption or new controller-profile behavior is introduced.
@@ -63,10 +63,25 @@ Each AOI call uses the calling Program's scheduled Task. The reads can see
 settings changed by earlier Program instructions in the same scan. An explicit
 AOI Prescan routine reads its scheduled owner's settings, including at startup
 before a Task release. Invalid destinations or a later fault roll back the
-advance. Isolated routine harnesses lack the scheduled caller context. AOI SSV,
-timing and status reads remain outside this profile. Native controller execution
-remains unverified.
+advance. Isolated routine harnesses lack the scheduled caller context. AOI
+SSV and Task Status reads remain outside this profile. Native controller
+execution remains unverified.
 [Rockwell Task object reference](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/38-01/contents-ditamap/instruction-set/input-output-instructions/access-the-task-object.html)
+
+## AOI timing reads
+
+Standard ladder and ST AOIs can read Program and Task LastScanTime and
+MaxScanTime through THIS. Task THIS also reads StartTime, MinimumInterval and
+MaximumInterval. The reads follow the scheduled caller through nested AOIs
+and use the same [destination types](scan-time-gsv.md) and
+[committed timing snapshot](task-start-gsv.md#measurement-and-visibility) as
+reads in Program logic. Earlier Program instructions that reset a field are
+visible in the same advance. A later fault rolls back the read and the reset.
+
+Explicit AOI Prescan code can read the existing snapshot, which starts at
+zero on project load. Timing setters still require ordinary scheduled Program
+logic. These are measurements of the emulator's execution. Native controller
+timing remains unverified.
 
 ## System lab
 

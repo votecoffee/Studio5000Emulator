@@ -2,8 +2,9 @@
 
 The ladder/ST GSV reads of Task `StartTime`, `MinimumInterval` and
 `MaximumInterval` are available for the v35 ControlLogix 5580 software
-profile. Named instances and `THIS` use the existing ordinary scheduled context
-rules. Eligible Standard Continuous, Periodic and instruction-only Event tasks
+profile. Named instances and `THIS` use the ordinary scheduled context.
+[AOI reads through THIS](current-instance-gsv.md#aoi-timing-reads) follow the
+caller. Eligible Standard Continuous, Periodic and instruction-only Event tasks
 retain independent successful invocation histories.
 
 ```text
@@ -128,6 +129,5 @@ The attribute names and layouts follow installed v35 help topic 14646.
 Rockwell's later [Task object reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/input-output-instructions/access-the-task-object.html)
 uses shortened interval names; those aliases are outside this v35 profile.
 Nonzero StartTime and interval writes, Safety/other Event profiles,
-broader AOI/harness contexts
-and native sampling/precision/status/fault/lifecycle
+AOI setters, isolated routine harnesses and native sampling/precision/status/fault/lifecycle
 equivalence remain unqualified.

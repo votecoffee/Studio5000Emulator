@@ -12,8 +12,9 @@ GSV(Task,MainTask,MaxScanTime,TaskMaximum);
 
 All four destinations accept scalar DINT or TIME32 elements. Class, attribute and
 literal instance names are case insensitive. [THIS](current-instance-gsv.md)
-selects the current ordinary scheduled Program or its owner Task. Empty/numeric
-instances and AOI/harness/Event THIS contexts remain unqualified. Existing configuration and
+selects the ordinary scheduled Program or its owner Task, including from
+[inside an AOI](current-instance-gsv.md#aoi-timing-reads). Empty or numeric
+instances and isolated routine harnesses remain outside the profile. Configuration and
 [wall-clock GSV](wall-clock-gsv.md) profiles remain separate.
 
 [Task start and interval GSV](task-start-gsv.md) also reads committed Task

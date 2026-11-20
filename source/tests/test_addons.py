@@ -1,4 +1,5 @@
 import copy
+import struct
 import unittest
 from xml.etree import ElementTree as E
 from logixlab.model import ModelError, Project
@@ -328,6 +329,72 @@ class AddOnTests(unittest.TestCase):
         engine.step(10)
         self.assertEqual(engine.memory.read('TotalA'), 20000)
         self.assertEqual(engine.memory.read('AccumulatorA.SeenTimeout'), 1)
+
+    def test_timing_this_reads_caller_snapshot_in_ladder_prescan_and_nested_st(self):
+        self.root.find('Controller/Tasks/Task').set('DisableUpdateOutputs', 'false')
+        fields = [('Program', 'LastScanTime', 'ProgramLast', 'DINT', 2, '<i'),
+                  ('Program', 'MaxScanTime', 'ProgramMax', 'TIME32', 3, '<I'),
+                  ('Task', 'LastScanTime', 'TaskLast', 'DINT', 8, '<i'),
+                  ('Task', 'MaxScanTime', 'TaskMax', 'TIME32', 7, '<I'),
+                  ('Task', 'StartTime', 'TaskStart', 'LINT', 13, '<q'),
+                  ('Task', 'MinimumInterval', 'TaskMin', 'TIME', 14, '<Q'),
+                  ('Task', 'MaximumInterval', 'TaskInterval', 'TIME', 15, '<Q')]
+        for definition_name in ('LabAccumulator', 'LabScale'):
+            locals_node = self.definition(definition_name).find('LocalTags')
+            for _, _, tag, dtype, _, _ in fields:
+                E.SubElement(locals_node, 'LocalTag', Name=tag, DataType=dtype)
+
+        reads = [f'GSV({cls},THIS,{attribute},{tag})' for cls, attribute, tag, _, _, _ in fields]
+        for mode in ('Logic', 'Prescan'):
+            text = self.body(mode=mode)[0].find('Text')
+            text.text = text.text.removesuffix(';') + ''.join(reads) + ';'
+        logic = self.definition('LabScale').find('Routines/Routine[@Name="Logic"]')
+        logic.remove(logic.find('RLLContent'))
+        logic.set('Type', 'ST')
+        E.SubElement(E.SubElement(logic, 'STContent'), 'Line', Number='0').text = (
+            '; '.join(reads) + '; Result := Raw * Gain;')
+        engine = self.engine()
+        self.assertEqual(engine.blockers, [])
+        self.assertEqual(engine.memory.read('AccumulatorA.TaskStart'), 0)
+        engine.step()
+        engine.step()
+
+        sha = engine.project.sha256
+        snapshot = {'Program': engine.program_timing_attributes('MainProgram', source_sha256=sha),
+                    'Task': engine.task_scan_timing_attributes('MainTask', source_sha256=sha)}
+        engine.step()
+        for cls, _, tag, _, number, fmt in fields:
+            expect = struct.unpack(fmt, snapshot[cls][number])[0]
+            for instance in ('AccumulatorA', 'NestedScale.Core'):
+                self.assertEqual(engine.memory.read(f'{instance}.{tag}', allow_time=True), expect)
+
+    def test_timing_this_in_aoi_reads_an_ordinary_reset_and_restores_on_fault(self):
+        self.root.find('Controller/Tasks/Task').set('DisableUpdateOutputs', 'false')
+        E.SubElement(self.definition().find('LocalTags'), 'LocalTag', Name='TaskLast', DataType='DINT')
+        self.body()[0].find('Text').text = 'GSV(Task,THIS,LastScanTime,TaskLast);'
+        engine = self.engine([
+            'XIC(EnableA)CLR(TotalB)SSV(Task,THIS,LastScanTime,TotalB);',
+            'LabAccumulator(AccumulatorA,StepA,TotalA,SharedA);',
+            'DIV(1,Truncated,TotalB);',
+        ])
+        self.assertEqual(engine.blockers, [])
+        engine.memory.write('EnableA', False)
+        engine.memory.write('Truncated', 1)
+        engine.step()
+        engine.step()
+        engine.memory.write('EnableA', True)
+        engine.memory.write('Truncated', 0)
+        before = copy.deepcopy(engine.memory.values), engine._task_measurements
+        with self.assertRaisesRegex(ModelError, 'divide'):
+            engine.step()
+        self.assertEqual((engine.memory.values, engine._task_measurements), before)
+        engine.memory.write('Truncated', 1)
+        engine.step()
+        self.assertEqual(engine.memory.read('AccumulatorA.TaskLast'), 0)
+
+        self.body()[0].find('Text').text = 'SSV(Task,THIS,LastScanTime,TaskLast);'
+        engine = self.engine(['LabAccumulator(AccumulatorA,StepA,TotalA,SharedA);'])
+        self.assertTrue(any('AOI/harness' in blocker for blocker in engine.blockers), engine.blockers)
 
     def test_definition_gsv_reads_own_metadata_in_ladder_and_nested_st(self):
         accumulator = self.definition()
