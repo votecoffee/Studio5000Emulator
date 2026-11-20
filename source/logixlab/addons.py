@@ -5,6 +5,7 @@ not evidence of the saved state of an existing instance.
 """
 from contextlib import contextmanager
 
+from . import time_values
 from .model import ModelError, coerce, dimensions, literal, operations
 from .numeric_storage import available as numeric_available, typed_literal
 
@@ -13,8 +14,14 @@ NUMERIC_OUTPUT_TYPES = frozenset(('SINT', 'INT', 'DINT', 'REAL'))
 
 
 def input_immediate(project, argument):
-    """Decode declared numeric constants in the qualified v35 profile."""
-    return typed_literal(argument) if numeric_available(project) else None
+    """Decode declared numeric or temporal constants in the qualified v35 profile."""
+    if not numeric_available(project):
+        return None
+    try:
+        temporal = time_values.literal(argument)
+    except ValueError as error:
+        raise ModelError(str(error)) from error
+    return temporal or typed_literal(argument)
 
 
 def shape(value):
@@ -100,6 +107,8 @@ class AddOns:
                         k,p,source_type=self.memory.resolve(argument,scope)
                         value=self.memory.at(k,p) if not any(isinstance(x,tuple) for x in p) else False
                 if isinstance(value,(dict,list)):raise ModelError('Input requires a scalar value')
+                if expected in time_values.TYPES and source_type != expected:
+                    raise ModelError(parameter.get('Name')+': Time/date Input source type must match exactly')
                 if expected=='BOOL' and source_type!='BOOL' and argument.strip().upper() not in ('0','1'):
                     raise ModelError('BOOL Input requires BOOL or literal 0/1')
                 if expected!='BOOL' and source_type=='BOOL':raise ModelError('Numeric Input does not accept BOOL')
@@ -158,7 +167,8 @@ class AddOns:
                 if immediate is not None:
                     value=immediate[1]
                 else:
-                    value=self.memory.read(argument,scope)
+                    temporal = parameter.get('DataType', '').upper() in time_values.TYPES
+                    value=self.memory.read(argument,scope,allow_time=temporal)
                     if isinstance(value,float):
                         try:literal(argument)
                         except ValueError:source_type=self.memory.resolve(argument,scope)[2]
@@ -177,7 +187,9 @@ class AddOns:
                     self.engine._execute_routine(definition.routines['enableinfalse'],frame,depth+1,address)
             for parameter,argument in zip(definition.required,op.args[1:]):
                 if parameter.get('Usage')=='Output':
-                    self.memory.write(argument,self.memory.read(parameter.get('Name'),frame),scope)
+                    temporal = parameter.get('DataType', '').upper() in time_values.TYPES
+                    value = self.memory.read(parameter.get('Name'), frame, allow_time=temporal)
+                    self.memory.write(argument, value, scope)
         # An EnableInFalse routine cannot energize rung-out.
         if not power or prescan:self.memory.write('EnableOut',False,frame)
         return bool(power and self.memory.read('EnableOut',frame))
@@ -189,7 +201,10 @@ class AddOns:
                 'typed_inputs':dict(available=numeric_available(project),types=['LINT','UDINT','ULINT','LREAL'],
                     radix_bases=[2,8,16],syntax='Decimal and attached radix L/l, U/u and UL/ul/Ul/uL integers; finite floating L/l values',
                     contract='Required scalar Input parameters only; exact declared type and literal range; ordinary copied-input lifecycle',
-                    excluded='Time/date/aggregate literals, numeric promotion, Output/InOut constants and other controller profiles',native_runtime_parity=False),
+                    excluded='Aggregate literals, numeric promotion, Output/InOut constants and other controller profiles',native_runtime_parity=False),
+                'temporal_parameters':dict(available=time_values.available(project),types=sorted(time_values.TYPES),
+                    contract='Scalar Inputs accept exact-type tags or typed literals; scalar Outputs copy exact ticks to matching writable tags',
+                    native_runtime_parity=False),
                 'dint_radix_inputs':dict(available=numeric_available(project),radix_bases=[2,8,16],
                     contract='Grouped unsuffixed signed DINT words, with existing DINT input conversions',
                     lifecycle='Required scalar Inputs are copied in prescan and on reached calls, including false ladder calls',

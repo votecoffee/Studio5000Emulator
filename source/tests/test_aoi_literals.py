@@ -12,6 +12,65 @@ VALUES={'Signed':9007199254740993,'Unsigned':4294967295,'Largest':18446744073709
 LITERALS=dict(zip(VALUES,('9007199254740993L','4294967295U','18446744073709551615UL','1.0000000000000002L')))
 
 
+TEMPORAL_CASES = (
+    ('ShortDelay', 'TIME32', 'T32#-1ms_2us', -1002),
+    ('MicroDelay', 'TIME', 'T#1s_3us', 1000003),
+    ('FineDelay', 'LTIME', 'LT#1s_1ns', 1000000001),
+    ('DateStamp', 'DT', 'DT#2026-01-01-05:30:00.000_001(UTC+05:30)', 1767225600000001),
+    ('FineStamp', 'LDT', 'LDT#2026-01-01-00:00:00.000_000_001', 1767225600000000001),
+)
+
+
+def temporal_project(*, st=False, overrides=None, outputs=None):
+    root = E.parse(SAMPLE).getroot()
+    controller = root.find('Controller')
+    definition = controller.find('./AddOnInstructionDefinitions/AddOnInstructionDefinition')
+    definition.set('Name', 'LabTemporalTransfer')
+    parameters = definition.find('Parameters')
+    for parameter in list(parameters)[2:]:
+        parameters.remove(parameter)
+    tags = controller.find('Tags')
+    instance = tags.find('Tag[@Name="TypedInputs"]')
+    instance.set('Name', 'Temporal')
+    instance.set('DataType', 'LabTemporalTransfer')
+    state = instance.find('Data/Structure')
+    state.set('DataType', 'LabTemporalTransfer')
+    for member in list(state)[2:]:
+        state.remove(member)
+
+    for usage, suffix in (('Input', ''), ('Output', 'Out')):
+        for name, dtype, _, _ in TEMPORAL_CASES:
+            E.SubElement(parameters, 'Parameter', Name=name+suffix, DataType=dtype,
+                         Usage=usage, Required='true', Visible='true')
+            E.SubElement(state, 'DataValueMember', Name=name+suffix, DataType=dtype, Value='0')
+
+    for name, dtype, _, ticks in TEMPORAL_CASES:
+        for suffix, value in (('Tag', ticks), ('Result', 0)):
+            tag = E.SubElement(tags, 'Tag', Name=name+suffix, TagType='Base', DataType=dtype)
+            E.SubElement(E.SubElement(tag, 'Data', Format='Decorated'), 'DataValue',
+                         DataType=dtype, Value=str(value))
+
+    args = [str((overrides or {}).get(name, literal)) for name, _, literal, _ in TEMPORAL_CASES]
+    dests = [(outputs or {}).get(name, name+'Result') for name, _, _, _ in TEMPORAL_CASES]
+    call = 'LabTemporalTransfer(' + ','.join(['Temporal', *args, *dests]) + ');'
+    main = controller.find('./Programs/Program/Routines/Routine')
+    body = definition.find('./Routines/Routine')
+    if st:
+        main.remove(main.find('RLLContent'))
+        main.set('Type', 'ST')
+        E.SubElement(E.SubElement(main, 'STContent'), 'Line', Number='0').text = (
+            f'IF Enabled THEN {call} ParameterLateGuard := 1/ParameterLateDivisor; END_IF;')
+        body.remove(body.find('RLLContent'))
+        body.set('Type', 'ST')
+        E.SubElement(E.SubElement(body, 'STContent'), 'Line', Number='0').text = ' '.join(
+            f'{name}Out := {name};' for name, _, _, _ in TEMPORAL_CASES)
+    else:
+        main.find('./RLLContent/Rung/Text').text = 'XIC(Enabled)' + call
+        body.find('./RLLContent/Rung/Text').text = ''.join(
+            f'MOV({name},{name}Out)' for name, _, _, _ in TEMPORAL_CASES) + ';'
+    return root
+
+
 class AOILiteralTests(unittest.TestCase):
     setUp=fixtures.AddOnTests.setUp
     engine=fixtures.AddOnTests.engine
@@ -37,6 +96,56 @@ class AOILiteralTests(unittest.TestCase):
                               e.scan_count,e.time_ms,e.trace,e.scheduler_description()))
 
     def enabled(self,e):e.memory.write('Enabled',True);e.step()
+
+    def test_temporal_inputs_and_outputs_preserve_exact_ticks_in_ladder_and_st(self):
+        for st in (False, True):
+            with self.subTest(st=st):
+                overrides = None if st else {'MicroDelay': 'MicroDelayTag'}
+                self.root = temporal_project(st=st, overrides=overrides)
+                e = self.engine()
+                self.assertEqual(e.blockers, [])
+                e.memory.write('MicroDelayTag', -7)
+                e.step()
+                self.assertEqual(e.memory.read('FineStampResult', allow_time=True), 0)
+                if not st:
+                    self.assertEqual(e.memory.read('Temporal.MicroDelay', allow_time=True), -7)
+                    self.assertEqual(e.memory.read('Temporal.FineStamp', allow_time=True), 1767225600000000001)
+                self.enabled(e)
+                for name, _, _, ticks in TEMPORAL_CASES:
+                    expected = -7 if not st and name == 'MicroDelay' else ticks
+                    self.assertEqual(e.memory.read(name+'Result', allow_time=True), expected)
+                report = e.report()['add_on_instructions']['temporal_parameters']
+                self.assertEqual(set(report['types']), {dtype for _, dtype, _, _ in TEMPORAL_CASES})
+
+    def test_temporal_aoi_copies_roll_back_with_a_later_fault(self):
+        self.root = temporal_project(overrides={'FineStamp': 'FineStampTag'})
+        e = self.engine()
+        self.assertEqual(e.blockers, [])
+        self.assertEqual(e.memory.read('Temporal.FineStamp', allow_time=True), 1767225600000000001)
+        e.memory.write('FineStampTag', 1767225600000000002)
+        e.memory.write('Enabled', True)
+        e.memory.write('ParameterLateDivisor', 0)
+        before = self.snapshot(e)
+        with self.assertRaisesRegex(ModelError, 'zero'):
+            e.step()
+        self.assertEqual(self.snapshot(e), before)
+        e.memory.write('ParameterLateDivisor', 1)
+        e.step()
+        self.assertEqual(e.memory.read('FineStampResult', allow_time=True), 1767225600000000002)
+
+    def test_temporal_aoi_rejects_mismatched_immediates_and_copied_tags(self):
+        invalid_inputs = (
+            '1', '1L', 'T#1us', 'DateStampTag',
+            'LDT#2026-01-01-00:00:00.000_000_0001',
+        )
+        for argument in invalid_inputs:
+            with self.subTest(argument=argument):
+                self.root = temporal_project(overrides={'FineStamp': argument})
+                self.assertTrue(self.engine().blockers)
+        for destination in ('DateStampResult', 'SignedResult', 'LT#1ns'):
+            with self.subTest(destination=destination):
+                self.root = temporal_project(outputs={'FineStamp': destination})
+                self.assertTrue(self.engine().blockers)
 
     def test_prescan_copies_all_typed_inputs_without_running_logic(self):
         e=self.typed()

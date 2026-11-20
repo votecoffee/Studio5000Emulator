@@ -573,7 +573,7 @@ class Project:
             from .integer_math import CONTROLLERS
             copied_types = {'BOOL', *INT_BITS, 'REAL'}
             qualified = self.version == '35' and self.processor.upper() in CONTROLLERS
-            if qualified:copied_types.add('LREAL')
+            if qualified:copied_types.update(('LREAL', *time_values.TYPES))
             locals_by_name = {item.get('Name', '').lower(): item for item in aoi.locals}
             used_alias_targets = set()
             for item in aoi.parameters+aoi.locals:

@@ -200,6 +200,8 @@ arithmetic, mixed numeric tags, [checked integer/REAL results](docs/lreal-result
 and copied AOI parameters. [Typed AOI input constants](docs/aoi-constants.md)
 now preserve decimal and binary/octal/hexadecimal L/U/UL values, plus finite
 LREAL inputs; choose **AOI constants lab** to try them.
+[Time and date AOI parameters](docs/aoi-constants.md#time-and-date-parameters)
+support exact-type scalar Inputs and Outputs in ladder and Structured Text.
 [Grouped DINT words](docs/aoi-constants.md#grouped-dint-inputs) also work for
 required scalar Inputs in ladder and Structured Text.
 [Constant InOut parameters](docs/aoi-constants.md#constant-inout-parameters)

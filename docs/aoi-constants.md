@@ -36,11 +36,27 @@ above. Disable Enabled and change an output tag to observe retention on a false
 call. Re-enable to copy the constants again. LINT/ULINT API snapshots use exact
 decimal text; LREAL retains binary64 precision.
 
-Time/date and string/aggregate literals, literal Output and InOut actuals,
+String and aggregate literals, literal Output and InOut actuals,
 other controller profiles, protected definitions, nullable InOut parameters,
 FBD definitions and native packing/status/lifecycle qualification remain outside
 this increment. The separate [JSR/RET constant profile](indirect-routine-calls.md#typed-numeric-constants)
 uses its own exact routine-parameter contract.
+
+## Time and date parameters
+
+The v35 ControlLogix 5580 emulator supports scalar TIME32, TIME, LTIME, DT
+and LDT Inputs and Outputs in ladder and Structured Text AOIs. An Input can
+read a tag or typed literal of its exact declared type. An Output copies to a
+writable scalar tag of the same type. For example, an LDT Input accepts
+`LDT#2026-01-01-00:00:00.000_000_001` and passes all nanosecond ticks to a
+matching Output. A tag of another precision requires an explicit conversion
+before the call.
+
+Prescan and false ladder calls use the existing copied-input rules.
+A skipped ST branch bypasses the call. A fault later in the advance restores
+the instance and caller values. Native v35 import and execution remain
+unverified.
+[Rockwell design considerations](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm094_-en-p.pdf)
 
 ## Aliases to scalar local tags
 
