@@ -339,6 +339,66 @@ class Routine:
     def key(self): return f"{self.program}/{self.name}"
 
 
+@dataclass(frozen=True)
+class LocalAlias:
+    parts: tuple[str | int, ...]
+    dtype: str
+
+    @property
+    def reference(self):
+        return self.parts[0] + ''.join(f'[{part}]' if isinstance(part, int) else f'.{part}'
+                                       for part in self.parts[1:])
+
+    def parent(self, record):
+        for part in self.parts[:-1]:
+            record = record[part]
+        return record
+
+    def read(self, record):
+        try:
+            return self.parent(record)[self.parts[-1]]
+        except (KeyError, IndexError, TypeError) as error:
+            raise ModelError(f'AOI alias storage does not match {self.reference}') from error
+
+
+def local_alias_target(reference, locals_by_name, udts):
+    """Resolve a fixed path through declared local storage before reading tag data."""
+    name = r'[A-Za-z_][A-Za-z_0-9]*'
+    index = r'\[\s*[0-9]{1,6}(?:\s*,\s*[0-9]{1,6}){0,2}\s*\]'
+    if not re.fullmatch(rf'{name}(?:\.{name}|{index})*', reference):
+        raise ModelError('use a local tag, member, or fixed array element')
+    base, *selectors = re.findall(rf'{name}|{index}', reference)
+    local = locals_by_name.get(base.lower())
+    if local is None or local.get('AliasFor') or local.get('TagType') == 'Alias':
+        raise ModelError('target must start at a local tag')
+    parts = [local.get('Name')]
+    dtype = local.get('DataType', '').upper()
+    dims = dimensions(local.get('Dimensions', '0'))
+    for selector in selectors:
+        if selector.startswith('['):
+            indices = tuple(int(value) for value in selector[1:-1].split(','))
+            if len(indices) > len(dims) or any(i >= size for i, size in zip(indices, dims)):
+                raise ModelError('array index is outside the declared local dimensions')
+            parts.extend(indices)
+            dims = dims[len(indices):]
+            continue
+        if dims:
+            raise ModelError('select a complete array element before its member')
+        schema = udts.get(dtype.lower())
+        if schema is None or schema.get('Class') in ('AOI', 'DecoratedDataOnly'):
+            raise ModelError('member must belong to a declared user-defined type')
+        member = next((entry for entry in schema.findall('Members/Member')
+                       if entry.get('Name', '').lower() == selector.lower()), None)
+        if member is None or member.get('Hidden', 'false').lower() == 'true':
+            raise ModelError(f'unknown or hidden member {selector}')
+        parts.append(member.get('Name'))
+        dtype = member.get('DataType', '').upper()
+        dims = dimensions(member.get('Dimension', '0'))
+    if dims:
+        raise ModelError('select one scalar value')
+    return LocalAlias(tuple(parts), dtype)
+
+
 @dataclass
 class AddOn:
     name: str
@@ -349,34 +409,34 @@ class AddOn:
     problems: list = field(default_factory=list)
     description: str = ''
     constant_inouts: set[str] = field(default_factory=set)
-    local_aliases: dict[str, str] = field(default_factory=dict)
+    local_aliases: dict[str, LocalAlias] = field(default_factory=dict)
 
     @property
     def required(self):
         return [p for p in self.parameters if p.get('Required','false').lower()=='true'
                 and p.get('Name','').lower() not in ('enablein','enableout')]
 
-
-    def register_local_alias(self, parameter, locals_by_name, used_targets):
-        name = parameter.get('Name', '').lower()
+    def register_local_alias(self, parameter, locals_by_name, udts, used_targets):
+        name = parameter.get('Name', '')
         usage = parameter.get('Usage')
-        target = parameter.get('AliasFor', '').strip().lower()
-        local = locals_by_name.get(target)
         dtype = parameter.get('DataType', '').upper()
-        if (usage not in ('Input', 'Output') or name in ('enablein', 'enableout')
-                or parameter.get('Constant', 'false').lower() == 'true'
-                or dtype not in ('BOOL', 'SINT', 'INT', 'DINT', 'REAL')
-                or dimensions(parameter.get('Dimensions', '0'))
-                or local is None or local.get('AliasFor')
-                or dimensions(local.get('Dimensions', '0'))
-                or local.get('DataType', '').upper() != dtype):
-            self.problems.append(f'{parameter.get("Name")}: AOI alias requires a matching scalar local tag and an ordinary Input or Output')
+        try:
+            if (usage not in ('Input', 'Output') or name.lower() in ('enablein', 'enableout')
+                    or parameter.get('Constant', 'false').lower() == 'true'
+                    or dtype not in ('BOOL', 'SINT', 'INT', 'DINT', 'REAL')
+                    or dimensions(parameter.get('Dimensions', '0'))):
+                raise ModelError('requires a matching scalar local target and an ordinary Input or Output')
+            target = local_alias_target(parameter.get('AliasFor', '').strip(), locals_by_name, udts)
+            if target.dtype != dtype:
+                raise ModelError(f'requires a matching scalar local target of type {dtype}')
+        except (ModelError, ValueError) as error:
+            self.problems.append(f'{name}: AOI alias {error}')
             return
-        if (usage, target) in used_targets:
-            self.problems.append(f'{parameter.get("Name")}: AOI local may have only one {usage} alias')
+        if (usage, target.parts) in used_targets:
+            self.problems.append(f'{name}: AOI local target may have only one {usage} alias')
             return
-        used_targets.add((usage, target))
-        self.local_aliases[name] = local.get('Name')
+        used_targets.add((usage, target.parts))
+        self.local_aliases[name.lower()] = target
 
 
 class Project:
@@ -463,7 +523,7 @@ class Project:
                 names.add(name.lower())
                 if item.get('AliasFor') or item.get('TagType') == 'Alias':
                     if qualified and item in aoi.parameters:
-                        aoi.register_local_alias(item, locals_by_name, used_alias_targets)
+                        aoi.register_local_alias(item, locals_by_name, self.udts, used_alias_targets)
                     else:aoi.problems.append('Local aliases require v35 ControlLogix 5580 AOI Input or Output parameters')
                     continue
                 if item.get('Constant','false').lower()=='true':
@@ -793,17 +853,17 @@ class Project:
                     if name not in result: raise ModelError(f"Unknown decorated member {name}")
                     result[name] = self.decorated(child, result[name])
                     continue
-                local = next(item for item in definition.locals if item.get('Name') == target)
-                if (target not in result or child.tag != 'DataValueMember' or child.get('Value') is None
-                        or child.get('DataType', '').upper() != local.get('DataType', '').upper()):
+                if (child.tag != 'DataValueMember' or child.get('Value') is None
+                        or child.get('DataType', '').upper() != target.dtype):
                     raise ModelError(f"Invalid decorated AOI alias {name}")
-                value = self.decorated(child, result[target])
+                value = self.decorated(child, target.read(result))
                 if saved_alias_values.setdefault(target, value) != value:
-                    raise ModelError(f"Conflicting decorated AOI values for {target}")
+                    raise ModelError(f"Conflicting decorated AOI values for {target.reference}")
             for target, value in saved_alias_values.items():
-                if result[target] is not None and result[target] != value:
-                    raise ModelError(f"Conflicting decorated AOI values for {target}")
-                result[target] = value
+                stored = target.read(result)
+                if stored is not None and stored != value:
+                    raise ModelError(f"Conflicting decorated AOI values for {target.reference}")
+                target.parent(result)[target.parts[-1]] = value
             return result
         if element.tag in ("Array", "ArrayMember"):
             result = unknown_shape(default)
@@ -1083,8 +1143,12 @@ class Memory:
                             dtype, value = 'BOOL', bool((value['FLAGS'] >> bit) & 1)
                             continue
                     definition = self.project.aois.get(dtype.upper())
-                    if definition:
-                        item = definition.local_aliases.get(item.lower(), item)
+                    alias = definition.local_aliases.get(item.lower()) if definition else None
+                    if alias is not None:
+                        value = alias.read(value)
+                        dtype = alias.dtype
+                        parts.extend(alias.parts)
+                        continue
                     actual = next((k for k in value if k.lower() == item.lower()), None)
                     if actual is None: raise ModelError(f"Unknown member {ref}")
                     if dtype.upper() in ("TIMER", "COUNTER", "CONTROL"):
@@ -1387,7 +1451,7 @@ class Memory:
                         alias = parameter.get('Name', '')
                         target = definition.local_aliases.get(alias.lower())
                         if target is not None:
-                            walk(f"{name}.{alias}", value[target], tag, local)
+                            walk(f"{name}.{alias}", target.read(value), tag, local)
             elif isinstance(value, list):
                 def array(path,obj):
                     if isinstance(obj,list):

@@ -154,7 +154,8 @@ class AddOns:
                     native_runtime_parity=False),
                 'local_state_policy':'Hidden saved local values remain unknown; Prescan or normal writes must establish them before reads',
                 'constant_inouts':{a.name:sorted(a.constant_inouts) for a in project.aois.values() if a.constant_inouts},
-                'local_aliases':{a.name:dict(a.local_aliases) for a in project.aois.values() if a.local_aliases},
+                'local_aliases':{a.name:{name:target.reference for name,target in a.local_aliases.items()}
+                                 for a in project.aois.values() if a.local_aliases},
                 'definition_issues':{a.name:a.problems for a in project.aois.values() if a.problems},
                 'instructions':{a.name:dict(__import__('collections').Counter(op.name for r in a.routines.values()
                                            for rung in r.rungs for op in operations(rung['nodes'])))

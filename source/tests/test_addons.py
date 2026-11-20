@@ -274,7 +274,75 @@ class AddOnTests(unittest.TestCase):
         self.assertTrue(any('ordinary Input or Output' in blocker for blocker in self.engine().blockers))
         second.set('Usage', 'Input')
         second.set('DataType', 'REAL')
-        self.assertTrue(any('matching scalar local tag' in blocker for blocker in self.engine().blockers))
+        self.assertTrue(any('matching scalar local target' in blocker for blocker in self.engine().blockers))
+
+    def local_alias_record(self, target, *, include_input=True):
+        definition = self.alias_accumulator(include_input=include_input)
+        parameters = definition.find('Parameters')
+        for name in ('Step', 'Total') if include_input else ('Total',):
+            parameters.find(f'Parameter[@Name="{name}"]').set('AliasFor', target)
+        controller = self.root.find('Controller')
+        types = controller.find('DataTypes')
+        if types is None:
+            types = E.SubElement(controller, 'DataTypes')
+        members = E.SubElement(E.SubElement(types,'DataType',Name='AliasState',Class='User'),'Members')
+        E.SubElement(members,'Member',Name='Position',DataType='DINT',Dimension='0')
+        E.SubElement(members,'Member',Name='Samples',DataType='DINT',Dimension='3')
+        E.SubElement(definition.find('LocalTags'),'LocalTag',Name='State',DataType='AliasState')
+        for name in ('AccumulatorA', 'AccumulatorB'):
+            saved = controller.find(f'Tags/Tag[@Name="{name}"]/Data/Structure')
+            record = E.SubElement(saved,'StructureMember',Name='State',DataType='AliasState')
+            E.SubElement(record,'DataValueMember',Name='Position',DataType='DINT',Value='21')
+            array = E.SubElement(record,'ArrayMember',Name='Samples',DataType='DINT',Dimensions='3')
+            E.SubElement(array,'Element',Index='[0]',Value='41')
+            E.SubElement(array,'Element',Index='[2]',Value='66')
+        return definition
+
+    def test_local_alias_paths_share_a_member_or_fixed_element_without_touching_siblings(self):
+        original = self.root
+        for target in ('State.Position', 'state.Samples[1]'):
+            with self.subTest(target=target):
+                self.root = copy.deepcopy(original)
+                self.local_alias_record(target)
+                self.body()[0].find('Text').text = f'ADD(Step,1,{target});'
+                engine = self.engine()
+                self.assertEqual(engine.blockers, [])
+                engine.step()
+                refs = ('AccumulatorA.Step', 'AccumulatorA.Total', 'AccumulatorA.' + target, 'TotalA')
+                self.assertEqual([engine.memory.read(ref) for ref in refs], [3, 3, 3, 3])
+                engine.memory.write('AccumulatorA.Total', 12)
+                self.assertEqual(engine.memory.read('AccumulatorA.Step'), 12)
+                array = engine.memory.read('AccumulatorA.State.Samples')
+                self.assertEqual((array[0], array[2]), (41, 66))
+                if '[' in target:
+                    self.assertEqual(array[1], 12)
+                    self.assertEqual(engine.memory.read('AccumulatorA.State.Position'), 21)
+
+    def test_saved_alias_value_fills_only_one_array_element_and_rejects_conflicts(self):
+        definition = self.local_alias_record('State.Samples[1]', include_input=False)
+        definition.set('ExecutePrescan','false')
+        for name,value in (('AccumulatorA','17'),('AccumulatorB','0')):
+            saved = self.root.find(f'Controller/Tags/Tag[@Name="{name}"]/Data/Structure')
+            E.SubElement(saved,'DataValueMember',Name='Total',DataType='DINT',Value=value)
+        engine = self.engine()
+        self.assertEqual(engine.blockers, [])
+        self.assertEqual(engine.memory.read('AccumulatorA.State.Samples'), [41, 17, 66])
+        record = self.root.find('Controller/Tags/Tag[@Name="AccumulatorA"]/Data/Structure/StructureMember[@Name="State"]')
+        E.SubElement(record.find('ArrayMember[@Name="Samples"]'),'Element',Index='[1]',Value='18')
+        self.assertTrue(any('Conflicting decorated AOI values for State.Samples[1]' in blocker
+                            for blocker in self.engine().blockers))
+
+    def test_reject_invalid_paths_and_normalized_duplicate_aliases(self):
+        definition = self.local_alias_record('State.Samples[1]')
+        inputs = definition.find('Parameters')
+        parameter = inputs.find('Parameter[@Name="Step"]')
+        for target in ('State.Samples[Step]', 'State.Samples[3]', 'State.Samples', 'State.Missing'):
+            with self.subTest(target=target):
+                parameter.set('AliasFor', target)
+                self.assertTrue(any('AOI alias' in blocker for blocker in self.engine().blockers))
+        parameter.set('AliasFor','State.Samples[1]')
+        E.SubElement(inputs,'Parameter',Name='StepAgain',Usage='Input',DataType='DINT',AliasFor='STATE.samples[01]')
+        self.assertTrue(any('only one Input alias' in blocker for blocker in self.engine().blockers))
 
     def test_recursive_aoi_call_is_blocked(self):
         E.SubElement(self.definition().find('Parameters'),'Parameter',Name='Peer',DataType='LabAccumulator',Usage='InOut',Required='true')
