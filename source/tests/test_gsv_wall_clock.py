@@ -161,7 +161,7 @@ class GsvWallClockTests(unittest.TestCase):
                             ('GSV(CST,,CurrentStatus,Elapsed);',True),
                             ('GSV(CST,,CurrentValue,ClockWide);',True),
                             ('GSV(WallClockTime,,CSTOffset,Elapsed);',False),
-                            ('SSV(WallClockTime,,CSTOffset,Elapsed);',True)):
+                            ('SSV(WallClockTime,,CSTOffset,Elapsed);',False)):
             with self.subTest(logic=logic):
                 self.assertTrue(self.engine([logic],local=local,mutate=self.coordinated_destinations).blockers)
 

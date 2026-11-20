@@ -94,9 +94,9 @@ See [status and settings](docs/gsv-configuration.md#timesynchronize-status-and-s
 `SyncIndex=1`, enable `ReadSyncClock` and step. See
 [clock reads](docs/wall-clock-gsv.md#timesynchronize-clock-reads).
 
-**Controller UTC setting** now supports SSV WallClockTime CurrentValue, DateTime
-and UTC-qualified LocalDateTime with
-transactional clock changes and consistent clock reads. In **System lab**, set
+**Controller UTC setting** supports SSV WallClockTime CurrentValue, DateTime,
+and UTC-qualified LocalDateTime and CSTOffset. Changes commit with the scan,
+and later clock reads in the same scan use the pending value. In **System lab**, set
 SetClock to apply ClockSetpoint once. See [controller clock setting](docs/wall-clock-set.md).
 
 **Typed integer expressions** now accept binary/octal/hexadecimal L/U/UL

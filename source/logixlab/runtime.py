@@ -770,12 +770,16 @@ class Engine:
     def wall_time(self, sample=None):
         return adjusted_microseconds((sample or current_value_microseconds)(), self.wall_clock_state)
 
-    def set_wall_clock(self, requested):
+    def set_wall_clock(self, requested, *, relative_to_cst=False):
         if self._wall_clock_pending is None:
             raise ModelError('Clock setting requires an active simulation advance')
-        if type(requested) is not int or not 0 <= requested <= MAX_SET_MICROSECONDS:
-            raise ModelError('WallClockTime CurrentValue setting requires UTC microseconds in 1970..2068-12-29')
+        if relative_to_cst and (type(requested) is not int or requested < 0):
+            raise ModelError('WallClockTime CSTOffset setting requires a nonnegative offset in microseconds')
         elapsed = self.coordinated_clock.microseconds()
+        if relative_to_cst and elapsed is not None:
+            requested += elapsed
+        if type(requested) is not int or not 0 <= requested <= MAX_SET_MICROSECONDS:
+            raise ModelError('WallClockTime setting requires resulting UTC microseconds in 1970..2068-12-29')
         raw = current_value_microseconds()
         if elapsed is None or type(raw) is not int or raw < 0:
             raise ModelError('Clock setting requires available host UTC and software coordinated clocks')

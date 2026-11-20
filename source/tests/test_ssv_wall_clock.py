@@ -71,6 +71,67 @@ class SsvWallClockTests(unittest.TestCase):
         e=self.engine(['SSV(WallClockTime,,CurrentValue,SetWords);','GSV(WallClockTime,,CurrentValue,ClockMeasured);'],mutate=fields)
         e.step();self.assertEqual(e.memory.read('ClockMeasured'),TARGET);self.assertEqual(e.memory.read('ClockWords'),[77,77,*words]+[77]*8)
 
+    def test_cst_offset_sets_utc_from_scalar_time_or_low_high_words(self):
+        offset = 0x187654321
+        words = struct.unpack('<ii', struct.pack('<q', offset))
+
+        def fields(root):
+            reads.GsvWallClockTests.coordinated_destinations(root)
+            tags = root.find('./Controller/Tags')
+            scalar(tags, 'RequestedOffset', 'TIME', offset).set('Constant', 'true')
+            for index, value in enumerate(words, 1):
+                element = tags.find(f'Tag[@Name="ClockWords"]/Data/Array/Element[@Index="[{index}]"]')
+                element.set('Value', str(value))
+                array = tags.find('Tag[@Name="ElapsedWords"]/Data/Array')
+                E.SubElement(array, 'Element', Index=f'[{index}]', Value=str(value))
+            E.SubElement(tags, 'Tag', Name='OffsetAlias', DataType='TIME32', TagType='Alias',
+                         AliasFor='ElapsedWords[1]')
+
+        for source, st in (('RequestedOffset', False), ('ClockWords[1]', True), ('OffsetAlias', False)):
+            with self.subTest(source=source):
+                e = self.engine([f'SSV(WallClockTime,,CSTOffset,{source});',
+                                 'GSV(WallClockTime,,CurrentValue,ClockMeasured);',
+                                 'GSV(WallClockTime,,CSTOffset,Elapsed);'], mutate=fields, st=st)
+                e.step()
+                expected = offset + 1_000_000
+                self.assertEqual(e.memory.read('Elapsed', allow_time=True), offset)
+                self.assertEqual(e.memory.read('ClockMeasured'), expected)
+                self.assertEqual(e.coordinated_clock.utc.state, ClockAdjustment(expected - RAW, 1_000_000))
+                self.assertEqual(e.memory.read('ElapsedWords', allow_time=True), [77, *words, 77])
+                self.assertEqual(e.memory.read('ClockWords'), [77, *words] + [77] * 9)
+
+    def test_cst_offset_skips_invalid_indices_then_rolls_back_and_retries(self):
+        e = self.engine(['XIC(ReadClock)SSV(WallClockTime,,CSTOffset,ClockUnknown[ClockIndex]);',
+                         'DIV(1,ClockDivisor,Out);'])
+        with patch.object(e, 'set_wall_clock', side_effect=AssertionError('Unexpected setting')):
+            e.step()
+            e.memory.write('ReadClock', True)
+            self.fault(e, 'outside bounds')
+            e.memory.write('ClockIndex', 1)
+            self.fault(e, 'Unknown')
+        e.memory.write('ClockUnknown[1]', 123)
+        e.memory.write('ClockUnknown[2]', 0)
+        e.memory.write('ClockDivisor', 0)
+        self.fault(e, 'zero')
+        e.memory.write('ClockDivisor', 1)
+        e.step()
+        self.assertEqual(e.coordinated_clock.utc.state, ClockAdjustment(1_000_123 - RAW, 1_000_000))
+        self.fault(e, '15 seconds')
+
+    def test_cst_offset_rejects_negative_or_out_of_calendar_result(self):
+        e = self.engine(['SSV(WallClockTime,,CSTOffset,ClockWords[2]);'])
+        for value, error in ((-1, 'nonnegative offset'), (MAX_SET_MICROSECONDS, '2068')):
+            for index, word in enumerate(struct.unpack('<ii', struct.pack('<q', value)), 2):
+                e.memory.write(f'ClockWords[{index}]', word)
+            self.fault(e, error)
+        e.coordinated_clock = CoordinatedClock()
+        e.memory.write('ClockWords[2]', 0)
+        e.memory.write('ClockWords[3]', 0)
+        self.fault(e, 'requires available host UTC and software coordinated clocks')
+        e.coordinated_clock = CoordinatedClock(0)
+        e.step()
+        self.assertEqual(e.coordinated_clock.utc.state, ClockAdjustment(1_000_000 - RAW, 1_000_000))
+
     def test_false_prescan_skips_source_indices_values_and_time_sampling(self):
         e=self.engine(['XIC(ReadClock)SSV(WallClockTime,,CurrentValue,ClockUnknown[ClockIndex]);'])
         with patch('logixlab.wall_clock.current_value_microseconds',side_effect=AssertionError('No clock sampling')):e.step()

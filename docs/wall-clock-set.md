@@ -45,6 +45,22 @@ False/prescan skip data and live indices, but malformed schemas and references
 still block. Unknown fields, invalid dates, range failures and later faults
 discard the setting and retain its update admission history.
 
+## Coordinated System Time offset
+
+Ladder and Structured Text accept `SSV(WallClockTime,,CSTOffset,Offset);`
+with the same explicit UTC local-time policy as
+[the offset read](wall-clock-gsv.md#coordinated-system-time). Supply a scalar
+TIME or two contiguous DINT or TIME32 cells, with the low word first. The
+source represents a nonnegative offset in microseconds. A DINT pair can
+represent offsets beyond the scalar TIME range.
+
+The emulator adds the offset to one sample of its monotonic CST counter and
+uses the sum as the requested UTC time. The existing UTC range, 15-second
+update interval and rollback rules apply. After the write, the adjusted clock
+continues advancing with host UTC. This models a clock adjustment at the
+time of the instruction. Separate clock reads sample independently.
+[Rockwell WallClockTime reference](https://www.rockwellautomation.com/en-in/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/input-output-instructions/access-the-wallclocktime-object.html)
+
 ## Commit and readback
 
 The instruction stages an adjustment to the emulator's host UTC source. Later

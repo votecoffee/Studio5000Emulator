@@ -93,33 +93,37 @@ def _clock_destination(memory, ref, scope, number, count):
     return destination(memory, ref, scope, count)
 
 
-def setting_source(memory, ref, scope, count=2):
+def setting_source(memory, ref, scope, number, count):
+    offset = number == CST_OFFSET
+    scalar_types = ('TIME',) if offset else ('DT', 'LINT')
+    word_types = ('DINT', 'TIME32') if offset else ('DINT',)
     key, parts, dtype = memory.resolve(ref, scope)
     if key is None or any(isinstance(part, tuple) for part in parts):
-        raise ModelError('Clock setting requires a scalar DT/LINT tag or two DINT cells')
+        raise ModelError('Clock setting requires a tag or selected element')
     value = memory.at(key, parts)
-    if count == 2 and dtype in ('DT','LINT') and not isinstance(value, (list,dict)):
+    if count == 2 and dtype in scalar_types and not isinstance(value, (list, dict)):
         return key, [parts], dtype
-    if dtype == 'DINT':
+    if dtype in word_types:
         if count == 7 and parts and isinstance(parts[-1], str) and not isinstance(value, list):
             paths = _calendar_record_paths(memory, key, parts, count, role='source')
             if paths is not None:return key, paths, dtype
         return memory.region(ref, count, scope)
+    if offset:raise ModelError('CSTOffset SSV requires a scalar TIME or two contiguous DINT or TIME32 cells')
     if count == 7:raise ModelError('Clock calendar source requires seven contiguous DINT cells or seven leading record fields')
     raise ModelError('Clock setting requires a scalar DT/LINT tag or two DINT cells')
 
 
 def setting_specification(engine, op):
     number, count = specification(engine, op)
-    if op.args[0].casefold() != 'wallclocktime' or number not in (5,6,7):
-        raise ModelError('Clock SSV supports WallClockTime CurrentValue, DateTime and UTC-qualified LocalDateTime')
+    if op.args[0].casefold() != 'wallclocktime' or number not in (CST_OFFSET, 5, 6, 7):
+        raise ModelError('Clock SSV supports WallClockTime CurrentValue, DateTime, and UTC-qualified LocalDateTime or CSTOffset')
     return number, count
 
 
 def validate_set(engine, op, scope):
-    _,count=setting_specification(engine, op);memory=engine.memory;previous=memory.structural
+    number,count=setting_specification(engine, op);memory=engine.memory;previous=memory.structural
     memory.structural=True
-    try:return setting_source(memory,op.args[3],scope,count)
+    try:return setting_source(memory,op.args[3],scope,number,count)
     finally:memory.structural=previous
 
 
@@ -135,12 +139,12 @@ def calendar_microseconds(values):
 
 
 def execute_set(engine, op, scope):
-    _,count=setting_specification(engine, op);memory=engine.memory
-    key,paths,dtype=setting_source(memory,op.args[3],scope,count)
+    number,count=setting_specification(engine, op);memory=engine.memory
+    key,paths,dtype=setting_source(memory,op.args[3],scope,number,count)
     values=[memory.read(memory.address(key,path),allow_time=True) for path in paths]
     value=(calendar_microseconds(values) if count==7 else coerce(values[0],dtype) if len(paths)==1 else
-           struct.unpack('<q',struct.pack('<ii',*(coerce(value,'DINT') for value in values)))[0])
-    engine.set_wall_clock(value)
+           struct.unpack('<q',struct.pack('<ii',*(coerce(value,dtype) for value in values)))[0])
+    engine.set_wall_clock(value, relative_to_cst=number == CST_OFFSET)
 
 
 def validate(engine,op,scope):
@@ -210,6 +214,7 @@ def description():
                 failures='Unavailable clock, out-of-range DT, invalid destinations and later faults roll back the whole modeled advance',
                 native_runtime_parity=False,clock_setters=True,ptp=False,
                 setting='SSV CurrentValue from scalar DT/LINT or two DINT cells; DateTime and UTC-qualified LocalDateTime from seven DINT cells or leading UDT members; transactional controller UTC adjustment, 15-second monotonic interval, maximum 2068-12-29; no host clock write',
+                cst_offset_setting='UTC-qualified CSTOffset SSV from scalar TIME or two DINT or TIME32 cells; a nonnegative offset is added to one CST sample and uses the same UTC setting transaction',
                 remaining=['Built-in DATETIMESTRUCT layout and other attributes',
                            'Other clock SSV attributes, non-UTC/DST policies, CST status and chassis synchronization',
                            'Native sampling, interruption, scheduling, layout and fault/lifecycle parity'])
