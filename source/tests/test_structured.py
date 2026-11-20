@@ -118,11 +118,61 @@ class StructuredTests(unittest.TestCase):
         self.assertTrue(self.engine('FOR Index:=0 TO 2.0 DO Sum:=1; END_FOR;').blockers)
         self.assertTrue(self.engine('FOR Done:=0 TO 2 DO Sum:=1; END_FOR;').blockers)
 
-    def test_for_mutating_bounds_and_dynamic_counter_are_blocked(self):
+    def test_for_mutating_bounds_and_aggregate_counter_are_blocked(self):
         for source in ('FOR Index:=0 TO Step DO Step:=Step+1; END_FOR;',
                        'FOR Index:=0 TO Index+3 DO Sum:=1; END_FOR;',
-                       'FOR Values[Index]:=0 TO 2 DO Sum:=1; END_FOR;'):
+                       'FOR Values:=0 TO 2 DO Sum:=1; END_FOR;'):
             with self.subTest(source=source):self.assertTrue(self.engine(source).blockers)
+
+    def test_for_indirect_counter_keeps_its_selected_cell_when_selector_changes(self):
+        tags = self.root.find('./Controller/Tags')
+        E.SubElement(tags, 'Tag', Name='Counters', TagType='Alias', AliasFor='Values')
+        engine = self.engine(
+            'Sum:=0; FOR Counters[Selector]:=0 TO 4 BY Step DO '
+            'Sum:=Sum+Values[1]; Selector:=99; END_FOR;')
+        self.assertEqual(engine.blockers, [])
+        engine.memory.write('Selector', 1)
+        engine.memory.write('Values[3]', 77)
+        engine.step()
+        self.assertEqual(engine.memory.read('Selector'), 99)
+        self.assertEqual(engine.memory.read('Sum'), 6)
+        self.assertEqual(engine.memory.read('Values'), [0, 6, 0, 77, 0])
+
+    def test_for_indirect_counter_checks_live_overlap_with_bound_before_initializing(self):
+        engine = self.engine(
+            'FOR Values[Selector]:=0 TO Values[2] BY Step DO Sum:=Sum+1; END_FOR;')
+        self.assertEqual(engine.blockers, [])
+        engine.memory.write('Selector', 1)
+        engine.memory.write('Values[2]', 4)
+        engine.step()
+        self.assertEqual(engine.memory.read('Values'), [0, 6, 4, 0, 0])
+
+        engine.memory.write('Selector', 2)
+        before = copy.deepcopy(engine.memory.values)
+        with self.assertRaisesRegex(ModelError, 'FOR bounds/step cannot depend on its counter'):
+            engine.step()
+        self.assertEqual(engine.memory.values, before)
+        self.assertEqual(engine.scan_count, 1)
+
+    def test_for_indirect_counter_resolves_bounds_only_in_reached_loops(self):
+        source = ('State:=7; IF Enable THEN FOR Values[Selector]:=0 TO 2 DO '
+                  'Sum:=Sum+1; END_FOR; END_IF;')
+        engine = self.engine(source)
+        self.assertEqual(engine.blockers, [])
+        engine.memory.write('Enable', False)
+        engine.memory.write('Selector', 99)
+        engine.step()
+        self.assertEqual(engine.memory.read('State'), 7)
+
+        engine.memory.write('State', 9)
+        engine.memory.write('Enable', True)
+        before = copy.deepcopy(engine.memory.values)
+        with self.assertRaisesRegex(ModelError, 'Array index outside bounds'):
+            engine.step()
+        self.assertEqual(engine.memory.values, before)
+
+        self.root.find('Controller').set('MajorRev', '34')
+        self.assertTrue(self.engine(source).blockers)
 
     def test_for_read_only_tag_bound_is_supported(self):
         e=self.engine('Sum:=0; FOR Index:=0 TO Step DO Sum:=Sum+Index; END_FOR;');self.assertEqual(e.blockers,[]);e.step()

@@ -415,6 +415,34 @@ class EventTaskTests(unittest.TestCase):
         self.assertEqual(engine.memory.read('SpeedCommand'), 3)
         self.assertEqual(engine.scheduler_description()['tasks'][1]['executions'], 3)
 
+    def test_for_event_guard_follows_indirect_counter_after_selector_changes(self):
+        def add_counters(root):
+            tags = root.find('./Controller/Tags')
+            tag = E.SubElement(tags, 'Tag', Name='Counters', TagType='Base', DataType='DINT', Dimensions='2')
+            data = E.SubElement(tag, 'Data', Format='Decorated')
+            array = E.SubElement(data, 'Array', DataType='DINT', Dimensions='2')
+            for index, value in enumerate((27, 38)):
+                E.SubElement(array, 'Element', Index=f'[{index}]', Value=str(value))
+
+        engine = self.checked([
+            ['FOR Counters[SpeedCommand]:=0 TO 2 DO EVENT(Task1); END_FOR;'],
+            ['MOV(99,SpeedCommand)ADD(Count1,1,Count1);', 'XIC(StartPB)ADD(Counters[1],1,Counters[1]);'],
+        ], st=True, mutate=add_counters)
+        engine.memory.write('SpeedCommand', 1)
+        engine.memory.write('StartPB', False)
+        engine.step()
+        self.assertEqual(engine.memory.read('Counters'), [27, 3])
+        self.assertEqual(engine.memory.read('SpeedCommand'), 99)
+        self.assertEqual(engine.memory.read('Count1'), 3)
+
+        engine.memory.write('SpeedCommand', 1)
+        engine.memory.write('StartPB', True)
+        before = copy.deepcopy(engine.memory.values)
+        with self.assertRaisesRegex(ModelError, 'EVENT dispatch changed an active FOR counter'):
+            engine.step()
+        self.assertEqual(engine.memory.values, before)
+        self.assertEqual(engine.scheduler_description()['tasks'][1]['executions'], 3)
+
     def test_for_uid_defers_events_until_uie_in_each_iteration(self):
         engine = self.checked([
             ['FOR SpeedCommand:=0 TO 2 DO UID(); EVENT(Task1); Count0:=Count0+Count1; UIE(); END_FOR;'],

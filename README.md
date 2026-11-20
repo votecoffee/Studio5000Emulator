@@ -594,7 +594,9 @@ dispatch, deferred lower/equal-priority work, first scans and request diagnostic
 trigger and mask events directly or through called routines, with rollback if
 dispatch changes active loop operands. [Subroutine calls with tag-based FOR
 bounds](docs/execution-model.md#subroutine-calls-in-structured-text-for-loops)
-also check live limits and increments across each call.
+also check live limits and increments across each call. The v35 ControlLogix
+5580 profile supports [indirect FOR counters](docs/execution-model.md#indirect-structured-text-for-counters)
+and keeps the selected element for the duration of the loop.
 
 [System-value reads](docs/gsv-configuration.md) add explicit Task/Controller
 configuration through GSV in ladder and ST. **System lab** shows task rates and

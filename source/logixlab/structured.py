@@ -207,15 +207,23 @@ class Structured:
         if isinstance(value,bool) or not isinstance(value,int):raise ModelError('ST loop operand requires an integer')
         return value
 
-    def loop_contract(self,node,scope):
+    def loop_operands(self, node, scope):
         from .calls import overlaps
-        counter=self.engine.calls.operand(node.target,scope,writable=True)
-        if counter.dims:raise ModelError('FOR counter must be a scalar static reference')
-        dependencies=[]
-        for expr in (node.limit,node.step):
-            for ref in self.expression(expr).refs:
-                dependencies.append(self.engine.calls.operand(ref,scope))
-        if any(overlaps(counter,dep) for dep in dependencies):raise ModelError('FOR bounds/step cannot depend on its counter')
+        calls = self.engine.calls
+        counter = calls.operand(node.target, scope, writable=True, indirect=calls.indirect_profile(scope))
+        if counter.dims:
+            raise ModelError('FOR counter must select one scalar')
+        dependencies = [
+            calls.operand(ref, scope)
+            for expr in (node.limit, node.step)
+            for ref in self.expression(expr).refs
+        ]
+        if any(overlaps(counter, dep) for dep in dependencies):
+            raise ModelError('FOR bounds/step cannot depend on its counter')
+        return counter, dependencies
+
+    def loop_contract(self,node,scope):
+        _, dependencies = self.loop_operands(node, scope)
         writes=[];extra_writes=[]
         for item in walk(node.body):
             if item.kind in ('assign','for'):writes.append(item.target)
@@ -328,9 +336,9 @@ class Structured:
             return self.integer(loop.step, scope), self.integer(loop.limit, scope)
 
         @contextmanager
-        def watch_loop(loop):
+        def watch_loop(loop, counter):
             def read_operands():
-                return self.memory.read(loop.target, scope), *loop_bounds(loop)
+                return self.memory.read(counter.ref, counter.scope), *loop_bounds(loop)
 
             watch = dispatch.watch_for_operands(read_operands) if dispatch else nullcontext()
             active_loops.append(loop)
@@ -399,19 +407,23 @@ class Structured:
                             if any(lo<=value<=hi for lo,hi in ranges):chosen=body;break
                         self.trace(routine,n,context,detail=value);run(chosen)
                     elif n.kind=='for':
-                        self.memory.write(n.target,self.integer(n.start,scope),scope)
-                        with watch_loop(n):
+                        start = self.integer(n.start, scope)
+                        # Keep the selected counter cell for this loop invocation.
+                        counter, _ = self.loop_operands(n, scope)
+                        self.memory.write(counter.ref, start, counter.scope)
+                        with watch_loop(n, counter):
                             # Bounds and increment are re-evaluated at each loop test.
                             while True:
                                 self.tick()
                                 step, limit = loop_bounds(n)
                                 if not step:raise ModelError('FOR step cannot be zero')
-                                current=self.memory.read(n.target,scope)
+                                current = self.memory.read(counter.ref, counter.scope)
                                 if (step>0 and current>limit) or (step<0 and current<limit):break
                                 self.trace(routine,n,context,detail=current)
                                 try:run(n.body)
                                 except ExitLoop:break
-                                self.memory.write(n.target,self.memory.read(n.target,scope)+step,scope)
+                                updated = self.memory.read(counter.ref, counter.scope) + step
+                                self.memory.write(counter.ref, updated, counter.scope)
                     elif n.kind in ('while','repeat'):
                         while True:
                             self.tick()
