@@ -490,6 +490,8 @@ can also supply those transfers in ladder and ST. [Packed BOOL parameters](docs/
 can copy individual bits of signed integer words.
 [Time and date parameters](docs/indirect-routine-calls.md#time-and-date-tags)
 retain exact ticks through matching JSR, SBR and RET tag transfers.
+[Typed time and date literals](docs/indirect-routine-calls.md#typed-time-and-date-literals)
+can supply JSR inputs and RET values.
 
 [Statistics operand selection](docs/statistics-operands.md) defers dormant
 AVE/STD result indices and establishes unknown REAL/integer result elements.

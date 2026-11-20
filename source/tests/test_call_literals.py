@@ -59,6 +59,64 @@ class CallLiteralTests(unittest.TestCase):
             e=self.literal(dtype,ZERO[dtype],ret=text);e.step()
             self.assertEqual(e.memory.read('WideResult'),expected)
 
+    def test_time_date_literals_preserve_types_and_exact_ticks_for_mixed_languages(self):
+        for dtype, source, input_ticks, returned, output_ticks in (
+            ('TIME32', 'T32#-1ms_2us', -1002, 'T32#9us', 9),
+            ('TIME', 'T#1s_3us', 1000003, 'T#-2us', -2),
+            ('LTIME', 'LT#1s_1ns', 1000000001, 'LT#-1ns', -1),
+            ('DT', 'DT#2020-03-05-08:11:44.345_678(UTC+08:00)', 1583367104345678,
+             'DT#1970-01-01-05:30:00.000_001(UTC+05:30)', 1),
+            ('LDT', 'LDT#2020-10-25-11:05:20.123_456_789', 1603623920123456789,
+             'LDT#2020-10-25-11:05:20.123_456_790', 1603623920123456790),
+        ):
+            for main_st, callee_st in ((False, True), (True, False)):
+                with self.subTest(dtype=dtype, main_st=main_st):
+                    e = self.literal(dtype, source, ret=returned, main_st=main_st, callee_st=callee_st)
+                    e.step()
+                    self.assertEqual(e.memory.read('WideFormal', allow_time=True), input_ticks)
+                    self.assertEqual(e.memory.read('WideResult', allow_time=True), output_ticks)
+
+    def test_temporal_literals_keep_destination_profile_and_range_checks(self):
+        cases = (
+            ('TIME32', 'T32#2147483648us', None, 'WideResult', 'requires exact ticks'),
+            ('DT', 'DT#1970-01-01-00:00:00.123_456_789', None, 'WideResult', 'fraction exceeds'),
+            ('TIME', 'LT#1ns', None, 'WideResult', 'types and array dimensions must match'),
+            ('LDT', 'LDT#1970-01-01-00:00:00.000_000_001',
+             'DT#1970-01-01-00:00:00', 'WideResult', 'types and array dimensions must match'),
+            ('TIME', 'T#1us', None, 'T#2us', 'must be a writable tag'),
+        )
+        for dtype, source, returned, destination, message in cases:
+            with self.subTest(source=source, returned=returned, destination=destination):
+                e = self.literal(dtype, source, ret=returned, dest=destination, gate=True,
+                                 main_st=True, callee_st=True, checked=False)
+                self.assertIn(message, str(e.blockers))
+
+        def old_profile(root):
+            root.find('Controller').set('MajorRev', '34')
+
+        e = self.literal('LINT', 'LT#1ns', gate=True, extra=old_profile, checked=False)
+        self.assertIn('Routine time/date parameters require the v35', str(e.blockers))
+
+        def invalid_formal(root):
+            self.routine('LiteralWorker', ['SBR(T#1us);', 'RET(WideFormal);'])
+
+        e = self.literal('TIME', 'T#1us', gate=True, extra=invalid_formal, checked=False)
+        self.assertIn('must be a writable tag', str(e.blockers))
+
+    def test_temporal_literal_trace_and_late_fault_keep_exact_timestamp(self):
+        value = 'LDT#2020-10-25-11:05:20.123_456_789'
+        e = self.literal('LDT', value, ret=value, callee_st=True, tail=['DIV(1,LiteralDivisor,Result);'])
+        e.memory.write('LiteralDivisor', 0)
+        before = self.snapshot(e)
+        with self.assertRaisesRegex(ModelError, 'zero'):
+            e.step()
+        self.assertEqual(self.snapshot(e), before)
+        e.memory.write('LiteralDivisor', 1)
+        e.step()
+        event = next(item for visit in e.trace for item in visit['events'] if item['instruction'] == 'JSR')
+        self.assertEqual(event['operand_samples'][2], dict(address=None, type='LDT', value='1603623920123456789'))
+        self.assertEqual(event['operand_samples'][3]['value'], '1603623920123456789')
+
     def test_grouped_dint_inputs_and_returns_in_ladder_and_st(self):
         for main_st, callee_st in ((False, False), (True, True), (False, True), (True, False)):
             with self.subTest(main_st=main_st, callee_st=callee_st):

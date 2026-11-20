@@ -4,7 +4,7 @@ import re
 from dataclasses import dataclass
 from .model import ArrayBoundsError, ModelError, Op, coerce, literal, operand_problem, operations
 from .integer_math import CONTROLLERS
-from .time_values import TYPES as TIME_TYPES
+from .time_values import TYPES as TIME_TYPES, literal as time_literal
 from .numeric_storage import typed_literal
 from .numeric_copy import static_reference
 
@@ -76,7 +76,16 @@ class Calls:
                 and scope not in self.memory.frames)
 
     def operand(self,ref,scope,writable=False,*,indirect=False):
-        typed=typed_literal(ref) if self.indirect_profile(scope) else None
+        qualified = self.indirect_profile(scope)
+        try:
+            temporal = time_literal(ref)
+        except ValueError as error:
+            raise ModelError(str(error)) from error
+        if temporal is not None and not qualified:
+            raise ModelError('Routine time/date parameters require the v35 ControlLogix 5580 profile')
+        typed = temporal
+        if typed is None and qualified:
+            typed = typed_literal(ref)
         if typed is not None:
             if writable:raise ModelError('Parameter destination must be a writable tag')
             dtype,value=typed
@@ -94,11 +103,11 @@ class Calls:
         key,parts,dtype=self.memory.check_writable(ref,scope) if writable else self.memory.resolve(ref,scope)
         if key is None:
             raise ModelError('Routine parameter system selections are unsupported')
-        if dtype in TIME_TYPES and not self.indirect_profile(scope):
+        if dtype in TIME_TYPES and not qualified:
             raise ModelError('Routine time/date parameters require the v35 ControlLogix 5580 profile')
         if parts and isinstance(parts[-1], tuple):
             _, _, width, signed = parts[-1]
-            if not (self.indirect_profile(scope) and signed and width in (8, 16, 32)):
+            if not (qualified and signed and width in (8, 16, 32)):
                 raise ModelError('Routine parameter bit selections require v35 5580 SINT, INT or DINT storage')
             dims = ()
             # A fixed-looking alias can contain an indirect bit selector.
@@ -354,12 +363,13 @@ class Calls:
                     radix_bases=[2,8,16],syntax='Decimal and attached radix L/l, U/u and UL/ul/Ul/uL integers; floating L/l constants',
                     transfers='JSR inputs and RET values keep their declared type; exact matching formal/return types; literal range checked before execution',
                     trace='LINT/ULINT values recorded as decimal text; LREAL retained as binary64',
-                    excluded='Time/date/aggregate constants, numeric promotion, other controller profiles and AOI calls',native_runtime_parity=False),
+                    excluded='Aggregate constants, numeric promotion, other controller profiles and AOI calls',native_runtime_parity=False),
                 'dint_radix':dict(available=self.indirect_profile(''),radix_bases=[2,8,16],
                     transfers='JSR inputs and RET values accept grouped unsuffixed DINT words with exact type matching',
                     loop='Ladder FOR initial, terminal and step accept the same DINT words',native_runtime_parity=False),
                 'time_date':dict(available=self.indirect_profile(''),types=sorted(TIME_TYPES),
-                    contract='Copied tags with exact declared time/date types and dimensions',
+                    contract='Exact declared types and dimensions for copied time/date tags',
+                    literals='Typed time/date constants in JSR inputs and RET values',
                     trace='Exact ticks shown as decimal text', native_runtime_parity=False),
                 'indirect':dict(available=self.indirect_profile(''),profile='v35-5580-caller-elements',
                                 selection='Structural JSR preflight; false/prescan skip live caller indices and values',

@@ -27,8 +27,7 @@ preflight even on an unreachable call. Unsuffixed inputs retain their existing
 bounded DINT/float32 REAL rules.
 
 Constants are read-only values, not output locations. SBR operands and JSR
-return destinations still require writable tags. Time/date, string and
-aggregate literals, wider FOR operands, other controller profiles and
+return destinations still require writable tags. String and aggregate literals, wider FOR operands, other controller profiles and
 JSR inside AOIs are outside this increment. Existing ST JSR/RET calls use the
 same typed-value transfer rules. Literal values are captured with each resolved
 call or return; later faults restore all formal/result writes and call state.
@@ -145,10 +144,22 @@ elements use the existing address capture and copy rules.
 Values retain their declared microsecond or nanosecond ticks. The ladder
 monitor exposes these ticks as exact decimal text. A reached unknown scalar
 faults and rolls back the advance. A complete return write can establish a
-previously unknown destination. Calls use typed tags for this feature.
+previously unknown destination.
 Rockwell lists time and date parameter types in its
 [Studio 5000 v38 instruction help](https://www.rockwellautomation.com/en-gb/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/program-control-instructions/jump-to-subroutine--jsr---subroutine--sbr---and-re.html).
 Native v35 acceptance remains unverified.
+
+### Typed time and date literals
+
+Ladder and ST JSR inputs and RET values can also use typed literals such
+as `T32#-1ms_2us`, `T#1s_3us`, `LT#1ns`,
+`DT#1970-01-01-05:30:00.000_001(UTC+05:30)`, and
+`LDT#2020-10-25-11:05:20.123_456_789`. The paired tag has the exact
+literal type. The emulator checks duration range, date validity and fractional
+precision during preflight and resolves UTC offsets before copying exact ticks.
+SBR and JSR return destinations require writable tags. A later fault restores
+both formal and result values. The ladder monitor displays literal ticks as
+exact decimal text. Native v35 literal acceptance remains unverified.
 
 ## Packed BOOL parameters
 

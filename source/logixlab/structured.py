@@ -6,6 +6,7 @@ from dataclasses import dataclass,field
 from .model import ModelError,Op,operand_problem,split_indices
 from .expressions import Expression
 from .st_expression import STExpression
+from .time_values import scan as scan_time_literal
 from . import system_values, array_sort, st_cases, st_timers, st_counter, st_oneshot, st_scale, st_signal, st_rate, st_moving, st_capture, st_filter, st_digital, st_accumulate, st_select, st_derivative, st_curves, st_pi, st_bit_moves, numeric_copy, numeric_fill
 from .integer_math import WIDE_TYPES
 
@@ -81,10 +82,19 @@ class Parser:
                 if pos>=len(self.source):raise ModelError('Unclosed ST string literal')
                 pos+=1
             else:
-                match=re.match(r'(?:2|8|16)#[0-9A-Fa-f_]+|(?:\d+(?:\.(?!\.)\d*)?|\.\d+)(?:[eE][+-]?\d+)?|[A-Za-z_][\w]*|\[:=\]|:=|\.\.|<=|>=|<>|\*\*|[+*/(),;:\[\].=<>\-&]',self.source[pos:])
-                if not match:raise ModelError(f'ST line {line+1}: unsupported syntax near {self.source[pos:pos+24]!r}')
-                pos+=len(match[0])
-            self.tokens.append((self.source[start:pos],start,pos,line))
+                try:
+                    temporal = scan_time_literal(self.source, pos) if c in 'TtLlDd' else None
+                except ValueError as error:
+                    raise ModelError(f'ST line {line+1}: {error}') from error
+                if temporal is not None:
+                    pos = temporal[0]
+                else:
+                    match=re.match(r'(?:2|8|16)#[0-9A-Fa-f_]+|(?:\d+(?:\.(?!\.)\d*)?|\.\d+)(?:[eE][+-]?\d+)?|[A-Za-z_][\w]*|\[:=\]|:=|\.\.|<=|>=|<>|\*\*|[+*/(),;:\[\].=<>\-&]',self.source[pos:])
+                    if not match:raise ModelError(f'ST line {line+1}: unsupported syntax near {self.source[pos:pos+24]!r}')
+                    pos+=len(match[0])
+            token = self.source[start:pos]
+            self.tokens.append((token, start, pos, line))
+            line += token.count('\n')
         if len(self.tokens)>50000:raise ModelError('ST routine exceeds 50000 tokens')
         self.tokens.append(('<END>',len(source),len(source),line));self.pos=0;self.depth=0
 
