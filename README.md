@@ -205,6 +205,9 @@ required inputs while leaving unused output and InOut indices unevaluated.
 can share a scalar local value, including a UDT member, a fixed array element,
 a TIMER, COUNTER, or CONTROL field, a fixed integer bit, or a named UDT BIT
 member backed by a hidden SINT.
+[Packed BOOL outputs](docs/aoi-constants.md#packed-bool-output-destinations)
+copy directly to writable SINT, INT, and DINT bits in v35 ControlLogix 5580
+ladder and Structured Text calls.
 [Routine call constants](docs/indirect-routine-calls.md#typed-radix-parameters)
 share the exact type contract. [Floating constants](docs/lreal-literals.md) now support
 REAL defaults and explicit LREAL suffixes in CPT/CMP. Wide expression lab

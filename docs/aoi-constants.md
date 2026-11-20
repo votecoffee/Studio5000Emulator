@@ -101,6 +101,22 @@ the full call. See Rockwell's [AOI scan-mode guidance](https://literature.rockwe
 for parameter transfers. Index fault timing and monitor behavior remain
 unverified in native Studio 5000.
 
+## Packed BOOL output destinations
+
+In the v35 ControlLogix 5580 profile, a required BOOL Output can copy to a
+writable bit of a SINT, INT, or DINT during a ladder or Structured Text call.
+For example, an AOI with a single required BOOL Output can use
+`SetReady(ReadyInstance, StatusWord.3)`. An alias to the bit or an indirect
+selection such as `StatusWord.[BitIndex]` uses the same copy path.
+
+The copy preserves every other bit and requires a known backing word.
+Prescan and enabled EnableInFalse routines copy their final output values.
+A failed scan restores both the backing word and the AOI state. Packed integer
+bit operands for InOut parameters remain unsupported. The emulator behavior
+follows the value-copy model in Rockwell's
+[Add-On Instructions manual](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm010_-en-p.pdf).
+Native acceptance of the packed-bit destination forms remains unverified.
+
 ## Constant InOut parameters
 
 In the v35 ControlLogix 5580 profile, an AOI may declare a required InOut

@@ -1081,6 +1081,92 @@ class AddOnTests(unittest.TestCase):
         e=self.engine();self.assertTrue(any('Prescan:' in b for b in e.blockers))
         self.assertEqual(e.memory.values,e.project.initial)
 
+    def add_packed_output(self):
+        """Add a copied flag that changes during each AOI scan mode."""
+        E.SubElement(self.definition().find('Parameters'), 'Parameter', Name='Flag', DataType='BOOL',
+                     Usage='Output', Required='true', Visible='true')
+        for mode, text in (
+            ('Logic', 'ADD(Count,Step,Count)MOV(Count,Total)ADD(Shared,Step,Shared)OTL(Flag);'),
+            ('Prescan', 'CLR(Count)CLR(Total)OTU(Flag);'),
+            ('EnableInFalse', 'MOV(-1,Total)OTU(Flag);'),
+        ):
+            self.body(mode=mode)[0].find('Text').text = text
+        return self.root.find('./Controller/Tags')
+
+    def test_bool_output_bit_preserves_signed_word_in_ladder_scan_modes(self):
+        tags = self.add_packed_output()
+        for dtype, width in (('SINT', 8), ('INT', 16), ('DINT', 32)):
+            tag = E.SubElement(tags, 'Tag', Name='Packed'+dtype, DataType=dtype, TagType='Base')
+            data = E.SubElement(tag, 'Data', Format='Decorated')
+            E.SubElement(data, 'DataValue', DataType=dtype, Value=str(10 - (1 << (width - 1))))
+        for dtype, width in (('SINT', 8), ('INT', 16), ('DINT', 32)):
+            with self.subTest(dtype=dtype):
+                word = 'Packed'+dtype
+                engine = self.engine([
+                    f'XIC(EnableA)LabAccumulator(AccumulatorA,StepA,TotalA,SharedA,{word}.{width-1});',
+                ])
+                self.assertEqual(engine.blockers, [])
+                self.assertEqual(engine.memory.read(word), 10)
+                engine.step()
+                self.assertEqual(engine.memory.read(word), 10 - (1 << (width - 1)))
+                engine.memory.write('EnableA', False)
+                engine.step()
+                self.assertEqual(engine.memory.read(word), 10)
+
+    def test_st_bool_output_resolves_alias_and_indirect_bit(self):
+        tags = self.add_packed_output()
+        E.SubElement(tags, 'Tag', Name='PackedAlias', TagType='Alias', AliasFor='Truncated.1')
+        main = self.root.find('./Controller/Programs/Program/Routines/Routine')
+        main.remove(main.find('RLLContent'))
+        main.set('Type', 'ST')
+        content = E.SubElement(main, 'STContent')
+        E.SubElement(content, 'Line', Number='0').text = (
+            'LabAccumulator(AccumulatorA,StepA,TotalA,SharedA,PackedAlias);')
+        E.SubElement(content, 'Line', Number='1').text = (
+            'LabAccumulator(AccumulatorB,StepB,TotalB,SharedB,Truncated.[StepA]);')
+        engine = self.engine()
+        self.assertEqual(engine.blockers, [])
+        engine.memory.write('Truncated', 8)
+        engine.step()
+        self.assertEqual(engine.memory.read('Truncated'), 14)
+        engine.memory.write('StepA', 5)
+        engine.step()
+        self.assertEqual(engine.memory.read('Truncated'), 46)
+
+    def test_bool_output_bit_keeps_destination_and_profile_guards(self):
+        tags = self.add_packed_output()
+        packed = tags.find('Tag[@Name="Truncated"]')
+        packed.set('Constant', 'true')
+        call = 'LabAccumulator(AccumulatorA,StepA,TotalA,SharedA,Truncated.2);'
+        self.assertIn('Read-only destination', str(self.engine([call]).blockers))
+        packed.set('Constant', 'false')
+        self.assertIn('Output destination type must match exactly', str(self.engine([
+            'LabAccumulator(AccumulatorA,StepA,Truncated.1,SharedA,Truncated.2);',
+        ]).blockers))
+        self.assertIn('InOut bit selections are unsupported', str(self.engine([
+            'LabAccumulator(AccumulatorA,StepA,TotalA,Truncated.1,Truncated.2);',
+        ]).blockers))
+        self.root.find('Controller').set('MajorRev', '34')
+        self.assertIn('Output bit selections require v35', str(self.engine([call]).blockers))
+
+    def test_bool_output_bit_copy_rolls_back_after_later_fault(self):
+        self.add_packed_output()
+        engine = self.engine([
+            'LabAccumulator(AccumulatorA,1,TotalA,SharedA,Truncated.2);',
+            'DIV(1,StepA,TotalB);',
+        ])
+        self.assertEqual(engine.blockers, [])
+        engine.memory.write('Truncated', 9)
+        engine.memory.write('StepA', 0)
+        with self.assertRaises(ModelError):
+            engine.step()
+        self.assertEqual(engine.memory.read('Truncated'), 9)
+        self.assertEqual(engine.memory.read('AccumulatorA.Flag'), False)
+        self.assertEqual(engine.memory.read('SharedA'), 10)
+        engine.memory.write('StepA', 1)
+        engine.step()
+        self.assertEqual(engine.memory.read('Truncated'), 13)
+
     def test_optional_output_is_updated_only_in_instance(self):
         p=self.definition('LabScale').find('./Parameters/Parameter[@Name="Result"]');p.set('Required','false')
         wrapper=self.body('LabWrapper');wrapper[0].find('Text').text='LabScale(Core,Raw,2.0)MOV(Core.Result,Result);'

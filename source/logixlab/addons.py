@@ -72,9 +72,14 @@ class AddOns:
                     raise ModelError(f"{parameter.get('Name')}: InOut dimensions {actual} do not meet {declared}")
                 bindings[parameter_name]=(self.memory.address(k,p),'')
             elif usage=='Output':
-                k,p,t=self.memory.check_writable(argument,scope)
-                if any(isinstance(x,tuple) for x in p):raise ModelError('Output bit selections are unsupported')
-                if t!=expected or isinstance(self.memory.at(k,p),(dict,list)):
+                key, parts, dtype = self.memory.check_writable(argument, scope)
+                if dtype != expected:
+                    raise ModelError(parameter.get('Name')+': Output destination type must match exactly')
+                if parts and isinstance(parts[-1], tuple):
+                    _, _, width, signed = parts[-1]
+                    if not (numeric_available(self.engine.project) and signed and width in (8, 16, 32)):
+                        raise ModelError('Output bit selections require v35 5580 SINT, INT, or DINT storage')
+                elif isinstance(self.memory.at(key, parts), (dict, list)):
                     raise ModelError(parameter.get('Name')+': Output destination type must match exactly')
             else:
                 immediate=input_immediate(self.engine.project,argument)
