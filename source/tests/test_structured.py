@@ -43,6 +43,36 @@ class StructuredTests(unittest.TestCase):
         self.assertEqual(e.memory.read('Root'), 3.0)
         self.assertIs(e.memory.read('Done'), True)
 
+    def test_lreal_mixed_tags_preserve_stored_real_and_convert_integer_values(self):
+        self.lreal_tags(Delta=0)
+        tags = self.root.find('./Controller/Tags')
+        tag = E.SubElement(tags, 'Tag', Name='RoundedReal', TagType='Base', DataType='REAL')
+        E.SubElement(E.SubElement(tag, 'Data', Format='Decorated'), 'DataValue',
+                     DataType='REAL', Value='16777217')
+        e = self.engine(
+            'State:=16777217; Delta:=State-RoundedReal+16#1L; '
+            'Done:=State>RoundedReal+0.0L;')
+        self.assertEqual(e.blockers, [])
+        e.step()
+        self.assertEqual(e.memory.read('RoundedReal'), 16777216.0)
+        self.assertEqual(e.memory.read('Delta'), 2.0)
+        self.assertIs(e.memory.read('Done'), True)
+
+    def test_lreal_typed_integer_sources_round_only_after_declared_range_checks(self):
+        self.lreal_tags(Rounded=0, SignedMinimum=0, UnsignedMaximum=0)
+        e = self.engine(
+            'Rounded:=9007199254740993L; SignedMinimum:=-9223372036854775808L; '
+            'UnsignedMaximum:=16#FFFF_FFFF_FFFF_FFFFUL; '
+            'Done:=9007199254740993L<>9007199254740992L; '
+            'Truth:=Rounded=9007199254740992L;')
+        self.assertEqual(e.blockers, [])
+        e.step()
+        self.assertEqual(e.memory.read('Rounded'), 9007199254740992.0)
+        self.assertEqual(e.memory.read('SignedMinimum'), float(-(1 << 63)))
+        self.assertEqual(e.memory.read('UnsignedMaximum'), float(1 << 64))
+        self.assertIs(e.memory.read('Done'), True)
+        self.assertIs(e.memory.read('Truth'), True)
+
     def test_lreal_runtime_faults_roll_back_prior_assignments_and_skip_unreached_branch(self):
         self.lreal_tags(Binary64=1e308, Delta=42)
         for expression, message in (
@@ -66,8 +96,9 @@ class StructuredTests(unittest.TestCase):
     def test_lreal_rejects_nonfinite_literals_and_unqualified_types_in_false_branches(self):
         self.lreal_tags(Binary64=1.0, Delta=0)
         for statement in (
-            'Delta:=1e309L;', 'Delta:=1e309;', 'Delta:=Binary64+1L;', 'Delta:=Binary64+State;',
-            'State:=Binary64;', 'Delta:=Binary64 AND Binary64;', 'Delta:=Binary64>0.0L;',
+            'Delta:=1e309L;', 'Delta:=1e309;', 'Delta:=18446744073709551616UL;',
+            'Delta:=9223372036854775808L;', 'State:=Binary64;', 'Delta:=Binary64+Enable;',
+            'Delta:=Binary64 AND Binary64;', 'Delta:=Binary64>0.0L;',
         ):
             with self.subTest(statement=statement):
                 self.assertTrue(self.engine('IF FALSE THEN '+statement+' END_IF;').blockers)

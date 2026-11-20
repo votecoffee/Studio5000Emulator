@@ -850,7 +850,8 @@ model. **Integer lab** compares RLL/ST results and demonstrates exact
 [decimal, binary, octal and hexadecimal L/U/UL integer literals](docs/st-integer-literals.md).
 Enable `RunStPower` to try [exact wide integer powers](docs/wide-st.md#integer-powers)
 or `RunStRoot` to inspect [integer square-root rounding](docs/wide-st.md#integer-square-roots).
-Enable `RunStDouble` to try [binary64 Structured Text](docs/lreal-expressions.md#structured-text).
+Enable `RunStDouble` to try [binary64 Structured Text](docs/lreal-expressions.md#structured-text)
+with mixed numeric tags and typed integer constants.
 Complete mixed-type arithmetic,
 additional expression forms and native math flags remain unfinished.
 

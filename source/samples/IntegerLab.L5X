@@ -369,6 +369,8 @@
       <Tag Name="StRootInput" DataType="ULINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="ULINT" Value="16000000004000000000" /></Data></Tag>
       <Tag Name="StRootResult" DataType="ULINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="ULINT" Value="0" /></Data></Tag>
       <Tag Name="RunStDouble" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="StDoubleMixedResult" DataType="LREAL" TagType="Base"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
+      <Tag Name="StDoubleMixedAbove" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
       <Tag Name="StDoubleDelta" DataType="LREAL" TagType="Base"><Data Format="Decorated"><DataValue DataType="LREAL" Value="0.0" /></Data></Tag>
       <Tag Name="StDoubleDivisor" DataType="LREAL" TagType="Base"><Data Format="Decorated"><DataValue DataType="LREAL" Value="1.0" /></Data></Tag>
       <Tag Name="StDoubleAboveOne" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
@@ -1133,7 +1135,8 @@
               <Line Number="14">StLiteralCheck:=StLiteralSigned=-9223372036854775808L;</Line>
               <Line Number="15">IF RunStPower THEN StPowerResult:=3UL**StPowerExponent; END_IF;</Line>
               <Line Number="16">IF RunStRoot THEN StRootResult:=SQRT(StRootInput); END_IF;</Line>
-              <Line Number="17">IF RunStDouble THEN StDoubleDelta:=(DoubleInput-1.0L)/StDoubleDivisor; StDoubleAboveOne:=DoubleInput&gt;1.0L; END_IF;</Line>
+              <Line Number="17">IF RunStDouble THEN StDoubleMixedResult:=DoubleResultsPrecise-RealCompareHigh+16#1L; StDoubleMixedAbove:=DoubleResultsPrecise&gt;RealCompareHigh+0.0L; END_IF;</Line>
+              <Line Number="18">IF RunStDouble THEN StDoubleDelta:=(DoubleInput-1.0L)/StDoubleDivisor; StDoubleAboveOne:=DoubleInput&gt;1.0L; END_IF;</Line>
             </STContent>
           </Routine>
           <Routine Name="NarrowRealOutputs" Type="RLL">

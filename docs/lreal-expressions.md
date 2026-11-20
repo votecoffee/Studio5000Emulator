@@ -125,13 +125,20 @@ between `1.0000000000000002L` and `1.0L` is exactly 2^-52. Untyped real literals
 round to REAL before binary64 evaluation. Unsuffixed DINT-range integers
 also work as constants in these expressions.
 
-A numeric tag in the expression and a numeric assignment target must be
-LREAL. Mixed numeric tags, typed integer constants and narrowing assignments
-are outside this profile. Every intermediate must be finite. Division by
-zero, nonfinite arithmetic and function-domain errors roll back the scan
-when reached. Native v35 behavior remains unverified.
+Once selected, the profile accepts REAL and all eight integer tag types
+alongside LREAL. REAL tags contribute their stored binary32 values. Decimal
+and radix L/U/UL integer constants are checked against their declared type
+before binary64 conversion. Integers beyond 53 significant bits can round.
+An integer suffix alone still selects the existing integer rules.
+
+A numeric assignment target must be LREAL. Every intermediate must be finite.
+Division by zero, nonfinite arithmetic and function-domain errors roll back
+the scan when reached. Native v35 behavior remains unverified.
 [Rockwell floating-point values reference](https://www.rockwellautomation.com/en-mde/docs/studio-5000-logix-designer/37-02/contents-ditamap/floating-point-values.html)
 
 Enable `RunStDouble` in **Integer Lab**. `StDoubleDelta` shows 2^-52 and
-`StDoubleAboveOne` becomes true. Set `StDoubleDivisor` to zero to exercise
-scan rollback, then restore one to retry.
+`StDoubleAboveOne` becomes true. `StDoubleMixedResult` shows 2 from DINT
+16777217 minus REAL 16777216 plus the LINT literal `16#1L`. The corresponding
+Boolean comparison, `StDoubleMixedAbove`, also becomes true.
+Set `StDoubleDivisor` to zero to exercise scan rollback, then restore one
+to retry.
