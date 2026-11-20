@@ -315,7 +315,7 @@ class Structured:
                         if dtype=='BOOL':
                             tree=self.expression(n.expr).tree
                             if result!='bool' and not(tree[0]=='literal' and type(tree[1]) is int and tree[1] in (0,1)):raise ModelError('BOOL assignment requires BOOL or literal 0/1')
-                        elif dtype in ('SINT','INT','DINT','REAL',*WIDE_TYPES):
+                        elif dtype in ('SINT','INT','DINT','REAL','LREAL',*WIDE_TYPES):
                             if result!='number':raise ModelError('Numeric assignment requires a numeric expression')
                         elif self.engine.project.string_capacity(dtype) is not None:
                             if result!='string':raise ModelError('String assignment requires a string expression')

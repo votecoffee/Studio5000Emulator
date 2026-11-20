@@ -23,6 +23,55 @@ class StructuredTests(unittest.TestCase):
         path=Path(self.tmp.name)/'fixture.L5X';E.ElementTree(self.root).write(path,encoding='utf-8',xml_declaration=True)
         return Engine(Project(path))
 
+    def lreal_tags(self, **values):
+        tags = self.root.find('./Controller/Tags')
+        for name, value in values.items():
+            tag = E.SubElement(tags, 'Tag', Name=name, TagType='Base', DataType='LREAL')
+            E.SubElement(E.SubElement(tag, 'Data', Format='Decorated'), 'DataValue',
+                         DataType='LREAL', Value=str(value))
+
+    def test_lreal_binary64_assignments_conditions_and_explicit_literal_precision(self):
+        self.lreal_tags(Binary64=1.0000000000000002, Delta=0, Promoted=0, Root=0)
+        e = self.engine(
+            'Delta := Binary64 - 1.0L; Promoted := 1.0000000000000002; '
+            'Done := TRUE AND Binary64 > Promoted; '
+            'IF Done AND NOT (Binary64=1e0L) THEN Root:=SQRT(9.0L); END_IF;')
+        self.assertEqual(e.blockers, [])
+        e.step()
+        self.assertEqual(e.memory.read('Delta'), 2**-52)
+        self.assertEqual(e.memory.read('Promoted'), 1.0)
+        self.assertEqual(e.memory.read('Root'), 3.0)
+        self.assertIs(e.memory.read('Done'), True)
+
+    def test_lreal_runtime_faults_roll_back_prior_assignments_and_skip_unreached_branch(self):
+        self.lreal_tags(Binary64=1e308, Delta=42)
+        for expression, message in (
+            ('Binary64/0.0L', 'divide by zero'),
+            ('Binary64*2.0L', 'Nonfinite LREAL'),
+            ('LN(-1.0L)', 'domain/range'),
+        ):
+            with self.subTest(expression=expression):
+                e = self.engine('State:=17; IF Enable THEN Delta:='+expression+'; END_IF;')
+                self.assertEqual(e.blockers, [])
+                e.memory.write('Enable', False)
+                e.step()
+                self.assertEqual(e.memory.read('Delta'), 42)
+                e.memory.write('Enable', True)
+                e.memory.write('State', 99)
+                before = copy.deepcopy(e.memory.values)
+                with self.assertRaisesRegex(ModelError, message):
+                    e.step()
+                self.assertEqual(e.memory.values, before)
+
+    def test_lreal_rejects_nonfinite_literals_and_unqualified_types_in_false_branches(self):
+        self.lreal_tags(Binary64=1.0, Delta=0)
+        for statement in (
+            'Delta:=1e309L;', 'Delta:=1e309;', 'Delta:=Binary64+1L;', 'Delta:=Binary64+State;',
+            'State:=Binary64;', 'Delta:=Binary64 AND Binary64;', 'Delta:=Binary64>0.0L;',
+        ):
+            with self.subTest(statement=statement):
+                self.assertTrue(self.engine('IF FALSE THEN '+statement+' END_IF;').blockers)
+
     def test_text_lab_full_scan_and_prescan(self):
         e=self.engine();self.assertEqual(e.blockers,[])
         self.assertEqual(e.memory.read('ClearedOnRun'),0);self.assertEqual(e.memory.read('ScanTotal'),0)

@@ -1,4 +1,4 @@
-# LREAL ladder expressions
+# LREAL expressions
 
 The bounded v35 ControlLogix 5580 model supports finite binary64 calculations
 in CPT and [ladder FAL](file-arithmetic.md#binary64-expressions), and comparisons
@@ -114,3 +114,24 @@ and native numerical/status/fault/lifecycle parity remain separate.
 now combine binary64 numeric relations with built-in or user string relations in
 CMP/FSC. Strings retain active-byte lexical comparisons and eager fault behavior;
 numeric selection and binary64 intermediate precision are unchanged.
+
+## Structured Text
+
+The v35 ControlLogix 5580 emulator uses finite binary64 for an ST expression
+selected by an LREAL tag, LREAL destination or floating `L` or `l` literal.
+It supports LREAL scalar assignments, arithmetic, existing ST math functions,
+and comparisons combined with BOOL conditions. For example, the difference
+between `1.0000000000000002L` and `1.0L` is exactly 2^-52. Untyped real literals
+round to REAL before binary64 evaluation. Unsuffixed DINT-range integers
+also work as constants in these expressions.
+
+A numeric tag in the expression and a numeric assignment target must be
+LREAL. Mixed numeric tags, typed integer constants and narrowing assignments
+are outside this profile. Every intermediate must be finite. Division by
+zero, nonfinite arithmetic and function-domain errors roll back the scan
+when reached. Native v35 behavior remains unverified.
+[Rockwell floating-point values reference](https://www.rockwellautomation.com/en-mde/docs/studio-5000-logix-designer/37-02/contents-ditamap/floating-point-values.html)
+
+Enable `RunStDouble` in **Integer Lab**. `StDoubleDelta` shows 2^-52 and
+`StDoubleAboveOne` becomes true. Set `StDoubleDivisor` to zero to exercise
+scan rollback, then restore one to retry.

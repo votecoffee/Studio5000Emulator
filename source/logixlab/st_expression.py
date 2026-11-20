@@ -4,18 +4,21 @@ from .integer_math import quotient
 from .expressions import Expression
 from .conditions import RELATIONS
 from .model import ModelError,coerce
-from . import time_values, wide_st
+from . import lreal_expressions, time_values, wide_st
 
 
 class STExpression(Expression):
     def __init__(self,text):
-        try:super().__init__(text,condition=True,structured=True,temporal_literals=True)
+        try:super().__init__(text,condition=True,structured=True,temporal_literals=True,floating_literals=True)
         except (ValueError,IndexError) as e:raise ModelError('Malformed ST expression') from e
 
     def analyze(self,memory,scope='',destination_type=None):
         temporal = time_values.expression_profile(self, memory, scope, destination_type, consumer='ST')
         if temporal is not None:
             return ('bool' if temporal['condition'] else 'temporal'), False, {}
+        lreal = lreal_expressions.analyze(self, memory, scope, destination_type, consumer='ST')
+        if lreal is not None:
+            return lreal['result_type'], True, lreal['types']
         wide=wide_st.analyze(self,memory,scope,destination_type)
         if wide is not None:return wide[1],False,wide[2]
         return self.analyze_standard(memory, scope)
@@ -63,6 +66,9 @@ class STExpression(Expression):
         temporal = time_values.expression_profile(self, memory, scope, destination_type, consumer='ST')
         if temporal is not None:
             return time_values.evaluate_expression(self, memory, scope, temporal)
+        lreal = lreal_expressions.analyze(self, memory, scope, destination_type, consumer='ST')
+        if lreal is not None:
+            return lreal_expressions.evaluate(self, memory, scope, lreal)
         wide=wide_st.analyze(self,memory,scope,destination_type)
         if wide is not None:return wide_st.evaluate(self,memory,scope,wide)
         _,real,types=self.analyze_standard(memory,scope)

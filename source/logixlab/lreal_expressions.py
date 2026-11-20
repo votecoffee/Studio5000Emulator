@@ -1,4 +1,4 @@
-"""Scoped floating ladder expressions; binary64 and selected REAL extensions."""
+"""Scoped binary64 expressions and selected REAL ladder expressions."""
 import math
 import operator
 
@@ -22,6 +22,8 @@ def available(project):
 
 def immediate(value):
     if type(value) is float:
+        if not math.isfinite(value):
+            raise ModelError('Floating immediate exceeds finite REAL range')
         try:return coerce(value, 'REAL')
         except (OverflowError, ValueError) as error:
             raise ModelError('Floating immediate exceeds finite REAL range') from error
@@ -44,9 +46,16 @@ def analyze(expression, memory, scope='', destination_type=None, *, consumer='CP
     elif not binary64:return None
     if not available(memory.project):
         raise ModelError(precision+' expressions require the v35 ControlLogix 5580 profile')
-    if consumer != 'CMP' and destination_type not in NUMERIC:
+    st = consumer == 'ST'
+    condition = consumer == 'CMP' or (st and destination_type in (None, 'BOOL'))
+    if st and (expression.typed_types or not condition and destination_type != 'LREAL'):
+        raise ModelError('LREAL ST requires an LREAL numeric destination and untyped or LREAL constants')
+    if not condition and destination_type not in NUMERIC:
         raise ModelError(f'{precision} {consumer} requires a numeric scalar destination')
-    if expression.functions - (frozenset(FUNCTIONS) if precision == 'REAL' else MATH):
+    functions = frozenset(FUNCTIONS) if precision == 'REAL' else MATH
+    if st:
+        functions = expression.function_map.keys()
+    if expression.functions - functions:
         raise ModelError('Unsupported '+precision+' expression function')
     types = {}
     for ref, dtype in declared.items():
@@ -54,7 +63,9 @@ def analyze(expression, memory, scope='', destination_type=None, *, consumer='CP
             memory.string(ref, scope)
             types[ref] = 'string'
             continue
-        if dtype not in NUMERIC and not (consumer == 'CMP' and dtype == 'BOOL'):
+        if st and dtype != 'LREAL' and not (condition and dtype == 'BOOL'):
+            raise ModelError('LREAL ST requires scalar LREAL numeric tags')
+        if dtype not in NUMERIC and not (condition and dtype == 'BOOL'):
             raise ModelError(precision+' expressions require numeric scalar operands or CMP BOOL/string tags')
         key, parts, _ = memory.resolve(ref, scope)
         if isinstance(memory.at(key, parts), (dict, list)):
@@ -64,6 +75,8 @@ def analyze(expression, memory, scope='', destination_type=None, *, consumer='CP
     def infer(node):
         kind, value = node[:2]
         if kind == 'literal':
+            if st and type(value) is bool:
+                return 'bool'
             immediate(value)
             return 'number'
         if kind == 'typed_literal':
@@ -85,7 +98,7 @@ def analyze(expression, memory, scope='', destination_type=None, *, consumer='CP
                 else:immediate(signed)
                 return 'number'
             operand = infer(node[2])
-            if consumer == 'CMP' and value in ('!', 'NOT') and operand == 'bool':
+            if condition and value in ('!', 'NOT') and operand == 'bool':
                 return 'bool'
             if value not in ('+', '-') or operand != 'number':
                 raise ModelError('Numeric '+precision+' bitwise/unary operators remain unqualified')
@@ -93,20 +106,20 @@ def analyze(expression, memory, scope='', destination_type=None, *, consumer='CP
         if kind != 'binary':
             raise ModelError('Unsupported LREAL expression operand')
         left, right = infer(node[2]), infer(node[3])
-        if consumer == 'CMP' and value in RELATIONS:
+        if condition and value in RELATIONS:
             if left != right or left == 'bool' and value not in ('=', '<>'):
-                raise ModelError(precision+' CMP comparison operand types must match')
+                raise ModelError(f'{precision} {consumer} comparison operand types must match')
             return 'bool'
-        if consumer == 'CMP' and value in LOGICAL and left == right == 'bool':
+        if condition and value in LOGICAL and left == right == 'bool':
             return 'bool'
         if value not in ARITHMETIC or left != 'number' or right != 'number':
-            raise ModelError(precision+' expressions require numeric arithmetic or CMP Boolean composition')
+            raise ModelError(precision+' expressions require numeric arithmetic or Boolean composition')
         return 'number'
 
-    result = infer(expression.tree)
-    if result != ('bool' if consumer == 'CMP' else 'number'):
+    result_type = infer(expression.tree)
+    if result_type != ('bool' if condition else 'number'):
         raise ModelError(consumer+' has an invalid '+precision+' expression result type')
-    result = dict(consumer=consumer, declared=declared, types=types)
+    result = dict(consumer=consumer, declared=declared, types=types, result_type=result_type)
     if precision == 'REAL':result['precision'] = 'REAL'
     return result
 
@@ -119,7 +132,7 @@ def evaluate(expression, memory, scope, profile):
     def visit(node):
         kind, value = node[:2]
         if kind == 'literal':
-            return number(immediate(value))
+            return value if type(value) is bool else number(immediate(value))
         if kind == 'typed_literal':
             return number(coerce(value,node[2]))
         if kind == 'lreal_literal':
@@ -138,7 +151,7 @@ def evaluate(expression, memory, scope, profile):
                 return not x
             return number(x if value == '+' else -x)
         if kind == 'call':
-            return number(FUNCTIONS[value](visit(node[2])))
+            return number(expression.function_map[value](visit(node[2])))
         # Both operands are required, including Boolean operations.
         x, y = visit(node[2]), visit(node[3])
         if value in RELATIONS:
@@ -197,9 +210,11 @@ def description(project):
                 strings='Built-in STRING and declared DINT LEN/SINT DATA strings; compare active bytes lexically and case-sensitively; validate LEN and required bytes; no string arithmetic/literals',
                 references='Existing structural/lazy scalar, alias, member, array and AOI bindings; full unknown destination writes',
                 failures='Required unknowns, bounds, nonfinite/domain/zero/late faults roll back the modeled advance',
+                structured_text=dict(numeric_tags='LREAL only', destination='Scalar LREAL or BOOL',
+                    literals='Bounded DINT, finite REAL or finite floating L/l', native_runtime_parity=False),
                 native_runtime_parity=False, native_math_status=False,
                 remaining=['Other separators/typed forms; FRD/TOD and numeric bitwise forms',
-                           'ST/FBD/SFC consumers and other controller profiles',
+                           'Mixed numeric ST tags, FBD/SFC consumers and other controller profiles',
                            'Native numerical, status, fault, packed-layout and lifecycle parity'])
 
 

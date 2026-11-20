@@ -149,14 +149,15 @@ class LrealLiteralTests(unittest.TestCase):
         e.memory.write('IndexA', 999)
         e.step()
 
-    def test_file_opt_in_preserves_generic_st_and_index_literal_parsers(self):
+    def test_floating_literals_preserve_generic_guards_and_use_the_st_profile(self):
         from logixlab.st_expression import STExpression
         for create in (Expression, Condition, lambda text: Expression(text, subscript=True)):
             with self.assertRaises(ModelError):
                 create('0.1L')
-        with self.assertRaises(ModelError):
-            STExpression('0.1L')
+        expression = STExpression('0.1L')
+        self.assertEqual(expression.literal_types, {'LREAL'})
         e = self.checked(['CPT(Results[1],0.1L);'])
+        self.assertEqual(expression.evaluate(e.memory, destination_type='LREAL'), 0.1)
         with self.assertRaises(ModelError):
             e.extensions.expression('0.1L')
         self.assertIn(('0.1L', True, True, True, True), e.extensions.expressions)
