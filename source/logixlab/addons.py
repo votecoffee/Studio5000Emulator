@@ -9,6 +9,9 @@ from .model import ModelError, coerce, dimensions, literal, operations
 from .numeric_storage import available as numeric_available, typed_literal
 
 
+NUMERIC_OUTPUT_TYPES = frozenset(('SINT', 'INT', 'DINT', 'REAL'))
+
+
 def input_immediate(project, argument):
     """Decode declared numeric constants in the qualified v35 profile."""
     return typed_literal(argument) if numeric_available(project) else None
@@ -73,7 +76,11 @@ class AddOns:
                 bindings[parameter_name]=(self.memory.address(k,p),'')
             elif usage=='Output':
                 key, parts, dtype = self.memory.check_writable(argument, scope)
-                if dtype != expected:
+                if dtype != expected and not (
+                    numeric_available(self.engine.project)
+                    and expected in NUMERIC_OUTPUT_TYPES
+                    and dtype in NUMERIC_OUTPUT_TYPES
+                ):
                     raise ModelError(parameter.get('Name')+': Output destination type must match exactly')
                 if parts and isinstance(parts[-1], tuple):
                     _, _, width, signed = parts[-1]
@@ -187,6 +194,9 @@ class AddOns:
                     contract='Grouped unsuffixed signed DINT words, with existing DINT input conversions',
                     lifecycle='Required scalar Inputs are copied in prescan and on reached calls, including false ladder calls',
                     native_runtime_parity=False),
+                'numeric_outputs':dict(available=numeric_available(project),types=sorted(NUMERIC_OUTPUT_TYPES),
+                    contract='Scalar copied Outputs between classic numeric types; binary32 REAL and checked nearest-even integer results',
+                    native_math_status=False,native_runtime_parity=False),
                 'local_state_policy':'Hidden saved local values remain unknown; Prescan or normal writes must establish them before reads',
                 'inout_arrays':dict(larger_one_dimension=numeric_available(project),
                     contract='Exact element type; one-dimensional actual length may exceed formal length',

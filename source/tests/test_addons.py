@@ -31,6 +31,70 @@ class AddOnTests(unittest.TestCase):
             self.assertEqual(e.memory.read(ref),value,ref)
         self.assertEqual(e.memory.read('NestedScale.Core.Scaled'),25.5)
 
+    def test_numeric_output_copy_uses_real_precision_in_ladder_scan_modes(self):
+        tags = self.root.find('./Controller/Tags')
+        E.SubElement(tags, 'Tag', Name='RealOutputAlias', TagType='Alias', AliasFor='ScaledValue')
+        engine = self.engine([
+            'XIC(EnableA)LabAccumulator(AccumulatorA,16777217,RealOutputAlias,SharedA);',
+        ])
+        self.assertEqual(engine.blockers, [])
+        self.assertTrue(engine.report()['add_on_instructions']['numeric_outputs']['available'])
+        self.assertEqual(engine.memory.read('ScaledValue'), 0.0)
+        engine.step()
+        self.assertEqual(engine.memory.read('AccumulatorA.Total'), 16777217)
+        self.assertEqual(engine.memory.read('ScaledValue'), 16777216.0)
+        engine.memory.write('EnableA', False)
+        engine.step()
+        self.assertEqual(engine.memory.read('ScaledValue'), -1.0)
+
+    def test_st_numeric_output_rounds_binary32_source_to_nearest_even(self):
+        main = self.root.find('./Controller/Programs/Program/Routines/Routine')
+        main.remove(main.find('RLLContent'))
+        main.set('Type', 'ST')
+        E.SubElement(E.SubElement(main, 'STContent'), 'Line', Number='0').text = (
+            'LabWrapper(NestedScale,RawValue,TotalB);')
+        self.body('LabWrapper')[0].find('Text').text = 'LabScale(Core,Raw,1.0,Result);'
+        engine = self.engine()
+        self.assertEqual(engine.blockers, [])
+        for value, stored, rounded in ((2.50000001, 2.5, 2), (3.5, 3.5, 4), (-2.5, -2.5, -2)):
+            with self.subTest(value=value):
+                engine.memory.write('RawValue', value)
+                engine.step()
+                self.assertEqual(engine.memory.read('NestedScale.Result'), stored)
+                self.assertEqual(engine.memory.read('TotalB'), rounded)
+
+    def test_narrow_output_overflow_rolls_back_aoi_writes_and_allows_retry(self):
+        output = self.root.find('./Controller/Tags/Tag[@Name="TotalA"]')
+        output.set('DataType', 'SINT')
+        output.find('./Data/DataValue').set('DataType', 'SINT')
+        engine = self.engine(['LabAccumulator(AccumulatorA,StepA,TotalA,SharedA);'])
+        self.assertEqual(engine.blockers, [])
+        engine.memory.write('TotalA', 47)
+        engine.memory.write('StepA', 128)
+        with self.assertRaisesRegex(ModelError, 'SINT overflow'):
+            engine.step()
+        self.assertEqual(engine.scan_count, 0)
+        self.assertEqual(engine.memory.read('TotalA'), 47)
+        self.assertEqual(engine.memory.read('AccumulatorA.Total'), 0)
+        self.assertEqual(engine.memory.read('SharedA'), 10)
+        engine.memory.write('StepA', -128)
+        engine.step()
+        self.assertEqual(engine.memory.read('TotalA'), -128)
+
+    def test_numeric_output_does_not_relax_destination_reference_or_profile_checks(self):
+        self.set_dint_array('TotalA', (11, 22))
+        self.assertTrue(self.engine(['LabWrapper(NestedScale,RawValue,TotalA);']).blockers)
+        output = self.root.find('./Controller/Tags/Tag[@Name="ScaledValue"]')
+        output.set('Constant', 'true')
+        call = 'LabAccumulator(AccumulatorA,StepA,ScaledValue,SharedA);'
+        self.assertIn('Read-only destination', str(self.engine([call]).blockers))
+        output.set('Constant', 'false')
+        self.assertIn('InOut requires type DINT', str(self.engine([
+            'LabAccumulator(AccumulatorA,StepA,TotalB,ScaledValue);',
+        ]).blockers))
+        self.root.find('Controller').set('MajorRev', '34')
+        self.assertIn('Output destination type must match exactly', str(self.engine([call]).blockers))
+
     def test_grouped_dint_inputs_copy_during_prescan_and_false_and_true_calls(self):
         self.definition().set('ExecuteEnableInFalse', 'false')
         for source, expected in (('2#0000 0011', 3), ('8#377 7777 7777', -1), ('16#FFFF FFFE', -2)):
@@ -647,8 +711,8 @@ class AddOnTests(unittest.TestCase):
         inner.set('Constant', 'false')
         self.assertTrue(any('Constant AOI InOut' in b for b in self.engine().blockers))
 
-    def test_output_requires_exact_type_writable_reference(self):
-        for target in ('RawValue','4','EnableA'):
+    def test_output_requires_a_writable_compatible_reference(self):
+        for target in ('4','EnableA','NestedScale'):
             with self.subTest(target=target):
                 self.assertTrue(self.engine([f'LabAccumulator(AccumulatorA,StepA,{target},SharedA);']).blockers)
 

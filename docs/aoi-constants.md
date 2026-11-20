@@ -101,6 +101,25 @@ the full call. See Rockwell's [AOI scan-mode guidance](https://literature.rockwe
 for parameter transfers. Index fault timing and monitor behavior remain
 unverified in native Studio 5000.
 
+## Numeric output conversions
+
+In the v35 ControlLogix 5580 profile, required scalar Outputs can copy to
+writable scalar tags of type SINT, INT, DINT, or REAL when both the declared
+Output and destination belong to that set. This works in ladder and Structured
+Text. Each AOI instance retains the value in its declared type, and the
+destination receives the converted copy during prescan, enabled logic, or an
+executed EnableInFalse routine.
+
+REAL copies use binary32 precision. A REAL sent to an integer rounds to the
+nearest integer, with ties going to the even integer. An out-of-range integer
+result faults the advance and restores the AOI and caller values. Exact-type
+wide numeric copies remain supported. Mixed wide numeric types, mixed BOOL
+and numeric types, and native overflow flags are outside this profile.
+
+Rockwell documents [automatic numeric parameter conversion](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm010_-en-p.pdf)
+and [numeric rounding rules](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/real-to-integer.html).
+Native Studio 5000 behavior for these calls remains unverified.
+
 ## Packed BOOL output destinations
 
 In the v35 ControlLogix 5580 profile, a required BOOL Output can copy to a
