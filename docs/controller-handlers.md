@@ -30,6 +30,23 @@ harness. Other instruction faults, Program fault subroutines and native
 fault history remain open.
 [Rockwell Major, Minor, and I/O Faults manual](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm014_-en-p.pdf)
 
+## Recover an array subscript overflow
+
+For an instruction already covered by the ladder array fault handler, an
+out-of-range DINT intermediate inside an array subscript can trigger Type 4
+Code 20. This includes an index calculation through an array alias. For
+example, `MOV(Table[Index+1],Output)` faults if Index is 2147483647.
+The handler can clear the fault and repair Index. That visit skips the MOV,
+and the next scan uses the repaired index. A handler that leaves the fault
+active causes scan rollback.
+
+Ordinary arithmetic result overflow, division by zero in a subscript, and
+overflow confined to a packed integer bit selector follow scan rollback.
+Structured Text statements retain transactional rollback for index faults.
+The emulator models the major-fault recovery path. Native minor fault
+flags and records remain unverified.
+[Rockwell math status and array subscript faults](https://www.rockwellautomation.com/en-ca/docs/studio-5000-logix-designer/37-01/contents-ditamap/math-status-flags.html)
+
 ## Recover COP and CPS array faults
 
 During whole-project ladder execution, an out-of-bounds array operand in
@@ -71,8 +88,9 @@ next instruction with the incoming power. A subsequent scan uses the
 current subscript.
 
 The calculation and result conversion still use the existing arithmetic
-rules. Zero divisors, arithmetic overflow and other errors outside
-the modeled array fault follow the usual scan rollback.
+rules. Zero divisors and arithmetic overflow in the instruction's value
+calculation follow the usual scan rollback. Subscript overflow can use
+[Type 4 Code 20 recovery](#recover-an-array-subscript-overflow).
 
 [Rockwell array subscript reference](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/37-00/contents-ditamap/index-through-arrays.html)
 

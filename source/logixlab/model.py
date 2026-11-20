@@ -36,7 +36,7 @@ class ModelError(Exception):
 
 
 class ArrayBoundsError(ModelError):
-    """A valid integer subscript selected outside an existing array."""
+    """An array subscript overflowed or selected outside existing storage."""
 
 
 class BlockExtentError(ModelError):
@@ -1068,6 +1068,13 @@ class Memory:
                 parsed.validate(self,scope,index=True);return 0
         return parsed.evaluate(self,scope,index=True)
 
+    def _array_index(self,expr,scope):
+        from .expressions import SubscriptOverflowError
+        try:
+            return self.index(expr,scope)
+        except SubscriptOverflowError as error:
+            raise ArrayBoundsError(str(error)) from error
+
     def bound_suffix(self,suffix,scope):
         """Evaluate caller subscripts before following alias or AOI bindings."""
         out=[];pos=0
@@ -1080,7 +1087,8 @@ class Memory:
                 elif suffix[end]==']':depth-=1
                 end+=1
             if depth:raise ModelError('Unclosed AOI array subscript')
-            values=[self.index(expr,scope) for expr in split_indices(suffix[start+1:end-1])]
+            index=self.index if suffix[start-1:start]=='.' else self._array_index
+            values=[index(expr,scope) for expr in split_indices(suffix[start+1:end-1])]
             if any(type(value) is not int for value in values):raise ModelError('AOI array subscript must be an integer')
             out.append('['+','.join(map(str,values))+']');pos=end
         return ''.join(out)
@@ -1127,7 +1135,7 @@ class Memory:
                 if end < 0: raise ModelError(f"Invalid subscript {ref}")
                 if depth:raise ModelError('Unclosed array subscript')
                 for expr in split_indices(tail[1:end]):
-                    idx = self.index(expr,scope)
+                    idx = self._array_index(expr,scope)
                     if isinstance(idx, bool) or not isinstance(idx, int): raise ModelError("Array subscript must be an integer")
                     if not isinstance(value, list): raise ModelError(f"Array index outside bounds: {ref}")
                     if not 0 <= idx < len(value): raise ArrayBoundsError(f"Array index outside bounds: {ref}")

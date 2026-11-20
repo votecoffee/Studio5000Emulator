@@ -68,8 +68,10 @@ selected unknown destinations and preserve neighboring values.
 Unknown required data, zero divisors, DINT intermediate overflow, negative or
 oversized indices and later failures roll back the whole advance, including
 earlier writes, task progress/timing and warm AOI local/external state/bindings.
-Division of DINT minimum by -1 overflows before selection. These are modeled
-transactional faults; native major/minor fault classification, partial effects,
+Division of DINT minimum by -1 overflows before selection. In whole-project
+ladder scans, eligible instructions can route array bounds and subscript
+overflow to a [Type 4 Code 20 handler](controller-handlers.md#recover-an-array-subscript-overflow).
+Other reached errors use scan rollback. Native status flags, partial effects,
 operand sampling, performance and lifecycle parity remain unqualified.
 
 [Subscript FRD/TOD/SQR](array-index-functions.md) additionally execute using

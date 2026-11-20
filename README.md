@@ -379,7 +379,9 @@ includes nested conversions, rounded roots and fault recovery.
 division, bitwise operators and single wide integer tag indices. **Bit lab**
 demonstrates lazy operands and rollback. Enable `RunStRadixIndex` in **Integer lab**
 to try [grouped signed DINT words](docs/array-index-expressions.md#signed-radix-words-in-subscripts)
-as array offsets, masks and indirect bit indices.
+as array offsets, masks and indirect bit indices. Eligible ladder instructions
+can route [array subscript overflow](docs/controller-handlers.md#recover-an-array-subscript-overflow)
+to a Type 4 Code 20 fault handler.
 
 [REAL-result math](docs/real-destination-math.md) adds float32 input conversion
 for basic arithmetic, power and eleven unary forms across integer/REAL sources.

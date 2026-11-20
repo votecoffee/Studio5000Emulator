@@ -5,7 +5,8 @@ import unittest
 from xml.etree import ElementTree as ET
 from unittest.mock import patch
 import test_runtime as fixtures
-from logixlab.model import ModelError
+from logixlab.expressions import SubscriptOverflowError
+from logixlab.model import ArrayBoundsError, ModelError
 
 
 def add_fault_dint_array(tags, name, values):
@@ -436,6 +437,50 @@ class ProgramFaultTests(unittest.TestCase):
                 self.assertIs(engine.last_cleared_program_fault,record)
                 self.assertEqual(engine.memory.read('LabValues[1]'),93 if destination else 13)
                 self.assertEqual(engine.memory.read('SpeedCommand'),52 if destination else 14)
+
+    def test_array_subscript_overflow_skips_move_and_reuses_repaired_index(self):
+        for selector,index,repaired in (('LabIndex+1',2**31-1,0),('LabIndex/-1',-2**31,-1)):
+            with self.subTest(selector=selector):
+                self.setUp()
+                def setup(root):
+                    ladder_fault_fixture(root,handler_tail=f'MOV({repaired},LabIndex);')
+                    tags=root.find('./Controller/Tags')
+                    ET.SubElement(tags,'Tag',Name='LabAlias',DataType='DINT',TagType='Alias',AliasFor='LabValues')
+                    set_fault_instruction(root,f'MOV(LabAlias[{selector}],SpeedCommand)')
+
+                engine=self.engine(mutate=setup)
+                self.assertEqual(engine.blockers,[])
+                engine.memory.write('LabIndex',index)
+                engine.memory.write('SpeedCommand',50)
+                engine.step()
+                self.assertIsNone(engine.last_cleared_program_fault)
+                engine.memory.write('StartPB',True)
+                engine.step()
+                fault=engine.last_cleared_program_fault
+                self.assertEqual((fault['type'],fault['code'],fault['instruction']),(4,20,'MOV'))
+                self.assertIn('DINT overflow in subscript',fault['detail'])
+                self.assertEqual(engine.memory.read('CapturedFault'),1310724)
+                self.assertEqual(engine.memory.read('LabIndex'),repaired)
+                self.assertEqual(engine.memory.read('SpeedCommand'),51)
+                self.assertEqual(engine.memory.read('LabValues'),[12,13])
+                event=next(event for row in engine.trace for event in row['events'] if 'recovered_fault' in event)
+                self.assertEqual((event['recovered_fault'],event['out']),({'type':4,'code':20},True))
+                engine.step()
+                self.assertEqual(engine.memory.read('SpeedCommand'),14)
+                self.assertIs(engine.last_cleared_program_fault,fault)
+
+    def test_array_subscript_overflow_is_distinct_from_bit_and_divide_failures(self):
+        engine=self.engine(mutate=ladder_fault_fixture)
+        self.assertEqual(engine.blockers,[])
+        engine.memory.write('LabIndex',2**31-1)
+        with self.assertRaises(ArrayBoundsError):
+            engine.memory.read('LabValues[LabIndex + 1]')
+        with self.assertRaises(SubscriptOverflowError):
+            engine.memory.read('SpeedCommand.[LabIndex + 1]')
+        with self.assertRaisesRegex(ModelError,'divide by zero') as failure:
+            engine.memory.read('LabValues[LabIndex/0]')
+        self.assertNotIsInstance(failure.exception,ArrayBoundsError)
+        self.assertIsNone(engine.last_cleared_program_fault)
 
     def test_failed_program_fault_recovery_rolls_back_the_scan(self):
         cases = (

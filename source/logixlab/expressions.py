@@ -16,6 +16,10 @@ BCD_FUNCTIONS = frozenset(('FRD','TOD'))
 INDEX_FUNCTIONS = BCD_FUNCTIONS | {'SQR'}
 
 
+class SubscriptOverflowError(ModelError):
+    """A checked DINT intermediate cannot be represented in a subscript."""
+
+
 def index_function(name,value):
     value=coerce(value,'DINT')
     if name=='SQR':
@@ -226,7 +230,10 @@ class Expression:
 
     def evaluate(self, memory, scope='', destination_type=None, index=False):
         real = self.validate(memory, scope, destination_type, index)
-        def number(value): return coerce(value, 'REAL' if real else 'DINT')
+        def number(value):
+            if index and not -(1 << 31) <= value < (1 << 31):
+                raise SubscriptOverflowError(f'DINT overflow in subscript: {value}')
+            return coerce(value, 'REAL' if real else 'DINT')
         def visit(node):
             kind, value = node[:2]
             if kind == 'literal': return number(value)
