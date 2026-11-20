@@ -102,6 +102,7 @@ outermost enabled AOI instruction with the incoming rung power.
   DELETE, LOWER, UPPER, DTOS, STOD, RTOS and STOR.
 - Array statistics and sorting include AVE, STD and SRT. File arithmetic
   and search include FAL and FSC.
+- FIFO and LIFO operations include FFL, FFU, LFL and LFU.
 
 The faulting instruction and the remaining statements in each interrupted AOI
 are skipped. Interrupted invocations also skip their output copies. The
@@ -156,6 +157,13 @@ writes before the handler runs. Earlier completed chunks and pending INC
 edges remain available when execution reaches the instruction again. Nested
 SRT, STD, FAL and FSC faults from negative CONTROL LEN or POS still roll
 back the scan.
+
+FIFO and LIFO recovery restores the queue and its CONTROL latch before the
+handler runs. If the destination index depends on the moved queue, the
+unload still evaluates that index after moving the queue and undoes the
+move on an address fault. A modeled LFU length overrun retains CONTROL.ER
+for the handler. A queue position greater than LEN still rolls back the
+scan.
 
 AOI argument, output-transfer, Structured Text and prescan faults remain
 outside this profile. Native v35 behavior remains unverified.

@@ -43,7 +43,7 @@ ARRAY_FAULT_RECOVERY_OPS = (
 AOI_ARRAY_FAULT_RECOVERY_OPS = (
     frozenset(('MOV', 'CLR', 'COP', 'CPS', 'FLL', 'CPT', 'CMP',
                'TON', 'TOF', 'RTO', 'CTU', 'CTD', 'RES', 'DTR', 'SIZE', 'TRN',
-               'CONCAT', 'MID', 'DTOS', 'STOD'))
+               'CONCAT', 'MID', 'DTOS', 'STOD', 'FFL', 'FFU', 'LFL', 'LFU'))
     | scalar_math.INSTRUCTIONS | bit_logic.INSTRUCTIONS | bit_transfer.INSTRUCTIONS
     | comparisons.INSTRUCTIONS | numeric_conversions.INSTRUCTIONS | real_math.INSTRUCTIONS
     | string_operations.INSTRUCTIONS | string_conversions.INSTRUCTIONS
