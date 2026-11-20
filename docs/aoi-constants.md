@@ -57,9 +57,15 @@ and false calls.
 
 Saved decorated values may identify the local or its alias. When both are
 present they must agree. The monitor shows the alias as a public parameter.
-Dynamic indices, packed bits and fields of other built-in records remain
-outside the supported profile. Native Studio 5000 import and packed layout
-remain unverified.
+BOOL aliases can also select a fixed bit in a local SINT, INT or DINT, such
+as `Flags[1].31`. Writes preserve the other bits. A saved bit value must agree
+with a saved backing word, which can come from a whole-word alias. An import
+with a saved bit and an omitted backing word blocks execution. Overlapping
+whole-word and bit aliases of the same direction are rejected.
+
+Dynamic indices, named UDT bit overlays and fields of other built-in records
+remain outside the supported profile. Native Studio 5000 import and packed
+layout remain unverified.
 See Rockwell's [Add-On Instructions manual](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm010_-en-p.pdf).
 
 ## Constant InOut parameters

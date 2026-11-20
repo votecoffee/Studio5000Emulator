@@ -341,13 +341,24 @@ class Routine:
 
 @dataclass(frozen=True)
 class LocalAlias:
-    parts: tuple[str | int, ...]
+    parts: tuple[str | int | tuple[str, int, int, bool], ...]
     dtype: str
 
     @property
+    def is_bit(self):
+        return isinstance(self.parts[-1], tuple)
+
+    @property
     def reference(self):
-        return self.parts[0] + ''.join(f'[{part}]' if isinstance(part, int) else f'.{part}'
-                                       for part in self.parts[1:])
+        suffix = []
+        for part in self.parts[1:]:
+            if isinstance(part, tuple):
+                suffix.append(f'.{part[1]}')
+            elif isinstance(part, int):
+                suffix.append(f'[{part}]')
+            else:
+                suffix.append(f'.{part}')
+        return self.parts[0] + ''.join(suffix)
 
     def parent(self, record):
         for part in self.parts[:-1]:
@@ -356,7 +367,14 @@ class LocalAlias:
 
     def read(self, record):
         try:
-            return self.parent(record)[self.parts[-1]]
+            parent = self.parent(record)
+            if self.is_bit:
+                if parent is None:
+                    return None
+                if type(parent) is not int:
+                    raise TypeError('Expected packed integer')
+                return bool((parent >> self.parts[-1][1]) & 1)
+            return parent[self.parts[-1]]
         except (KeyError, IndexError, TypeError) as error:
             raise ModelError(f'AOI alias storage does not match {self.reference}') from error
 
@@ -368,9 +386,10 @@ def local_alias_target(reference, locals_by_name, project):
     """Resolve a fixed path through declared local storage before reading tag data."""
     name = r'[A-Za-z_][A-Za-z_0-9]*'
     index = r'\[\s*[0-9]{1,6}(?:\s*,\s*[0-9]{1,6}){0,2}\s*\]'
-    if not re.fullmatch(rf'{name}(?:\.{name}|{index})*', reference):
-        raise ModelError('use a local tag, member, or fixed array element')
-    base, *selectors = re.findall(rf'{name}|{index}', reference)
+    bit = r'[0-9]{1,6}'
+    if not re.fullmatch(rf'{name}(?:\.{name}|{index})*(?:\.{bit})?', reference):
+        raise ModelError('use a local tag, member, fixed array element or fixed bit')
+    base, *selectors = re.findall(rf'{name}|{index}|{bit}', reference)
     local = locals_by_name.get(base.lower())
     if local is None or local.get('AliasFor') or local.get('TagType') == 'Alias':
         raise ModelError('target must start at a local tag')
@@ -387,6 +406,11 @@ def local_alias_target(reference, locals_by_name, project):
             continue
         if dims:
             raise ModelError('select a complete array element before its member')
+        if selector.isdigit():
+            if dtype not in ('SINT', 'INT', 'DINT') or int(selector) >= INT_BITS[dtype]:
+                raise ModelError('bit must be within a local SINT, INT or DINT')
+            parts.append(('bit', int(selector), INT_BITS[dtype], True))
+            return LocalAlias(tuple(parts), 'BOOL')
         if dtype in LADDER_RECORD_TYPES:
             fields = project.default(dtype)
             field_name = selector.upper()
@@ -445,6 +469,11 @@ class AddOn:
             return
         if (usage, target.parts) in used_targets:
             self.problems.append(f'{name}: AOI local target may have only one {usage} alias')
+            return
+        if any(other_usage == usage
+               and (other == target.parts[:len(other)] or target.parts == other[:len(target.parts)])
+               for other_usage, other in used_targets):
+            self.problems.append(f'{name}: AOI {usage} alias overlaps an existing target')
             return
         used_targets.add((usage, target.parts))
         self.local_aliases[name.lower()] = target
@@ -867,14 +896,18 @@ class Project:
                 if (child.tag != 'DataValueMember' or child.get('Value') is None
                         or child.get('DataType', '').upper() != target.dtype):
                     raise ModelError(f"Invalid decorated AOI alias {name}")
-                value = self.decorated(child, target.read(result))
+                value = self._decorated_scalar(child.get('Value'), target.dtype)
                 if saved_alias_values.setdefault(target, value) != value:
                     raise ModelError(f"Conflicting decorated AOI values for {target.reference}")
-            for target, value in saved_alias_values.items():
+            # A whole-word alias may supply storage for a saved bit alias.
+            for target, value in sorted(saved_alias_values.items(), key=lambda entry: entry[0].is_bit):
                 stored = target.read(result)
+                if target.is_bit and stored is None:
+                    raise ModelError(f"Saved AOI bit alias {target.reference} requires its backing word")
                 if stored is not None and stored != value:
                     raise ModelError(f"Conflicting decorated AOI values for {target.reference}")
-                target.parent(result)[target.parts[-1]] = value
+                if not target.is_bit:
+                    target.parent(result)[target.parts[-1]] = value
             return result
         if element.tag in ("Array", "ArrayMember"):
             result = unknown_shape(default)

@@ -395,6 +395,84 @@ class AddOnTests(unittest.TestCase):
                 step.set('AliasFor', target)
                 self.assertTrue(any(diagnostic in value for value in self.engine().blockers))
 
+    def bit_alias_accumulator(self, dtype, bit):
+        definition = self.alias_accumulator()
+        definition.set('ExecuteEnableInFalse','false')
+        parameters = definition.find('Parameters')
+        for name in ('Step','Total'):
+            parameter = parameters.find(f'Parameter[@Name="{name}"]')
+            parameter.set('DataType','BOOL')
+            parameter.set('AliasFor',f'Flags[1].{bit}')
+        E.SubElement(definition.find('LocalTags'),'LocalTag',Name='Flags',DataType=dtype,Dimensions='2')
+        for name in ('AccumulatorA','AccumulatorB'):
+            saved = self.root.find(f'Controller/Tags/Tag[@Name="{name}"]/Data/Structure')
+            array = E.SubElement(saved,'ArrayMember',Name='Flags',DataType=dtype,Dimensions='2')
+            E.SubElement(array,'Element',Index='[0]',Value='13')
+            E.SubElement(array,'Element',Index='[1]',Value='5')
+        self.body()[0].find('Text').text = 'XIC(Step)OTE(Total);'
+        self.body(mode='Prescan')[0].find('Text').text = 'CLR(Count);'
+        return definition
+
+    def test_packed_aoi_aliases_preserve_sibling_bits_in_ladder_and_st(self):
+        original = self.root
+        for dtype,bit in (('SINT',7),('INT',15),('DINT',31)):
+            with self.subTest(dtype=dtype):
+                self.root = copy.deepcopy(original)
+                definition = self.bit_alias_accumulator(dtype,bit)
+                if dtype == 'INT':
+                    logic = definition.find('Routines/Routine[@Name="Logic"]')
+                    logic.remove(logic.find('RLLContent'))
+                    logic.set('Type','ST')
+                    E.SubElement(E.SubElement(logic,'STContent'),'Line',Number='0').text = 'Total := Step;'
+                engine = self.engine(['LabAccumulator(AccumulatorA,EnableB,AReady,SharedA);'])
+                self.assertEqual(engine.blockers, [])
+                engine.step()
+                self.assertTrue(engine.memory.read('AReady'))
+                self.assertEqual(engine.memory.read('AccumulatorA.Flags'), [13,5-(1<<bit)])
+                engine.memory.write('EnableB',False)
+                engine.step()
+                self.assertFalse(engine.memory.read('AReady'))
+                self.assertEqual(engine.memory.read('AccumulatorA.Flags'), [13,5])
+                engine.memory.write('AccumulatorA.Total',True)
+                self.assertTrue(engine.memory.read('AccumulatorA.Step'))
+                self.assertEqual(engine.memory.read('AccumulatorA.Flags'), [13,5-(1<<bit)])
+
+    def test_saved_aoi_bit_alias_requires_agreement_and_a_complete_backing_word(self):
+        self.bit_alias_accumulator('DINT',31)
+        saved = self.root.find('Controller/Tags/Tag[@Name="AccumulatorA"]/Data/Structure')
+        saved_bit = E.SubElement(saved,'DataValueMember',Name='Step',DataType='BOOL',Value='0')
+        rung = ['LabAccumulator(AccumulatorA,EnableB,AReady,SharedA);']
+        self.assertEqual(self.engine(rung).blockers, [])
+        saved_bit.set('Value','1')
+        self.assertTrue(any('Conflicting decorated AOI values for Flags[1].31' in value
+                            for value in self.engine(rung).blockers))
+        array = saved.find('ArrayMember[@Name="Flags"]')
+        array.remove(array.find('Element[@Index="[1]"]'))
+        self.assertTrue(any('requires its backing word' in value for value in self.engine(rung).blockers))
+
+    def test_saved_full_word_alias_can_supply_bit_and_same_direction_overlap_is_rejected(self):
+        definition = self.bit_alias_accumulator('DINT',31)
+        parameters = definition.find('Parameters')
+        output = parameters.find('Parameter[@Name="Total"]')
+        output.set('DataType','DINT')
+        output.set('AliasFor','Flags[1]')
+        self.body()[0].find('Text').text = 'NOP();'
+        saved = self.root.find('Controller/Tags/Tag[@Name="AccumulatorA"]/Data/Structure')
+        array = saved.find('ArrayMember[@Name="Flags"]')
+        array.remove(array.find('Element[@Index="[1]"]'))
+        E.SubElement(saved,'DataValueMember',Name='Step',DataType='BOOL',Value='0')
+        E.SubElement(saved,'DataValueMember',Name='Total',DataType='DINT',Value='5')
+        rung = ['LabAccumulator(AccumulatorA,EnableB,TotalA,SharedA);']
+        engine = self.engine(rung)
+        self.assertEqual(engine.blockers, [])
+        self.assertEqual(engine.project.initial['accumulatora']['Flags'], [13,5])
+        parameter = E.SubElement(parameters,'Parameter',Name='WholeInput',Usage='Input',
+                                 DataType='DINT',AliasFor='flags[01]')
+        self.assertTrue(any('overlaps an existing target' in value for value in self.engine(rung).blockers))
+        parameters.remove(parameter)
+        parameters.find('Parameter[@Name="Step"]').set('AliasFor','Flags[1].32')
+        self.assertTrue(any('bit must be within' in value for value in self.engine(rung).blockers))
+
     def test_recursive_aoi_call_is_blocked(self):
         E.SubElement(self.definition().find('Parameters'),'Parameter',Name='Peer',DataType='LabAccumulator',Usage='InOut',Required='true')
         self.body()[0].find('Text').text='AFI()LabAccumulator(Peer,Step,Total,Shared,Peer);'
