@@ -204,7 +204,7 @@ For a Type 4 Code 20 [array fault inside a ladder AOI](docs/controller-handlers.
 the handler can clear faults from common ladder instructions and resume after
 the outermost AOI. This includes output coils, one-shots, timers, counters,
 data transition, array sizing, numeric conversions, standalone math, strings,
-array statistics and sorting.
+array statistics, sorting, file arithmetic and file search.
 [Time and date AOI parameters](docs/aoi-constants.md#time-and-date-parameters)
 support exact-type scalar Inputs and Outputs in ladder and Structured Text.
 Enable `RunTimeExample` in **AOI Constants Lab** to step through an exact

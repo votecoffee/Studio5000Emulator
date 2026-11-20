@@ -100,7 +100,8 @@ outermost enabled AOI instruction with the incoming rung power.
   ASN, ACS and ATN.
 - String operations and conversions include CONCAT, MID, FIND, INSERT,
   DELETE, LOWER, UPPER, DTOS, STOD, RTOS and STOR.
-- Array statistics and sorting include AVE, STD and SRT.
+- Array statistics and sorting include AVE, STD and SRT. File arithmetic
+  and search include FAL and FSC.
 
 The faulting instruction and the remaining statements in each interrupted AOI
 are skipped. Interrupted invocations also skip their output copies. The
@@ -147,8 +148,14 @@ AVE, STD and SRT preserve their result and CONTROL record when a selected
 array address faults. An SRT window that extends past the selected dimension
 also qualifies for Type 4 Code 20 recovery. AVE and STD retain their existing
 CONTROL error handling when a valid one-dimensional start has fewer than LEN
-elements and the result address is valid. Nested SRT and STD faults from negative CONTROL LEN or POS still
-roll back the scan.
+elements and the result address is valid.
+
+FAL and FSC recover reached array faults in ALL, numeric and INC modes.
+Recovery restores the faulting call's CONTROL record and any partial FAL
+writes before the handler runs. Earlier completed chunks and pending INC
+edges remain available when execution reaches the instruction again. Nested
+SRT, STD, FAL and FSC faults from negative CONTROL LEN or POS still roll
+back the scan.
 
 AOI argument, output-transfer, Structured Text and prescan faults remain
 outside this profile. Native v35 behavior remains unverified.
