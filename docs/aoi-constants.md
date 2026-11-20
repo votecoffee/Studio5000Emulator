@@ -46,18 +46,20 @@ uses its own exact routine-parameter contract.
 
 In the v35 ControlLogix 5580 profile, an ordinary AOI Input or Output can
 declare `AliasFor` to one matching BOOL, SINT, INT, DINT or REAL scalar in
-local storage. Targets can be whole scalar locals, declared UDT members or
-array elements with fixed decimal indices. For example, `State.Samples[1]`
-selects one element inside the local UDT. One Input and one Output can share
+local storage. Targets can be whole scalar locals, declared UDT members,
+logical TIMER, COUNTER or CONTROL fields, and array elements with fixed
+decimal indices. For example, `State.Samples[1]` selects one element inside
+a local UDT and `Clock.PRE` selects a timer preset. DINT fields and BOOL
+flags use their declared types. One Input and one Output can share
 the selected value in each instance. Required Input and Output
 arguments retain the existing copy-in and copy-out rules, including prescan
 and false calls.
 
 Saved decorated values may identify the local or its alias. When both are
 present they must agree. The monitor shows the alias as a public parameter.
-Dynamic indices, packed bits and built-in record member targets remain outside
-the supported profile. Native Studio 5000 import and packed layout remain
-unverified.
+Dynamic indices, packed bits and fields of other built-in records remain
+outside the supported profile. Native Studio 5000 import and packed layout
+remain unverified.
 See Rockwell's [Add-On Instructions manual](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm010_-en-p.pdf).
 
 ## Constant InOut parameters

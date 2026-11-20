@@ -198,7 +198,8 @@ required scalar Inputs in ladder and Structured Text.
 [Constant InOut parameters](docs/aoi-constants.md#constant-inout-parameters)
 give AOI logic read-only access to referenced caller data.
 [AOI Input and Output aliases](docs/aoi-constants.md#aliases-to-scalar-local-tags)
-can share a scalar local, UDT member, or fixed array element within an instance.
+can share a scalar local value, including a UDT member, a fixed array element,
+or a TIMER, COUNTER, or CONTROL field.
 [Routine call constants](docs/indirect-routine-calls.md#typed-radix-parameters)
 share the exact type contract. [Floating constants](docs/lreal-literals.md) now support
 REAL defaults and explicit LREAL suffixes in CPT/CMP. Wide expression lab

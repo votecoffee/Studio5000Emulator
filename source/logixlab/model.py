@@ -361,7 +361,10 @@ class LocalAlias:
             raise ModelError(f'AOI alias storage does not match {self.reference}') from error
 
 
-def local_alias_target(reference, locals_by_name, udts):
+LADDER_RECORD_TYPES = ('TIMER', 'COUNTER', 'CONTROL')
+
+
+def local_alias_target(reference, locals_by_name, project):
     """Resolve a fixed path through declared local storage before reading tag data."""
     name = r'[A-Za-z_][A-Za-z_0-9]*'
     index = r'\[\s*[0-9]{1,6}(?:\s*,\s*[0-9]{1,6}){0,2}\s*\]'
@@ -384,9 +387,17 @@ def local_alias_target(reference, locals_by_name, udts):
             continue
         if dims:
             raise ModelError('select a complete array element before its member')
-        schema = udts.get(dtype.lower())
+        if dtype in LADDER_RECORD_TYPES:
+            fields = project.default(dtype)
+            field_name = selector.upper()
+            if field_name not in fields:
+                raise ModelError(f'{dtype} has no field {selector}')
+            parts.append(field_name)
+            dtype = 'BOOL' if type(fields[field_name]) is bool else 'DINT'
+            continue
+        schema = project.udts.get(dtype.lower())
         if schema is None or schema.get('Class') in ('AOI', 'DecoratedDataOnly'):
-            raise ModelError('member must belong to a declared user-defined type')
+            raise ModelError('member must belong to a declared UDT, TIMER, COUNTER or CONTROL')
         member = next((entry for entry in schema.findall('Members/Member')
                        if entry.get('Name', '').lower() == selector.lower()), None)
         if member is None or member.get('Hidden', 'false').lower() == 'true':
@@ -416,7 +427,7 @@ class AddOn:
         return [p for p in self.parameters if p.get('Required','false').lower()=='true'
                 and p.get('Name','').lower() not in ('enablein','enableout')]
 
-    def register_local_alias(self, parameter, locals_by_name, udts, used_targets):
+    def register_local_alias(self, parameter, locals_by_name, project, used_targets):
         name = parameter.get('Name', '')
         usage = parameter.get('Usage')
         dtype = parameter.get('DataType', '').upper()
@@ -426,7 +437,7 @@ class AddOn:
                     or dtype not in ('BOOL', 'SINT', 'INT', 'DINT', 'REAL')
                     or dimensions(parameter.get('Dimensions', '0'))):
                 raise ModelError('requires a matching scalar local target and an ordinary Input or Output')
-            target = local_alias_target(parameter.get('AliasFor', '').strip(), locals_by_name, udts)
+            target = local_alias_target(parameter.get('AliasFor', '').strip(), locals_by_name, project)
             if target.dtype != dtype:
                 raise ModelError(f'requires a matching scalar local target of type {dtype}')
         except (ModelError, ValueError) as error:
@@ -523,7 +534,7 @@ class Project:
                 names.add(name.lower())
                 if item.get('AliasFor') or item.get('TagType') == 'Alias':
                     if qualified and item in aoi.parameters:
-                        aoi.register_local_alias(item, locals_by_name, self.udts, used_alias_targets)
+                        aoi.register_local_alias(item, locals_by_name, self, used_alias_targets)
                     else:aoi.problems.append('Local aliases require v35 ControlLogix 5580 AOI Input or Output parameters')
                     continue
                 if item.get('Constant','false').lower()=='true':
@@ -1151,7 +1162,7 @@ class Memory:
                         continue
                     actual = next((k for k in value if k.lower() == item.lower()), None)
                     if actual is None: raise ModelError(f"Unknown member {ref}")
-                    if dtype.upper() in ("TIMER", "COUNTER", "CONTROL"):
+                    if dtype.upper() in LADDER_RECORD_TYPES:
                         dtype = "DINT" if actual in ("PRE", "ACC", "LEN", "POS") else "BOOL"
                     elif dtype.upper()=='FBD_TIMER':
                         from .st_timers import FIELDS

@@ -344,6 +344,57 @@ class AddOnTests(unittest.TestCase):
         E.SubElement(inputs,'Parameter',Name='StepAgain',Usage='Input',DataType='DINT',AliasFor='STATE.samples[01]')
         self.assertTrue(any('only one Input alias' in blocker for blocker in self.engine().blockers))
 
+    def test_timer_field_aliases_copy_preset_accumulator_and_done(self):
+        definition = self.alias_accumulator()
+        parameters = definition.find('Parameters')
+        parameters.find('Parameter[@Name="Step"]').set('AliasFor', 'Clock.PRE')
+        parameters.find('Parameter[@Name="Total"]').set('AliasFor', 'Clock.ACC')
+        E.SubElement(parameters, 'Parameter', Name='Done', Usage='Output', DataType='BOOL',
+                     TagType='Alias', AliasFor='clock.dn', Required='true', Visible='true')
+        E.SubElement(definition.find('LocalTags'), 'LocalTag', Name='Clock', DataType='TIMER')
+        self.body()[0].find('Text').text = 'TON(Clock,?,?);'
+        engine = self.engine(['XIC(EnableA)LabAccumulator(AccumulatorA,StepA,TotalA,SharedA,AReady);'])
+        self.assertEqual(engine.blockers, [])
+        engine.memory.write('StepA', 15)
+        refs = ('AccumulatorA.Step', 'AccumulatorA.Clock.PRE', 'AccumulatorA.Total',
+                'TotalA', 'AccumulatorA.Done', 'AReady')
+        for elapsed, done in ((0, False), (10, False), (20, True)):
+            engine.step()
+            self.assertEqual([engine.memory.read(ref) for ref in refs], [15, 15, elapsed, elapsed, done, done])
+        rows = {row['name']: row for row in engine.memory.leaves()}
+        self.assertIs(rows['AccumulatorA.Done']['value'], True)
+        self.assertFalse(rows['AccumulatorA.Done']['aoi_local'])
+
+    def test_aliases_to_counter_and_control_array_fields(self):
+        original = self.root
+        for dtype, first, second in (('COUNTER', 'PRE', 'ACC'), ('CONTROL', 'LEN', 'POS')):
+            with self.subTest(dtype=dtype):
+                self.root = copy.deepcopy(original)
+                definition = self.alias_accumulator()
+                parameters = definition.find('Parameters')
+                parameters.find('Parameter[@Name="Step"]').set('AliasFor', f'LocalState[1].{first}')
+                parameters.find('Parameter[@Name="Total"]').set('AliasFor', f'LocalState[1].{second}')
+                E.SubElement(definition.find('LocalTags'), 'LocalTag', Name='LocalState', DataType=dtype,
+                             Dimensions='2')
+                self.body()[0].find('Text').text = 'MOV(Step,Total);'
+                engine = self.engine()
+                self.assertEqual(engine.blockers, [])
+                before = copy.deepcopy(engine.memory.read('AccumulatorA.LocalState[0]'))
+                engine.step()
+                self.assertEqual(engine.memory.read('TotalA'), 2)
+                self.assertEqual(engine.memory.read(f'AccumulatorA.LocalState[1].{first}'), 2)
+                self.assertEqual(engine.memory.read(f'AccumulatorA.LocalState[1].{second}'), 2)
+                self.assertEqual(engine.memory.read('AccumulatorA.LocalState[0]'), before)
+
+    def test_record_aliases_reject_unknown_fields_and_mismatched_types(self):
+        definition = self.alias_accumulator()
+        E.SubElement(definition.find('LocalTags'), 'LocalTag', Name='Clock', DataType='TIMER')
+        step = definition.find('Parameters/Parameter[@Name="Step"]')
+        for target, diagnostic in (('Clock.Missing','TIMER has no field'), ('Clock.DN','matching scalar local target')):
+            with self.subTest(target=target):
+                step.set('AliasFor', target)
+                self.assertTrue(any(diagnostic in value for value in self.engine().blockers))
+
     def test_recursive_aoi_call_is_blocked(self):
         E.SubElement(self.definition().find('Parameters'),'Parameter',Name='Peer',DataType='LabAccumulator',Usage='InOut',Required='true')
         self.body()[0].find('Text').text='AFI()LabAccumulator(Peer,Step,Total,Shared,Peer);'
