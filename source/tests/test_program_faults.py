@@ -161,18 +161,25 @@ def add_fault_record_array(root, dtype, name='LabRecords', **initial):
             ET.SubElement(obj,'DataValueMember',Name=member,DataType=data_type,Value=str(int(value)))
 
 
+def bind_nested_aoi_inout_arrays(root, *bindings):
+    controller = root.find('Controller')
+    for definition in controller.findall('./AddOnInstructionDefinitions/AddOnInstructionDefinition'):
+        for formal, dtype, _ in bindings:
+            ET.SubElement(definition.find('Parameters'), 'Parameter', Name=formal,
+                          TagType='Base', DataType=dtype, Dimensions='2',
+                          Usage='InOut', Required='true', Visible='true')
+    wrapper = controller.find('./AddOnInstructionDefinitions/AddOnInstructionDefinition[@Name="LabWrapper"]')
+    logic = wrapper.find('./Routines/Routine[@Name="Logic"]/RLLContent/Rung/Text')
+    formals = ','.join(formal for formal, _, _ in bindings)
+    actuals = ','.join(actual for _, _, actual in bindings)
+    logic.text = logic.text.replace('Index,Samples)', f'Index,Samples,{formals})')
+    set_fault_instruction(root, f'LabWrapper(NestedScale,2.5,SpeedCommand,LabIndex,LabValues,{actuals})')
+
+
 def nested_aoi_record_fault_fixture(root, dtype, work, **initial):
     nested_aoi_array_fault_fixture(root, work=work)
     add_fault_record_array(root, dtype, **initial)
-    controller = root.find('Controller')
-    for definition in controller.findall('./AddOnInstructionDefinitions/AddOnInstructionDefinition'):
-        ET.SubElement(definition.find('Parameters'), 'Parameter', Name='RecordData',
-                      TagType='Base', DataType=dtype, Dimensions='2',
-                      Usage='InOut', Required='true', Visible='true')
-    wrapper = controller.find('./AddOnInstructionDefinitions/AddOnInstructionDefinition[@Name="LabWrapper"]')
-    logic = wrapper.find('./Routines/Routine[@Name="Logic"]/RLLContent/Rung/Text')
-    logic.text = logic.text.replace('Index,Samples)', 'Index,Samples,RecordData)')
-    set_fault_instruction(root, 'LabWrapper(NestedScale,2.5,SpeedCommand,LabIndex,LabValues,LabRecords)')
+    bind_nested_aoi_inout_arrays(root, ('RecordData', dtype, 'LabRecords'))
 
 
 def add_bit_diagnostic_tags(root, *, single=False):
@@ -255,6 +262,15 @@ def add_string_recovery_tags(root):
     array = ET.SubElement(ET.SubElement(tag,'Data',Format='Decorated'),'Array',DataType='REAL',Dimensions='2')
     for index, value in enumerate(('2.5','6.25')):
         ET.SubElement(array,'Element',Index=f'[{index}]',Value=value)
+
+
+def nested_aoi_string_fault_fixture(root, work):
+    nested_aoi_array_fault_fixture(root, work=work)
+    add_string_recovery_tags(root)
+    bind_nested_aoi_inout_arrays(root, ('TextSource', 'STRING', 'LabText'),
+                                 ('TextResult', 'STRING', 'LabTextResults'),
+                                 ('Positions', 'DINT', 'LabPositions'),
+                                 ('RealValues', 'REAL', 'LabReals'))
 
 
 def add_system_value_recovery_tags(root):
@@ -775,6 +791,93 @@ class ProgramFaultTests(unittest.TestCase):
                 self.assertEqual(engine.memory.read('LabValues'), [88,7])
                 self.assertEqual(engine.memory.read('SpeedCommand'), 119)
                 self.assertIs(engine.last_cleared_program_fault, fault)
+
+    def test_nested_aoi_string_array_faults_preserve_result_until_retry(self):
+        cases = (
+            ('CONCAT(TextSource[0],TextSource[1],TextResult[Index+1])',
+             'LabTextResults[1]', 'AbC123AbCXY'),
+            ('MID(TextSource[0],3,Positions[Index+1],TextResult[1])', 'LabTextResults[1]', 'AbC'),
+            ('DTOS(Samples[Index+1],TextResult[1])', 'LabTextResults[1]', '13'),
+            ('STOD(TextSource[0],Samples[Index+1])', 'LabValues[1]', 123),
+            ('FIND(TextSource[0],TextSource[1],Positions[Index+1],Samples[0])', 'LabValues[0]', 0),
+            ('INSERT(TextSource[0],TextSource[Index+1],1,TextResult[1])',
+             'LabTextResults[1]', 'XYAbC123AbC'),
+            ('DELETE(TextSource[0],Positions[Index+1],1,TextResult[1])',
+             'LabTextResults[1]', 'bC123AbC'),
+            ('LOWER(TextSource[0],TextResult[Index+1])', 'LabTextResults[1]', 'abc123abc'),
+            ('UPPER(TextSource[Index+1],TextResult[1])', 'LabTextResults[1]', 'XY'),
+            ('STOR(TextSource[0],RealValues[Index+1])', 'LabReals[1]', 123.0),
+            ('RTOS(RealValues[Index+1],TextResult[1])', 'LabTextResults[1]', '6.25'),
+        )
+        for instruction, target, expected in cases:
+            with self.subTest(instruction=instruction):
+                self.setUp()
+                work = instruction + 'MOV(13,Scaled)'
+                engine = self.engine(mutate=lambda root:nested_aoi_string_fault_fixture(root, work))
+                self.assertEqual(engine.blockers, [])
+                engine.memory.write('LabIndex', 2)
+                engine.memory.write('SpeedCommand', 50)
+                engine.memory.write('StartPB', True)
+                saved = copy.deepcopy({name: engine.memory.read(name)
+                                       for name in ('LabText', 'LabTextResults', 'LabPositions', 'LabReals')})
+                engine.step()
+                fault = engine.last_cleared_program_fault
+                opcode = instruction.split('(', 1)[0]
+                self.assertEqual((fault['type'], fault['code'], fault['instruction']), (4, 20, 'LABWRAPPER'))
+                self.assertIn(f'AOI:LabScale/Logic, {opcode}: Array index outside bounds', fault['detail'])
+                for name, value in saved.items():
+                    self.assertEqual(engine.memory.read(name), value)
+                self.assertEqual(engine.memory.read('LabValues'), [88,13])
+                self.assertEqual(engine.memory.read('LabIndex'), 0)
+                self.assertEqual(engine.memory.read('SpeedCommand'), 51)
+                engine.step()
+                if isinstance(expected, str):
+                    self.assertEqual(engine.memory.string(target), expected)
+                    data = engine.memory.read(target)['DATA']
+                    self.assertEqual(data[len(expected):],
+                                     saved['LabTextResults'][1]['DATA'][len(expected):])
+                else:
+                    self.assertEqual(engine.memory.read(target), expected)
+                    self.assertEqual(engine.memory.read('LabTextResults'), saved['LabTextResults'])
+                self.assertEqual(engine.memory.read('LabTextResults[0]'), saved['LabTextResults'][0])
+                self.assertEqual(engine.memory.read('LabText'), saved['LabText'])
+                self.assertEqual(engine.memory.read('SpeedCommand'), 125)
+                self.assertIs(engine.last_cleared_program_fault, fault)
+
+    def test_nested_aoi_false_branch_skips_indexed_strings(self):
+        work = ('[AFI()CONCAT(TextSource[0],TextSource[Index+1],TextResult[Index+1])'
+                'STOR(TextSource[Index+1],RealValues[Index+1]),NOP()]MOV(13,Scaled)')
+        engine = self.engine(mutate=lambda root:nested_aoi_string_fault_fixture(root, work))
+        self.assertEqual(engine.blockers, [])
+        engine.memory.write('LabIndex', 2)
+        engine.memory.write('StartPB', True)
+        engine.step()
+        self.assertIsNone(engine.last_cleared_program_fault)
+        self.assertEqual(engine.memory.read('LabIndex'), 2)
+        self.assertEqual(engine.memory.string('LabTextResults[1]'), 'TAIL')
+        self.assertEqual(engine.memory.read('LabReals'), [2.5,6.25])
+        self.assertEqual(engine.memory.read('SpeedCommand'), 125)
+
+    def test_nested_aoi_string_operand_errors_keep_scan_rollback(self):
+        cases = (
+            ('CONCAT(TextSource[0],TextSource[1],TextResult[1])', 'LabText[0]', 'A'*82, 51),
+            ('UPPER(TextSource[1],TextResult[1])', 'LabText[1].LEN', 83, 51),
+            ('STOD(TextSource[1],Samples[1])', 'LabText[1]', '2147483648', 53),
+            ('MID(TextSource[0],3,Positions[Index+1],TextResult[1])', 'LabPositions[1]', 0, 56),
+        )
+        for work, operand, value, code in cases:
+            with self.subTest(instruction=work):
+                self.setUp()
+                engine = self.engine(mutate=lambda root:nested_aoi_string_fault_fixture(root, work))
+                self.assertEqual(engine.blockers, [])
+                engine.memory.write('StartPB', True)
+                engine.memory.write(operand, value)
+                before = copy.deepcopy(engine.memory.values)
+                with self.assertRaisesRegex(ModelError, f'Type 4 Code {code}'):
+                    engine.step()
+                self.assertEqual(engine.memory.values, before)
+                self.assertEqual(engine.scan_count, 0)
+                self.assertIsNone(engine.last_cleared_program_fault)
 
     def test_nested_aoi_scalar_errors_roll_back_without_handler(self):
         for work,index,cause in (

@@ -42,9 +42,11 @@ ARRAY_FAULT_RECOVERY_OPS = (
 # These ladder AOI instructions leave no partial writes on an array bounds error.
 AOI_ARRAY_FAULT_RECOVERY_OPS = (
     frozenset(('MOV', 'CLR', 'COP', 'CPS', 'FLL', 'CPT', 'CMP',
-               'TON', 'TOF', 'RTO', 'CTU', 'CTD', 'RES', 'DTR', 'SIZE', 'TRN'))
+               'TON', 'TOF', 'RTO', 'CTU', 'CTD', 'RES', 'DTR', 'SIZE', 'TRN',
+               'CONCAT', 'MID', 'DTOS', 'STOD'))
     | scalar_math.INSTRUCTIONS | bit_logic.INSTRUCTIONS | bit_transfer.INSTRUCTIONS
     | comparisons.INSTRUCTIONS | numeric_conversions.INSTRUCTIONS | real_math.INSTRUCTIONS
+    | string_operations.INSTRUCTIONS | string_conversions.INSTRUCTIONS
 )
 _CONTROL_PRESCAN = {
     instruction: family.prescan
