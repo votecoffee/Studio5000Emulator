@@ -87,6 +87,8 @@ def initialize_ladder_operands(project):
         memory.store(key, parts, value)
     project.initial = memory.values
     for _, _, op, _, _, fields in initializers:
+        if op.source_args is None:
+            op.source_args = op.args.copy()
         for i, _ in fields:
             op.args[i] = '?'
 
@@ -108,4 +110,5 @@ def retain_ladder_operands(previous_rungs, candidate_rungs):
         for op in operations(rung['nodes']):
             matches = retained.get((op.name, tuple(op.args)))
             if matches:
+                op.source_args = op.args.copy()
                 op.args = list(matches.popleft())

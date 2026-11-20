@@ -47,6 +47,7 @@ class BlockExtentError(ModelError):
 class Op:
     name: str
     args: list[str]
+    source_args: list[str] | None = field(default=None, compare=False, repr=False)
 
 
 @dataclass

@@ -11,6 +11,7 @@ import threading
 import time
 import uuid
 import webbrowser
+from contextlib import nullcontext
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -51,6 +52,8 @@ def serialize_nodes(nodes):
             rows.append({"branch": [serialize_nodes(path) for path in node.paths]})
             continue
         row = {"name": node.name, "args": node.args}
+        if node.source_args is not None:
+            row["source_args"] = node.source_args
         literals = {}
         for ref in node.args:
             if '#' in ref and len(ref) <= 512:
@@ -306,6 +309,11 @@ class Application:
             self.device_io.capture(self.engine,self.generation,tags if tags is not None else self.engine.memory.leaves())
             self._io_dirty = False
 
+    def _require_draft_generation(self, data):
+        if (type(data) is not dict or set(data) != {'draft', 'project_generation'}
+                or type(data['project_generation']) is not int or data['project_generation'] != self.generation):
+            raise ModelError('A draft request requires the current project generation')
+
     def command(self, action, data):
         if action in ('ladder-draft-open', 'ladder-draft-validate'):
             from . import ladder_drafts
@@ -313,9 +321,7 @@ class Application:
             with self.lock:
                 if self.busy: raise ModelError('Import in progress')
                 if self.engine is None: raise ModelError('Load a project first')
-                if (type(data) is not dict or set(data) != {'draft', 'project_generation'}
-                        or type(data['project_generation']) is not int or data['project_generation'] != self.generation):
-                    raise ModelError('A draft request requires the current project generation')
+                self._require_draft_generation(data)
                 project, generation = self.engine.project, self.generation
             if action == 'ladder-draft-validate':
                 result = ladder_drafts.validate(project, data['draft'])
@@ -687,6 +693,21 @@ class Application:
                         "scan": e.scan_count, "ms": e.time_ms, "tags": tags,
                         "changes": time_values.display_changes(e.changes, tags),
                         'controller':self.controller_state()}
+            elif action == 'ladder-draft-apply':
+                self._require_draft_generation(data)
+                if self.controller_state()['mode'] != 'Program':
+                    raise ModelError('Switch to Program before applying a draft')
+                from .ladder_drafts import prepare_apply
+
+                endpoint = self.endpoint
+                with endpoint.lock if endpoint else nullcontext():
+                    if (endpoint and endpoint.enabled and endpoint.native_read_only
+                            and (endpoint.connections or endpoint.programming_lease.live(self.generation, e.project.sha256))):
+                        raise ModelError('Disconnect Studio clients and release native programming before applying a draft')
+                    candidate = prepare_apply(e, data['draft'])
+                    self.engine = candidate
+                    self._scan_epoch += 1
+                    self._io_dirty = True
             elif action=='export-edited-l5x':
                 if self.running:raise ModelError('Switch to Program before saving edited logic')
                 if self.endpoint and self.endpoint.enabled:

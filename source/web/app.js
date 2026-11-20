@@ -7,7 +7,7 @@ const moduleStatusLabels = {4096:'Faulted',16384:'Running',24576:'Inhibited',286
 const moduleInputLabels = {clear:'Cleared',running:'Running',faulted:'Faulted'};
 let locatorTimer = null, locatorRequest = null, locatorDeadline = 0;
 const ladderDrafts = new Map();
-let editingDraft = null, draftFileRequest = 0, draftCheckRequest = 0;
+let editingDraft = null, draftFileRequest = 0, draftCheckRequest = 0, draftApplyPending = false;
 const recognized = name => report?.supported_instructions.includes(name) || report?.known_add_on_instructions?.includes(name) || report?.function_blocks?.instructions?.includes(name);
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const logicView = LogixLogicView.create({canvas: $('rungs'), inspector: $('instruction-inspector'), status: $('logic-status'),
@@ -68,11 +68,35 @@ $('ladder-draft-validate').onclick = async () => {
     if (isCurrent()) showDraftCheck('Draft validation failed', [error.message]);
   }
 };
+$('ladder-draft-apply').onclick = async () => {
+  const key = editingDraft, draft = ladderDrafts.get(key);
+  if (!draft?.changed || draftApplyPending || !draftApplyAllowed()) return;
+  const proposed = draftDocument(draft);
+  draftApplyPending = true;
+  ++draftFileRequest;
+  ++draftCheckRequest;
+  setDraftFileStatus('');
+  showDraftCheck('Applying draft…', [], true);
+  render();
+  try {
+    const next = await api('ladder-draft-apply', {project_generation: state.project_generation, draft: proposed});
+    ladderDrafts.delete(key);
+    if (editingDraft === key) editingDraft = null;
+    await accept(next, true);
+    showDraftCheck('Draft applied · Save edited L5X to keep a working copy');
+  } catch (error) {
+    if (draftIsActive(key, draft)) showDraftCheck('Draft could not be applied', [error.message]);
+  } finally {
+    draftApplyPending = false;
+    $('ladder-draft-validate').disabled = false;
+    render();
+  }
+};
 $('ladder-draft-open').onclick = () => $('ladder-draft-file').click();
 $('ladder-draft-file').onchange = async event => {
   const file = event.target.files[0], key = editingDraft, draft = ladderDrafts.get(key);
   event.target.value = '';
-  if (!file || !draft) return;
+  if (!file || !draft || draftApplyPending) return;
   const request = ++draftFileRequest;
   const projectGeneration = state.project_generation;
   const routine = selected;
@@ -198,8 +222,8 @@ function render() {
   $('clear-module-fault').disabled = modePending || inhibited || !moduleFault?.clear_ready;
   $('status').textContent = moduleFault ? `I/O MAJOR FAULT · ${moduleFault.type}/${moduleFault.code}` : state.fault ? 'FAULT · ROLLED BACK' : blocked ? 'EXECUTION BLOCKED' : inhibited ? 'SCANS INHIBITED' : running ? 'REMOTE RUN' : 'REMOTE PROGRAM';
   $('status').className = 'badge ' + (blocked || inhibited || state.fault ? 'blocked' : 'ready');
-  $('step').disabled = blocked||inhibited||running||modePending||!!moduleFault;
-  $('run').disabled = modePending||(!running&&(blocked||inhibited||!!state.fault));
+  $('step').disabled = blocked||inhibited||running||modePending||draftApplyPending||!!moduleFault;
+  $('run').disabled = modePending||draftApplyPending||(!running&&(blocked||inhibited||!!state.fault));
   $('run').textContent = running ? '■ Program' : '▶ Run';
   const schedule=state.task_schedule?.tasks;
   const fixedPeriod=schedule?.length===1&&!schedule[0].source_inhibited?schedule[0].rate_ms:null;
@@ -307,7 +331,7 @@ function showDraftCheck(message, diagnostics = [], pending = false) {
   }
   details.replaceChildren(items);
   details.hidden = diagnostics.length === 0;
-  $('ladder-draft-validate').disabled = pending;
+  $('ladder-draft-validate').disabled = pending || draftApplyPending;
 }
 function clearDraftCheck() {
   ++draftCheckRequest;
@@ -320,9 +344,15 @@ function draftIdentity(routine) {
   return JSON.stringify([state.instance_id, state.project_generation, state.source_sha256,
     state.routine_edits?.revision ?? 0, state.routine_edits?.logic_sha256 ?? null, routine.key]);
 }
+function draftApplyAllowed() {
+  const connectivity = state?.connectivity;
+  const nativeBusy = connectivity?.native_session?.enabled &&
+    (connectivity.active_tcp_clients || connectivity.native_programming_lease?.owned);
+  return state?.routine_edits?.draft_apply_available && state.controller?.mode === 'Program' && !nativeBusy;
+}
 function changeDraft(action) {
   const draft = ladderDrafts.get(editingDraft);
-  if (!draft) return null;
+  if (!draft || draftApplyPending) return null;
   const result = action(draft);
   if (result) {
     clearDraftCheck();
@@ -340,11 +370,20 @@ function draftControls(routine) {
   }
   const draft = ladderDrafts.get(editingDraft), mode = $('ladder-draft-mode');
   mode.hidden = !editable;
+  mode.disabled = draftApplyPending;
   mode.textContent = draft ? 'Monitor' : ladderDrafts.get(key)?.changed ? 'Resume draft' : 'Edit draft';
   $('ladder-draft-toolbar').hidden = !draft;
-  $('ladder-draft-undo').disabled = !draft?.canUndo;
-  $('ladder-draft-redo').disabled = !draft?.canRedo;
-  $('ladder-draft-save').disabled = !draft?.changed;
+  $('ladder-draft-undo').disabled = draftApplyPending || !draft?.canUndo;
+  $('ladder-draft-redo').disabled = draftApplyPending || !draft?.canRedo;
+  $('ladder-draft-save').disabled = draftApplyPending || !draft?.changed;
+  $('ladder-draft-open').disabled = draftApplyPending;
+  $('ladder-draft-discard').disabled = draftApplyPending;
+  const apply = $('ladder-draft-apply');
+  apply.disabled = draftApplyPending || !draft?.changed || !draftApplyAllowed();
+  apply.title = !state.routine_edits?.draft_apply_available ? 'Apply requires a complete ordinary project in whole-project mode' :
+    state.controller?.mode !== 'Program' ? 'Switch to Program before applying a draft' :
+    !draftApplyAllowed() ? 'Disconnect Studio clients and release native programming before applying a draft' :
+    'Replace the loaded routine in memory';
   $('logic-view-mode').textContent = draft ? 'Offline draft' : 'Read-only monitor';
   $('logic-values').closest('label').hidden = !!draft;
   return draft;
@@ -603,4 +642,12 @@ $('studio-edits').onchange=async()=>{try{await accept(await api('routine-edits-c
 $('eip-stop').onclick=async()=>{try{await accept(await api('connectivity-stop'));}catch(e){error(e);}};
 $('eip-refresh').onclick=async()=>{try{await accept(await api('observe'));}catch(e){error(e);}};
 $('eip-trace').onclick=async()=>{try{download(await api('connectivity-trace'),'LogixLab-protocol-trace.json');}catch(e){error(e);}};
-connectivityPoll=setInterval(async()=>{if(state?.loaded&&!stepping&&!modePending&&!observing){observing=true;try{await accept(await api('observe'));}catch(_){}finally{observing=false;}}},500);
+connectivityPoll = setInterval(async () => {
+  if (!state?.loaded || stepping || modePending || draftApplyPending || observing) return;
+  const before = state;
+  observing = true;
+  try {
+    const next = await api('observe');
+    if (!draftApplyPending && state === before) await accept(next);
+  } catch (_) {} finally {observing = false;}
+}, 500);

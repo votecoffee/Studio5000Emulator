@@ -178,8 +178,19 @@ prescan. It includes the selected routine even when that routine is outside
 the scheduled programs. Diagnostics name the routine and rung where the
 runtime can locate the problem. An edit clears the previous result.
 
-Passing this check means the draft passed preflight. Normal scans with live
-tag values, applying the draft and exporting edited L5X are separate steps.
+This preflight uses the original initial values. To run the draft with the
+current tag values, switch the emulator to **Program** in whole-project mode
+and choose **Apply draft**. Apply supports complete Standard RLL projects
+within the existing edited L5X export profile. Close any Studio sessions or
+native programming reservations on the emulator first.
+
+Apply rechecks the project source and revision, validates the replacement,
+and reimports a temporary L5X to check rung text, comments, operands and
+imported initial values. A successful apply installs the routine in memory
+and returns to **Monitor**. The emulator retains live tags and scan counters,
+and clears the old trace for the replaced routine. The next scan uses the
+edited routine. Use **Save edited L5X** to download a working copy. [Saving
+edited logic](edited-logic-l5x.md)
 
 ## Node and wire editor roadmap
 
@@ -201,8 +212,8 @@ The next authoring stages build on these same instruction nodes and connections:
    offline authoring and simulation.
 
 The draft tools cover wire insertion, drag moves, branch resizing and legs,
-operand editing, deletion, history, reopening saved drafts and execution
-preflight. Applying drafts and edited L5X export are still planned.
+operand editing, deletion, history, reopening saved drafts, execution
+preflight, applying a routine offline and exporting a separate L5X copy.
 
 ## Verification
 

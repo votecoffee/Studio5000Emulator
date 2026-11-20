@@ -32,8 +32,9 @@ Development is maintained on `main`.
 instructions on the wires, resize branches, edit operands, and manage branch legs.
 Undo and redo cover each draft change.
 Save and reopen draft JSON against the original project and routine.
-Use **Validate draft** to check the draft against the loaded project, and
-**Monitor** to see the loaded routine execute. [Ladder draft guide](docs/logic-viewer.md#offline-ladder-drafts)
+Use **Validate draft** to check your changes. In Program mode, **Apply draft**
+replaces the loaded routine in memory. **Save edited L5X** downloads a
+separate working copy with the original tag initial values. [Ladder draft guide](docs/logic-viewer.md#offline-ladder-drafts)
 
 **Appliance startup recovery** now handles a timed-out VMware guest-address
 query through the existing MAC-matched DHCP and pinned SSH fallback. Startup

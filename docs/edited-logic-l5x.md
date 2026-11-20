@@ -1,10 +1,15 @@
 # Saving edited logic as L5X
 
-Version `.91` adds **Save edited L5X** next to **Export snapshot**. After supported
-native routine edits have finished, stop the emulator and select this control.
-The browser downloads a separate `<controller>-edited-r<revision>.L5X` working
-copy. The control is enabled only after an edit and while stopped with no active
-native programming reservation.
+**Save edited L5X** downloads a separate `<controller>-edited-r<revision>.L5X`
+working copy. The control is available in Program mode after applying a browser
+ladder draft or completing a supported native edit. Release native programming
+reservations before saving.
+
+Browser **Apply draft** validates the replacement and reimports a temporary
+working copy before committing. It preserves original rung numbers and rung
+attributes when editing the original layout. Existing preset literals are
+retained in the draft source. The working copy must reimport with the same
+initial tag values and edited routine content before the emulator adopts it.
 
 The copy contains the active neutral source and model comments of edited
 Standard RLL routines. Other project XML, routine attributes, unedited routines,

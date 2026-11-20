@@ -12,6 +12,54 @@ from .routine_source import candidate_project,validate_plan,SourceError
 from .runtime import Engine
 
 
+def replacement_engine(engine, project):
+    # The new logic and all mutable scan state are prepared before publication.
+    candidate=Engine(project,engine.mode,engine.selected,defer_prescan=True,
+                     coordinated_clock=engine.coordinated_clock,application_instance_id=engine.application_instance_id,
+                     network_binding=engine.network_binding)
+    if candidate.blockers:
+        raise ModelError('Candidate routine execution is blocked: ' + candidate.blockers[0])
+    candidate.memory.values=copy.deepcopy(engine.memory.values)
+    candidate.memory.first_scan=engine.memory.first_scan
+    candidate._module_modes=engine._module_modes.copy()
+    candidate._module_connections=engine._module_connections.copy()
+    candidate.task_outputs=copy.deepcopy(engine.task_outputs)
+    candidate._messages=engine._messages.copy()
+    for name in ('scan_count','time_ms','last_timer','trace','changes','prescan_count','last_cleared_module_fault',
+                 'last_cleared_program_fault','_initial_prescan_pending','_program_scanned','_disabled_programs','_activation_prescan_pending','_file_incremental','_file_arithmetic_retry','_st_counter_edges','_st_oneshot_edges','instruction_limit','budget','_program_timings','_task_measurements','_task_scan_timings','_task_event_status','_native_fault_history_uncertain'):
+        setattr(candidate,name,copy.deepcopy(getattr(engine,name)))
+    if candidate._task_scheduler is not None and engine._task_scheduler is not None:
+        candidate._task_scheduler.continue_from(engine._task_scheduler)
+    candidate.change_detection=copy.deepcopy(engine.change_detection)
+    candidate._apply_prescan(preview=True)
+    return candidate
+
+
+def record_revision(previous, project, key, base_revision, *, offline=False):
+    project.instruction_counts=Counter(op.name for r in project.routines.values() for rung in r.rungs for op in operations(rung['nodes']))
+    project.instruction_counts.update(node['type'] for r in project.routines.values() for node in r.diagram.get('nodes',[]) if node['kind']=='Block')
+    prior_edited=set(getattr(previous,'runtime_edited_routines',()))
+    preserve=set(getattr(previous,'runtime_offline_rungs',()))
+    if offline:
+        if key not in prior_edited:
+            preserve.add(key)
+    else:
+        preserve.discard(key)
+    project.runtime_offline_rungs=tuple(sorted(preserve))
+    project.runtime_revision=base_revision+1
+    project.runtime_edited_routines=tuple(sorted(prior_edited|{key}))
+    content=[]
+    for name,routine in sorted(project.routines.items()):
+        if routine.kind=='FBD':
+            payload=routine.diagram
+        elif offline:
+            payload=[(r['number'],r['text'],r['comment']) for r in routine.rungs]
+        else:
+            payload=[r['text'] for r in routine.rungs]
+        content.append((name,routine.kind,payload))
+    project.runtime_logic_sha256=hashlib.sha256(json.dumps(content,separators=(',',':')).encode()).hexdigest()
+
+
 def prepare(engine,source,neutral,program,base_revision,*,native_source=None,native_target=None,native_metadata=None):
     if (engine.mode!='project' or engine.blockers or engine.fault or engine.project.aois
             or engine.calls.stack or engine.memory.frames):
@@ -23,32 +71,8 @@ def prepare(engine,source,neutral,program,base_revision,*,native_source=None,nat
         project,key=candidate_project(source,neutral,engine.project,program)
     except SourceError as error:raise ModelError(str(error)) from error
     if project.routines[key].kind!='RLL':raise ModelError('Only RLL routine replacement is supported')
-    # Everything below is detached. Constructor/planning/preview cannot mutate
-    # active values, history, scan ownership or external-input queues.
-    candidate=Engine(project,engine.mode,engine.selected,defer_prescan=True,
-                     coordinated_clock=engine.coordinated_clock,application_instance_id=engine.application_instance_id,
-                     network_binding=engine.network_binding)
-    if candidate.blockers:raise ModelError('Candidate routine execution is blocked')
-    candidate.memory.values=copy.deepcopy(engine.memory.values)
-    candidate.memory.first_scan=engine.memory.first_scan
-    candidate._module_modes=engine._module_modes.copy()
-    candidate._module_connections=engine._module_connections.copy()
-    candidate.task_outputs=copy.deepcopy(engine.task_outputs)
-    candidate._messages=engine._messages.copy()
-    for name in ('scan_count','time_ms','last_timer','trace','changes','prescan_count','last_cleared_module_fault',
-                 'last_cleared_program_fault',
-                 '_initial_prescan_pending','_program_scanned','_disabled_programs','_activation_prescan_pending','_file_incremental','_file_arithmetic_retry','_st_counter_edges','_st_oneshot_edges','instruction_limit','budget','_program_timings','_task_measurements','_task_scan_timings','_task_event_status','_native_fault_history_uncertain'):
-        setattr(candidate,name,copy.deepcopy(getattr(engine,name)))
-    if candidate._task_scheduler is not None:
-        candidate._task_scheduler.continue_from(engine._task_scheduler)
-    candidate.change_detection=copy.deepcopy(engine.change_detection)
-    candidate._apply_prescan(preview=True)
-    project.instruction_counts=Counter(op.name for r in project.routines.values() for rung in r.rungs for op in operations(rung['nodes']))
-    project.instruction_counts.update(node['type'] for r in project.routines.values() for node in r.diagram.get('nodes',[]) if node['kind']=='Block')
-    project.runtime_revision=base_revision+1
-    project.runtime_edited_routines=tuple(sorted(set(getattr(engine.project,'runtime_edited_routines',()))|{key}))
-    content=[(key,r.kind,r.diagram if r.kind=='FBD' else [x['text'] for x in r.rungs]) for key,r in sorted(project.routines.items())]
-    project.runtime_logic_sha256=hashlib.sha256(json.dumps(content,separators=(',',':')).encode()).hexdigest()
+    candidate=replacement_engine(engine,project)
+    record_revision(engine.project,project,key,base_revision)
     from .accepted_routine_source import retain
     try:project.runtime_native_sources=retain(engine.project,project,key,source,native_source,native_target)
     except SourceError as error:raise ModelError(str(error)) from error
@@ -64,11 +88,13 @@ def prepare(engine,source,neutral,program,base_revision,*,native_source=None,nat
 
 def description(app):
     from .accepted_routine_source import description as source_description
+    from .ladder_drafts import apply_available
+
     project=app.engine.project if app.engine else None
     revision=getattr(project,'runtime_revision',0)
     return {'enabled':app.allow_routine_edits,'profile':'standard_rll_program_mode',
             'revision':revision,'modified':revision>0,'logic_sha256':getattr(project,'runtime_logic_sha256',None),
             'edited_routines':list(getattr(project,'runtime_edited_routines',())),
-            'l5x_export_available':revision>0,
+            'l5x_export_available':revision>0,'draft_apply_available':apply_available(app.engine),
             'native_source_readback':source_description(project),
             'persistence':'memory_only','test_untest_assemble':False,'native_code_execution':False}

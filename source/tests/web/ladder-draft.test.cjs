@@ -225,3 +225,15 @@ test('comment-only draft reopens keep instruction identity and count as a change
   assert(draft.undo());
   assert.equal(draft.changed, false);
 });
+
+test('draft moves retain authored pseudo-operands without changing monitor nodes', () => {
+  const routine = fixture();
+  const timer = {...op('TON', 'Timer', '?', '?'), source_args: ['Timer', '250', '0']};
+  routine.rungs[0].nodes.push(timer);
+  routine.rungs[0].text = 'XIC(Start)OTE(Run)TON(Timer,250,0);';
+  const draft = draftModel.create(routine);
+  const timerId = draft.rungs[0].nodes[2].draftId;
+  assert(draft.move(0, timerId, 1, {legs: [], index: 0}));
+  assert.equal(draft.rungs[1].text, 'TON(Timer,250,0)MOV(0,Count);');
+  assert.deepEqual(timer.args, ['Timer', '?', '?']);
+});

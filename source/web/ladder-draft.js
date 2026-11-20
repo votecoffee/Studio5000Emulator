@@ -89,6 +89,10 @@
     function identify(nodes) {
       for (const node of nodes) {
         node.draftId = ++nextId;
+        if (node.source_args) {
+          node.args = node.source_args;
+          delete node.source_args;
+        }
         for (const leg of node.branch || []) identify(leg);
       }
     }

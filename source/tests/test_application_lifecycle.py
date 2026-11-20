@@ -4259,6 +4259,57 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual(next_scan['scan'], before['scan'] + 1)
         self.assertNotEqual(next(tag['value'] for tag in next_scan['tags'] if tag['name'] == 'SpeedCommand'), 77)
 
+    def test_ladder_draft_apply_preserves_live_values_and_exports_a_reimportable_copy(self):
+        self.post('demo', {'sample': 'ConveyorDemo'})
+        self.post('write', {'tag': 'StartPB', 'value': True})
+        self.post('write', {'tag': 'SpeedSetpoint', 'value': 92})
+        before = self.post('step', {'dt': 10})
+        routine = next(row for row in before['routines'] if row['key'] == 'MainProgram/MainRoutine')
+        rows = [{key: row[key] for key in ('number', 'comment', 'text')} for row in routine['rungs']]
+        rows[0].update(text='MOV(77,SpeedSetpoint);', comment='Draft working copy comment')
+        draft = {'format': 'logixlab-rll-draft', 'version': 1, 'routine': routine['key'],
+                 'source_sha256': before['source_sha256'], 'base_revision': 0, 'rungs': rows}
+        request = {'project_generation': before['project_generation'], 'draft': draft}
+        invalid = {**draft, 'rungs': [{**rows[0], 'text': 'XIC(DraftMissingTag);'}, *rows[1:]]}
+        with self.assertRaises(HTTPError) as rejected:
+            self.post('ladder-draft-apply', {**request, 'draft': invalid})
+        with rejected.exception as response:
+            self.assertIn('DraftMissingTag', json.load(response)['error'])
+        after_failure = self.post('observe', {})
+        for key in ('routines', 'tags', 'trace', 'scan', 'ms', 'routine_edits'):
+            self.assertEqual(after_failure[key], before[key], key)
+
+        self.post('controller-mode', {'mode': 'Run'})
+        with self.assertRaises(HTTPError) as running:
+            self.post('ladder-draft-apply', request)
+        with running.exception as response:
+            self.assertIn('Switch to Program', json.load(response)['error'])
+        stopped = self.post('controller-mode', {'mode': 'Program'})
+        after = self.post('ladder-draft-apply', request)
+        for key in ('tags', 'scan', 'ms', 'task_schedule', 'project_generation', 'source_sha256'):
+            self.assertEqual(after[key], stopped[key], key)
+        self.assertEqual(after['routine_edits']['revision'], 1)
+        self.assertTrue(after['routine_edits']['l5x_export_available'])
+        self.assertFalse(any(row['routine'] == routine['key'] for row in after['trace']))
+        applied = next(row for row in after['routines'] if row['key'] == routine['key'])['rungs'][0]
+        self.assertEqual(applied['text'], rows[0]['text'])
+        self.assertEqual(applied['comment'], rows[0]['comment'])
+
+        with self.assertRaises(HTTPError) as stale:
+            self.post('ladder-draft-apply', request)
+        with stale.exception as response:
+            self.assertIn('matching base logic revision', json.load(response)['error'])
+        stepped = self.post('step', {'dt': 10})
+        self.assertEqual(next(tag['value'] for tag in stepped['tags'] if tag['name'] == 'SpeedSetpoint'), 77)
+        result = self.post('export-edited-l5x', {})
+        self.assertEqual(result['logic_revision'], 1)
+        reloaded = self.post('load', {'name': result['filename'],
+                                     'content': base64.b64encode(result['content'].encode()).decode()})
+        self.assertEqual(reloaded['routine_edits']['revision'], 0)
+        self.assertEqual(next(tag['value'] for tag in reloaded['tags'] if tag['name'] == 'SpeedSetpoint'), 50)
+        reloaded_rung = next(row for row in reloaded['routines'] if row['key'] == routine['key'])['rungs'][0]
+        self.assertEqual(reloaded_rung, applied)
+
     def test_logic_view_aoi_bindings_expose_canonical_tag_references_without_writes(self):
         state=self.post('demo',{'sample':'AOIQueueLab'})
         bindings={name.lower():value for name,value in state['aoi_bindings'].items()}

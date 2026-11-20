@@ -1,4 +1,4 @@
-"""Reopen and validate ladder drafts against a loaded source snapshot."""
+"""Prepare ladder drafts against a loaded source snapshot."""
 
 import copy
 from dataclasses import replace
@@ -79,11 +79,14 @@ def reopen(project, draft):
     return restored
 
 
-def validate(project, draft):
-    from .runtime import Engine
+def _candidate_project(project, draft):
+    from .pseudo_operands import retain_ladder_operands
 
     rungs = reopen(project, draft)
     key = draft['routine'].lower()
+    routine = project.routines[key]
+    changed = [row for row, original in zip(rungs, routine.rungs) if row['text'] != original['text']]
+    retain_ladder_operands(routine.rungs, changed)
     problems = []
     for rung in rungs:
         number = rung['number']
@@ -93,12 +96,58 @@ def validate(project, draft):
             problem = ladder_operand_problem(op, project.aois)
             if problem:
                 problems.append(f'Rung {number}: {problem}')
-    if problems:
-        return {'valid': False, 'diagnostics': [f"{draft['routine']}: {message}" for message in problems]}
+    diagnostics = [f"{draft['routine']}: {message}" for message in problems]
+    if diagnostics:
+        return None, key, diagnostics
     # Keep the source bindings, tag definitions and other routines. Engine
     # plans against its own memory, clocks, labels and execution state.
     candidate = copy.copy(project)
     candidate.routines = dict(project.routines)
-    candidate.routines[key] = replace(project.routines[key], rungs=rungs)
-    preview = Engine(candidate, defer_prescan=True, include_routines=(key,))
-    return {'valid': not preview.blockers, 'diagnostics': preview.blockers}
+    candidate.routines[key] = replace(routine, rungs=rungs)
+    return candidate, key, []
+
+
+def validate(project, draft):
+    from .runtime import Engine
+
+    candidate, key, diagnostics = _candidate_project(project, draft)
+    if candidate is not None:
+        preview = Engine(candidate, defer_prescan=True, include_routines=(key,))
+        diagnostics = preview.blockers
+    return {'valid': not diagnostics, 'diagnostics': diagnostics}
+
+
+def apply_available(engine):
+    return bool(engine and engine.mode == 'project' and not engine.project.aois
+                and engine.project.executable_configuration.source_complete
+                and not getattr(engine, 'installed_download', None))
+
+
+def prepare_apply(engine, draft):
+    from .accepted_routine_source import retain
+    from .logic_export import verify_working_copy
+    from .routine_edits import record_revision, replacement_engine
+    from .runtime import Engine
+
+    if not apply_available(engine):
+        raise ModelError('Apply draft requires a complete ordinary project in whole-project mode')
+    if engine.fault or engine.module_major_fault or engine.calls.stack or engine.memory.frames:
+        raise ModelError('Apply draft requires a Program-mode project without a fault or active call')
+    project, key, diagnostics = _candidate_project(engine.project, draft)
+    if diagnostics:
+        raise ModelError(diagnostics[0])
+    if project.routines[key].rungs == engine.project.routines[key].rungs:
+        raise ModelError('The draft has no changes to apply')
+    if key not in engine.active:
+        preview = Engine(project, defer_prescan=True, include_routines=(key,))
+        if preview.blockers:
+            raise ModelError(preview.blockers[0])
+    candidate = replacement_engine(engine, project)
+    candidate.trace = [row for row in candidate.trace if row.get('routine', '').lower() != key]
+    candidate.immediate_outputs = copy.deepcopy(engine.immediate_outputs)
+    candidate.memory.message_cache = copy.deepcopy(engine.memory.message_cache)
+    record_revision(engine.project, project, key, draft['base_revision'], offline=True)
+    project.runtime_native_sources = retain(engine.project, project, key, None, None, None)
+    candidate.change_detection.record('routine_transaction')
+    verify_working_copy(candidate)
+    return candidate
