@@ -43,6 +43,14 @@ class BlockExtentError(ModelError):
     """A valid start selected a region larger than its storage boundary."""
 
 
+class StringLengthError(ModelError):
+    """A known string LEN exceeds its declared DATA capacity."""
+
+
+class StringCapacityError(ModelError):
+    """A complete string result exceeds the destination DATA capacity."""
+
+
 @dataclass
 class Op:
     name: str
@@ -1234,6 +1242,8 @@ class Memory:
         obj=self.read(ref,scope)
         if capacity is None or not isinstance(obj,dict):raise ModelError('String operand required')
         length=obj['LEN']
+        if type(length) is int and length > capacity and isinstance(obj['DATA'], list) and len(obj['DATA']) == capacity:
+            raise StringLengthError(f'String LEN {length} exceeds DATA capacity {capacity} for {ref}')
         if not isinstance(length,int) or not 0<=length<=capacity or len(obj['DATA'])!=capacity:raise ModelError('String LEN/DATA unknown or outside declared capacity')
         return obj['DATA'], length
 
@@ -1282,7 +1292,8 @@ class Memory:
         if capacity is None:raise ModelError('String destination required')
         try:data=text.encode('latin-1')
         except UnicodeEncodeError as e:raise ModelError('Strings require single-byte characters') from e
-        if len(data)>capacity:raise ModelError(f'String length {len(data)} exceeds capacity {capacity}')
+        if len(data) > capacity:
+            raise StringCapacityError(f'String length {len(data)} exceeds capacity {capacity} for {ref}')
         obj=self.read(ref,scope)
         # String instructions overwrite LEN and result bytes, preserving unused backing DATA.
         obj['LEN']=len(data)

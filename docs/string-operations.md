@@ -126,6 +126,25 @@ In String Lab, set `MidWindow` true and step. The default `MidStart=2` and
 Set MidStart to 1 to observe rollback on an unknown byte. Set MidQty to 0 and
 MidStart to 6 to clear the result with a valid empty window.
 
+## Ladder capacity diagnostics
+
+The v35 ControlLogix 5580 ladder profile includes these Type 4 codes in a
+failed scan's error message:
+
+| Condition | Code | Instructions |
+| --- | --- | --- |
+| Source LEN exceeds its declared DATA capacity | 51 | CONCAT, MID, FIND, INSERT, DELETE, LOWER, UPPER, STOD, STOR |
+| Combined source text exceeds destination capacity | 51 | CONCAT |
+| Result exceeds destination capacity | 52 | MID, DELETE, LOWER, UPPER, DTOS, RTOS |
+
+The emulator rolls back the whole advance before reporting these diagnostics.
+Major Fault Handlers are reserved for the separately modeled major faults.
+The code table uses installed Studio 5000 v35 help topics 14548, 14549,
+14561-14564, 14566-14568, 14570 and 14579. Native minor-fault continuation,
+records and any partial result writes remain unverified.
+See the [CONCAT reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-01/contents-ditamap/instruction-set/ascii-string-instructions/string-concatenate--concat-.html)
+and the [MID reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-01/contents-ditamap/instruction-set/ascii-string-instructions/middle-string--mid-.html).
+
 ## Remaining cases and faults
 
 Empty FIND sources are invalid. Empty search strings, zero-quantity DELETE and

@@ -1,9 +1,20 @@
 """Bounded FIND/INSERT/DELETE on represented single-byte LEN/DATA strings."""
-from .model import ModelError, ascii_bytes, ascii_literal_end, coerce, literal
+from .model import ModelError, StringLengthError, ascii_bytes, ascii_literal_end, coerce, literal
 from .integer_math import CONTROLLERS
 
 INSTRUCTIONS = frozenset(('FIND', 'INSERT', 'DELETE'))
 INTEGERS = frozenset(('SINT', 'INT', 'DINT'))
+_SOURCE_LENGTH_FAULT_OPS = INSTRUCTIONS | {'CONCAT', 'MID', 'LOWER', 'UPPER', 'STOD', 'STOR'}
+_OUTPUT_CAPACITY_CODES = {
+    'CONCAT': 51, 'MID': 52, 'DELETE': 52, 'LOWER': 52, 'UPPER': 52, 'DTOS': 52, 'RTOS': 52,
+}
+
+
+def capacity_fault_code(opcode, error):
+    """Map known capacity failures to the installed v35 instruction tables."""
+    if isinstance(error, StringLengthError):
+        return 51 if opcode in _SOURCE_LENGTH_FAULT_OPS else None
+    return _OUTPUT_CAPACITY_CODES.get(opcode)
 
 
 def string_operand(memory, ref, scope, *, destination=False):
@@ -126,6 +137,7 @@ def description():
                     selection='False/prescan skip live operands; enabled calls retain runtime address, active-LEN/DATA, range and capacity checks',
                     writes='Complete logical string writes establish unknown LEN/active DATA while preserving unused bytes and other elements',
                     array_recovery='A cleared Type 4 Code 20 during a whole-project ladder scan skips the instruction result write',
+                    capacity_diagnostics='Selected ladder operations label known LEN and output capacity failures Type 4 Code 51 or 52 and roll back the advance',
                     comparisons='Required source strings and both CMP logical operands are consumed; no value or identity folding',
                     excluded='New algorithms, empty-search/zero-delete edge behavior, broader types/encoding/controller rules and native status/fault/lifecycle parity',
                     native_runtime_parity=False),

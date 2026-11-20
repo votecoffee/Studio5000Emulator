@@ -14,7 +14,8 @@ from .wall_clock import CoordinatedClock, ClockAdjustment, adjusted_microseconds
 from .runtime_references import RuntimeReferences
 from .change_detection import ChangeDetection
 from . import event_status, system_values, integer_math, scalar_math, numeric_storage, bit_logic, bit_transfer, numeric_fill, size_truncate, comparisons, string_operations, control_operations, sequencer_operations, numeric_conversions, real_math, array_statistics, array_sort, file_search, file_arithmetic, string_conversions, event_tasks, file_incremental, wide_st, st_cases, task_inhibit, mcr, data_transition, file_bit_compare, st_timers, st_counter, st_oneshot, st_scale, st_signal, st_rate, st_moving, st_capture, st_filter, st_digital, st_accumulate, st_select, st_derivative, st_curves, st_pi, st_bit_moves, numeric_copy, aggregate_copy, ladder_pid, ladder_alarm, ladder_analog_alarm, lreal_expressions, time_values
-from .model import ARITIES, ArrayBoundsError, Branch, Memory, ModelError, Op, operations, unknown_shape
+from .model import (ARITIES, ArrayBoundsError, Branch, Memory, ModelError, Op,
+                    StringCapacityError, StringLengthError, operations, unknown_shape)
 from .extended import Extensions
 from .function_blocks import FunctionBlocks,description as fbd_description
 from .addons import AddOns
@@ -1082,6 +1083,12 @@ class Engine:
                         raise
                     power = incoming
                     event['recovered_fault'] = {'type':4,'code':code}
+                except (StringLengthError, StringCapacityError) as error:
+                    if comparisons.available(self.project):
+                        code = string_operations.capacity_fault_code(node.name, error)
+                        if code is not None:
+                            raise ModelError(f'{node.name}: Type 4 Code {code}: {error}') from error
+                    raise
                 except (JumpRoutine,ReturnRoutine,BreakLoop):
                     event.update(out=incoming,transfer=True)
                     events.append(event)
@@ -1403,6 +1410,6 @@ class Engine:
                            "CMP supports typed numeric/BOOL/string comparisons and eager logical evaluation; unknowns/faults cannot hide behind logical operands",
                            "MEQ mixes declared integer patterns with bounded plain or typed immediates for v35 5580; homogeneous LINT compatibility is retained; native parity is unqualified",
                            "GSV supports Controller audit values, v35 5580 Task/Controller settings, Program/Routine names and ControllerDevice identity with typed destinations; SSV supports Module Mode, qualified Task InhibitTask, DisableUpdateOutputs, Watchdog settings, Periodic/Event Rate, Priority, Status and OverlapCount, Event EnableTimeOut, Program/Task LastScanTime/MaxScanTime and Task StartTime/interval resets, and Program DisableFlag; broader system attributes remain unqualified",
-                           "Strings preserve LEN and backing SINT DATA; string faults roll back rather than reproduce native fault handling",
+                           "Strings preserve LEN and backing SINT DATA; selected ladder capacity faults report Type 4 Code 51 or 52 and roll back the advance",
                            "Arithmetic overflow/divide faults stop and roll back; controller fault/status semantics differ",
                            "No online connection or download; source files are never saved by the engine"]}

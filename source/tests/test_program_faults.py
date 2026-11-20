@@ -2730,6 +2730,83 @@ class ProgramFaultTests(unittest.TestCase):
                 self.assertEqual(engine.scan_count,0)
                 self.assertIsNone(engine.last_cleared_program_fault)
 
+    def test_string_capacity_diagnostics_preserve_scan_rollback(self):
+        from test_string_operations import string_data
+
+        cases = (
+            ('CONCAT(LabText[0],LabText[1],LabTextResults[0])', 'LabText[0]', 'A' * 82, 51),
+            ('CONCAT(LabText[0],LabText[1],LabTextResults[0])', 'LabText[1].LEN', 83, 51),
+            ('MID(LabText[0],3,1,LabTextResults[0])', 'LabText[0].LEN', 83, 51),
+            ('FIND(LabText[0],LabText[1],1,LabValues[0])', 'LabText[1].LEN', 83, 51),
+            ('INSERT(LabText[0],LabText[1],1,LabTextResults[0])', 'LabText[1].LEN', 83, 51),
+            ('DELETE(LabText[0],1,1,LabTextResults[0])', 'LabText[0].LEN', 83, 51),
+            ('LOWER(LabText[0],LabTextResults[0])', 'LabText[0].LEN', 83, 51),
+            ('UPPER(LabText[0],LabTextResults[0])', 'LabText[0].LEN', 83, 51),
+            ('STOD(LabText[0],LabValues[0])', 'LabText[0].LEN', 83, 51),
+            ('STOR(LabText[0],LabReals[0])', 'LabText[0].LEN', 83, 51),
+            ('MID(LabText[0],4,1,ShortText)', 'LabText[0]', 'abcdef', 52),
+            ('DELETE(LabText[0],1,1,ShortText)', 'LabText[0]', 'abcdef', 52),
+            ('LOWER(LabText[0],ShortText)', 'LabText[0]', 'ABCDEF', 52),
+            ('UPPER(LabText[0],ShortText)', 'LabText[0]', 'abcdef', 52),
+            ('DTOS(LabValues[0],ShortText)', 'LabValues[0]', 123456, 52),
+            ('RTOS(LabReals[0],ShortText)', 'LabReals[0]', 12.25, 52),
+        )
+        for instruction, operand, value, code in cases:
+            with self.subTest(instruction=instruction, operand=operand, code=code):
+                self.setUp()
+
+                def configure(root):
+                    ladder_fault_fixture(root, fault_code=code)
+                    add_string_recovery_tags(root)
+                    types = root.find('Controller/DataTypes')
+                    if types is None:
+                        types = ET.SubElement(root.find('Controller'), 'DataTypes')
+                    dtype = ET.SubElement(types, 'DataType', Name='STRING_3', Family='StringFamily', Class='User')
+                    members = ET.SubElement(dtype, 'Members')
+                    ET.SubElement(members, 'Member', Name='LEN', DataType='DINT', Dimension='0')
+                    ET.SubElement(members, 'Member', Name='DATA', DataType='SINT', Dimension='3')
+                    tag = ET.SubElement(root.find('Controller/Tags'), 'Tag', Name='ShortText',
+                                        DataType='STRING_3', TagType='Base')
+                    string_data(ET.SubElement(tag, 'Data', Format='Decorated'), 'old', 3, 'STRING_3')
+                    set_fault_instruction(root, instruction)
+
+                engine = self.engine(mutate=configure)
+                self.assertEqual(engine.blockers, [])
+                engine.memory.write(operand, value)
+                engine.step()
+                self.assertEqual(engine.fault, '')
+                engine.memory.write('StartPB', True)
+                before = copy.deepcopy(engine.memory.values)
+                name = instruction.split('(', 1)[0]
+                with self.assertRaisesRegex(ModelError, f'Scan rolled back: {name}: Type 4 Code {code}:'):
+                    engine.step()
+                self.assertIn(f'{name}: Type 4 Code {code}:', engine.fault)
+                self.assertEqual(engine.memory.values, before)
+                self.assertEqual(engine.scan_count, 1)
+                self.assertIsNone(engine.last_cleared_program_fault)
+
+    def test_string_extent_diagnostics_require_known_capacity_failures_and_supported_opcodes(self):
+        for instruction, length, source_message in (
+            ('CONCAT(LabText[0],LabText[1],LabTextResults[0])', None, 'unknown or outside'),
+            ('CONCAT(LabText[0],LabText[1],LabTextResults[0])', -1, 'unknown or outside'),
+            ('MOV(LabText[0],LabTextResults[0])', 83, 'exceeds DATA capacity'),
+        ):
+            with self.subTest(instruction=instruction, length=length):
+                self.setUp()
+
+                def configure(root):
+                    ladder_fault_fixture(root)
+                    add_string_recovery_tags(root)
+                    set_fault_instruction(root, instruction)
+
+                engine = self.engine(mutate=configure)
+                self.assertEqual(engine.blockers, [])
+                engine.memory.values['labtext'][0]['LEN'] = length
+                engine.memory.write('StartPB', True)
+                with self.assertRaisesRegex(ModelError, source_message):
+                    engine.step()
+                self.assertNotIn('Type 4 Code', engine.fault)
+
     def test_gsv_array_fault_preserves_the_complete_clock_window(self):
         from test_gsv_wall_clock import FIELDS, MICROSECONDS
 
