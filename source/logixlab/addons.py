@@ -39,11 +39,14 @@ class AddOns:
         for parameter,argument in zip(definition.required,op.args[1:]):
             usage=parameter.get('Usage');expected=parameter.get('DataType','').upper()
             if usage=='InOut':
-                k,p,t=self.memory.check_writable(argument,scope)
+                parameter_name = parameter.get('Name').lower()
+                resolve = self.memory.resolve if parameter_name in definition.constant_inouts else self.memory.check_writable
+                k,p,t=resolve(argument,scope)
+                if k is None:raise ModelError('InOut requires a tag reference')
                 if any(isinstance(x,tuple) for x in p):raise ModelError('InOut bit selections are unsupported')
                 if t!=expected or shape(self.memory.at(k,p))!=dimensions(parameter.get('Dimensions','0')):
                     raise ModelError(parameter.get('Name')+': InOut type/array dimensions must match exactly')
-                bindings[parameter.get('Name').lower()]=(self.memory.address(k,p),'')
+                bindings[parameter_name]=(self.memory.address(k,p),'')
             elif usage=='Output':
                 k,p,t=self.memory.check_writable(argument,scope)
                 if any(isinstance(x,tuple) for x in p):raise ModelError('Output bit selections are unsupported')
@@ -150,6 +153,7 @@ class AddOns:
                     lifecycle='Required scalar Inputs are copied in prescan and on reached calls, including false ladder calls',
                     native_runtime_parity=False),
                 'local_state_policy':'Hidden saved local values remain unknown; Prescan or normal writes must establish them before reads',
+                'constant_inouts':{a.name:sorted(a.constant_inouts) for a in project.aois.values() if a.constant_inouts},
                 'definition_issues':{a.name:a.problems for a in project.aois.values() if a.problems},
                 'instructions':{a.name:dict(__import__('collections').Counter(op.name for r in a.routines.values()
                                            for rung in r.rungs for op in operations(rung['nodes'])))

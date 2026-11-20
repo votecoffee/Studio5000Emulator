@@ -1,4 +1,4 @@
-# Typed numeric AOI input constants
+# Add-On Instruction constants
 
 The v35 ControlLogix 5580 software profile accepts decimal LINT, UDINT and ULINT
 constants and finite floating LREAL constants for required scalar AOI Inputs.
@@ -16,7 +16,7 @@ L/l selects LREAL. Signed limits and finiteness are checked during binding,
 including false calls. Typed constants do not enable implicit promotion or
 narrowing into another parameter type. Existing unsuffixed numeric inputs and
 tag-based conversions retain their earlier rules. Output and InOut actuals
-remain writable references.
+use tag references. Constant InOut parameters can use read-only references.
 
 The instruction keeps its existing copied-input lifecycle. Required Inputs
 are copied during prescan and each reached invocation, including false calls.
@@ -36,11 +36,24 @@ above. Disable Enabled and change an output tag to observe retention on a false
 call. Re-enable to copy the constants again. LINT/ULINT API snapshots use exact
 decimal text; LREAL retains binary64 precision.
 
-Time/date, string/aggregate literals, Output/InOut constants,
+Time/date and string/aggregate literals, literal Output and InOut actuals,
 other controller profiles, protected definitions, nullable/alias parameters,
 FBD definitions and native packing/status/lifecycle qualification remain outside
 this increment. The separate [JSR/RET constant profile](indirect-routine-calls.md#typed-numeric-constants)
 uses its own exact routine-parameter contract.
+
+## Constant InOut parameters
+
+In the v35 ControlLogix 5580 profile, an AOI may declare a required InOut
+parameter with `Constant="true"`. Its argument is an exact-type, matching-shape
+tag reference. A constant or mutable caller tag, including an alias, can supply
+that reference. The AOI reads the caller's current value without copying it.
+
+Ladder and Structured Text reject writes through the parameter, including
+member or bit writes and attempts to pass it to a writable nested InOut or
+Output. A nested constant InOut can receive the reference. A mutable caller
+tag can still be updated in the caller's own scope. This is the emulator's
+software behavior. See Rockwell's [InOut constant guidance](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm004_-en-p.pdf).
 
 ## Grouped DINT inputs
 
@@ -52,8 +65,9 @@ conversion to REAL, apply to the decoded value. The ladder viewer shows the
 signed source value beside its authored operand.
 
 An Input receives the same decoded value during prescan, on a false ladder
-call, and when the AOI runs. Output and InOut arguments require writable
-references. Suffixed constants keep their exact declared type rules.
+call, and when the AOI runs. Suffixed constants keep their exact declared type
+rules. See [constant InOut parameters](#constant-inout-parameters) for read-only
+bindings.
 
 ## Typed radix parameters
 

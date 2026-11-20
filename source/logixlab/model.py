@@ -348,6 +348,7 @@ class AddOn:
     modes: dict = field(default_factory=dict)
     problems: list = field(default_factory=list)
     description: str = ''
+    constant_inouts: set[str] = field(default_factory=set)
 
     @property
     def required(self):
@@ -435,7 +436,10 @@ class Project:
                 if not name or name.lower() in names:aoi.problems.append('Duplicate or missing parameter/local name')
                 names.add(name.lower())
                 if item.get('AliasFor'):aoi.problems.append('Alias parameters are unsupported')
-                if item.get('Constant','false').lower()=='true':aoi.problems.append('Constant parameter/local semantics are unsupported')
+                if item.get('Constant','false').lower()=='true':
+                    if usage=='InOut' and self.version=='35' and self.processor.upper() in CONTROLLERS:
+                        aoi.constant_inouts.add(name.lower())
+                    else:aoi.problems.append('Constant is supported only for v35 ControlLogix 5580 AOI InOut parameters')
                 if usage not in ('Input','Output','InOut','Local'):aoi.problems.append('Unknown parameter usage')
                 if usage=='InOut':
                     if item.get('Required','false').lower()!='true':aoi.problems.append('InOut must be required')
@@ -1182,7 +1186,13 @@ class Memory:
         self.store(key, parts, value)
 
     def check_writable(self,ref,scope=''):
-        if scope in self.frames and ref.strip().lower()=='enablein':raise ModelError('AOI EnableIn is read-only inside its logic')
+        if scope in self.frames:
+            name = ref.strip().partition('.')[0].partition('[')[0].lower()
+            if name == 'enablein':raise ModelError('AOI EnableIn is read-only inside its logic')
+            if name in self.frames[scope]:
+                _, _, instance_type = self.resolve(scope.removeprefix('@AOI:'))
+                if name in self.project.aois[instance_type].constant_inouts:
+                    raise ModelError(f'Constant AOI InOut is read-only: {ref}')
         key,parts,dtype=self.resolve(ref,scope)
         if key is None or self.project.tags[key].constant:raise ModelError(f'Read-only destination {ref}')
         return key,parts,dtype

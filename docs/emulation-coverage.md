@@ -109,7 +109,7 @@ firmware features are separate profiles, not implicit L85E capabilities.
 | Other predefined types | Some exported decorated fields may be retained as data-only structures | Dedicated schemas and their stateful instructions |
 | UDTs | Explicit nested structures, arrays, members, selected packed bits and bounded wire layouts | Complete native layout/type rules, aggregate assignments/copies and uncommon/hidden/overlaid forms |
 | STRING and user strings | Built-in STRING and explicit DINT LEN/one-dimensional SINT DATA types; CONCAT/MID, [FIND/INSERT/DELETE](string-operations.md), [ASCII case and REAL conversions](string-conversions.md) | Remaining edge/type/conversion/status/encoding behavior and built-in STRING wire profile |
-| AOIs | Bounded RLL/ST definitions, nested instances, scalar Input/Output, [decimal/radix typed numeric input constants](aoi-constants.md), exact-type InOut, Prescan and EnableInFalse | Remaining parameter forms, Postscan/SFC, FBD definitions, full instance lifecycle and protected definitions |
+| AOIs | Bounded RLL/ST definitions, nested instances, scalar Input/Output, [decimal/radix typed numeric input constants](aoi-constants.md), exact-type InOut and [constant InOut](aoi-constants.md#constant-inout-parameters), Prescan and EnableInFalse | Remaining parameter forms, Postscan/SFC, FBD definitions, full instance lifecycle and protected definitions |
 | Tasks/controller | Mixed Standard Continuous/Periodic tasks, deterministic serial releases with coincident priority order, Program/Run and per-Program first scans | General CPU preemption/time slicing, other event triggers, watchdogs, full fault handlers, restart/retention |
 | Motion | Empty source-checked motion discovery only | Axis/group/coordinate models and every motion instruction family |
 | I/O modules | Local-controller metadata, named local and qualified routed Mode reads and writes, Inhibited/Waiting EntryStatus, simulated Running/Faulted and fault diagnostics, aggregate LEDStatus, configured backplane and Ethernet routes, externally driven ordinary tags | Module backplane/adapters, cyclic I/O, channel behavior, diagnostics, forces and failures |
@@ -234,7 +234,7 @@ numerical/status/fault/lifecycle parity remain open.
   restart/pause, first/last scans, Postscan, forces and cross-language calls.
   Add visual state monitoring after semantic tests exist.
 - [ ] **A01 — AOI parameters:** additional compatible Input/Output aggregates,
-  arrays/strings, alias and constant parameters/locals, nullable InOut, supported
+  arrays/strings, alias parameters, nullable InOut, supported
   optional parameters and cross-call aliasing rules.
 - [ ] **A02 — AOI lifecycle:** complete enable/disable transitions, Prescan,
   EnableInFalse and Postscan, nested instances and per-instance retained locals

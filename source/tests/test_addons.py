@@ -126,6 +126,52 @@ class AddOnTests(unittest.TestCase):
         self.root.find('./Controller/Tags/Tag[@Name="SharedA"]').set('Constant','true')
         self.assertTrue(self.engine().blockers)
 
+    def test_constant_inout_reads_constant_alias_and_live_mutable_tag(self):
+        self.definition().find('Parameters/Parameter[@Name="Shared"]').set('Constant', 'true')
+        self.body()[0].find('Text').text = 'MOV(Shared,Total);'
+        tags = self.root.find('Controller/Tags')
+        tags.find('Tag[@Name="SharedA"]').set('Constant', 'true')
+        E.SubElement(tags, 'Tag', Name='FixedSource', TagType='Alias', AliasFor='SharedA')
+        engine = self.engine(['LabAccumulator(AccumulatorA,StepA,TotalA,FixedSource);',
+                              'LabAccumulator(AccumulatorB,StepB,TotalB,SharedB);'])
+        self.assertEqual(engine.blockers, [])
+        engine.step()
+        self.assertEqual((engine.memory.read('TotalA'), engine.memory.read('TotalB')), (10, 20))
+        engine.memory.write('SharedB', 33)
+        engine.step()
+        self.assertEqual(engine.memory.read('TotalB'), 33)
+        self.assertEqual(engine.memory.read('SharedA'), 10)
+
+    def test_constant_inout_rejects_direct_and_bit_writes_in_ladder_and_st(self):
+        definition = self.definition()
+        definition.find('Parameters/Parameter[@Name="Shared"]').set('Constant', 'true')
+        for rung in ('AFI()MOV(5,Shared);', 'AFI()OTE(Shared.0);'):
+            with self.subTest(rung=rung):
+                self.body()[0].find('Text').text = rung
+                self.assertTrue(any('Constant AOI InOut' in b for b in self.engine().blockers))
+        routine = definition.find('Routines/Routine[@Name="Logic"]')
+        routine.remove(routine.find('RLLContent'))
+        routine.set('Type', 'ST')
+        line = E.SubElement(E.SubElement(routine, 'STContent'), 'Line', Number='0')
+        line.text = 'IF FALSE THEN Shared := 5; END_IF;'
+        self.assertTrue(any('Constant AOI InOut' in b for b in self.engine().blockers))
+
+    def test_nested_inout_preserves_read_only_parameter_contract(self):
+        outer = self.definition('LabWrapper').find('Parameters/Parameter[@Name="Raw"]')
+        inner = self.definition('LabScale').find('Parameters/Parameter[@Name="Raw"]')
+        for parameter in (outer, inner):
+            parameter.set('Usage', 'InOut')
+            parameter.set('Constant', 'true')
+        saved = self.root.find('Controller/Tags/Tag[@Name="NestedScale"]/Data/Structure')
+        saved.remove(saved.find('DataValueMember[@Name="Raw"]'))
+        engine = self.engine()
+        self.assertEqual(engine.blockers, [])
+        engine.step()
+        self.assertEqual(engine.memory.read('ScaledValue'), 25.5)
+
+        inner.set('Constant', 'false')
+        self.assertTrue(any('Constant AOI InOut' in b for b in self.engine().blockers))
+
     def test_output_requires_exact_type_writable_reference(self):
         for target in ('RawValue','4','EnableA'):
             with self.subTest(target=target):
