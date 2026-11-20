@@ -15,7 +15,9 @@ Scans use live CONTROL.LEN/POS. See [CONTROL import initialization](control-oper
 ## Dimension and calculation
 
 Use a fully subscripted element in a one-, two- or three-dimensional
-array. Dimension is immediate 0, 1 or 2 and must exist in that array. Only the
+array. Dimension is immediate 0, 1 or 2 and must exist in that array. AVE and STD
+accept grouped unsuffixed binary, octal and hexadecimal DINT words, such as
+`16#0000 0001` for dimension one. Only the
 selected subscript increases; other subscripts stay fixed. For example,
 `AVE(Grid[0,1],0,Mean,Control,?,?)` with LEN=2 averages Grid[0,1] and Grid[1,1].
 It does not flatten the array into adjacent rows.

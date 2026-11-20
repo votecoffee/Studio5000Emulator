@@ -34,6 +34,14 @@ class SizeTruncateTests(unittest.TestCase):
         self.assertEqual(e.memory.read('Results'), [2, 3, None])
         self.assertEqual(e.memory.read('Grid'), [[None] * 3] * 2)
 
+    def test_size_grouped_dimensions_and_rank_bounds(self):
+        engine = self.checked(['SIZE(Grid,2#0000 0000,Results[0])SIZE(Grid[1,2],16#0000 0001,Results[1]);'])
+        engine.step()
+        self.assertEqual(engine.memory.read('Results'), [2, 3, None])
+        for dimension in ('16#FFFF FFFF', '8#0000 0002', '16#0000 0001U', '16#1 0000 0000'):
+            with self.subTest(dimension=dimension):
+                self.assertTrue(self.engine([f'AFI()SIZE(Grid,{dimension},Dest);']).blockers)
+
     def test_size_all_supported_destinations(self):
         for dtype in ('SINT', 'INT', 'DINT', 'REAL'):
             e = self.checked(['SIZE(Grid[0,0],1,Dest);'], dest=dtype)
@@ -182,7 +190,7 @@ class SizeTruncateTests(unittest.TestCase):
         def st(root):
             routine = root.find('.//Program/Routines/Routine');routine.set('Type', 'ST');routine.remove(routine.find('RLLContent'))
             E.SubElement(E.SubElement(routine, 'STContent'), 'Line', Number='0').text = (
-                'SIZE(Grid[1,2],1,Dest); SIZE(Banner,0,Results[0]); Source:=TRUNC(-3.9);')
+                'SIZE(Grid[1,2],8#0000 0001,Dest); SIZE(Banner,0,Results[0]); Source:=TRUNC(-3.9);')
         e = self.checked(mutate=st);e.step()
         self.assertEqual((e.memory.read('Dest'), e.memory.read('Source')), (3, -3.0))
         self.assertEqual(e.memory.read('Results[0]'), 82)

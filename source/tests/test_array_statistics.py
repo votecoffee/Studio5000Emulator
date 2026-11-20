@@ -77,6 +77,20 @@ class ArrayStatisticsTests(unittest.TestCase):
         e=self.checked(['STD(Queue[1,1,0],2,Result,Ctl,?,?);'],length=3,mutate=change)
         e.step();self.assertEqual(e.memory.read('Result'),1.0)
 
+    def test_grouped_dimensions_select_average_and_deviation_windows(self):
+        change = self.multidimensional((2, 3), (2, 4, 6, 8, 10, 12))
+        for name, dimension, expected in (('AVE', '2#0000 0001', 10.0), ('STD', '8#0000 0001', 2.0)):
+            with self.subTest(name=name):
+                engine = self.checked([f'{name}(Queue[1,0],{dimension},Result,Ctl,?,?);'],
+                                      length=3, mutate=change)
+                engine.step()
+                self.assertEqual(engine.memory.read('Result'), expected)
+                self.assertEqual(engine.memory.read('Queue'), [[2, 4, 6], [8, 10, 12]])
+        for dimension in ('16#FFFF FFFF', '2#0000 0010', '8#0000 0008', '16#0000 0001L'):
+            with self.subTest(dimension=dimension):
+                self.assertTrue(self.engine([f'AFI()AVE(Queue[1,0],{dimension},Result,Ctl,?,?);'],
+                                            length=3, mutate=change).blockers)
+
     def test_held_true_does_not_recalculate_and_false_rearms(self):
         for name in ('AVE','STD'):
             e=self.checked([f'XIC(StartPB){name}(Queue[0],0,Result,Ctl,?,?);'])

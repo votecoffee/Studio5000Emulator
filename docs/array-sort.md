@@ -12,7 +12,8 @@ same internal instruction shape without reinitializing LEN/POS. Use fully
 subscripted SINT/INT/DINT/REAL arrays with one to three dimensions.
 [Aliases, indirect starts and AOI arrays](sort-references.md) now execute with
 explicit sampling, boundary and conservative FOR-effect rules.
-Only the selected dimension varies; the other subscripts stay fixed. Both the
+Only the selected dimension varies; the other subscripts stay fixed. Ladder and
+ST accept grouped unsuffixed DINT radix words for the immediate dimension. Both the
 array and CONTROL must be writable. See [implementation](../source/logixlab/array_sort.py).
 
 ## Supported operation

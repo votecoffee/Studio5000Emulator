@@ -715,6 +715,7 @@ adds CPT/CMP calculations with explicit intermediate checks. Enable
 [Array size and truncation](docs/size-truncate.md) support selected arrays,
 string capacity reads, lazy unknown-value handling and signed/unsigned TRN results.
 In **Data lab**, enable `InspectData` to see array and string DATA sizes.
+SIZE, AVE, STD and SRT accept grouped DINT immediates for the array dimension.
 
 [Numeric file fills](docs/numeric-fill.md) add integer narrowing/sign extension,
 structural validation and lazy operand reads for FLL. Grouped binary, octal and

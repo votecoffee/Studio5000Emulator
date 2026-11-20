@@ -55,7 +55,7 @@ class ArraySortTests(unittest.TestCase):
 
     def test_three_dimensional_selection(self):
         change=self.multidimensional((2,2,3),(6,5,4,3,2,1,12,11,10,9,8,7))
-        e=self.checked(['SRT(Queue[1,1,0],2,Ctl,?,?);'],length=3,mutate=change);e.step()
+        e=self.checked(['SRT(Queue[1,1,0],16#0000 0002,Ctl,?,?);'],length=3,mutate=change);e.step()
         self.assertEqual(e.memory.read('Queue'),[[[6,5,4],[3,2,1]],[[12,11,10],[7,8,9]]])
 
     def test_ladder_held_enable_does_not_repeat_false_rearms(self):
@@ -87,7 +87,7 @@ class ArraySortTests(unittest.TestCase):
         e.memory.write('Ctl.ER',False);e.step();self.assertEqual(e.memory.read('Queue'),[2,4,6,8,999])
 
     def test_st_three_operand_call_repeats_without_explicit_rearm(self):
-        e=self.st('SRT(Queue[0],0,Ctl);');self.assertEqual(e.blockers,[]);e.step()
+        e=self.st('SRT(Queue[0],8#0000 0000,Ctl);');self.assertEqual(e.blockers,[]);e.step()
         e.memory.write('Queue[0]',10);e.step();self.assertEqual(e.memory.read('Queue'),[4,6,8,10,999])
         self.assertTrue(e.memory.read('Ctl.EN'));self.assertTrue(e.memory.read('Ctl.DN'));self.assertEqual(e.memory.read('Ctl.POS'),0)
         self.assertTrue(any(t.get('language')=='ST' and t.get('detail')=='SRT' for t in e.trace))

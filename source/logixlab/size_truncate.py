@@ -1,7 +1,7 @@
 """Structural SIZE and finite REAL/LREAL truncation for the v35 5580 profile."""
 import math
 
-from .integer_math import CONTROLLERS
+from .integer_math import CONTROLLERS, dint_radix
 from .model import INT_BITS, ModelError, coerce, literal
 from .numeric_storage import typed_literal
 from .real_math import real
@@ -56,7 +56,10 @@ def handle(engine, op, scope, *, execute=False):
         if op.name == 'SIZE':
             dimensions = shape(memory, op.args[0], scope)
             scalar(memory, op.args[2], scope, NARROW, destination=True)
-            try:dimension = literal(op.args[1])
+            dimension = dint_radix(op.args[1])
+            try:
+                if dimension is None:
+                    dimension = literal(op.args[1])
             except ValueError:
                 scalar(memory, op.args[1], scope, {'SINT', 'INT', 'DINT'})
             else:
@@ -88,7 +91,8 @@ def handle(engine, op, scope, *, execute=False):
 
     if op.name == 'SIZE':
         dimensions = shape(memory, op.args[0], scope)
-        dimension = memory.read(op.args[1], scope)
+        if dimension is None:
+            dimension = memory.read(op.args[1], scope)
         if type(dimension) is not int or not 0 <= dimension <= 2:
             raise ModelError('SIZE dimension must be 0..2')
         if dimension >= len(dimensions):raise ModelError('SIZE dimension exceeds array rank')
@@ -112,6 +116,7 @@ def description(project):
                 lreal='Tagged and floating L/l LREAL sources with integer/REAL/LREAL destinations; v35 ladder TRN',
                 selection='Structural preflight; false/prescan skip live values and dynamic indices',
                 array_recovery='A cleared Type 4 Code 20 during a whole-project ladder scan skips the SIZE or TRN result write',
+                dimension='Immediate 0..2 within source rank, including grouped unsuffixed DINT radix words',
                 dynamic_dimension='Existing SINT/INT/DINT tag extension; native SIZE documents an immediate 0..2',
                 native_runtime_parity=False, native_math_status=False,
                 remaining=['Native rounding/overflow, signed zero, subnormals, status, fault and lifecycle parity',

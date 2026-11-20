@@ -30,7 +30,10 @@ two-element string array. Use `Labels[1].DATA` to obtain that element's string
 capacity. The v35 examples use explicit DATA operands; native verification of
 the emulator's direct scalar form remains open.
 
-The documented dimension operand is an immediate 0, 1 or 2. The existing emulator
+The documented dimension operand is an immediate 0, 1 or 2. Ladder and ST can
+express it as a grouped unsuffixed binary, octal or hexadecimal DINT word,
+such as `SIZE(Grid,16#0000 0001,Columns)`. Values must select a declared dimension.
+The ladder monitor shows the decoded dimension. The existing emulator
 extension accepting a SINT/INT/DINT dimension tag remains available, with rank and
 range checked when executed. This extension is not claimed as native syntax.
 

@@ -62,6 +62,7 @@ def execute_st(memory, op, scope):
 def description():
     return dict(profile='v35-5580-whole-region-sort', instructions=['SRT'], languages=['RLL','ST'],
                 types=sorted(controls.NUMERIC), order='Ascending, integer values retain exact declared precision',
+                dimension_operand='Immediate 0..2 within source rank, including grouped unsuffixed DINT radix words',
                 ladder='Rising EN; held true retains array; false clears EN/DN and retains ER/POS',
                 structured_text='Three operands; each executed call performs false then true',
                 starting_references='Aliases and bounded indirect starts; structural preflight; false/EN/ER-inhibited ladder calls skip live source indices; no CONTROL.POS-dependent starts',

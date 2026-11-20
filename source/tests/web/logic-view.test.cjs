@@ -9,7 +9,8 @@ const seal = () => graph.compile(rung([op('XIO', 'Stop'), {branch: [[op('XIC', '
 test('grouped ladder radix monitoring applies only to immediate operands in the v35 profile', () => {
   const cases = {DTR: [0, 1], SQI: [1, 2], SQO: [1], SQL: [1], MVM: [0, 1], BTD: [0, 1, 3, 4],
     FLL: [0, 2], COP: [2], CPS: [2], FFL: [0], LFL: [0], FFU: [], LFU: [],
-    FIND: [2], INSERT: [2], MID: [1, 2], DELETE: [1, 2], FOR: [2, 3, 4]};
+    FIND: [2], INSERT: [2], MID: [1, 2], DELETE: [1, 2], FOR: [2, 3, 4],
+    SIZE: [1], AVE: [1], STD: [1], SRT: [1]};
   for (const [opcode, indices] of Object.entries(cases)) {
     const operands = ['Array', 'Mask', 'Data', 'Ctl', 'Length', 'Position'];
     for (const [index, ref] of operands.entries()) {

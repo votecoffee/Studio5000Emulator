@@ -2,7 +2,7 @@
 import math
 
 from . import control_operations as controls
-from .integer_math import CONTROLLERS
+from .integer_math import CONTROLLERS, dint_radix
 from .model import ArrayBoundsError, ModelError, literal
 from .real_math import real
 
@@ -46,8 +46,10 @@ def selected_region(memory, op, scope, count, *, writable, references):
         shape.append(len(value));value = value[0]
     if len(shape) != len(indices) or not 1 <= len(shape) <= 3:
         raise ModelError('Statistics require one to three explicit array subscripts')
-    try:dimension = literal(op.args[1])
-    except ValueError as error:raise ModelError('Statistics dimension must be immediate 0, 1 or 2') from error
+    dimension = dint_radix(op.args[1])
+    if dimension is None:
+        try:dimension = literal(op.args[1])
+        except ValueError as error:raise ModelError('Statistics dimension must be immediate 0, 1 or 2') from error
     if type(dimension) is not int or not 0 <= dimension < len(shape):
         raise ModelError('Statistics dimension must select a declared array dimension')
     if indices[dimension] + count > shape[dimension]:
@@ -178,6 +180,7 @@ def description():
                 cursor_recovery='Reached negative STD LEN/POS raises Type 4 Code 21 before calculating or updating CONTROL',
                 control_selection='Actual CONTROL addresses remain required in prescan/runtime, with existing flag and LEN/POS reads',
                 dimensions='Fully subscripted one/two/three-dimensional arrays; selected dimension varies without flattening',
+                dimension_operand='Immediate 0..2 within source rank, including grouped unsuffixed DINT radix words',
                 starting_references='Aliases and bounded indirect indices; no CONTROL.POS-dependent starts; false or latched EN/DN/ER calls skip live source indices and values',
                 aoi='RLL bodies with exact one/two/three-dimensional numeric InOut arrays or represented saved locals; disjoint sibling results and existing copied-input/Prescan/EnableInFalse/binding rollback rules',
                 calculation='Float32 inputs, accumulation and results; STD uses sample divisor N-1',
