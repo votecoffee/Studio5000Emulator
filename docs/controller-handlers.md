@@ -80,12 +80,12 @@ JSR argument selection. ST calls retain their existing rollback behavior.
 
 ## Recover a nested ladder AOI array fault
 
-During a whole-project ladder scan, a Type 4 Code 20 array fault raised by
-MOV, COP, CPS or FLL in an AOI's ladder Logic routine can reach the calling
-Program fault routine or Controller Fault Handler. This includes DINT
-subscript arithmetic overflow. If the handler clears the fault, execution
-resumes after the outermost enabled AOI instruction with the incoming rung
-power.
+During a whole-project ladder scan, an array fault inside an AOI's ladder
+Logic routine can reach the calling Program fault routine or Controller Fault
+Handler as Type 4 Code 20. This profile covers MOV, CLR, COP, CPS, FLL, ADD,
+SUB, MUL, DIV, MOD, NEG, ABS and CPT, including DINT overflow while evaluating
+an array subscript. If the handler clears the fault, execution resumes after
+the outermost enabled AOI instruction with the incoming rung power.
 
 The faulting instruction and the remaining statements in each interrupted AOI
 are skipped. Interrupted invocations also skip their output copies. The
@@ -97,11 +97,12 @@ routine and the faulting opcode.
 Numeric and matching-record COP/CPS and FLL resolve the selected addresses
 before writing. A reached invalid address leaves the faulting operation's
 destination untouched, including an invalid FLL destination with a zero
-length. Invalid length values still cause scan rollback.
+length. Scalar arithmetic and CLR likewise leave the destination untouched
+when operand evaluation hits an array fault. Invalid lengths, division by
+zero and arithmetic result overflow still cause scan rollback.
 
-This recovery profile covers the four opcodes during normal ladder AOI
-execution. AOI argument, output-transfer, Structured Text and prescan faults
-remain outside this profile. Native v35 behavior remains unverified.
+AOI argument, output-transfer, Structured Text and prescan faults remain
+outside this profile. Native v35 behavior remains unverified.
 [Rockwell AOI fault recovery reference](https://www.rockwellautomation.com/en-ua/docs/studio-5000-logix-designer/37-01/contents-ditamap/studio-5000-logix-designer/add-on-instructions/major-fault-state-and-add-on-instructions.html)
 
 ## Recover a ladder arithmetic array fault

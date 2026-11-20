@@ -561,6 +561,61 @@ class ProgramFaultTests(unittest.TestCase):
                 self.assertEqual(engine.memory.read('SpeedCommand'),result)
                 self.assertIs(engine.last_cleared_program_fault,fault)
 
+    def test_nested_aoi_arithmetic_array_faults_skip_result_write_and_retry(self):
+        cases = (
+            ('ADD(Samples[Index+1],5,Scaled)', [88,13], 130),
+            ('SUB(Samples[Index+1],5,Scaled)', [88,13], 120),
+            ('MUL(Samples[Index+1],2,Scaled)', [88,13], 138),
+            ('DIV(Samples[Index+1],1,Scaled)', [88,13], 125),
+            ('MOD(Samples[Index+1],5,Scaled)', [88,13], 115),
+            ('NEG(Samples[Index+1],Scaled)', [88,13], 99),
+            ('ABS(Samples[Index+1],Scaled)', [88,13], 125),
+            ('CPT(Scaled,Samples[Index+1]+1)', [88,13], 126),
+            ('CPT(Samples[Index+1],Samples[0]+1)MOV(Samples[1],Scaled)', [88,89], 201),
+            ('CLR(Samples[Index+1])MOV(Samples[1],Scaled)', [88,0], 112),
+        )
+        for work,values,result in cases:
+            with self.subTest(work=work):
+                self.setUp()
+                engine = self.engine(mutate=lambda root:nested_aoi_array_fault_fixture(root,work=work))
+                self.assertEqual(engine.blockers,[])
+                engine.memory.write('StartPB',True)
+                engine.memory.write('LabIndex',2**31-1)
+                engine.memory.write('SpeedCommand',50)
+                engine.step()
+                fault = engine.last_cleared_program_fault
+                opcode = work.split('(',1)[0]
+                self.assertEqual((fault['type'],fault['code'],fault['instruction']),(4,20,'LABWRAPPER'))
+                self.assertIn(f'AOI:LabScale/Logic, {opcode}: DINT overflow in subscript',fault['detail'])
+                self.assertEqual(engine.memory.read('LabIndex'),0)
+                self.assertEqual(engine.memory.read('LabValues'),[88,13])
+                self.assertEqual(engine.memory.read('SpeedCommand'),51)
+                self.assertEqual(engine.memory.read('NestedScale.Result'),7.0)
+                self.assertEqual(engine.memory.read('NestedScale.Core.Result'),73.0)
+                engine.step()
+                self.assertEqual(engine.memory.read('LabValues'),values)
+                self.assertEqual(engine.memory.read('SpeedCommand'),result)
+                self.assertIs(engine.last_cleared_program_fault,fault)
+
+    def test_nested_aoi_arithmetic_errors_roll_back_without_handler(self):
+        for work,cause in (
+            ('DIV(Samples[0],Index,Scaled)', 'divide by zero'),
+            ('ADD(2147483647,1,Samples[1])', 'DINT overflow'),
+            ('CPT(Scaled,Samples[1]/Index)', 'divide by zero'),
+        ):
+            with self.subTest(work=work):
+                self.setUp()
+                engine = self.engine(mutate=lambda root:nested_aoi_array_fault_fixture(root,work=work))
+                self.assertEqual(engine.blockers,[])
+                engine.memory.write('StartPB',True)
+                engine.memory.write('LabIndex',0)
+                before = copy.deepcopy(engine.memory.values)
+                with self.assertRaisesRegex(ModelError,cause):
+                    engine.step()
+                self.assertEqual(engine.memory.values,before)
+                self.assertEqual(engine.scan_count,0)
+                self.assertIsNone(engine.last_cleared_program_fault)
+
     def test_nested_aoi_record_copy_and_fill_resolve_addresses_before_writing(self):
         for work,expected in (
             ('COP(RecordData[Index+1],RecordData[0],1)', [31,31]),
