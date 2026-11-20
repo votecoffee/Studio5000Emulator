@@ -4,9 +4,11 @@ Native UDI Definition objects (0x338) represent AOI definitions. Runtime AOI
 parsing alone does not prove protected or unrecognized definitions are absent.
 """
 from dataclasses import dataclass
+from datetime import datetime
 import re
 import struct
 from .tag_catalog import complete_tag_source
+from .time_values import EPOCH
 from .executable_configuration import RoutineMetadata,LANGUAGES,_description,_alias,_hidden
 
 
@@ -18,11 +20,44 @@ NAME=re.compile(r'[A-Za-z_][A-Za-z0-9_]{0,39}\Z')
 class DefinitionMetadata:
     name: str
     classification: str
-    fields: tuple
+    major_revision: int | None
+    minor_revision: int | None
+    revision_extension: str | None
+    vendor: str | None
+    last_edit_date: int | None
     protected: bool = False
     routines: tuple | None = None
 
-    def attributes(self):return dict(self.fields)
+    def attributes(self):
+        # Keep the CIP catalog's widths and availability independent of GSV.
+        fields = {} if self.protected else {1: bytes(2)}
+        if self.major_revision is not None:
+            fields[12] = struct.pack('<H', self.major_revision)
+            fields[13] = struct.pack('<H', self.minor_revision)
+        for field, value in ((19, self.revision_extension), (21, self.vendor)):
+            if value is not None:
+                fields[field] = struct.pack('<H', len(value)) + value.encode('ascii')
+        return fields
+
+
+def header_text(value):
+    if value is not None and len(value) <= 40 and value.isascii() and '\0' not in value:
+        return value
+    return None
+
+
+def last_edit_date(node):
+    fields = [key for key in node.attrib if key.rsplit('}', 1)[-1].casefold() == 'editeddate']
+    if fields != ['EditedDate']:
+        return None
+    value = node.get('EditedDate')
+    if not re.fullmatch(r'[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]{1,6})?Z', value):
+        return None
+    try:
+        elapsed = datetime.fromisoformat(value[:-1]) - EPOCH
+    except ValueError:
+        return None
+    return (elapsed.days * 86_400 + elapsed.seconds) * 1_000_000 + elapsed.microseconds
 
 
 def routine_metadata(node,classification):
@@ -82,21 +117,18 @@ def source_metadata(root,controller):
                     or any(any(word in key.casefold() for word in ('encoded','encrypted','protected')) for key in child.attrib)
                     or any(word in child.get('Format','').casefold() for word in ('encoded','encrypted','protected'))
                     or child.get('OnlineEditType') not in (None,'Original')):return None
-        # This model exposes immutable original AOIs; native AOI edits are
-        # unsupported. Zero is its clean edit-state, observed on original AOIs.
-        fields={} if protected else {1:bytes(2)}
-        revision=node.get('Revision','')
-        if re.fullmatch(r'[0-9]{1,5}\.[0-9]{1,5}',revision):
-            major,minor=map(int,revision.split('.'))
-            if max(major,minor)<=65535:fields.update({12:struct.pack('<H',major),13:struct.pack('<H',minor)})
-        for key,number in (('RevisionExtension',19),('Vendor',21)):
-            value=node.get(key)
-            if value is None:continue
-            try:raw=value.encode('ascii')
-            except UnicodeError:continue
-            if len(raw)<=40 and b'\0' not in raw:fields[number]=struct.pack('<H',len(raw))+raw
-        names.add(name.casefold());result.append(DefinitionMetadata(name,classification,tuple(fields.items()),protected,
-            None if protected else routine_metadata(node,classification)))
+        major = minor = None
+        revision = node.get('Revision', '')
+        if re.fullmatch(r'[0-9]{1,5}\.[0-9]{1,5}', revision):
+            major, minor = map(int, revision.split('.'))
+            if max(major, minor) > 65535:
+                major = minor = None
+        names.add(name.casefold())
+        result.append(DefinitionMetadata(
+            name, classification, major, minor, header_text(node.get('RevisionExtension')),
+            header_text(node.get('Vendor')), None if protected else last_edit_date(node),
+            protected=protected, routines=None if protected else routine_metadata(node, classification),
+        ))
     return tuple(result)
 
 

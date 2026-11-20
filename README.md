@@ -233,6 +233,9 @@ measurement. **System lab** demonstrates reads and resets in ladder and ST.
 [Object identity GSV](docs/gsv-configuration.md#object-identity-reads) reads
 Program and Routine names plus Task registry slots in ladder and ST.
 **System lab** shows how Routine THIS follows a called routine.
+[AOI definition GSV](docs/gsv-configuration.md#aoi-definition-reads)
+reads the current instruction name, revision, vendor and last-edit time
+from inside a Standard AOI.
 
 [Controller source flags](docs/gsv-configuration.md#controller-source-flags)
 read the project settings for producer RPI, redundancy, test-edit retention,

@@ -149,6 +149,34 @@ The operand types follow the installed v35 Program, Task and Routine help
 topics 14638, 14646 and 14651. Native instance identity and execution parity
 remain separate.
 
+## AOI definition reads
+
+Ladder and Structured Text inside a Standard AOI can use
+`GSV(AddOnInstructionDefinition,THIS,Attribute,Destination)` in the v35
+ControlLogix 5580 profile. `THIS` selects the current instance's definition,
+including when the caller is another AOI.
+
+| Attribute | Destination | L5X source |
+| --- | --- | --- |
+| Name | Writable scalar LEN/DATA string | `Name` |
+| Vendor | Writable scalar LEN/DATA string | `Vendor` |
+| RevisionExtendedText | Writable scalar LEN/DATA string | `RevisionExtension` |
+| MajorRevision, MinorRevision | Exact DINT scalar | `Revision` major and minor components |
+| LastEditDate | Exact LINT scalar | `EditedDate` UTC microseconds since 1970-01-01 |
+
+```text
+GSV(AddOnInstructionDefinition,THIS,MajorRevision,SoftwareMajor);
+GSV(AddOnInstructionDefinition,THIS,LastEditDate,EditedAt);
+```
+
+Use the loaded L5X definition's explicit values. For `EditedDate`, the
+emulator accepts an ISO 8601 UTC timestamp ending in `Z` with up to six
+fractional digits. Text fields must be ASCII within the source's 40-character
+limit. Missing or malformed values block the corresponding reads. Signature
+attributes, setters and named definitions remain outside this profile. Studio
+5000 and physical controller execution remain unverified.
+[Rockwell Add-On Instructions manual](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm010_-en-p.pdf)
+
 ## Controller source flags
 
 Ladder and ST can read four explicit settings from the loaded project with an

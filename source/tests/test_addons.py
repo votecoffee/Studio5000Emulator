@@ -164,6 +164,65 @@ class AddOnTests(unittest.TestCase):
         self.body()[0].find('Text').text='MOV(Program:MainProgram.StepA,Count);'
         self.assertTrue(any('only its parameters' in b for b in self.engine().blockers))
 
+    def test_definition_gsv_reads_own_metadata_in_ladder_and_nested_st(self):
+        accumulator = self.definition()
+        accumulator.attrib.update(Revision='7.002', RevisionExtension='production',
+                                  Vendor='Demo Controls', EditedDate='2026-10-16T12:00:00.123456Z')
+        fields = [('Name', 'DefName', 'STRING'), ('Vendor', 'DefVendor', 'STRING'),
+                  ('RevisionExtendedText', 'DefExtension', 'STRING'), ('MajorRevision', 'DefMajor', 'DINT'),
+                  ('MinorRevision', 'DefMinor', 'DINT'), ('LastEditDate', 'DefEdited', 'LINT')]
+        for _, name, dtype in fields:
+            E.SubElement(accumulator.find('LocalTags'), 'LocalTag', Name=name, DataType=dtype)
+        self.body()[0].find('Text').text = ''.join(
+            f'GSV(AddOnInstructionDefinition,THIS,{attribute},{name})'
+            for attribute, name, _ in fields) + ';'
+
+        scale = self.definition('LabScale')
+        scale.set('Revision', '65535.4')
+        E.SubElement(scale.find('LocalTags'), 'LocalTag', Name='DefName', DataType='STRING')
+        E.SubElement(scale.find('LocalTags'), 'LocalTag', Name='DefMajor', DataType='DINT')
+        logic = scale.find('Routines/Routine[@Name="Logic"]')
+        logic.remove(logic.find('RLLContent'))
+        logic.set('Type', 'ST')
+        E.SubElement(E.SubElement(logic, 'STContent'), 'Line', Number='0').text = (
+            'GSV(AddOnInstructionDefinition,this,Name,DefName); '
+            'GSV(AddOnInstructionDefinition,this,MajorRevision,DefMajor); Result := Raw * Gain;')
+
+        engine = self.engine()
+        self.assertEqual(engine.blockers, [])
+        engine.step()
+        self.assertEqual(engine.memory.string('AccumulatorA.DefName'), 'LabAccumulator')
+        self.assertEqual(engine.memory.string('AccumulatorA.DefVendor'), 'Demo Controls')
+        self.assertEqual(engine.memory.string('AccumulatorA.DefExtension'), 'production')
+        self.assertEqual(engine.memory.read('AccumulatorA.DefMajor'), 7)
+        self.assertEqual(engine.memory.read('AccumulatorA.DefMinor'), 2)
+        self.assertEqual(engine.memory.read('AccumulatorA.DefEdited'), 1792152000123456)
+        self.assertEqual(engine.memory.string('NestedScale.Core.DefName'), 'LabScale')
+        self.assertEqual(engine.memory.read('NestedScale.Core.DefMajor'), 65535)
+
+    def test_definition_gsv_rejects_wrong_context_operand_type_and_unknown_metadata(self):
+        gsv = 'GSV(AddOnInstructionDefinition,THIS,MajorRevision,Total);'
+        ordinary = self.engine([gsv.replace(',Total)', ',TotalA)')])
+        self.assertTrue(any('requires THIS inside an AOI' in b for b in ordinary.blockers))
+        for logic, message in (
+            (gsv.replace(',THIS,', ',LabAccumulator,'), 'requires THIS inside an AOI'),
+            (gsv.replace('MajorRevision', 'SignatureID'), 'Unsupported GSV AddOnInstructionDefinition'),
+            (gsv.replace('MajorRevision', 'Name'), 'string tag'),
+            (gsv.replace('MajorRevision', 'RevisionExtendedText'), 'is unavailable'),
+            (gsv.replace('GSV', 'SSV'), 'SSV'),
+        ):
+            with self.subTest(logic=logic):
+                self.body()[0].find('Text').text = logic
+                engine = self.engine(['LabAccumulator(AccumulatorA,StepA,TotalA,SharedA);'])
+                self.assertTrue(any(message in b for b in engine.blockers), engine.blockers)
+        E.SubElement(self.definition().find('LocalTags'), 'LocalTag', Name='DefEdited', DataType='LINT')
+        self.body()[0].find('Text').text = gsv.replace('MajorRevision,Total', 'LastEditDate,DefEdited')
+        for saved in ('2026-10-16T12:00:00', '2026-10-16T12:00:00.1234567Z', '2026-13-16T12:00:00Z'):
+            with self.subTest(saved=saved):
+                self.definition().set('EditedDate', saved)
+                engine = self.engine(['LabAccumulator(AccumulatorA,StepA,TotalA,SharedA);'])
+                self.assertTrue(any('lasteditdate is unavailable' in b for b in engine.blockers), engine.blockers)
+
     def test_inout_wrong_type_constant_and_literal_are_blocked(self):
         for argument in ('RawValue','3','AccumulatorA.Count.0'):
             with self.subTest(argument=argument):

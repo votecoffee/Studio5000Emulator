@@ -104,6 +104,36 @@ def component_name(engine, cls, instance, scope, *, executing):
     return name
 
 
+AOI_DEFINITION_FIELDS = {
+    'Name': ('STRING', 'name'),
+    'Vendor': ('STRING', 'vendor'),
+    'RevisionExtendedText': ('STRING', 'revision_extension'),
+    'MajorRevision': ('DINT', 'major_revision'),
+    'MinorRevision': ('DINT', 'minor_revision'),
+    'LastEditDate': ('LINT', 'last_edit_date'),
+}
+AOI_DEFINITION_ATTRIBUTES = {name.casefold(): field for name, field in AOI_DEFINITION_FIELDS.items()}
+
+
+def aoi_definition(engine, instance, attribute, scope):
+    memory = engine.memory
+    if instance.casefold() != 'this' or scope not in memory.frames:
+        raise ModelError('GSV AddOnInstructionDefinition requires THIS inside an AOI')
+    field = AOI_DEFINITION_ATTRIBUTES.get(attribute)
+    if field is None:
+        raise ModelError('Unsupported GSV AddOnInstructionDefinition attribute ' + attribute)
+    _, _, instance_type = memory.resolve(scope.removeprefix('@AOI:'))
+    definitions = engine.project.aoi_catalog.metadata or ()
+    definition = next((row for row in definitions if row.name.upper() == instance_type), None)
+    if definition is None or definition.protected or definition.classification != 'Standard':
+        raise ModelError('GSV AddOnInstructionDefinition requires an explicit Standard AOI definition')
+    dtype, member = field
+    value = getattr(definition, member)
+    if value is None:
+        raise ModelError(f'GSV AddOnInstructionDefinition {attribute} is unavailable from the loaded definition')
+    return dtype, value
+
+
 def controller_device(engine, instance, attribute, *, executing):
     project = engine.project
     if instance:
@@ -503,6 +533,8 @@ def source(engine, op, scope='', *, executing=False):
     cls,instance,attribute,_=op.args;cls=cls.casefold();attribute=attribute.casefold()
     if cls=='timesynchronize' and attribute in GSV_SETTINGS:
         return time_sync_attribute(project,instance,attribute)
+    if cls == 'addoninstructiondefinition':
+        return aoi_definition(engine, instance, attribute, scope)
     if cls == 'controllerdevice':
         return controller_device(engine, instance, attribute, executing=executing)
     if cls == 'module':
@@ -698,6 +730,8 @@ def description():
                     priority='Signed SINT storage retains the unsigned 0..255 byte pattern',
                     clock_sampling=False,read_only=True,ptp=False,native_runtime_parity=False),
                 program=['Name'],routine=['Name'],
+                aoi_definition=dict(instance='THIS inside Standard AOIs', read_only=True,
+                    attributes={name: dtype for name, (dtype, _) in AOI_DEFINITION_FIELDS.items()}),
                 module=['ForceStatus','LEDStatus','Mode','EntryStatus','FaultCode','FaultInfo','Path'],
                 module_path='Counted CIP route for a local slot, an explicit IPv4 device, or a slot under a qualified remote EN2T/EN2TR.',
                 named_module_settings='Explicit local and qualified routed source settings with live Mode overrides. EntryStatus models Inhibited, Waiting, and explicit simulated Running or Faulted states.',
@@ -715,12 +749,12 @@ def description():
                 controller_device_status='Remote keyswitch; Program 0x3070, Run 0x3060, software fault 0x3450 at retry entry.',
                 task_instance='Zero-based slot in the current emulator Task registry, independent of native CIP instance IDs.',
                 component_names='Named Program or THIS and Program-scoped Routine or THIS in ordinary scheduled project logic.',
-                destinations='Exact BOOL/SINT/INT/DINT scalars, LEN/DATA strings, or a 33-cell SINT window for DeviceName; Module status also accepts the low word of a DINT',
+                destinations='Exact BOOL/SINT/INT/DINT/LINT scalars, LEN/DATA strings, or a 33-cell SINT window for DeviceName; Module status also accepts the low word of a DINT',
                 times='Microseconds from exact milliseconds; no inferred defaults',
                 state='Source configuration with live Task InhibitTask, DisableUpdateOutputs, Watchdog, Periodic Rate and Periodic/Event Priority in project mode',
                 selection='Structural destination validation without saved dynamic indices; false/prescan skip outputs; full writes establish unknown cells',
                 st_for_effects='Complete static destinations; aliases/AOI/changing selections conservatively cover enclosing arrays',
                 native_runtime_equivalence=False, ssv=True,
-                current_instance='Task, Program and Routine THIS in ordinary scheduled Continuous/Periodic/qualified Event Program routines. AOI/harness THIS unqualified.',
-                remaining=['Empty instance, native instance IDs and AOI/harness THIS contexts','Continuous priority/rate and zero-watchdog defaults',
+                current_instance='Task, Program and Routine THIS in ordinary scheduled Continuous/Periodic/qualified Event Program routines. AddOnInstructionDefinition THIS inside Standard AOIs.',
+                remaining=['Other THIS contexts, AOI signatures, empty instances and native instance IDs','Continuous priority/rate and zero-watchdog defaults',
                            'Scan-time/interval/status/fault attributes','Other classes/attributes and broader SSV'])
