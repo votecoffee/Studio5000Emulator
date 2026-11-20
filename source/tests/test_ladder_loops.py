@@ -46,6 +46,26 @@ class LadderLoopTests(unittest.TestCase):
         e=self.checked();e.memory.write('Start',5);e.memory.write('Finish',-1);e.memory.write('Increment',-2);e.step()
         self.assertEqual(self.values(e,'Total','Iterations','Index'),(8,4,-3))
 
+    def test_grouped_radix_loop_bounds_and_signed_step_are_sampled(self):
+        engine = self.checked(['XIC(Enabled)FOR(Accumulate,Index,2#0000 0101,'
+                               '8#377 7777 7777,16#FFFF FFFE)OTE(Completed);'])
+        engine.memory.write('Enabled', False)
+        engine.step()
+        self.assertEqual(self.values(engine, 'Index', 'Iterations', 'Completed'), (99, 0, False))
+
+        engine.memory.write('Enabled', True)
+        engine.step()
+        self.assertEqual(self.values(engine, 'Total', 'Iterations', 'Index', 'Completed'), (8, 4, -3, True))
+        event = next(event for visit in engine.trace for event in visit['events']
+                     if event['instruction'] == 'FOR')
+        self.assertEqual([sample['value'] for sample in event['operand_samples'][2:]], [5, -1, -2])
+        self.assertEqual(event['loop_trace'], {'visits': 4, 'exit': 'terminal'})
+
+    def test_grouped_radix_loop_operands_keep_width_and_index_guards(self):
+        for operands in ('Index,0,2,16#FFFF FFFFL', 'Index,0,2,16#1 0000 0000', '16#0000 0000,0,2,1'):
+            with self.subTest(operands=operands):
+                self.assertTrue(self.engine([f'AFI()FOR(Accumulate,{operands});']).blockers)
+
     def test_equal_endpoint_executes_once_in_either_direction(self):
         for step in (-2,2):
             e=self.checked();e.memory.write('Start',3);e.memory.write('Finish',3);e.memory.write('Increment',step);e.step()

@@ -59,6 +59,27 @@ class CallLiteralTests(unittest.TestCase):
             e=self.literal(dtype,ZERO[dtype],ret=text);e.step()
             self.assertEqual(e.memory.read('WideResult'),expected)
 
+    def test_grouped_dint_inputs_and_returns_in_ladder_and_st(self):
+        for main_st, callee_st in ((False, False), (True, True), (False, True), (True, False)):
+            with self.subTest(main_st=main_st, callee_st=callee_st):
+                engine = self.literal('DINT', '16#8000 0000', ret='8#377 7777 7777',
+                                      main_st=main_st, callee_st=callee_st)
+                engine.step()
+                self.assertEqual(engine.memory.read('WideFormal'), -(1 << 31))
+                self.assertEqual(engine.memory.read('WideResult'), -1)
+        engine = self.literal('DINT', '2#0000 1010')
+        engine.step()
+        self.assertEqual(engine.memory.read('WideResult'), 10)
+
+    def test_grouped_dint_call_operands_keep_type_and_destination_guards(self):
+        for args in ({'dtype': 'LINT', 'value': '16#FFFF FFFF'},
+                     {'dtype': 'DINT', 'value': '1', 'ret': '16#FFFF FFFFL'},
+                     {'dtype': 'DINT', 'value': '1', 'dest': '16#0000 0001'},
+                     {'dtype': 'DINT', 'value': '2#0000 0010',
+                      'extra': lambda root: root.find('Controller').set('MajorRev', '34')}):
+            with self.subTest(args=args):
+                self.assertTrue(self.literal(**args, gate=True, checked=False).blockers)
+
     def test_signed_limits_signs_and_suffix_spellings(self):
         for dtype,text,expected in [('LINT','-9223372036854775808l',-(1<<63)),
                                    ('LINT','+9223372036854775807L',(1<<63)-1),
@@ -76,7 +97,7 @@ class CallLiteralTests(unittest.TestCase):
         for dtype,text in [('LINT','9223372036854775808L'),('UDINT','-1U'),
                            ('ULINT','18446744073709551616UL'),('LREAL','1e309L'),
                            ('LINT','16#1_0000_0000_0000_0000L'),('DINT','4294967295'),
-                           ('DINT','16#FFFFFFFF'),('LINT','T#1s')]:
+                           ('DINT','16#1 0000 0000'),('DINT','8#0000 0008'),('LINT','T#1s')]:
             e=self.literal(dtype,text,gate=True,checked=False);self.assertTrue(e.blockers,text)
 
     def test_type_mismatches_are_not_implicitly_promoted_or_narrowed(self):

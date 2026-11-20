@@ -43,6 +43,16 @@ The installed v35 JSR/SBR/RET reference (14612) lists wide numeric immediate
 parameters for 5580 controllers. This is a bounded software implementation;
 native literal encoding, fault/layout and Studio acceptance remain unverified.
 
+### Grouped DINT parameters
+
+JSR inputs and RET return values also accept grouped, unsuffixed binary,
+octal and hexadecimal DINT immediates in ladder and ST. Short words are
+zero-filled to 32 bits and then interpreted as signed values. For example,
+`16#8000 0000` passes -2147483648 and `8#377 7777 7777` passes -1.
+The receiving tag must be a DINT. The ladder viewer displays the decoded
+value beside the original operand, and transfer traces record it as a
+signed integer.
+
 ## Typed radix parameters
 
 App `26.1113.063603` also accepts attached binary, octal and hexadecimal L/l, U/u
@@ -51,8 +61,7 @@ and ULINT patterns use 64 bits; UDINT uses 32. Short patterns zero-fill and the
 LINT top bit represents a negative number. `16#FFFFFFFFL` is positive
 4294967295; `16#FFFFFFFFFFFFFFFFL` is -1. Values above 2^53 stay exact.
 Invalid digits, overwide patterns and type mismatches block false calls too.
-Unsuffixed radix operands retain their earlier DINT rules. These forms do not
-expand expression parsing, numeric conversion or other controller profiles.
+These typed forms apply to immediate transfer operands in the qualified profile.
 Native Studio import, numerical/fault and lifecycle parity remain unverified.
 
 Call lab now supplies hexadecimal, octal and binary typed inputs and returns

@@ -85,11 +85,12 @@
     ['MVM', [0, 1]], ['BTD', [0, 1, 3, 4]], ['DTR', [0, 1]],
     ['SQI', [1, 2]], ['SQO', [1]], ['SQL', [1]],
     ['FLL', [0, 2]], ['COP', [2]], ['CPS', [2]], ['FFL', [0]], ['LFL', [0]],
-    ['FIND', [2]], ['INSERT', [2]], ['MID', [1, 2]], ['DELETE', [1, 2]]
+    ['FIND', [2]], ['INSERT', [2]], ['MID', [1, 2]], ['DELETE', [1, 2]], ['FOR', [2, 3, 4]]
   ]);
   function ladderWordRadix(node, ref, version, processor) {
-    return version === '35' && /^1756-L8[1-5]E$/i.test(processor) &&
-      (dintWordOperands.get(node?.opcode)?.some(index => node.operands?.[index] === ref) ?? false);
+    if (version !== '35' || !/^1756-L8[1-5]E$/i.test(processor)) return false;
+    if (['JSR', 'RET'].includes(node?.opcode)) return parameterRadix(node, ref);
+    return dintWordOperands.get(node?.opcode)?.some(index => node.operands?.[index] === ref) ?? false;
   }
   function create(options) {
     const canvas = options.canvas, inspector = options.inspector, status = options.status;

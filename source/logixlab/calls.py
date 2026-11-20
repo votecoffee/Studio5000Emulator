@@ -74,7 +74,7 @@ class Calls:
                 and scope not in self.memory.frames)
 
     def operand(self,ref,scope,writable=False,*,indirect=False):
-        typed=typed_literal(ref) if self.indirect_profile(scope) and ('#' not in ref or ref.rstrip().upper().endswith(('L','U'))) else None
+        typed=typed_literal(ref) if self.indirect_profile(scope) else None
         if typed is not None:
             if writable:raise ModelError('Parameter destination must be a writable tag')
             dtype,value=typed
@@ -263,7 +263,7 @@ class Calls:
     def loop_description(self):
         return dict(profile='v35-5580-ladder-FOR-BRK',language='RLL',targets=sorted(self.loop_targets),
                     index='Writable scalar DINT tag/member/element or alias; selected index address retained for one invocation',
-                    bounds='Scalar SINT/INT/DINT or signed DINT literals; inclusive, either direction',
+                    bounds='Scalar SINT/INT/DINT or signed DINT literals including grouped radix words; inclusive, either direction',
                     selection='Structural preflight; false/prescan skip live operand indices and values; complete scalar selections only',
                     sampling='Index address retained at entry; initial selected before assignment; terminal/step reselected per test; step reselected after each normal call',
                     control='BRK unwinds to the nearest active FOR in the current task; outside FOR it has no action',
@@ -333,6 +333,9 @@ class Calls:
                     transfers='JSR inputs and RET values keep their declared type; exact matching formal/return types; literal range checked before execution',
                     trace='LINT/ULINT values recorded as decimal text; LREAL retained as binary64',
                     excluded='Time/date/aggregate constants, numeric promotion, other controller profiles and AOI calls',native_runtime_parity=False),
+                'dint_radix':dict(available=self.indirect_profile(''),radix_bases=[2,8,16],
+                    transfers='JSR inputs and RET values accept grouped unsuffixed DINT words with exact type matching',
+                    loop='Ladder FOR initial, terminal and step accept the same DINT words',native_runtime_parity=False),
                 'indirect':dict(available=self.indirect_profile(''),profile='v35-5580-caller-elements',
                                 selection='Structural JSR preflight; false/prescan skip live caller indices and values',
                                 capture='Input and return-destination addresses captured at call entry before input copies; current values copied before SBR writes',

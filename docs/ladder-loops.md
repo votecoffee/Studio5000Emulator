@@ -14,7 +14,11 @@ The five operands are the routine name, index, initial value, terminal value
 and step. The index must be a writable scalar DINT. Static members, array
 elements and aliases work; [runtime-selected operands](#runtime-selected-operands)
 are available in the newer profile below. Initial/terminal/step operands accept scalar SINT,
-INT or DINT tags, or signed DINT literals. Wide integers, floating values, bit selections and constant indices remain
+INT or DINT tags, or signed DINT literals. Grouped unsuffixed binary, octal
+and hexadecimal words are decoded as signed DINT values. For example,
+`FOR(Accumulate,Index,2#0000 0101,8#377 7777 7777,16#FFFF FFFE)` visits 5,
+3, 1 and -1. The ladder viewer displays bounds 5 and -1 and a step of -2.
+Wide integers, floating values, bit selections and constant indices remain
 blocked.
 The called routine belongs to the same program, cannot be its main routine,
 and has no SBR/RET parameters. Supported RLL and ST routines can be targets.

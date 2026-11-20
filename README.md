@@ -456,6 +456,8 @@ of the same array. Ladder SBR and RET select the callee's indexed elements
 when their transfer runs. The [ladder monitor shows captured call operands](docs/logic-viewer.md#call-operand-values)
 when a transfer has executed. [Typed routine constants](docs/indirect-routine-calls.md#typed-numeric-constants)
 add exact LINT/unsigned and binary64 values to JSR inputs and RET outputs.
+[Grouped DINT words](docs/indirect-routine-calls.md#grouped-dint-parameters)
+can also supply those transfers in ladder and ST.
 
 [Statistics operand selection](docs/statistics-operands.md) defers dormant
 AVE/STD result indices and establishes unknown REAL/integer result elements.
@@ -862,7 +864,8 @@ Choose **Rate lab** to try ramps, timing diagnostics and clock rollback.
 
 [Ladder FOR/BRK](docs/ladder-loops.md) adds indexed subroutine loops, nested
 early exits, shared limits and transactional rollback. Choose **Loop lab** to try
-ascending/descending ranges and conditional breaks.
+ascending/descending ranges and conditional breaks. The initial value, terminal
+value, and step also accept grouped DINT words.
 
 [Structured Text moving statistics](docs/st-moving-statistics.md) adds MAVE
 uniform/weighted averages and MSTD population deviation with logical records and

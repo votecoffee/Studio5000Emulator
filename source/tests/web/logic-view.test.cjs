@@ -9,7 +9,7 @@ const seal = () => graph.compile(rung([op('XIO', 'Stop'), {branch: [[op('XIC', '
 test('grouped ladder radix monitoring applies only to immediate operands in the v35 profile', () => {
   const cases = {DTR: [0, 1], SQI: [1, 2], SQO: [1], SQL: [1], MVM: [0, 1], BTD: [0, 1, 3, 4],
     FLL: [0, 2], COP: [2], CPS: [2], FFL: [0], LFL: [0], FFU: [], LFU: [],
-    FIND: [2], INSERT: [2], MID: [1, 2], DELETE: [1, 2]};
+    FIND: [2], INSERT: [2], MID: [1, 2], DELETE: [1, 2], FOR: [2, 3, 4]};
   for (const [opcode, indices] of Object.entries(cases)) {
     const operands = ['Array', 'Mask', 'Data', 'Ctl', 'Length', 'Position'];
     for (const [index, ref] of operands.entries()) {
@@ -18,6 +18,17 @@ test('grouped ladder radix monitoring applies only to immediate operands in the 
     assert.equal(ladderWordRadix({opcode, operands}, operands[indices[0]], '34', '1756-L85E'), false);
     assert.equal(ladderWordRadix({opcode, operands}, operands[indices[0]], '35', '1756-L75'), false);
   }
+});
+test('JSR and RET monitor grouped DINT transfers only in source positions', () => {
+  const input = '16#FFFF FFFF', output = '2#0000 0010';
+  const jsr = {opcode: 'JSR', operands: ['Worker', '1', input, output]};
+  const ret = {opcode: 'RET', operands: [output]};
+  const sbr = {opcode: 'SBR', operands: [output]};
+  assert.equal(ladderWordRadix(jsr, input, '35', '1756-L85E'), true);
+  assert.equal(ladderWordRadix(jsr, output, '35', '1756-L85E'), false);
+  assert.equal(ladderWordRadix(ret, output, '35', '1756-L85E'), true);
+  assert.equal(ladderWordRadix(sbr, output, '35', '1756-L85E'), false);
+  assert.equal(ladderWordRadix(ret, output, '34', '1756-L85E'), false);
 });
 test('MSG faceplate links EN, DN and ER to the configured MESSAGE control', () => {
   const face = instruction.describe({opcode: 'MSG', operands: ['ReadControl']});
