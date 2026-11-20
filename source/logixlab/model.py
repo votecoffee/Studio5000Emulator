@@ -51,6 +51,14 @@ class StringCapacityError(ModelError):
     """A complete string result exceeds the destination DATA capacity."""
 
 
+class StringPositionError(ModelError):
+    """A string instruction consumed a known invalid position or range."""
+
+
+class StringNumericRangeError(ModelError):
+    """A numeric result parsed from text exceeds the destination type."""
+
+
 @dataclass
 class Op:
     name: str
@@ -1262,16 +1270,18 @@ class Memory:
         first = start - 1
         end = first + count
         if not 1 <= start <= len(data) or count < 0 or end > length:
-            raise ModelError('MID range exceeds source LEN or declared DATA bounds')
+            raise StringPositionError('MID range exceeds source LEN or declared DATA bounds')
         return self._decode_string_data(data[first:end])
 
     def string_find(self, ref, search_ref, start, scope=''):
         """Search a captured active suffix without consuming earlier DATA bytes."""
         data, length = self._string_data(ref, scope)
         if not 1 <= start <= len(data):
-            raise ModelError('FIND start must be 1..source DATA capacity')
+            raise StringPositionError('FIND start must be 1..source DATA capacity')
         search = self.string(search_ref, scope)
-        if not length or not search:
+        if not length:
+            raise StringPositionError('FIND requires nonempty source and search strings in this model')
+        if not search:
             raise ModelError('FIND requires nonempty source and search strings in this model')
         suffix = self._decode_string_data(data[start - 1:length])
         position = suffix.find(search)
@@ -1282,7 +1292,9 @@ class Memory:
         data, length = self._string_data(ref, scope)
         first = start - 1
         end = first + count
-        if not 1 <= start <= len(data) or count < 1 or end > length:
+        if not 1 <= start <= len(data) or count < 0 or end > length:
+            raise StringPositionError('DELETE requires positive quantity within the active source string')
+        if count == 0:
             raise ModelError('DELETE requires positive quantity within the active source string')
         return self._decode_string_data(data[:first] + data[end:length])
 

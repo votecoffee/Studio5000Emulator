@@ -136,8 +136,17 @@ failed scan's error message:
 | Source LEN exceeds its declared DATA capacity | 51 | CONCAT, MID, FIND, INSERT, DELETE, LOWER, UPPER, STOD, STOR |
 | Combined source text exceeds destination capacity | 51 | CONCAT |
 | Result exceeds destination capacity | 52 | MID, DELETE, LOWER, UPPER, DTOS, RTOS |
+| Parsed numeric value exceeds the scalar destination type | 53 | STOD, STOR |
+| Start lies outside the declared source DATA | 56 | FIND, INSERT, MID, DELETE |
+| Known source is empty | 56 | FIND |
+| Negative quantity or selected window extends beyond source LEN | 56 | MID, DELETE |
 
 The emulator rolls back the whole advance before reporting these diagnostics.
+Type 4 Code 53 covers well-formed numeric input. Code 56 covers errors
+encountered during execution. Invalid MID immediates can still block the project
+in preflight. An empty FIND search, DELETE with zero quantity inside the
+available window, and INSERT beyond active LEN plus one inside declared DATA
+retain their existing diagnostics.
 Major Fault Handlers are reserved for the separately modeled major faults.
 The code table uses installed Studio 5000 v35 help topics 14548, 14549,
 14561-14564, 14566-14568, 14570 and 14579. Native minor-fault continuation,

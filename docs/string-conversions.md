@@ -72,8 +72,9 @@ starts a number with a zero whole-number part. For example, `W=-.75/99` gives
 `0`, and `W=-12.75/99` gives `-12`. This follows the non-fractional-part
 rule in installed v35 help 14549 and the published [STOD reference](https://www.rockwellautomation.com/en-cz/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/ascii-conversion-instructions/string-to-dint-stod.html).
 The software writes zero when the input has no numeric run and rolls back the
-advance when the result exceeds the destination's range. Native status and
-fault behavior remain unverified.
+advance when the result exceeds the destination's range. In ladder, STOD and
+STOR include Type 4 Code 53 in that error. Native continuation, partial writes
+and status behavior remain unverified.
 
 ## DTOS with REAL input
 

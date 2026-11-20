@@ -317,5 +317,5 @@ class Extensions:
             self.memory.write_string(a[1],text,scope)
         elif n=='STOD':
             text=self.memory.string(a[0],scope)
-            self.memory.write(a[1],string_conversions.parse_integer(text),scope)
+            string_conversions.write_integer(self.memory,a[1],text,scope)
         return power

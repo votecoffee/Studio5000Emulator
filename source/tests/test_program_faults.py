@@ -2730,7 +2730,7 @@ class ProgramFaultTests(unittest.TestCase):
                 self.assertEqual(engine.scan_count,0)
                 self.assertIsNone(engine.last_cleared_program_fault)
 
-    def test_string_capacity_diagnostics_preserve_scan_rollback(self):
+    def test_string_fault_diagnostics_preserve_scan_rollback(self):
         from test_string_operations import string_data
 
         cases = (
@@ -2750,6 +2750,17 @@ class ProgramFaultTests(unittest.TestCase):
             ('UPPER(LabText[0],ShortText)', 'LabText[0]', 'abcdef', 52),
             ('DTOS(LabValues[0],ShortText)', 'LabValues[0]', 123456, 52),
             ('RTOS(LabReals[0],ShortText)', 'LabReals[0]', 12.25, 52),
+            ('STOD(LabText[0],LabValues[0])', 'LabText[0]', '-2147483649', 53),
+            ('STOD(LabText[0],LabValues[0])', 'LabText[0]', '9' * 42, 53),
+            ('STOD(LabText[0],SmallNumber)', 'LabText[0]', '128.5', 53),
+            ('STOR(LabText[0],LabReals[0])', 'LabText[0]', '9' * 42, 53),
+            ('FIND(LabText[0],LabText[1],LabPositions[0],LabValues[0])', 'LabPositions[0]', 0, 56),
+            ('FIND(LabText[0],LabText[1],1,LabValues[0])', 'LabText[0]', '', 56),
+            ('INSERT(LabText[0],LabText[1],LabPositions[0],LabTextResults[0])', 'LabPositions[0]', 83, 56),
+            ('MID(LabText[0],LabPositions[0],1,LabTextResults[0])', 'LabPositions[0]', -1, 56),
+            ('MID(LabText[0],3,LabPositions[0],LabTextResults[0])', 'LabPositions[0]', 9, 56),
+            ('DELETE(LabText[0],LabPositions[0],1,LabTextResults[0])', 'LabPositions[0]', -1, 56),
+            ('DELETE(LabText[0],LabPositions[0],1,LabTextResults[0])', 'LabPositions[0]', 10, 56),
         )
         for instruction, operand, value, code in cases:
             with self.subTest(instruction=instruction, operand=operand, code=code):
@@ -2768,6 +2779,10 @@ class ProgramFaultTests(unittest.TestCase):
                     tag = ET.SubElement(root.find('Controller/Tags'), 'Tag', Name='ShortText',
                                         DataType='STRING_3', TagType='Base')
                     string_data(ET.SubElement(tag, 'Data', Format='Decorated'), 'old', 3, 'STRING_3')
+                    small = ET.SubElement(root.find('Controller/Tags'), 'Tag', Name='SmallNumber',
+                                          DataType='SINT', TagType='Base')
+                    ET.SubElement(ET.SubElement(small, 'Data', Format='Decorated'), 'DataValue',
+                                  DataType='SINT', Value='17')
                     set_fault_instruction(root, instruction)
 
                 engine = self.engine(mutate=configure)
@@ -2785,13 +2800,19 @@ class ProgramFaultTests(unittest.TestCase):
                 self.assertEqual(engine.scan_count, 1)
                 self.assertIsNone(engine.last_cleared_program_fault)
 
-    def test_string_extent_diagnostics_require_known_capacity_failures_and_supported_opcodes(self):
-        for instruction, length, source_message in (
-            ('CONCAT(LabText[0],LabText[1],LabTextResults[0])', None, 'unknown or outside'),
-            ('CONCAT(LabText[0],LabText[1],LabTextResults[0])', -1, 'unknown or outside'),
-            ('MOV(LabText[0],LabTextResults[0])', 83, 'exceeds DATA capacity'),
+    def test_string_fault_diagnostics_exclude_unqualified_inputs(self):
+        for instruction, operand, value, message in (
+            ('CONCAT(LabText[0],LabText[1],LabTextResults[0])', 'LabText[0].LEN', None, 'unknown or outside'),
+            ('CONCAT(LabText[0],LabText[1],LabTextResults[0])', 'LabText[0].LEN', -1, 'unknown or outside'),
+            ('MOV(LabText[0],LabTextResults[0])', 'LabText[0].LEN', 83, 'exceeds DATA capacity'),
+            ('STOR(LabText[0],LabReals[0])', 'LabText[0]', '99e39', 'scientific-notation'),
+            ('FIND(LabText[0],LabText[1],1,LabValues[0])', 'LabText[1]', '', 'nonempty'),
+            ('INSERT(LabText[0],LabText[1],LabPositions[0],LabTextResults[0])',
+             'LabPositions[0]', 11, 'modeled active string boundary'),
+            ('DELETE(LabText[0],LabPositions[0],1,LabTextResults[0])', 'LabPositions[0]', 0, 'positive quantity'),
+            ('MID(LabText[0],LabPositions[0],1,LabTextResults[0])', 'LabPositions[0]', None, 'unknown'),
         ):
-            with self.subTest(instruction=instruction, length=length):
+            with self.subTest(instruction=instruction, operand=operand, value=value):
                 self.setUp()
 
                 def configure(root):
@@ -2801,9 +2822,13 @@ class ProgramFaultTests(unittest.TestCase):
 
                 engine = self.engine(mutate=configure)
                 self.assertEqual(engine.blockers, [])
-                engine.memory.values['labtext'][0]['LEN'] = length
+                if value is None:
+                    key, parts, _ = engine.memory.resolve(operand)
+                    engine.memory.store(key, parts, value)
+                else:
+                    engine.memory.write(operand, value)
                 engine.memory.write('StartPB', True)
-                with self.assertRaisesRegex(ModelError, source_message):
+                with self.assertRaisesRegex(ModelError, f'(?i){message}'):
                     engine.step()
                 self.assertNotIn('Type 4 Code', engine.fault)
 

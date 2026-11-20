@@ -450,8 +450,8 @@ next instruction. A skipped string result keeps its LEN and every DATA byte.
 A later valid scan evaluates the current operands. False rungs skip live
 operands. Unknown consumed values, invalid string positions and quantities,
 invalid numeric text and destination capacity errors use scan rollback.
-[Ladder capacity diagnostics](string-operations.md#ladder-capacity-diagnostics)
-report selected Type 4 Code 51 and 52 conditions. Structured Text calls use
+[Ladder string diagnostics](string-operations.md#ladder-capacity-diagnostics)
+report selected Type 4 Codes 51, 52, 53 and 56. Structured Text calls retain
 their existing rollback behavior.
 
 [Rockwell ASCII string instructions](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/ascii-string-instructions.html)

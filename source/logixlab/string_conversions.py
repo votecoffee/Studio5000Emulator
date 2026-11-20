@@ -4,7 +4,7 @@ import math
 import re
 
 from .integer_math import CONTROLLERS
-from .model import ModelError, coerce, literal
+from .model import ModelError, StringNumericRangeError, coerce, literal
 from .string_operations import INTEGERS, string_operand
 
 INSTRUCTIONS = frozenset(('LOWER', 'UPPER', 'STOR', 'RTOS'))
@@ -55,9 +55,21 @@ def parse_integer(text):
     integral = match[0].partition('.')[0]
     digits = integral.removeprefix('-').lstrip('0')
     if len(digits) > 10:
-        raise ModelError('STOD result exceeds the signed DINT range')
+        raise StringNumericRangeError('STOD result exceeds the signed DINT range')
     value = int(digits or '0')
     return -value if integral.startswith('-') else value
+
+
+def write_integer(memory, ref, text, scope):
+    value = parse_integer(text)
+    key, parts, dtype = memory.check_writable(ref, scope)
+    if dtype not in INTEGERS or isinstance(memory.at(key, parts), (list, dict)):
+        raise ModelError('STOD requires a scalar SINT, INT or DINT destination')
+    try:
+        value = coerce(value, dtype)
+    except ModelError as error:
+        raise StringNumericRangeError(str(error)) from error
+    memory.store(key, parts, value)
 
 
 def parse_real(text):
@@ -67,7 +79,10 @@ def parse_real(text):
         raise ModelError('STOR scientific-notation input remains unqualified')
     if text[match.end():].startswith('.') or match.start() and text[match.start()-1] in '-.':
         raise ModelError('STOR malformed decimal/sign sequence is outside the modeled profile')
-    return coerce(float(match[0]), 'REAL')
+    try:
+        return coerce(float(match[0]), 'REAL')
+    except (ModelError, OverflowError) as error:
+        raise StringNumericRangeError('STOR result exceeds the finite REAL range') from error
 
 
 def format_real(value):
@@ -97,6 +112,7 @@ def description():
                 dtos_real='Scalar REAL tag rounds to signed DINT (ties to even) before decimal text formatting',
                 operands='Scalar tags, including aliases, array elements and UDT members; no immediate/expression operands',
                 prescan='No initialization; false rung/skipped ST branch retains destinations',
+                result_range_diagnostics='Ladder STOD and STOR report Type 4 Code 53 for numeric result overflow and roll back the advance',
                 native_formatting_parity=False, native_math_status=False, native_fault_classification=False,
                 remaining=['Native RTOS precision/trailing-zero/exponent formatting', 'STOR exponent/no-digit/malformed input parity',
                            'Wider numeric types and ST expression operands', 'Native status/fault/partial-write behavior', 'FBD execution'])

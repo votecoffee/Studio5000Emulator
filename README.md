@@ -297,8 +297,8 @@ operands to continue at the next instruction. The Controller Fault Handler can
 [recover an uncleared array fault](docs/controller-handlers.md#escalate-an-uncleared-program-fault).
 The [ladder monitor marks the skipped instruction](docs/logic-viewer.md#fault-recovery-in-the-ladder-monitor)
 and shows the cleared fault code in its details.
-[Ladder string capacity diagnostics](docs/string-operations.md#ladder-capacity-diagnostics)
-identify selected Type 4 Code 51 and 52 conditions in rolled-back scans.
+[Ladder string fault diagnostics](docs/string-operations.md#ladder-capacity-diagnostics)
+identify selected Type 4 Codes 51, 52, 53 and 56 in rolled-back scans.
 [Aggregate LEDStatus](docs/gsv-configuration.md#simulated-module-ledstatus)
 summarizes a complete simulated module inventory.
 
