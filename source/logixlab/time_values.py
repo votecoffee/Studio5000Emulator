@@ -210,15 +210,15 @@ def expression_profile(expression, memory, scope='', destination_type=None, *, c
         tree = expression.tree
         if not condition and tree[0] in ('ref', 'time_literal'):
             source_type = declared[tree[1]] if tree[0] == 'ref' else tree[2]
-            if source_type != destination_type:
-                raise ModelError('ST time/date assignment requires a matching tag or typed literal')
+            if not same_family(source_type, destination_type):
+                raise ModelError('ST time/date assignment requires a source from the same time/date family')
         else:
             operators = RELATIONS if condition else ('+', '-')
             if (tree[0] != 'binary' or tree[1] not in operators
                     or any(operand[0] not in ('ref', 'time_literal') for operand in tree[2:])):
                 if condition:
                     raise ModelError('ST time/date expressions require one comparison of scalar tags or typed literals')
-                raise ModelError('ST time/date assignment requires a matching tag or typed literal, or one + or - operation')
+                raise ModelError('ST time/date assignment requires a temporal tag or typed literal, or one + or - operation')
     if not condition and destination_type not in TYPES:raise ModelError('Temporal CPT/FAL requires a temporal scalar destination')
     types={};previous=memory.structural
     try:
@@ -274,12 +274,6 @@ def evaluate_expression(expression, memory, scope, profile):
     from .conditions import RELATIONS
     from .model import ModelError,coerce
     tree = expression.tree
-    kind, value = tree[:2]
-    if profile['consumer'] == 'ST' and not profile['condition']:
-        if kind == 'ref':
-            return read_operand(memory, value, scope)
-        if kind == 'time_literal':
-            return value
 
     def bounded(value,category):return coerce(value,'LDT' if category=='date' else 'LTIME')
     def visit(node):
@@ -316,6 +310,7 @@ def expression_description(project):
                 destination='CPT/FAL temporal scalar of the result family; exact tick precision and declared range required',
                 conditions='Same-family relations, BOOL/string comparisons and eager Boolean composition',
                 failures='Unknowns, bounds, fractional ticks, range and later faults roll back the advance; FAL temporal errors do not use REAL ER/prefix retry',
+                st_assignments='Same-family temporal scalar tags or typed literals with exact destination ticks and declared range',
                 st_comparisons='One relation between same-family temporal scalar tags or typed literals',
                 st_arithmetic='One + or - between temporal scalar tags or typed literals; exact destination ticks and declared range required',
                 excluded='Numeric mixtures, multiplication/division/functions, date + date, duration - date, compound ST expressions, FBD/SFC and native numerical/status/fault/layout parity',

@@ -104,13 +104,65 @@ class StructuredTests(unittest.TestCase):
         self.assertEqual(e.memory.read('Stamp', allow_time=True), 0)
         self.assertEqual(e.scan_count, 0)
 
-    def test_temporal_assignment_rejects_conversions_and_whole_arrays(self):
+    def test_temporal_assignment_converts_exact_ticks_within_each_family(self):
+        self.time_tag('Start', 'DT', 1767225600000001)
         self.time_tag('Stamp', 'LDT', 0)
-        self.time_tag('Microseconds', 'DT', 0)
+        self.time_tag('Backdated', 'DT', 0)
+        self.time_tag('NarrowDelay', 'TIME32', -1002)
+        self.time_tag('MicroDelay', 'TIME', 0)
+        self.time_tag('NanoDelay', 'LTIME', 0)
+        self.time_tag('SelectedDelays', 'TIME32', elements=(11, None, 77))
+        e = self.engine(
+            'Stamp:=Start; Backdated:=Stamp; '
+            'MicroDelay:=NarrowDelay; NanoDelay:=MicroDelay; '
+            'SelectedDelays[Selector]:=NanoDelay; '
+            'NanoDelay:=T32#-1ms_3us;')
+        self.assertEqual(e.blockers, [])
+        e.memory.write('Selector', 1)
+        e.step()
+        expected = {
+            'Stamp': 1767225600000001000,
+            'Backdated': 1767225600000001,
+            'MicroDelay': -1002,
+            'NanoDelay': -1003000,
+            'SelectedDelays': [11, -1002, 77],
+        }
+        for ref, value in expected.items():
+            self.assertEqual(e.memory.read(ref, allow_time=True), value, ref)
+
+    def test_temporal_assignment_faults_only_when_conversion_is_reached(self):
+        self.time_tag('Clock', 'DT', 12)
+        self.time_tag('FineDelay', 'LTIME', -1001)
+        self.time_tag('CoarseDelay', 'TIME', 34)
+        self.time_tag('NarrowDelay', 'TIME32', 56)
+        for assignment, message in (
+            ('CoarseDelay:=FineDelay;', 'fractional ticks'),
+            ('Clock:=LDT#1970-01-01-00:00:00.000_000_001;', 'fractional ticks'),
+            ('NarrowDelay:=T#2147483648us;', 'TIME32 requires exact ticks in range'),
+        ):
+            with self.subTest(assignment=assignment):
+                e = self.engine(f'State:=7; IF Enable THEN {assignment} END_IF;')
+                self.assertEqual(e.blockers, [])
+                e.memory.write('Enable', False)
+                e.step()
+                self.assertEqual(e.memory.read('State'), 7)
+                e.memory.write('State', 5)
+                e.memory.write('Enable', True)
+                before = copy.deepcopy(e.memory.values)
+                with self.assertRaisesRegex(ModelError, message):
+                    e.step()
+                self.assertEqual(e.memory.values, before)
+                self.assertEqual(e.scan_count, 1)
+
+    def test_temporal_assignment_rejects_cross_family_sources_and_whole_arrays(self):
+        self.time_tag('Stamp', 'LDT', 0)
+        self.time_tag('Delay', 'TIME', 0)
         self.time_tag('Times', 'LDT', elements=(0, 0))
         for statement, message in (
-            ('Stamp:=Microseconds;', 'matching tag or typed literal'),
-            ('Stamp:=1;', 'matching tag or typed literal'),
+            ('Stamp:=Delay;', 'source from the same time/date family'),
+            ('Delay:=Stamp;', 'source from the same time/date family'),
+            ('Stamp:=State;', 'source from the same time/date family'),
+            ('Stamp:=1;', 'requires a temporal tag or typed literal'),
             ('Times:=Stamp;', 'requires a scalar destination'),
             ('Stamp:=Times;', 'requires one scalar element'),
         ):

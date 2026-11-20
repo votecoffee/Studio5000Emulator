@@ -54,7 +54,7 @@ enable `MicrosecondBridge` for an exact legacy timestamp round trip.
 [Time and date storage](docs/time-date-storage.md)
 
 [Structured Text time and date assignments](docs/time-date-storage.md#structured-text-time-and-date-assignments)
-copy matching scalar tags or typed literals at exact tick precision.
+copy scalar tags or typed literals within the duration or timestamp family at exact destination precision.
 [Structured Text comparisons](docs/time-date-conditions.md#structured-text-time-and-date-comparisons)
 use exact ordering in Boolean assignments and conditions.
 [Structured Text time and date arithmetic](docs/time-date-conditions.md#structured-text-time-and-date-arithmetic)

@@ -35,13 +35,18 @@ Enter a decimal tick count when editing from the browser. A matching typed liter
 ## Structured Text time and date assignments
 
 In the v35 ControlLogix 5580 emulator profile, Structured Text can assign a
-matching TIME32, TIME, LTIME, DT or LDT tag or typed literal to a writable
-scalar of the same type. An assignment such as
-`Stamp := LDT#2020-10-25-11:05:20.123_456_789;` copies exact nanosecond ticks.
+scalar tag or typed literal within the duration family (TIME32, TIME, LTIME)
+or the timestamp family (DT, LDT). An assignment such as
+`Stamp := LDT#2020-10-25-11:05:20.123_456_789;` copies exact nanosecond ticks
+when Stamp is LDT. If Start is DT, `PreciseStart := Start;` scales each
+microsecond to 1000 nanoseconds when PreciseStart is LDT. Narrowing requires
+whole destination ticks and a result within the declared range.
+
 Aliases, members and indexed elements use the normal reference rules.
 A reached assignment can establish an unknown destination. Preflight checks
 the declared types and scalar shape, and a skipped branch leaves live indices
-and source values unevaluated.
+and source values unevaluated. Fractional or out-of-range results fault on
+execution and roll back the advance.
 
 A non-retentive `[:=]` destination clears to zero ticks during modeled
 prescan. A later fault restores the advance's earlier writes. See
@@ -67,9 +72,8 @@ and moves back unchanged. Moving that same number to LDT instead interprets it
 as nanoseconds. Ordinary DT/LDT moves still scale units exactly. DT/LDT calendar
 range checks remain in force; invalid raw timestamps roll back the advance.
 
-This is a ladder MOV profile for declared LINT and date tags, selected elements,
-UDT members and aliases, plus typed DT/LDT source literals. It adds no typed LINT
-immediates, duration/LINT bridge, ST time expressions or temporal COP/CPS forms.
+The raw LINT bridge uses ladder MOV with declared LINT and date tags, selected
+elements, UDT members and aliases, or typed DT/LDT source literals.
 Installed v35 help 14688 and 414477 document the timestamp interoperability and
 the direct DT bridge for legacy microsecond tags. Native overflow/status and
 fault continuation remain unverified.
@@ -148,9 +152,9 @@ TIME32. These reads use integer microseconds, check the destination range
 and keep the existing clock and measurement sources. In **System lab**,
 enable ReadTypedTimes and step to see these reads and an exact DT-to-LDT MOV.
 
-Lossy conversion, broader clock attributes, ST time expressions, native packed
-layouts and CIP time/date access remain separate. Native Studio/controller
-acceptance is unverified.
+Lossy conversion, broader clock attributes, native packed layouts and CIP
+time/date access remain separate. Native Studio/controller acceptance is
+unverified.
 
 [Time/date CMP/FSC conditions](time-date-conditions.md) now compare temporal
 tags within duration or timestamp families using exact nanoseconds, with BOOL and
