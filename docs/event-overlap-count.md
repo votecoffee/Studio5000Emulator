@@ -4,8 +4,10 @@ The v35 ControlLogix 5580 project profile supports
 `GSV(Task,EventTask,OverlapCount,Destination)` and
 `SSV(Task,EventTask,OverlapCount,Source)` in ladder and ST for qualified
 instruction-only Standard Event tasks. Ordinary scheduled Programs can name
-the target; `THIS` inside the Event selects its Task. AOI, routine-harness,
-Safety and Periodic deadline-overlap behavior remain unqualified.
+the target; `THIS` inside the Event selects its Task. Standard AOIs can
+[read the calling Task through THIS](current-instance-gsv.md#aoi-task-diagnostics).
+AOI setters, isolated routine harnesses, Safety and Periodic deadline-overlap
+behavior remain outside this profile.
 [Serial Periodic tasks](task-scheduling.md#periodic-task-diagnostics) have
 their own zero baseline for Status and OverlapCount.
 

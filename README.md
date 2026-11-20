@@ -239,6 +239,8 @@ AOI it reads the active Logic, Prescan or EnableInFalse routine name. Program
 and Task THIS Name reads inside an AOI follow its scheduled caller.
 [Task configuration reads inside AOIs](docs/current-instance-gsv.md#aoi-task-configuration)
 also follow the caller, including live period, priority and watchdog changes.
+[Task Status and OverlapCount reads](docs/current-instance-gsv.md#aoi-task-diagnostics)
+expose live Event diagnostics or the serial Periodic baseline.
 [AOI definition GSV](docs/gsv-configuration.md#aoi-definition-reads)
 reads the name, revision, vendor, last-edit time and exported signature of a
 Standard AOI. Use its definition name in Program logic or THIS inside the AOI.

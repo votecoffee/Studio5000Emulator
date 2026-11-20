@@ -44,8 +44,8 @@ a later fault roll back data, bindings, scheduling and uncommitted measurements.
 [Event Task Status](event-task-status.md) separately supports Task THIS inside
 qualified instruction-only Event tasks for Status GSV/SSV. Configuration reads
 and SSV InhibitTask also support Event THIS. Task and Program timing now
-support qualified ordinary Event contexts. Status reads use the ordinary
-Program context.
+support qualified ordinary Event contexts. AOIs can read their own
+[Task diagnostics](#aoi-task-diagnostics) using the scheduled caller context.
 Empty/numeric instance aliases and broader SSV forms remain unchanged.
 [SSV InhibitTask](task-inhibition.md) now permits THIS for supported ordinary Tasks. Existing named AOI reads retain their prior software profile.
 No FBD/SFC, CPU-preemption or new controller-profile behavior is introduced.
@@ -64,9 +64,20 @@ settings changed by earlier Program instructions in the same scan. An explicit
 AOI Prescan routine reads its scheduled owner's settings, including at startup
 before a Task release. Invalid destinations or a later fault roll back the
 advance. Isolated routine harnesses lack the scheduled caller context. AOI
-SSV and Task Status reads remain outside this profile. Native controller
-execution remains unverified.
+SSV requires ordinary scheduled Program logic. Native controller execution
+remains unverified.
 [Rockwell Task object reference](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/38-01/contents-ditamap/instruction-set/input-output-instructions/access-the-task-object.html)
+
+## AOI Task diagnostics
+
+`GSV(Task,THIS,Status,Destination)` and `GSV(Task,THIS,OverlapCount,Destination)`
+read the calling Task from Standard ladder and Structured Text AOIs. Qualified
+Event Tasks expose the live [status bits](event-task-status.md) and
+[overlap count](event-overlap-count.md). Serial Periodic Tasks write zero.
+Both attributes require a writable scalar DINT. An explicit AOI Prescan can
+read the initial zero Event diagnostics. Status bits and overlap counts roll
+back with the advance on a later fault. AOI SSV and named targets remain
+outside this profile. Native execution remains unverified.
 
 ## AOI timing reads
 

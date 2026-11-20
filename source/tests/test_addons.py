@@ -276,7 +276,8 @@ class AddOnTests(unittest.TestCase):
         scalar(self.root.find('Controller/Tags'), 'WantedPriority', 'INT', 4)
         fields = [('Rate', 'DINT', 10000, 20000), ('Watchdog', 'DINT', 500000, 12345),
                   ('Priority', 'INT', 2, 4), ('DisableUpdateOutputs', 'DINT', 0, 1),
-                  ('InhibitTask', 'DINT', 0, 1), ('Instance', 'DINT', 0, 0)]
+                  ('InhibitTask', 'DINT', 0, 1), ('Instance', 'DINT', 0, 0),
+                  ('Status', 'DINT', 0, 0), ('OverlapCount', 'DINT', 0, 0)]
         for name, dtype, _, _ in fields:
             E.SubElement(self.definition().find('LocalTags'), 'LocalTag', Name='Seen' + name, DataType=dtype)
         reads = ''.join(f'GSV(Task,tHiS,{name},Seen{name})' for name, _, _, _ in fields)
@@ -304,7 +305,7 @@ class AddOnTests(unittest.TestCase):
         for name, _, _, updated in fields:
             self.assertEqual(engine.memory.read('AccumulatorA.Seen' + name), updated)
 
-    def test_task_this_event_timeout_configuration_in_st_aoi(self):
+    def test_task_this_event_configuration_and_diagnostics_in_st_aoi(self):
         controller = self.root.find('Controller')
         task = E.SubElement(controller.find('Tasks'), 'Task', Name='EventTask', Type='EVENT', Class='Standard',
                             Rate='15', Priority='2', Watchdog='500', InhibitTask='false', DisableUpdateOutputs='true')
@@ -315,20 +316,43 @@ class AddOnTests(unittest.TestCase):
         E.SubElement(program, 'Tags')
         main = E.SubElement(E.SubElement(program, 'Routines'), 'Routine', Name='OnEvent', Type='ST')
         E.SubElement(E.SubElement(main, 'STContent'), 'Line', Number='0').text = (
-            'TotalB := 20000; SSV(Task,THIS,Rate,TotalB); LabAccumulator(AccumulatorA,StepA,TotalA,SharedA);')
-        for name in ('SeenRate', 'SeenTimeout'):
+            'TotalB := 20000; SSV(Task,THIS,Rate,TotalB); EVENT(EventTask); '
+            'LabAccumulator(AccumulatorA,StepA,TotalA,SharedA);')
+        for name in ('SeenRate', 'SeenTimeout', 'SeenStatus', 'SeenOverlaps'):
             E.SubElement(self.definition().find('LocalTags'), 'LocalTag', Name=name, DataType='DINT')
         logic = self.definition().find('Routines/Routine[@Name="Logic"]')
         logic.remove(logic.find('RLLContent'))
         logic.set('Type', 'ST')
         E.SubElement(E.SubElement(logic, 'STContent'), 'Line', Number='0').text = (
-            'GSV(Task,THIS,Rate,SeenRate); GSV(Task,THIS,EnableTimeOut,SeenTimeout); Total := SeenRate;')
+            'GSV(Task,THIS,Rate,SeenRate); GSV(Task,THIS,EnableTimeOut,SeenTimeout); '
+            'GSV(Task,THIS,Status,SeenStatus); GSV(Task,THIS,OverlapCount,SeenOverlaps); Total := SeenRate;')
+        diagnostics = 'GSV(Task,THIS,Status,SeenStatus)GSV(Task,THIS,OverlapCount,SeenOverlaps);'
+        prescan = self.body(mode='Prescan')[0].find('Text')
+        prescan.text = prescan.text.removesuffix(';') + diagnostics
 
-        engine = self.engine(['EVENT(EventTask);'])
+        engine = self.engine(['EVENT(EventTask);', 'DIV(1,Truncated,TotalB);'])
         self.assertEqual(engine.blockers, [])
+        self.assertEqual(engine.memory.read('AccumulatorA.SeenStatus'), 0)
+        self.assertEqual(engine.memory.read('AccumulatorA.SeenOverlaps'), 0)
+        before = copy.deepcopy(engine.memory.values)
+        with self.assertRaisesRegex(ModelError, 'divide'):
+            engine.step(10)
+        self.assertEqual(engine.memory.values, before)
+        self.assertEqual(engine._task_event_status['eventtask'], 0)
+
+        engine.memory.write('Truncated', 1)
         engine.step(10)
         self.assertEqual(engine.memory.read('TotalA'), 20000)
         self.assertEqual(engine.memory.read('AccumulatorA.SeenTimeout'), 1)
+        self.assertEqual(engine.memory.read('AccumulatorA.SeenStatus'), 5)
+        self.assertEqual(engine.memory.read('AccumulatorA.SeenOverlaps'), 1)
+
+        line = logic.find('STContent/Line')
+        for statement in ('SSV(Task,THIS,Status,SeenStatus);', 'GSV(Task,EventTask,Status,SeenStatus);'):
+            with self.subTest(statement=statement):
+                line.text = statement
+                engine = self.engine(['EVENT(EventTask);'])
+                self.assertTrue(any('AOI/harness' in blocker for blocker in engine.blockers), engine.blockers)
 
     def test_timing_this_reads_caller_snapshot_in_ladder_prescan_and_nested_st(self):
         self.root.find('Controller/Tasks/Task').set('DisableUpdateOutputs', 'false')

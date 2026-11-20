@@ -88,7 +88,8 @@ Program host-time measurements remain separate from simulated release times.
 
 As of `26.1119.170432`, ladder and ST can read `Task.Status` and
 `Task.OverlapCount` for a named Standard Periodic task, or use `THIS` from
-its own scheduled Program:
+its own scheduled Program. Standard AOIs can also use
+[GSV through THIS](current-instance-gsv.md#aoi-task-diagnostics).
 
 ```text
 GSV(Task,FastTask,Status,FastStatus);

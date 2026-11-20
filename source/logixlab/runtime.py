@@ -144,6 +144,7 @@ class Engine:
             else:
                 self._task_scan_timings={t['name'].casefold():task_runtime.TaskMeasurements() for t in project.tasks
                                          if self.task_scan_timing_eligible(t['name'])}
+            self._task_event_status = event_status.initial(self)
         if not self.blockers:
             try:
                 self._apply_prescan(preview=defer_prescan, report_fault=False)
@@ -153,9 +154,8 @@ class Engine:
                 self._task_scan_timings.clear()
                 self._task_measurements = None
                 self._measured_task = None
+                self._task_event_status.clear()
             self.trace=[]
-        if self.mode=='project' and not self.blockers:
-            self._task_event_status=event_status.initial(self)
         self._output_defaults, self._output_targets = immediate_output.task_plan(self)
 
     def _task_runtime_available(self,task,source_sha256):

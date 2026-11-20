@@ -2,7 +2,7 @@
 import struct
 from .model import ModelError
 from . import event_tasks
-from .gsv_configuration import current_instance
+from .gsv_configuration import current_instance, read_caller_context
 from .numeric_copy import static_reference
 
 MASK=0x5
@@ -23,7 +23,9 @@ def target(engine,op,scope,*,executing=False):
     if len(op.args)!=4 or any(not isinstance(a,str) for a in op.args) or not matches(op):
         raise ModelError('Task diagnostics require Task, a Periodic or Event task name/THIS, Status/OverlapCount and a DINT tag')
     event_tasks.profile(engine.project)
-    # Validate the actual ordinary caller, even when the target is explicitly named.
+    if op.name == 'GSV' and op.args[1].casefold() == 'this':
+        scope, executing = read_caller_context(engine, scope, executing)
+    # Validate the scheduled caller, even when the target is explicitly named.
     current_instance(engine,'Program','THIS',scope,executing=executing,allow_event=True)
     name=current_instance(engine,'Task',op.args[1],scope,executing=executing,allow_event=True)
     scheduler=engine._task_scheduler
@@ -118,10 +120,10 @@ def description():
                 bits={'0':'Accepted EVENT instruction request','1':'Event timeout dispatch','2':'Discarded request while target is active'},
                 visibility='Live within an advance; latched until supported SSV replacement; reset/reload initializes zero',
                 setters='Exact DINT replacement of modeled bits; bit 1 requires a defined timeout period; source retained',
-                contexts='Ordinary scheduled Programs, named Event target or THIS inside its Event task; no AOI/harness',
+                contexts='Ordinary scheduled Programs may use a name or THIS; their Standard AOIs can read through THIS',
                 periodic='Named or THIS Periodic targets read zero for Status/OverlapCount under serial scheduling and accept exact DINT zero resets',
                 duplicates='Pending requests still coalesce; they do not set the active-overlap bit',
                 rollback='Status and task/data progress commit only with a successful complete advance',
                 native_protocol_expanded=False,native_runtime_parity=False,
                 remaining=['External event sources and other Task status bits','Periodic overlap modeling and Continuous/Safety status',
-                           'AOI/harness contexts and native pending/interrupt/status/fault/lifecycle parity'])
+                           'AOI setters, isolated harnesses and native pending/interrupt/status/fault/lifecycle parity'])

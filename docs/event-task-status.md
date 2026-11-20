@@ -5,7 +5,9 @@ The v35 ControlLogix 5580 project profile supports logical
 `SSV(Task,EventTask,Status,Source)` in ladder and ST for the existing
 instruction-only Event task model. Inside the Event task, `THIS` selects its
 own Task. Calls from other ordinary scheduled Programs use the named target.
-AOI and isolated routine-harness contexts remain unqualified.
+Standard AOIs use [GSV through THIS](current-instance-gsv.md#aoi-task-diagnostics).
+Setters require ordinary scheduled Program logic. Isolated routine harnesses
+lack a scheduled caller.
 
 ```text
 GSV(Task,THIS,Status,EventStatus);
