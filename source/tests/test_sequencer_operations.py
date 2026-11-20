@@ -59,9 +59,34 @@ class SequencerTests(unittest.TestCase):
         e.memory.write('StartPB',True);e.step();self.assertFalse(e.memory.read('Ctl.ER'))
 
     def test_sqo_masks_preserve_other_bits_and_interpret_signed_result(self):
-        for mask,expected in (('16#FF',0x120078),('16#FFFF_FFFF',-2147483528),('-1',-2147483528)):
+        for mask,expected in (('16#FF',0x120078),('16#FFFF_FFFF',-2147483528),
+                              ('16#FFFF FFFF',-2147483528),('-1',-2147483528)):
             e=self.checked([f'SQO(Queue[0],{mask},Outgoing,Ctl,?,?);'],length=3,queue=(-2147483528,0,0,0))
             e.memory.write('Outgoing',0x120000);e.step();self.assertEqual(e.memory.read('Outgoing'),expected)
+
+    def test_grouped_words_load_compare_and_output_the_same_row(self):
+        e = self.checked([
+            'SQL(Queue[0],16#8000 00AA,Ctl,?,?);',
+            'SQI(Queue[0],16#8000 00FF,8#20 000 000 252,Ctl,?,?)OTE(RunLatch);',
+            'SQO(Queue[0],8#3 77,Outgoing,Ctl,?,?);',
+        ], length=3, position=1, queue=(123, 0, 0, 0))
+        e.memory.write('Outgoing', 0x120078)
+        self.assertEqual(e.memory.read('Queue[1]'), 0)
+        e.step()
+        self.assertEqual(e.memory.read('Queue'), [123, -2147483478, 0, 0])
+        self.assertTrue(e.memory.read('RunLatch'))
+        self.assertEqual(e.memory.read('Outgoing'), 0x1200AA)
+        self.assertEqual(e.memory.read('Ctl.POS'), 1)
+
+    def test_grouped_word_limits_are_checked_even_on_false_rungs(self):
+        for logic in (
+            'AFI()SQI(Queue[0],2#0 2,Incoming,Ctl,?,?);',
+            'AFI()SQI(Queue[0],-1,16#1 0000 0000,Ctl,?,?);',
+            'AFI()SQO(Queue[0],16#FF FFU,Outgoing,Ctl,?,?);',
+            'AFI()SQL(Queue[0],8#1 888,Ctl,?,?);',
+        ):
+            with self.subTest(logic=logic):
+                self.assertTrue(self.engine([logic], length=3).blockers)
 
     def test_mask_tag_zero_extends_and_zero_mask_preserves_unknown_data(self):
         def small(root):
@@ -69,7 +94,7 @@ class SequencerTests(unittest.TestCase):
             E.SubElement(E.SubElement(tag,'Data',Format='Decorated'),'DataValue',DataType='SINT',Value='-1')
         e=self.checked(['SQO(Queue[0],Mask,Outgoing,Ctl,?,?);'],length=3,queue=(0,0,0,0),mutate=small)
         e.memory.write('Outgoing',-1);e.step();self.assertEqual(e.memory.read('Outgoing'),-256)
-        e=self.checked(['SQO(Queue[0],0,Outgoing,Ctl,?,?);'],length=3)
+        e=self.checked(['SQO(Queue[0],2#0 000,Outgoing,Ctl,?,?);'],length=3)
         e.memory.values['outgoing']=None;e.memory.values['queue'][0]=None;e.step()
         self.assertIsNone(e.memory.values['outgoing'])
 

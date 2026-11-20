@@ -44,11 +44,9 @@ def _validate(memory, op, scope):
     ck, cp, _ = memory.resolve(a[control_index], scope)
     if ck == key and (parts[:len(cp)] == cp or cp[:len(parts)] == parts):
         raise ModelError('Sequencer table and CONTROL cannot overlap')
-    if op.name == 'SQL':
-        bit_transfer.operand(memory, a[1], scope)
-    else:
-        bit_transfer.operand(memory, a[1], scope)
-        width=bit_transfer.operand(memory,a[2],scope,destination=op.name=='SQO')
+    bit_transfer.operand(memory, a[1], scope, radix=True)
+    if op.name != 'SQL':
+        width=bit_transfer.operand(memory,a[2],scope,destination=op.name=='SQO',radix=True)
         if op.name=='SQO' and width!=32:
             raise ModelError('SQO requires a scalar writable DINT destination')
         if op.name == 'SQO':
@@ -66,9 +64,7 @@ def prescan(memory, op, scope):
 
 def source_value(memory,ref,scope):
     """Keep signed narrow values and complete DINT immediate patterns."""
-    value=memory.read(ref,scope)
-    if type(value) is not int:raise ModelError('Sequencer source must be a known integer')
-    return bit_value(value,'DINT')
+    return bit_value(bit_transfer.unsigned(memory, ref, scope, 32, radix=True), 'DINT')
 
 
 def execute(memory, op, power, scope):
@@ -120,8 +116,8 @@ def _execute(memory, op, power, scope, obj):
     if n == 'SQL':
         memory.store(key, paths[position], source_value(memory, a[1], scope))
         return True
-    width = bit_transfer.operand(memory, a[1], scope)
-    mask = bit_transfer.unsigned(memory, a[1], scope, width)
+    width = bit_transfer.operand(memory, a[1], scope, radix=True)
+    mask = bit_transfer.unsigned(memory, a[1], scope, width, radix=True)
     if not mask:return True
     source = memory.read(memory.address(key, paths[position]))
     if type(source) is not int:raise ModelError('Sequencer table row is unknown or not DINT')
@@ -137,9 +133,9 @@ def description():
     return dict(instructions=sorted(INSTRUCTIONS), language='RLL', profile='v35-5580-DINT-tables',
                 rows='Startup row zero; edge advances through 1..LEN then wraps to one',
                 held_true='SQO rewrites masked output; SQL reloads current row; SQI compares without advancing',
-                masks='SINT/INT/DINT zero-filled patterns and 32-bit radix immediates',
+                masks='SINT/INT/DINT zero-filled patterns and grouped 32-bit radix immediates',
                 source_types=['SINT','INT','DINT'],destination_type='SQO requires DINT',
-                sources='SQL/SQI scalar narrow integer tags, signed DINT literals or full 32-bit radix patterns; no FIFO REAL conversions',
+                sources='SQL/SQI scalar narrow integer tags, signed DINT literals or grouped 32-bit radix patterns; no FIFO REAL conversions',
                 source_conversion='Preserve signed narrow numeric values in DINT; full radix patterns retain all bits; SQI retains signed-source masked comparison and masks retain declared zero-fill widths',
                 source_selection='Structural types/shapes and immediate bounds; false/invalid-state paths skip live sources; SQI zero mask skips compared-source references',
                 bounds='Reached row checked against selected array/member; maximum 4096 configured rows',

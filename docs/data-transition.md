@@ -1,7 +1,9 @@
 # DINT ladder data transition
 
 App `26.1030.081135` adds DTR to the bounded v35 ControlLogix 5580 profile.
-Source and Mask are DINT scalar tags or bounded integer immediates. Reference
+Source and Mask are DINT scalar tags, signed decimal immediates, or
+unsuffixed 32-bit binary, octal, and hexadecimal words. Grouped digits such
+as `16#FFFF FFFF` are accepted. Reference
 is a writable DINT scalar tag, array element or represented member. Existing
 aliases, indirect element references, program locals and AOI bindings apply.
 

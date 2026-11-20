@@ -81,13 +81,23 @@ class DataTransitionTests(unittest.TestCase):
             self.assertEqual(e.memory.read('Dest'), result)
 
     def test_signed_and_radix_source_and_mask_immediates(self):
-        for value in ('-1','16#FFFF_FFFF','8#37777777777','2#'+'1'*32):
+        for value in ('-1','16#FFFF_FFFF','8#37777777777','2#'+'1'*32,
+                      '16#FFFF FFFF','8#37 777 777 777','2#'+' '.join(['11111111']*4)):
             e = self.checked([f'DTR({value},{value},Dest)OTE(RunLatch);'])
             self.assertEqual(e.memory.read('Dest'), -1);e.memory.write('Dest', 0);e.step()
             self.assertTrue(e.memory.read('RunLatch'));self.assertEqual(e.memory.read('Dest'), -1)
 
+    def test_grouped_operands_refresh_reference_on_a_false_rung(self):
+        e = self.checked(['AFI()DTR(16#80AA 00FF,16#FF00 00F0,Dest)OTE(RunLatch);'])
+        self.assertEqual(e.memory.read('Dest'), -2147483408)
+        e.memory.write('Dest', 1)
+        e.step()
+        self.assertEqual(e.memory.read('Dest'), -2147483408)
+        self.assertFalse(e.memory.read('RunLatch'))
+
     def test_invalid_immediates_and_operand_counts_are_rejected(self):
-        for value in ('TRUE','1.0','2147483648','-2147483649','16#100000000'):
+        for value in ('TRUE','1.0','2147483648','-2147483649','16#100000000',
+                      '16#1 0000 0000','2#1002 0000','16#FFFF FFFFU'):
             for logic in (f'DTR({value},Mask,Dest);',f'DTR(Source,{value},Dest);'):
                 self.assertTrue(self.engine([logic]).blockers, logic)
         for logic in ('DTR(Source,Dest);','DTR(Source,Mask,Dest,Source);','DTR(Source,Mask,1);'):

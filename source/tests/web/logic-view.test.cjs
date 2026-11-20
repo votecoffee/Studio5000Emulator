@@ -1,11 +1,22 @@
 const {test} = require('node:test');
 const assert = require('node:assert/strict');
 const graph = require('../../web/ladder-graph.js');
-const {tokenizeST, labelTarget} = require('../../web/logic-view.js');
+const {tokenizeST, labelTarget, ladderWordRadix} = require('../../web/logic-view.js');
 const instruction = require('../../web/instruction-view.js');
 const op = (name, ...args) => ({name, args});
 const rung = nodes => ({number: '0', comment: 'Seal in', text: 'source retained', nodes});
 const seal = () => graph.compile(rung([op('XIO', 'Stop'), {branch: [[op('XIC', 'Start')], [op('XIC', 'Latch')]]}, op('OTE', 'Latch')]), 'Main/Main');
+test('grouped ladder radix monitoring applies only to immediate operands in the v35 profile', () => {
+  const cases = {DTR: [0, 1], SQI: [1, 2], SQO: [1], SQL: [1], MVM: [0, 1], BTD: [0, 1, 3, 4]};
+  for (const [opcode, indices] of Object.entries(cases)) {
+    const operands = ['Array', 'Mask', 'Data', 'Ctl', 'Length', 'Position'];
+    for (const [index, ref] of operands.entries()) {
+      assert.equal(ladderWordRadix({opcode, operands}, ref, '35', '1756-L85E'), indices.includes(index));
+    }
+    assert.equal(ladderWordRadix({opcode, operands}, operands[indices[0]], '34', '1756-L85E'), false);
+    assert.equal(ladderWordRadix({opcode, operands}, operands[indices[0]], '35', '1756-L75'), false);
+  }
+});
 test('MSG faceplate links EN, DN and ER to the configured MESSAGE control', () => {
   const face = instruction.describe({opcode: 'MSG', operands: ['ReadControl']});
   assert.deepEqual(face.rows.map(row => [row.label, row.ref]), [['Message Control', 'ReadControl']]);

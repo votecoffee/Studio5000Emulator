@@ -79,6 +79,14 @@
     const face = node && faceplates?.describe(node, definitions);
     return !!(face?.kind === 'aoi' && face.fields.some(field => field.ref === ref && field.required && field.usage === 'Input'));
   }
+  const dintWordOperands = new Map([
+    ['MVM', [0, 1]], ['BTD', [0, 1, 3, 4]], ['DTR', [0, 1]],
+    ['SQI', [1, 2]], ['SQO', [1]], ['SQL', [1]]
+  ]);
+  function ladderWordRadix(node, ref, version, processor) {
+    return version === '35' && /^1756-L8[1-5]E$/i.test(processor) &&
+      (dintWordOperands.get(node?.opcode)?.some(index => node.operands?.[index] === ref) ?? false);
+  }
   function create(options) {
     const canvas = options.canvas, inspector = options.inspector, status = options.status;
     let current, key = '', sourceIdentity = '', zoom = 1, showValues = true, showComments = true, selected = '', documents = [], valueMap = new Map(), snapshot, lastTraces = new Map();
@@ -188,12 +196,10 @@
     function read(ref, node) {
       if (node?.literalValues && Object.hasOwn(node.literalValues, ref)) return node.literalValues[ref];
       const bitwiseRadix = node?.opcode === 'MEQ' || ['AND','OR','XOR','NOT'].includes(node?.opcode) && node.operands?.slice(0,-1).includes(ref);
-      const transferRadix = current.state.version === '35' && /^1756-L8[1-5]E$/i.test(current.state.processor) &&
-        (node?.opcode === 'MVM' && node.operands.slice(0, 2).includes(ref) ||
-         node?.opcode === 'BTD' && node.operands.some((operand, i) => i !== 2 && operand === ref));
+      const wordRadix = ladderWordRadix(node, ref, current.state.version, current.state.processor);
       const integerRadix = lrealMathRadix(node, ref, arg => snapshot?.read(arg)) || realMathRadix(node, ref, arg => snapshot?.read(arg)) || ['EQU','NEQ','LES','LEQ','GRT','GEQ','LIM'].includes(node?.opcode) || ['ADD','SUB','MUL','DIV','MOD','NEG','ABS'].includes(node?.opcode) && node.operands?.slice(0,-1).includes(ref);
       const bcdRadix = ['FRD','TOD'].includes(node?.opcode) && node.operands?.[0] === ref;
-      return snapshot?.read(ref, {movRadix: node?.opcode === 'MOV' && node.operands?.[0] === ref, bitwiseRadix, integerRadix, dintRadix: integerRadix || transferRadix, bcdRadix, callRadix: parameterRadix(node, ref, current.state.aoi_definitions)}) || null;
+      return snapshot?.read(ref, {movRadix: node?.opcode === 'MOV' && node.operands?.[0] === ref, bitwiseRadix, integerRadix, dintRadix: integerRadix || wordRadix, bcdRadix, callRadix: parameterRadix(node, ref, current.state.aoi_definitions)}) || null;
     }
     function operandDisplay(field, node, power) {
       if (current.draft) return {};
@@ -710,5 +716,5 @@
       dispose() {endDrag();indicateResize(null);movePick = null;documents = [];current = null;}
     };
   }
-  return {create, tokenizeST, labelTarget, parameterRadix, lrealMathRadix, realMathRadix};
+  return {create, tokenizeST, labelTarget, parameterRadix, lrealMathRadix, realMathRadix, ladderWordRadix};
 });

@@ -48,7 +48,8 @@ Open **Sequence lab** and Step once while NarrowEnabled is false. Set
 NarrowIndex=1, enable NarrowEnabled and Step again. Both control positions
 become 1. The byte and word tables load -1 and -32768, their match coils are
 true, and outputs become 16#123400FF and 16#56788000. The pattern table stores
--1 and NarrowPatternMatch is true. Startup rows and out-of-window guards remain.
+-1 and NarrowPatternMatch is true. The SQI example uses a grouped hexadecimal
+mask and a grouped octal source. Startup rows and out-of-window guards remain.
 
 While held true, write NarrowByteSources[1]=-2 and NarrowWordSources[1]=-1.
 The current rows and outputs update without advancing: 16#123400FE and

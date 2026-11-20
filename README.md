@@ -761,6 +761,8 @@ preserved-bit checks. Set `TransferIndex` to 0 and enable `IndexedTransfers`
 for selected full writes into unknown result arrays.
 [Data transition](docs/data-transition.md) adds DINT DTR change detection,
 including reference updates during prescan and false scans.
+DTR and [ladder sequencers](docs/sequencer-operations.md) support grouped DINT
+radix immediates in their source and mask operands.
 [FBC/DDT references and AOIs](docs/bit-diagnostic-references.md) add alias/indirect
 starts, disjoint shared members and stable per-call result windows. Choose
 **AOI bit diagnostics lab** to compare independent result lists and local/external

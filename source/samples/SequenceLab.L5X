@@ -222,7 +222,7 @@
               <Rung Number="2" Type="N"><Text>XIC(NarrowEnabled)SQL(NarrowPatterns[0],16#FFFF_FFFF,NarrowPatternControl,?,?);</Text></Rung>
               <Rung Number="3" Type="N"><Text>XIC(NarrowEnabled)SQI(NarrowByteTable[0],NarrowByteMask,NarrowByteSources[NarrowIndex],NarrowByteControl,?,?)OTE(NarrowByteMatch);</Text></Rung>
               <Rung Number="4" Type="N"><Text>XIC(NarrowEnabled)SQI(NarrowWordTable[0],NarrowWordMask,NarrowWordSources[NarrowIndex],NarrowWordControl,?,?)OTE(NarrowWordMatch);</Text></Rung>
-              <Rung Number="5" Type="N"><Text>XIC(NarrowEnabled)SQI(NarrowPatterns[0],16#FFFF_FFFF,16#FFFF_FFFF,NarrowPatternControl,?,?)OTE(NarrowPatternMatch);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(NarrowEnabled)SQI(NarrowPatterns[0],16#FFFF FFFF,8#37 777 777 777,NarrowPatternControl,?,?)OTE(NarrowPatternMatch);</Text></Rung>
               <Rung Number="6" Type="N"><Text>XIC(NarrowEnabled)SQO(NarrowByteTable[0],NarrowByteMask,NarrowByteOutput,NarrowByteControl,?,?);</Text></Rung>
               <Rung Number="7" Type="N"><Text>XIC(NarrowEnabled)SQO(NarrowWordTable[0],NarrowWordMask,NarrowWordOutput,NarrowWordControl,?,?);</Text></Rung>
               <Rung Number="8" Type="N"><Text>XIC(NarrowEnabled)DIV(1,NarrowLateDivisor,NarrowLateResult);</Text></Rung>
