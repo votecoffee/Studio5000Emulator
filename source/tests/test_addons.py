@@ -87,6 +87,52 @@ class AddOnTests(unittest.TestCase):
         self.assertEqual(e.memory.read('TotalA'),123)
         self.assertEqual(e.memory.read('AccumulatorA.Total'),2)
 
+    def test_false_without_optional_routine_skips_indexed_results(self):
+        self.definition().set('ExecuteEnableInFalse', 'false')
+        self.set_dint_array('TotalA', (11, 22))
+        self.set_dint_array('SharedA', (10, 20))
+        engine = self.engine([
+            'XIC(EnableA)LabAccumulator(AccumulatorA,StepA,TotalA[Truncated],SharedA[Truncated])OTE(AReady);',
+        ])
+        self.assertEqual(engine.blockers, [])
+        self.assertEqual(engine.memory.read('TotalA'), [0, 22])  # Prescan copied the output to index 0.
+        engine.memory.write('EnableA', False)
+        engine.memory.write('StepA', 7)
+        engine.memory.write('Truncated', 2)
+        engine.step()
+        self.assertEqual(engine.memory.read('AccumulatorA.Step'), 7)
+        self.assertFalse(engine.memory.read('AccumulatorA.EnableOut'))
+        self.assertEqual(engine.memory.read('TotalA'), [0, 22])
+        self.assertEqual(engine.memory.read('SharedA'), [10, 20])
+
+        engine.memory.write('EnableA', True)
+        before = copy.deepcopy(engine.memory.values)
+        with self.assertRaisesRegex(ModelError, 'Array index outside bounds'):
+            engine.step()
+        self.assertEqual(engine.memory.values, before)
+        self.assertEqual(engine.scan_count, 1)
+
+        engine.memory.write('Truncated', 1)
+        engine.step()
+        self.assertEqual(engine.memory.read('TotalA'), [0, 7])
+        self.assertEqual(engine.memory.read('SharedA'), [10, 27])
+
+    def test_false_with_optional_routine_still_selects_indexed_output(self):
+        self.set_dint_array('TotalA', (11, 22))
+        engine = self.engine([
+            'XIC(EnableA)LabAccumulator(AccumulatorA,StepA,TotalA[Truncated],SharedA);',
+        ])
+        self.assertEqual(engine.blockers, [])
+        engine.memory.write('EnableA', False)
+        engine.memory.write('Truncated', 2)
+        before = copy.deepcopy(engine.memory.values)
+        with self.assertRaisesRegex(ModelError, 'Array index outside bounds'):
+            engine.step()
+        self.assertEqual(engine.memory.values, before)
+        engine.memory.write('Truncated', 1)
+        engine.step()
+        self.assertEqual(engine.memory.read('TotalA'), [0, -1])
+
     def test_false_routine_cannot_force_rung_out_true(self):
         self.body(mode='EnableInFalse')[0].find('Text').text='OTL(EnableOut);'
         e=self.engine();e.memory.write('EnableA',False);e.step()
@@ -532,17 +578,21 @@ class AddOnTests(unittest.TestCase):
         members.find('Member[@Name="Fault"]').set('BitNumber','00')
         self.assertTrue(any('overlapping named BIT alias' in blocker for blocker in self.engine(rung).blockers))
 
-    def larger_inout_array(self):
-        parameter = self.definition().find('Parameters/Parameter[@Name="Shared"]')
-        parameter.set('Dimensions','2')
-        tag = self.root.find('Controller/Tags/Tag[@Name="SharedA"]')
-        tag.set('Dimensions','4')
+    def set_dint_array(self, name, values):
+        tag = self.root.find(f'Controller/Tags/Tag[@Name="{name}"]')
+        length = str(len(values))
+        tag.set('Dimensions', length)
         data = tag.find('Data')
         data.remove(data.find('DataValue'))
-        array = E.SubElement(data,'Array',DataType='DINT',Dimensions='4')
-        for index,value in enumerate((10,20,30,40)):
-            E.SubElement(array,'Element',Index=f'[{index}]',Value=str(value))
-        return parameter,tag
+        array = E.SubElement(data, 'Array', DataType='DINT', Dimensions=length)
+        for index, value in enumerate(values):
+            E.SubElement(array, 'Element', Index=f'[{index}]', Value=str(value))
+        return tag
+
+    def larger_inout_array(self):
+        parameter = self.definition().find('Parameters/Parameter[@Name="Shared"]')
+        parameter.set('Dimensions', '2')
+        return parameter, self.set_dint_array('SharedA', (10, 20, 30, 40))
 
     def test_larger_inout_array_exposes_actual_size_and_last_element_in_ladder_and_st(self):
         self.larger_inout_array()

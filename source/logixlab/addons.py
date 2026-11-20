@@ -24,7 +24,7 @@ class AddOns:
         self.engine=engine;self.memory=engine.memory
         self.validated=set();self.active=set();self.instances={}
 
-    def bind(self,op,scope):
+    def bind(self,op,scope,*,resolve_outputs_and_inouts=True):
         definition=self.engine.project.aois[op.name]
         if definition.problems:raise ModelError('; '.join(definition.problems))
         if len(op.args)!=len(definition.required)+1:
@@ -38,6 +38,8 @@ class AddOns:
             if item.get('Usage')!='InOut':bindings[item.get('Name').lower()]=(address+'.'+item.get('Name'),'')
         for parameter,argument in zip(definition.required,op.args[1:]):
             usage=parameter.get('Usage');expected=parameter.get('DataType','').upper()
+            if not resolve_outputs_and_inouts and usage in ('Output', 'InOut'):
+                continue
             if usage=='InOut':
                 parameter_name = parameter.get('Name').lower()
                 resolve = self.memory.resolve if parameter_name in definition.constant_inouts else self.memory.check_writable
@@ -114,7 +116,11 @@ class AddOns:
 
     def call(self,op,power,scope,depth,prescan=False):
         if depth>32:raise ModelError('AOI nesting limit exceeded')
-        definition,frame,address=self.bind(op,scope)
+        definition = self.engine.project.aois[op.name]
+        copy_outputs = prescan or power or definition.modes['EnableInFalse']
+        # In v35, a false ladder call without EnableInFalse only copies Inputs.
+        resolve_outputs_and_inouts = copy_outputs or not numeric_available(self.engine.project)
+        definition,frame,address=self.bind(op,scope,resolve_outputs_and_inouts=resolve_outputs_and_inouts)
         self.memory.write(address+'.EnableIn',bool(power) if not prescan else False)
         self.memory.write('EnableOut',bool(power) if not prescan else False,frame)
         for parameter,argument in zip(definition.required,op.args[1:]):
@@ -138,7 +144,7 @@ class AddOns:
             self.engine._execute_routine(definition.routines['logic'],frame,depth+1,address)
         elif definition.modes['EnableInFalse']:
             self.engine._execute_routine(definition.routines['enableinfalse'],frame,depth+1,address)
-        if prescan or power or definition.modes['EnableInFalse']:
+        if copy_outputs:
             for parameter,argument in zip(definition.required,op.args[1:]):
                 if parameter.get('Usage')=='Output':
                     self.memory.write(argument,self.memory.read(parameter.get('Name'),frame),scope)

@@ -85,12 +85,29 @@ still require matching shapes, and existing read-only and writable rules
 apply. Native monitor presentation remains unverified.
 See Rockwell's [single-dimension InOut guidance](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm010_-en-p.pdf).
 
+## False ladder calls
+
+In the v35 ControlLogix 5580 profile, a false ladder call with
+`EnableInFalse` disabled copies its required Inputs and leaves the caller's
+Output and InOut operands unevaluated. For example, if `Out[Index]` is a
+required Output and `Index` goes out of range after prescan, the false call
+still copies its Inputs. The instruction instance and Input addresses must
+still be valid. The false call has no live InOut binding for the monitor.
+
+Prescan, true calls and false calls with `EnableInFalse` enabled still
+resolve the Output and InOut operands. An invalid index during an active
+advance faults and rolls back the advance. Project validation still checks
+the full call. See Rockwell's [AOI scan-mode guidance](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm010_-en-p.pdf)
+for parameter transfers. Index fault timing and monitor behavior remain
+unverified in native Studio 5000.
+
 ## Constant InOut parameters
 
 In the v35 ControlLogix 5580 profile, an AOI may declare a required InOut
-parameter with `Constant="true"`. Its argument is an exact-type, matching-shape
-tag reference. A constant or mutable caller tag, including an alias, can supply
-that reference. The AOI reads the caller's current value without copying it.
+parameter with `Constant="true"`. Its argument is an exact-type tag reference
+with a compatible [InOut shape](#one-dimensional-inout-arrays). A constant or
+mutable caller tag, including an alias, can supply that reference. The AOI
+reads the caller's current value without copying it.
 
 Ladder and Structured Text reject writes through the parameter, including
 member or bit writes and attempts to pass it to a writable nested InOut or
