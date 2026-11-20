@@ -561,7 +561,7 @@ class ProgramFaultTests(unittest.TestCase):
                 self.assertEqual(engine.memory.read('SpeedCommand'),result)
                 self.assertIs(engine.last_cleared_program_fault,fault)
 
-    def test_nested_aoi_arithmetic_array_faults_skip_result_write_and_retry(self):
+    def test_nested_aoi_scalar_array_faults_skip_result_write_and_retry(self):
         cases = (
             ('ADD(Samples[Index+1],5,Scaled)', [88,13], 130),
             ('SUB(Samples[Index+1],5,Scaled)', [88,13], 120),
@@ -573,6 +573,25 @@ class ProgramFaultTests(unittest.TestCase):
             ('CPT(Scaled,Samples[Index+1]+1)', [88,13], 126),
             ('CPT(Samples[Index+1],Samples[0]+1)MOV(Samples[1],Scaled)', [88,89], 201),
             ('CLR(Samples[Index+1])MOV(Samples[1],Scaled)', [88,0], 112),
+            ('AND(Samples[Index+1],5,Samples[0])MOV(Samples[0],Scaled)', [5,13], 117),
+            ('OR(Samples[0],1,Samples[Index+1])MOV(Samples[1],Scaled)', [88,89], 201),
+            ('XOR(Samples[Index+1],5,Samples[0])MOV(Samples[0],Scaled)', [8,13], 120),
+            ('NOT(Samples[0],Samples[Index+1])MOV(Samples[1],Scaled)', [88,-89], 23),
+            ('MVM(5,Samples[Index+1],Samples[0])MOV(Samples[0],Scaled)', [85,13], 197),
+            ('MVM(15,0,Samples[Index+1])MOV(Samples[1],Scaled)', [88,13], 125),
+            ('BTD(Samples[0],0,Samples[Index+1],0,4)MOV(Samples[1],Scaled)', [88,8], 120),
+            ('XIC(Samples[Index+1].0)MOV(13,Scaled)', [88,13], 125),
+            ('XIO(Samples[Index+1].1)MOV(13,Scaled)', [88,13], 125),
+            ('EQU(Samples[Index+1],13)MOV(13,Scaled)', [88,13], 125),
+            ('EQU(Samples[Index+1],12)MOV(13,Scaled)', [88,13], 174),
+            ('NEQ(Samples[Index+1],14)MOV(13,Scaled)', [88,13], 125),
+            ('LES(Samples[Index+1],14)MOV(13,Scaled)', [88,13], 125),
+            ('LEQ(Samples[Index+1],13)MOV(13,Scaled)', [88,13], 125),
+            ('GRT(Samples[Index+1],12)MOV(13,Scaled)', [88,13], 125),
+            ('GEQ(Samples[Index+1],13)MOV(13,Scaled)', [88,13], 125),
+            ('LIM(12,Samples[Index+1],14)MOV(13,Scaled)', [88,13], 125),
+            ('MEQ(15,Samples[Index+1],13)MOV(13,Scaled)', [88,13], 125),
+            ('CMP(Samples[Index+1]+1=14)MOV(13,Scaled)', [88,13], 125),
         )
         for work,values,result in cases:
             with self.subTest(work=work):
@@ -596,6 +615,19 @@ class ProgramFaultTests(unittest.TestCase):
                 self.assertEqual(engine.memory.read('LabValues'),values)
                 self.assertEqual(engine.memory.read('SpeedCommand'),result)
                 self.assertIs(engine.last_cleared_program_fault,fault)
+
+    def test_nested_aoi_false_branch_skips_indexed_comparison_and_bit_transfer(self):
+        work = ('[AFI()XIC(Samples[Index+1].0)CMP(Samples[Index+1]=13)'
+                'MVM(5,7,Samples[Index+1]),NOP()]MOV(13,Scaled)')
+        engine = self.engine(mutate=lambda root:nested_aoi_array_fault_fixture(root,work=work))
+        self.assertEqual(engine.blockers,[])
+        engine.memory.write('StartPB',True)
+        engine.memory.write('LabIndex',2**31-1)
+        engine.step()
+        self.assertIsNone(engine.last_cleared_program_fault)
+        self.assertEqual(engine.memory.read('LabIndex'),2**31-1)
+        self.assertEqual(engine.memory.read('LabValues'),[88,13])
+        self.assertEqual(engine.memory.read('SpeedCommand'),125)
 
     def test_nested_aoi_arithmetic_errors_roll_back_without_handler(self):
         for work,cause in (

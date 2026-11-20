@@ -82,10 +82,15 @@ JSR argument selection. ST calls retain their existing rollback behavior.
 
 During a whole-project ladder scan, an array fault inside an AOI's ladder
 Logic routine can reach the calling Program fault routine or Controller Fault
-Handler as Type 4 Code 20. This profile covers MOV, CLR, COP, CPS, FLL, ADD,
-SUB, MUL, DIV, MOD, NEG, ABS and CPT, including DINT overflow while evaluating
-an array subscript. If the handler clears the fault, execution resumes after
-the outermost enabled AOI instruction with the incoming rung power.
+Handler as Type 4 Code 20, including DINT overflow while evaluating an array
+subscript. If the handler clears the fault, execution resumes after the
+outermost enabled AOI instruction with the incoming rung power.
+
+- Data and arithmetic: MOV, CLR, COP, CPS, FLL, ADD, SUB, MUL, DIV, MOD,
+  NEG, ABS and CPT.
+- Bitwise and bit transfers: AND, OR, XOR, NOT, MVM and BTD.
+- Contacts and comparisons: XIC, XIO, EQU, NEQ, LES, LEQ, GRT, GEQ, LIM,
+  MEQ and CMP.
 
 The faulting instruction and the remaining statements in each interrupted AOI
 are skipped. Interrupted invocations also skip their output copies. The
@@ -97,9 +102,11 @@ routine and the faulting opcode.
 Numeric and matching-record COP/CPS and FLL resolve the selected addresses
 before writing. A reached invalid address leaves the faulting operation's
 destination untouched, including an invalid FLL destination with a zero
-length. Scalar arithmetic and CLR likewise leave the destination untouched
-when operand evaluation hits an array fault. Invalid lengths, division by
-zero and arithmetic result overflow still cause scan rollback.
+length. Scalar arithmetic, CLR, bitwise operations and bit transfers likewise
+leave the destination untouched on an array fault. Contacts, comparisons and
+bit transfers skip indexed operands when their incoming rung is false.
+Invalid lengths, division by zero and arithmetic result overflow still
+cause scan rollback.
 
 AOI argument, output-transfer, Structured Text and prescan faults remain
 outside this profile. Native v35 behavior remains unverified.
