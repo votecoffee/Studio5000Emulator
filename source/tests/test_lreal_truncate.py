@@ -115,7 +115,7 @@ class LrealTruncateTests(unittest.TestCase):
         self.assertEqual((e.memory.read('BufferA[1]'),e.memory.read('BufferB[2]'),e.memory.read('DriverA.Stack[1]'),e.memory.read('DriverB.Stack[1]')),(16777217.0,-3.0,16777217.0,-3.0))
         self.assertEqual(e.memory.frames['@AOI:drivera']['buffer'],('BufferA',''))
 
-    def test_invalid_types_shapes_permissions_and_unimplemented_forms_stay_guarded(self):
+    def test_ladder_trn_guards_and_structured_text_trunc(self):
         for source in ('DINT','LINT','ULINT','BOOL'):
             self.assertTrue(self.engine(source=source,value=1).blockers)
         for text in ('TRN(Inputs,Dest);','TRN(Source,Results);','TRN(Source,RunLatch);','TRN(TRUE,Dest);','TRUNC(Source,Dest);','SIZE(Results,0,Dest);'):
@@ -125,7 +125,9 @@ class LrealTruncateTests(unittest.TestCase):
         def st(root):
             routine=root.find('./Controller/Programs/Program/Routines/Routine');routine.set('Type','ST');routine.remove(routine.find('RLLContent'))
             E.SubElement(E.SubElement(routine,'STContent'),'Line',Number='0').text='Dest := TRUNC(Source);'
-        self.assertTrue(self.engine(mutate=st).blockers)
+        engine = self.checked(mutate=st, value=16777217.875)
+        engine.step()
+        self.assertEqual(engine.memory.read('Dest'), 16777217.0)
 
     def test_report_separates_size_and_trn_types_and_native_boundaries(self):
         d=self.checked().report()['size_truncate'];self.assertEqual(len(d['trn_destinations']),10)

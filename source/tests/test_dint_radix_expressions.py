@@ -90,10 +90,15 @@ class DintRadixExpressionTests(unittest.TestCase):
         def constant(root):root.find('./Controller/Tags/Tag[@Name="Dest"]').set('Constant', 'true')
         self.assertTrue(self.engine(['AFI()CPT(Dest,16#FFFFFFFF);'], dtype='DINT', mutate=constant, checked=False).blockers)
 
-    def test_default_st_index_parsers_and_caches_retain_legacy_words(self):
-        for options in [{}, {'structured':True}, {'subscript':True}, {'integer_literals':True}]:
+    def test_radix_sign_depends_on_parser_context_and_cache_mode(self):
+        for options in ({}, {'integer_literals':True}):
             expr = Expression('16#FFFFFFFF', **options)
-            self.assertEqual(expr.tree, ('literal', 4294967295)); self.assertEqual(expr.radix_types, set())
+            self.assertEqual(expr.tree, ('literal', 4294967295))
+            self.assertEqual(expr.radix_types, set())
+        for options in ({'structured':True}, {'subscript':True}):
+            expr = Expression('16#FFFFFFFF', **options)
+            self.assertEqual(expr.tree, ('literal', -1))
+            self.assertEqual(expr.radix_types, set())
         self.assertEqual(literal('16#FFFFFFFF'), 4294967295)
         self.assertEqual(Condition('16#FFFFFFFF=1').tree[2], ('literal', 4294967295))
         e = self.engine(['CPT(Dest,16#FFFFFFFF);'], dtype='DINT')

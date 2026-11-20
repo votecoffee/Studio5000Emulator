@@ -94,6 +94,8 @@ outermost enabled AOI instruction with the incoming rung power.
 - Coils and one-shots include OTE, OTL, OTU, ONS, OSR and OSF.
 - Timer and counter coverage includes TON, TOF, RTO, CTU and CTD. RES supports
   TIMER, COUNTER and CONTROL.
+- Data transition, sizing and conversions include DTR, SIZE, TRN, FRD,
+  TOD and SWPB.
 
 The faulting instruction and the remaining statements in each interrupted AOI
 are skipped. Interrupted invocations also skip their output copies. The
@@ -119,6 +121,11 @@ preserves the records, last timer execution time, counter edge and CONTROL
 file progress. A false RES skips the indexed record. Invalid lengths,
 division by zero, arithmetic result overflow and negative timer fields
 still cause scan rollback in the AOI.
+
+DTR can update its reference on either rung state. A bad index preserves the
+reference until a later scan can reach it. SIZE, TRN, FRD, TOD and SWPB skip
+their result write on an array bounds fault. Invalid SIZE dimensions and
+numeric conversion range errors still roll back the scan.
 
 AOI argument, output-transfer, Structured Text and prescan faults remain
 outside this profile. Native v35 behavior remains unverified.

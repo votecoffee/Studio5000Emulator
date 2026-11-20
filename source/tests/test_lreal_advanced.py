@@ -89,13 +89,15 @@ class LrealAdvancedTests(unittest.TestCase):
         def old(root):root.find('Controller').set('ProcessorType','1756-L75')
         self.assertTrue(self.engine(['SQR(Source,Dest);'],mutate=old).blockers)
 
-    def test_lreal_st_cpt_and_newer_instruction_aliases_remain_guarded(self):
+    def test_lreal_st_sqrt_and_ladder_alias_boundaries(self):
         for text in ('CPT(Dest,SQRT(Source));','SQRT(Source,Dest);','EXPT(Source,Mask,Dest);'):
             self.assertTrue(self.engine([text]).blockers,text)
         def st(root):
             routine=root.find('./Controller/Programs/Program/Routines/Routine');routine.set('Type','ST');routine.remove(routine.find('RLLContent'))
             E.SubElement(E.SubElement(routine,'STContent'),'Line',Number='0').text='Dest := SQRT(Source);'
-        self.assertTrue(self.engine(mutate=st).blockers)
+        engine = self.checked(mutate=st, value=9.0)
+        engine.step()
+        self.assertEqual(engine.memory.read('Dest'), 3.0)
 
     def aoi(self):
         q=queues.AOIQueueTests();q.setUp();self.addCleanup(q.doCleanups)

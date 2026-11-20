@@ -111,14 +111,18 @@ class MovRadixTests(unittest.TestCase):
         for key,value in [('ProcessorType','1756-L75'),('MajorRev','34')]:
             self.assertTrue(self.engine(['AFI()MOV(16#FFFFFFFF,Results[1]);'],mutate=lambda root:root.find('Controller').set(key,value)).blockers)
 
-    def test_constant_destinations_and_index_consumers_remain_guarded(self):
+    def test_constant_destinations_and_signed_index_boundaries(self):
         def constant(root):root.find('./Controller/Tags/Tag[@Name="Results"]').set('Constant','true')
         self.assertTrue(self.engine(['AFI()MOV(16#FFFFFFFF,Results[1]);'],mutate=constant).blockers)
         for text in ('FLL(16#FFFFFFFF,16#FFFFFFFF,1);', 'CLR(16#FFFFFFFF);'):
             self.assertTrue(self.engine([text]).blockers,text)
         for text in ('FLL(16#FFFFFFFF,Results[1],1);', 'CPT(Results[1],16#FFFFFFFF);'):
             e=self.checked([text]);e.step();self.assertEqual(e.memory.read('Results[1]'),-1)
-        self.fault(self.checked(['MOV(1,Results[16#FFFFFFFF]);']),'DINT overflow')
+        invalid = self.engine(['MOV(1,Results[16#FFFFFFFF]);'])
+        self.assertTrue(any('Array index outside bounds' in blocker for blocker in invalid.blockers))
+        valid = self.checked(['MOV(1,Results[1+16#FFFFFFFF]);'])
+        valid.step()
+        self.assertEqual(valid.memory.read('Results[0]'), 1)
         self.assertEqual(literal('16#FFFFFFFF'),4294967295)
 
     def test_report_describes_bounded_radix_source_scope(self):

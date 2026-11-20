@@ -86,11 +86,14 @@ class LrealStorageTests(unittest.TestCase):
         def old(root):root.find('Controller').set('ProcessorType','1756-L75')
         self.assertTrue(self.engine(source='LREAL',dest='LREAL',mutate=old).blockers)
 
-    def test_lreal_st_assignment_and_constant_destinations_remain_guarded(self):
+    def test_lreal_st_assignment_and_constant_destination_guard(self):
         def st(root):
             routine=root.find('./Controller/Programs/Program/Routines/Routine');routine.set('Type','ST');routine.remove(routine.find('RLLContent'))
             E.SubElement(E.SubElement(routine,'STContent'),'Line',Number='0').text='Dest := Source;'
-        self.assertTrue(self.engine(source='LREAL',dest='LREAL',mutate=st).blockers)
+        value = 1.0000000000000002
+        engine = self.checked(source='LREAL', dest='LREAL', value=value, mutate=st)
+        engine.step()
+        self.assertEqual(engine.memory.read('Dest'), value)
         def constant(root):root.find('./Controller/Tags/Tag[@Name="Results"]').set('Constant','true')
         self.assertTrue(self.engine(['AFI()MOV(Source,Results[1]);'],source='LREAL',dest='LREAL',mutate=constant).blockers)
 

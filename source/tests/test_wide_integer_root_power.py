@@ -77,7 +77,7 @@ class WideIntegerRootPowerTests(unittest.TestCase):
         e.memory.write('SpeedCommand', 0); self.fault(e, 'zero'); e.memory.write('SpeedCommand', 1); e.step()
         self.assertEqual(e.memory.read('Dest'), 3)
 
-    def test_mixed_types_permissions_profiles_st_and_index_paths_stay_guarded(self):
+    def test_wide_power_supported_st_context_and_ladder_guards(self):
         for text in ['Source+SQR(Mask)', 'Source**(Mask+1)']:
             self.assertTrue(self.engine([f'AFI()CPT(Dest,{text});'], types=('LINT', 'DINT', 'LINT'), checked=False).blockers)
         for text in ['SQRT(StartPB)', 'LN(StartPB)', 'SQR(Source)+1e39', 'Source**StartPB', 'SQR(StartPB)']:
@@ -86,10 +86,15 @@ class WideIntegerRootPowerTests(unittest.TestCase):
         self.assertTrue(self.engine(['AFI()CPT(Dest,SQR(Source));'], mutate=constant, checked=False).blockers)
         for key, value in [('ProcessorType', '1756-L75'), ('MajorRev', '34')]:
             self.assertTrue(self.engine(['AFI()CPT(Dest,Source**2L);'], mutate=lambda root:root.find('Controller').set(key, value), checked=False).blockers)
-        from logixlab.wide_st import analyze
-        e = self.engine(['CPT(Dest,SQR(Source));'])
-        for text, options in [('SQR(Source)', {}), ('Source**2', {'structured':True}), ('SQR(Source)', {'subscript':True})]:
-            with self.assertRaises(ModelError):analyze(Expression(text, **options), e.memory, destination_type='LINT')
+        from logixlab.wide_st import analyze, evaluate
+        engine = self.engine(['CPT(Dest,SQR(Source));'])
+        self.assertEqual(engine.memory.index('SQR(9)', ''), 3)
+        with self.assertRaises(ModelError):
+            engine.memory.index('SQR(Source)', '')
+        engine.memory.write('Source', 3037000499)
+        expression = Expression('Source**2', structured=True)
+        profile = analyze(expression, engine.memory, destination_type='LINT')
+        self.assertEqual(evaluate(expression, engine.memory, '', profile), 9223372030926249001)
 
     def test_fal_all_exact_roots_and_powers_preserve_unselected_guard(self):
         e = self.engine(['FAL(Ctl,?,?,ALL,Queue[Ctl.POS],SQR(Queue[Ctl.POS]));'], file=True, dtype='ULINT',

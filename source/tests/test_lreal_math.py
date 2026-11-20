@@ -111,7 +111,10 @@ class LrealMathTests(unittest.TestCase):
         def st(root):
             routine=root.find('./Controller/Programs/Program/Routines/Routine');routine.set('Type','ST');routine.remove(routine.find('RLLContent'))
             E.SubElement(E.SubElement(routine,'STContent'),'Line',Number='0').text='Dest := Source+Mask;'
-        self.assertTrue(self.engine(mutate=st).blockers)
+        engine = self.checked(mutate=st, value=16777216.0)
+        engine.memory.write('Mask', 1.0)
+        engine.step()
+        self.assertEqual(engine.memory.read('Dest'), 16777217.0)
 
     def test_existing_aoi_lreal_inout_and_local_arrays_retain_atomic_bindings(self):
         f=queues.AOIQueueTests();f.setUp();self.addCleanup(f.doCleanups)

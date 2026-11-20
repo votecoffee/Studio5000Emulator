@@ -606,6 +606,15 @@ class ProgramFaultTests(unittest.TestCase):
             ('LIM(12,Samples[Index+1],14)MOV(13,Scaled)', [88,13], 125),
             ('MEQ(15,Samples[Index+1],13)MOV(13,Scaled)', [88,13], 125),
             ('CMP(Samples[Index+1]+1=14)MOV(13,Scaled)', [88,13], 125),
+            ('FRD(Samples[Index+1],Samples[0])MOV(Samples[0],Scaled)', [13,13], 125),
+            ('FRD(16#1234,Samples[Index+1])MOV(Samples[1],Scaled)', [88,1234], 1346),
+            ('TOD(Samples[Index+1],Samples[0])MOV(Samples[0],Scaled)', [19,13], 131),
+            ('TOD(1234,Samples[Index+1])MOV(Samples[1],Scaled)', [88,4660], 4772),
+            ('SWPB(Samples[Index+1],WORD,Samples[0])MOV(13,Scaled)', [851968,13], 125),
+            ('SWPB(Samples[0],WORD,Samples[Index+1])MOV(13,Scaled)', [88,5767168], 125),
+            ('SIZE(Samples[Index+1],0,Scaled)', [88,13], 114),
+            ('SIZE(Samples,0,Samples[Index+1])MOV(Samples[1],Scaled)', [88,2], 114),
+            ('TRN(-12.75L,Samples[Index+1])MOV(Samples[1],Scaled)', [88,-12], 100),
         )
         for work,values,result in cases:
             with self.subTest(work=work):
@@ -726,18 +735,47 @@ class ProgramFaultTests(unittest.TestCase):
                     self.assertEqual(engine.memory.read('LabValues'), [88,held])
                     self.assertIs(engine.last_cleared_program_fault, fault)
 
-    def test_nested_aoi_arithmetic_errors_roll_back_without_handler(self):
-        for work,cause in (
-            ('DIV(Samples[0],Index,Scaled)', 'divide by zero'),
-            ('ADD(2147483647,1,Samples[1])', 'DINT overflow'),
-            ('CPT(Scaled,Samples[1]/Index)', 'divide by zero'),
+    def test_nested_aoi_dtr_array_fault_keeps_reference_on_either_rung_state(self):
+        for power in (True, False):
+            with self.subTest(power=power):
+                self.setUp()
+                operation = 'DTR(7,255,Samples[Index+1])'
+                if not power:
+                    operation = f'[AFI(){operation},NOP()]'
+                work = operation + 'MOV(Samples[1],Scaled)'
+                engine = self.engine(mutate=lambda root:nested_aoi_array_fault_fixture(root, work=work))
+                self.assertEqual(engine.blockers, [])
+                engine.enter_run()
+                engine.memory.write('LabValues[1]', 13)
+                engine.memory.write('LabIndex', 2)
+                engine.memory.write('SpeedCommand', 50)
+                engine.memory.write('StartPB', True)
+                engine.step()
+                fault = engine.last_cleared_program_fault
+                self.assertEqual((fault['type'], fault['code'], fault['instruction']), (4, 20, 'LABWRAPPER'))
+                self.assertIn('AOI:LabScale/Logic, DTR: Array index outside bounds', fault['detail'])
+                self.assertEqual(engine.memory.read('LabValues'), [88,13])
+                self.assertEqual(engine.memory.read('SpeedCommand'), 51)
+                self.assertEqual(engine.memory.read('LabIndex'), 0)
+                engine.step()
+                self.assertEqual(engine.memory.read('LabValues'), [88,7])
+                self.assertEqual(engine.memory.read('SpeedCommand'), 119)
+                self.assertIs(engine.last_cleared_program_fault, fault)
+
+    def test_nested_aoi_scalar_errors_roll_back_without_handler(self):
+        for work,index,cause in (
+            ('DIV(Samples[0],Index,Scaled)', 0, 'divide by zero'),
+            ('ADD(2147483647,1,Samples[1])', 0, 'DINT overflow'),
+            ('CPT(Scaled,Samples[1]/Index)', 0, 'divide by zero'),
+            ('TOD(-1,Samples[0])', 0, 'TOD source outside'),
+            ('SIZE(Samples,Index,Scaled)', 1, 'SIZE dimension exceeds array rank'),
         ):
             with self.subTest(work=work):
                 self.setUp()
                 engine = self.engine(mutate=lambda root:nested_aoi_array_fault_fixture(root,work=work))
                 self.assertEqual(engine.blockers,[])
                 engine.memory.write('StartPB',True)
-                engine.memory.write('LabIndex',0)
+                engine.memory.write('LabIndex',index)
                 before = copy.deepcopy(engine.memory.values)
                 with self.assertRaisesRegex(ModelError,cause):
                     engine.step()
