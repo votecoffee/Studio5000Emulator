@@ -9,6 +9,8 @@ let locatorTimer = null, locatorRequest = null, locatorDeadline = 0;
 const ladderDrafts = new Map();
 let editingDraft = null, draftFileRequest = 0, draftCheckRequest = 0, draftApplyPending = false;
 let displayedDraftCatalog;
+const draftReviewDialog = $('ladder-draft-review-dialog');
+let displayedReviewRungs;
 const recognized = name => report?.supported_instructions.includes(name) || report?.known_add_on_instructions?.includes(name) || report?.function_blocks?.instructions?.includes(name);
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const logicView = LogixLogicView.create({canvas: $('rungs'), inspector: $('instruction-inspector'), status: $('logic-status'),
@@ -61,6 +63,17 @@ $('ladder-draft-save').onclick = () => {
   const draft = ladderDrafts.get(editingDraft);
   if (!draft?.changed) return;
   download(draftDocument(draft), selected.replace(/[^a-z0-9_-]+/gi, '-') + '.ladder-draft.json');
+};
+$('ladder-draft-review').onclick = () => {
+  const draft = ladderDrafts.get(editingDraft);
+  if (!draft?.changed || draftApplyPending) return;
+  renderDraftReview(draft);
+  draftReviewDialog.showModal();
+};
+draftReviewDialog.onclose = () => {
+  if (draftReviewDialog.open) return;
+  displayedReviewRungs = null;
+  $('ladder-draft-review-rows').replaceChildren();
 };
 $('ladder-draft-validate').onclick = async () => {
   const key = editingDraft, draft = ladderDrafts.get(key);
@@ -220,7 +233,10 @@ function render() {
   $('device-summary').textContent=`Snapshot ${device.snapshot_sequence||0} · ${device.pending_writes||0}/${device.queue_capacity||64} queued input batches · apply between scans`;
   const moduleFault = state?.controller?.module_major_fault;
   $('clear-module-fault').hidden = !moduleFault;
-  if (!loaded) return;
+  if (!loaded) {
+    if (draftReviewDialog.open) draftReviewDialog.close();
+    return;
+  }
   $('project-name').textContent = state.name;
   $('project-detail').textContent = `Studio 5000 v${state.version} · ${state.processor} · ${state.routines.length} routines · ${state.mode === 'routine' ? 'isolated routine harness' : 'whole project'}`;
   $('scan').textContent = state.scan.toLocaleString(); $('time').textContent = state.ms.toLocaleString();
@@ -343,6 +359,77 @@ function openDraftComment(index) {
   };
   dialog.showModal();
 }
+function draftReviewColumn(side, rung, showComment) {
+  const column = document.createElement('div'), heading = document.createElement('h4');
+  heading.textContent = side + ' rung ' + rung.number;
+  const logic = document.createElement('pre');
+  logic.textContent = rung.text;
+  column.append(heading, logic);
+  if (showComment) {
+    const comment = document.createElement('p');
+    comment.className = 'lv-draft-review-comment';
+    comment.textContent = rung.comment || 'No comment';
+    column.append(comment);
+  }
+  return column;
+}
+function renderDraftReview(draft) {
+  displayedReviewRungs = draft.rungs;
+  $('ladder-draft-review-routine').textContent = selected;
+  const counts = {added: 0, removed: 0, edited: 0, renumbered: 0};
+  const numberChanges = [], content = document.createDocumentFragment();
+  for (const item of draft.review()) {
+    counts[item.kind]++;
+    if (item.kind === 'renumbered') {
+      numberChanges.push(item);
+      continue;
+    }
+    const row = document.createElement('article'), header = document.createElement('div');
+    row.dataset.reviewKind = item.kind;
+    header.className = 'lv-draft-review-row-head';
+    const heading = document.createElement('h3');
+    heading.textContent = item.kind === 'added' ? 'Added' : item.kind === 'removed' ? 'Removed' :
+      item.logic && item.comment ? 'Logic and comment changed' : item.logic ? 'Logic changed' : 'Comment changed';
+    header.append(heading);
+    if (item.after) {
+      const jump = document.createElement('button');
+      jump.type = 'button';
+      jump.textContent = 'Go to rung ' + item.after.number;
+      jump.onclick = () => {
+        draftReviewDialog.close();
+        logicView.focusDraftRung(item.index, '.lv-draft-gap');
+      };
+      header.append(jump);
+    }
+    const columns = document.createElement('div');
+    columns.className = 'lv-draft-review-columns';
+    const showComment = item.before?.comment || item.after?.comment;
+    if (item.before) columns.append(draftReviewColumn('Loaded', item.before, showComment));
+    if (item.after) columns.append(draftReviewColumn('Draft', item.after, showComment));
+    row.append(header, columns);
+    content.append(row);
+  }
+  if (numberChanges.length) {
+    const numbering = document.createElement('details'), label = document.createElement('summary');
+    numbering.className = 'lv-draft-review-numbering';
+    label.textContent = 'Renumbering only';
+    numbering.append(label);
+    numbering.addEventListener('toggle', () => {
+      if (!numbering.open || numbering.children.length !== 1) return;
+      const list = document.createElement('ul');
+      for (const {from, to} of numberChanges) {
+        const li = document.createElement('li');
+        li.textContent = `Loaded rung ${from} → Draft rung ${to}`;
+        list.append(li);
+      }
+      numbering.append(list);
+    });
+    content.append(numbering);
+  }
+  $('ladder-draft-review-summary').textContent = Object.entries(counts).filter(([, count]) => count)
+    .map(([kind, count]) => `${count} ${kind}`).join(' · ') || 'No changes in this draft.';
+  $('ladder-draft-review-rows').replaceChildren(content);
+}
 function showDraftCheck(message, diagnostics = [], pending = false) {
   const section = $('ladder-draft-validation'), details = $('ladder-draft-diagnostics');
   section.hidden = !message;
@@ -423,6 +510,7 @@ function draftControls(routine) {
   $('ladder-draft-undo').disabled = draftApplyPending || !draft?.canUndo;
   $('ladder-draft-redo').disabled = draftApplyPending || !draft?.canRedo;
   $('ladder-draft-save').disabled = draftApplyPending || !draft?.changed;
+  $('ladder-draft-review').disabled = draftApplyPending || !draft?.changed;
   $('ladder-draft-open').disabled = draftApplyPending;
   $('ladder-draft-discard').disabled = draftApplyPending;
   const apply = $('ladder-draft-apply');
@@ -433,6 +521,10 @@ function draftControls(routine) {
     'Replace the loaded routine in memory';
   $('logic-view-mode').textContent = draft ? 'Offline draft' : 'Read-only monitor';
   $('logic-values').closest('label').hidden = !!draft;
+  if (draftReviewDialog.open) {
+    if (!draft || draftApplyPending) draftReviewDialog.close();
+    else if (displayedReviewRungs !== draft.rungs) renderDraftReview(draft);
+  }
   return draft;
 }
 function renderLadder() {

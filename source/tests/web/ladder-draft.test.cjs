@@ -311,3 +311,35 @@ test('draft moves retain authored pseudo-operands without changing monitor nodes
   assert.equal(draft.rungs[1].text, 'TON(Timer,250,0)MOV(0,Count);');
   assert.deepEqual(timer.args, ['Timer', '?', '?']);
 });
+
+test('review pairs rungs by source identity and separates numbering from content changes', () => {
+  const routine = fixture();
+  routine.rungs[0].number = '8';
+  routine.rungs[1].number = '19';
+  routine.rungs.push({number: '21', text: 'NOP();', comment: '', nodes: [op('NOP')]},
+    {number: '24', text: 'NOP();', comment: 'Retain', nodes: [op('NOP')]});
+  const draft = createDraft(routine);
+  assert.deepEqual(draft.review(), []);
+  assert(draft.insertRung(0));
+  assert(draft.setComment(1, 'New comment\nSecond line'));
+  assert(draft.setOperands(2, draft.rungs[2].nodes[0].draftId, ['8', 'Count']));
+  assert(draft.removeRung(3));
+  const changes = draft.review();
+  assert.deepEqual(changes, [
+    {kind: 'added', after: {number: '0', text: ';', comment: ''}, index: 0},
+    {kind: 'edited', before: {number: '8', text: '  XIC(Start) OTE(Run);', comment: 'Seal in'},
+      after: {number: '1', text: '  XIC(Start) OTE(Run);', comment: 'New comment\nSecond line'}, logic: false, comment: true, index: 1},
+    {kind: 'edited', before: {number: '19', text: 'MOV(0, Count);', comment: 'Reset'},
+      after: {number: '2', text: 'MOV(8,Count);', comment: 'Reset'}, logic: true, comment: false, index: 2},
+    {kind: 'removed', before: {number: '21', text: 'NOP();', comment: ''}},
+    {kind: 'renumbered', from: '24', to: '3'}
+  ]);
+  changes[1].after.comment = 'Changed the review only';
+  assert.equal(draft.rungs[1].comment, 'New comment\nSecond line');
+  const reopened = createDraft(routine);
+  assert(reopened.restore(draft.rungs));
+  assert.deepEqual(reopened.review(), draft.review());
+  for (let index = 0; index < 4; index++) assert(draft.undo());
+  assert.deepEqual(draft.review(), []);
+  assert.equal(draft.changed, false);
+});

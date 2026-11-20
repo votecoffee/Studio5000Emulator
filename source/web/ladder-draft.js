@@ -144,6 +144,31 @@
       return Number.isInteger(fromRung) && Number.isInteger(toRung) &&
         !!movePlacement(rungs[fromRung]?.nodes, id, rungs[toRung]?.nodes, gap);
     }
+    function review() {
+      const changes = [];
+      const detail = ({number, text, comment}) => ({number, text, comment});
+      let loadedIndex = 0;
+      for (const [index, rung] of rungs.entries()) {
+        if (rung.base_index === null) {
+          changes.push({kind: 'added', after: detail(rung), index});
+          continue;
+        }
+        while (loadedIndex < rung.base_index) {
+          changes.push({kind: 'removed', before: detail(base[loadedIndex++])});
+        }
+        const before = base[loadedIndex++];
+        const logic = before.text !== rung.text, comment = before.comment !== rung.comment;
+        if (logic || comment) {
+          changes.push({kind: 'edited', before: detail(before), after: detail(rung), logic, comment, index});
+        } else if (before.number !== rung.number) {
+          changes.push({kind: 'renumbered', from: before.number, to: rung.number});
+        }
+      }
+      while (loadedIndex < base.length) {
+        changes.push({kind: 'removed', before: detail(base[loadedIndex++])});
+      }
+      return changes;
+    }
 
     return {
       get rungs() {return rungs;},
@@ -152,6 +177,7 @@
       get canUndo() {return past.length > 0;},
       get canRedo() {return future.length > 0;},
       operandShape,
+      review,
       insertRung(index) {
         if (!Number.isInteger(index) || index < 0 || index > rungs.length) return false;
         const next = rungs.slice();

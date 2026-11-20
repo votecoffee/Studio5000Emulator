@@ -187,6 +187,12 @@ The remaining operands are returns. **ALMD** adds or removes its legacy
 preset and accumulator as a pair. Required AOI arguments, including hidden
 ones, appear after the instance in definition order.
 
+Choose **Review changes** to compare the loaded and drafted rung text and
+comments side by side. A retained rung is matched to its original rung even
+if its number changed. Open **Renumbering only** to see numbering changes
+without edits to the rung's logic or comment. **Go to rung** returns to the
+draft and focuses an insertion point on the selected rung.
+
 Use **Validate draft** to check the edited routine with the
 loaded project's tag definitions, call targets and execution plan. The check
 builds a temporary model with the project's initial tag values and previews
@@ -225,15 +231,15 @@ The next authoring stages build on these same instruction nodes and connections:
 3. Add a graph-to-neutral-text compiler and source mappings. Round-trip imported
    rungs, nested branches and supported instructions through the existing parser
    and execution checks. Keep ambiguous/unsupported source visible.
-4. Add document revisions, change review and explicit save/export to new L5X
-   working copies, followed by project editing and persistence. Reuse the graph
+4. Extend routine revisions, change review and L5X working copies to
+   project editing and persistence. Reuse the graph
    in an editor rather than representing ladder as nested instruction cards.
 5. Qualify native engineering transfers and online editing separately from
    offline authoring and simulation.
 
 The draft tools cover wire insertion, drag moves, branch resizing and legs,
 operand editing, rung layout and comments, deletion, history, reopening saved
-drafts, execution preflight, applying a routine offline and exporting a
+drafts, change review, execution preflight, applying a routine offline and exporting a
 separate L5X copy.
 
 ## Verification

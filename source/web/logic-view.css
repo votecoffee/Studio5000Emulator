@@ -41,6 +41,30 @@
 .lv-draft-rung-actions button {background:#fff;color:#315d81;border:1px solid #bdcbd8;border-radius:3px;padding:3px 7px;font-size:11px}
 .lv-draft-rung-actions button:hover:not(:disabled) {background:#e6edf5}
 #ladder-comment-text {resize:vertical;color:var(--text);background:#111a1e;border:1px solid #34434a;border-radius:5px;padding:8px;font:inherit}
+#ladder-draft-review-dialog {width:min(calc(100vw - 28px), 1000px);max-width:none;max-height:84vh;padding:0;overflow:auto}
+.lv-draft-review-header {position:sticky;top:0;z-index:1;height:auto;gap:12px;padding:12px 16px;background:#1b272d}
+.lv-draft-review-header h2 {margin:0}
+.lv-draft-review-header p {margin:4px 0 0;overflow-wrap:anywhere}
+.lv-draft-review-body {padding:12px 16px 16px}
+#ladder-draft-review-summary {margin:0 0 10px}
+#ladder-draft-review-rows {display:grid;gap:10px}
+#ladder-draft-review-rows article,.lv-draft-review-numbering {border:1px solid #506269;border-radius:6px;background:#152126}
+.lv-draft-review-row-head {display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 10px;border-bottom:1px solid #34434a}
+.lv-draft-review-row-head h3 {margin:0;font-size:12px;letter-spacing:0}
+.lv-draft-review-row-head button {padding:4px 8px}
+.lv-draft-review-columns {display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0, 1fr)}
+.lv-draft-review-columns > div {padding:8px 10px}
+.lv-draft-review-columns > div + div {border-left:1px solid #34434a}
+.lv-draft-review-columns h4 {margin:0 0 8px;color:#b6ced9;font-size:11px}
+.lv-draft-review-columns pre,.lv-draft-review-comment {margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.55 Consolas,monospace}
+.lv-draft-review-columns .lv-draft-review-comment {margin-top:8px;padding-top:6px;border-top:1px solid #34434a;color:#b7c9bb}
+.lv-draft-review-numbering {padding:8px 10px}
+.lv-draft-review-numbering summary {cursor:pointer}
+.lv-draft-review-numbering ul {margin:6px 0 0;padding-left:22px}
+@media(max-width:620px) {
+  .lv-draft-review-columns {grid-auto-flow:row}
+  .lv-draft-review-columns > div + div {border-left:0;border-top:1px solid #34434a}
+}
 .lv-rung-comment {color:#215c30;background:#f6f9f5;border-bottom:1px solid #e3e9df;font:12px/1.5 Consolas,monospace;padding:8px 24px 8px 78px;max-width:1100px;white-space:pre-wrap;overflow-wrap:anywhere}
 .lv-ladder {display:block;overflow:visible;font:12px Consolas,'Courier New',monospace;user-select:none}
 .lv-rung-number {fill:#64778a;font-size:11px}

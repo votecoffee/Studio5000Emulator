@@ -1719,7 +1719,7 @@ snapshot/restart/replay, resource limits and useful module/axis/chart monitors.
 
 The [offline ladder editor](logic-viewer.md#offline-ladder-drafts) supports
 instruction and branch editing, rung insertion and deletion, rung comments,
-undo/redo, draft files, execution preflight and L5X working copies. Durable
+undo/redo, draft files, change review, execution preflight and L5X working copies. Durable
 project-wide identities and broader topology and operand validation remain
 planned. Native transfers and online authoring require their own qualification.
 

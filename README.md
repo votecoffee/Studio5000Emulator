@@ -35,6 +35,7 @@ Add-On Instructions defined in the loaded project.
 Add or delete rungs and edit their comments.
 Undo and redo cover each draft change.
 Save and reopen draft JSON against the original project and routine.
+Use **Review changes** to compare draft rungs with the loaded routine.
 Use **Validate draft** to check your changes. In Program mode, **Apply draft**
 replaces the loaded routine in memory, including supported AOI calls.
 **Save edited L5X** downloads a separate working copy with the original tag
