@@ -22,7 +22,8 @@ mixed signed/unsigned promotions and additional literal forms remain blocked,
 including expressions in unreachable branches.
 
 Supported operations are addition, subtraction, multiplication, exact integer
-division/remainder, integer powers, unary plus/minus, ABS, AND/OR/XOR/NOT and comparisons. Every
+division/remainder, integer powers and roots, unary plus/minus, ABS,
+AND/OR/XOR/NOT and comparisons. Every
 numeric intermediate must fit its declared type. Bitwise operations use that
 type's width; unsigned NOT retains the full unsigned result. Quotients truncate
 toward zero and remainders retain the dividend's sign. Values above 2^53 remain
@@ -47,6 +48,16 @@ result rolls back the advance. Wide ST uses the existing checked ladder
 integer evaluator for power. Native v35 wide exponent behavior remains
 unverified.
 [Rockwell Structured Text arithmetic operators](https://www.rockwellautomation.com/en-be/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/structured-text-attributes/use-operators-and-functions.html)
+
+## Integer square roots
+
+`SQRT` rounds the square root of the operand's magnitude to the nearest
+integer in its declared type. The emulator also accepts `SQR` as an alias
+in ST. It uses integer arithmetic throughout, so two adjacent ULINT values
+can round to different results even near the top of the type's range. The
+existing intermediate range checks apply before evaluating the root.
+Native v35 wide square-root behavior remains unverified.
+[Rockwell square-root reference](https://www.rockwellautomation.com/en-be/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/compute-math-instructions/square-root--sqrt-.html)
 
 ## Context and failures
 
@@ -73,6 +84,10 @@ a later ST fault after ladder work; correct the input to 3 before retrying.
 Enable `RunStPower` to evaluate `3UL**StPowerExponent`. The result is exact
 with the default exponent 40. Exponent 41 overflows ULINT and rolls back the
 advance. Restore 40 to retry.
+
+Enable `RunStRoot` to evaluate `SQRT(StRootInput)`. The saved input
+16000000004000000000 produces 4000000000. Increase the input by one and step
+again to see 4000000001.
 See [IntegerLab.L5X](../source/samples/IntegerLab.L5X) and
 [implementation](../source/logixlab/wide_st.py).
 

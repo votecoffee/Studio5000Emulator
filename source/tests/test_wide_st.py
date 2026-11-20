@@ -166,8 +166,42 @@ class WideStructuredTests(unittest.TestCase):
         for source in ('WideDest:=WideA**2.5;', 'WideDest:=WideA**2UL;', 'WideDest:=WideA**StartPB;'):
             self.assertTrue(self.engine(source).blockers, source)
 
+    def test_square_root_accepts_all_wide_types_and_signed_magnitudes(self):
+        for dtype, operand, expected in (
+            ('USINT', 255, 16),
+            ('UINT', 65535, 256),
+            ('UDINT', 4294967295, 65536),
+            ('LINT', -(1 << 63), 3037000500),
+            ('ULINT', (1 << 64) - 1, 4294967296),
+        ):
+            with self.subTest(dtype=dtype):
+                e = self.checked('WideDest:=SQRT(WideA); Result:=SQR(WideA)=WideDest;', dtype, operand)
+                e.step()
+                self.assertEqual(e.memory.read('WideDest'), expected)
+                self.assertIs(e.memory.read('Result'), True)
+
+    def test_square_root_resolves_adjacent_rounding_threshold_values_exactly(self):
+        e = self.checked('WideDest:=SQRT(16000000004000000000UL+WideB);', 'ULINT', b=0)
+        for offset, expected in ((0, 4000000000), (1, 4000000001)):
+            e.memory.write('WideB', offset)
+            e.step()
+            self.assertEqual(e.memory.read('WideDest'), expected)
+
+    def test_square_root_checks_intermediate_overflow_and_rolls_back_only_when_reached(self):
+        e = self.checked('WideDest:=7; IF StartPB THEN WideDest:=SQR(WideA+WideB); END_IF;',
+                         'ULINT', a=(1 << 64) - 1, b=1)
+        e.memory.write('StartPB', False)
+        e.step()
+        self.assertEqual(e.memory.read('WideDest'), 7)
+        e.memory.write('StartPB', True)
+        e.memory.write('WideDest', 42)
+        before = copy.deepcopy(e.memory.values)
+        with self.assertRaisesRegex(ModelError, 'ULINT overflow'):
+            e.step()
+        self.assertEqual(e.memory.values, before)
+
     def test_other_functions_and_numeric_bool_comparisons_are_rejected(self):
-        for source in ('WideDest:=TRUNC(WideA);','WideDest:=SQRT(WideA);','Result:=WideA=StartPB;'):
+        for source in ('WideDest:=TRUNC(WideA);','WideDest:=SQRT(StartPB);','Result:=WideA=StartPB;'):
             self.assertTrue(self.engine(source).blockers,source)
 
     def test_wide_for_case_and_array_index_forms_remain_explicitly_blocked(self):

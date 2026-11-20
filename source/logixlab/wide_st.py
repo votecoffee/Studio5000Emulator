@@ -29,9 +29,9 @@ def analyze(expression,memory,scope='',destination_type=None,*,consumer='ST'):
         raise ModelError(label+' numeric destination must match the expression type')
     ladder_math = consumer in ('CPT','CMP','FAL')
     bcd = {'FRD','TOD'} if expression.bcd and ladder_math and not mixed else set()
-    roots = {'SQR'} if ladder_math else set()
+    roots = {'SQR', 'SQRT'} if consumer == 'ST' else {'SQR'}
     if expression.functions-{'ABS'}-bcd-roots:
-        raise ModelError(label+' supports ABS and qualified ladder FRD/TOD/SQR; other functions remain unqualified')
+        raise ModelError(label+' supports ABS, qualified square roots and ladder FRD/TOD; other functions remain unqualified')
     types={ref:'string' if ref in strings else 'bool' if kind=='BOOL' else 'number' for ref,kind in declared.items()}
     for ref in declared:
         if ref in strings:
@@ -116,7 +116,7 @@ def evaluate(expression,memory,scope,profile):
         if kind=='call':
             item=visit(node[2])
             if value=='ABS':return number(abs(item))
-            if value=='SQR':
+            if value in ('SQR', 'SQRT'):
                 from .real_math import rounded_integer_root
                 return number(rounded_integer_root(item))
             from .numeric_conversions import from_bcd,to_bcd
@@ -213,7 +213,8 @@ def ladder_description(project):
 def description(project):
     return dict(profile='v35-5580-homogeneous-wide-ST',types=sorted(WIDE_TYPES),
                 available=project.version=='35' and project.processor.upper() in CONTROLLERS,
-                operators=['+','-','*','/','MOD','**','AND','OR','XOR','NOT','ABS','comparisons'],
+                operators=['+','-','*','/','MOD','**','AND','OR','XOR','NOT','ABS','SQR','SQRT','comparisons'],
+                square_root='Round the root of the operand magnitude to the nearest integer with exact integer arithmetic',
                 power='Integer exponent from zero to one less than the type width; exact checked result',
                 literals='Untyped signed DINT integers or matching decimal and binary/octal/hexadecimal L/U/UL literals within declared width',
                 arithmetic='Exact integers, quotient toward zero; every numeric intermediate must fit its declared type',
