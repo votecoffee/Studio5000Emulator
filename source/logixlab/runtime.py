@@ -41,9 +41,10 @@ ARRAY_FAULT_RECOVERY_OPS = (
 )
 # These ladder AOI instructions leave no partial writes on an array bounds error.
 AOI_ARRAY_FAULT_RECOVERY_OPS = (
-    frozenset(('MOV', 'CLR', 'COP', 'CPS', 'FLL', 'CPT', 'CMP', 'XIC', 'XIO',
+    frozenset(('MOV', 'CLR', 'COP', 'CPS', 'FLL', 'CPT', 'CMP',
                'TON', 'TOF', 'RTO', 'CTU', 'CTD', 'RES'))
-    | scalar_math.INSTRUCTIONS | bit_transfer.INSTRUCTIONS | comparisons.INSTRUCTIONS
+    | scalar_math.INSTRUCTIONS | bit_logic.INSTRUCTIONS | bit_transfer.INSTRUCTIONS
+    | comparisons.INSTRUCTIONS
 )
 _CONTROL_PRESCAN = {
     instruction: family.prescan
@@ -1202,9 +1203,10 @@ class Engine:
         elif n in ("ONS", "OSR", "OSF"):
             old = bool(r(0))
             pulse = (p and not old) if n != "OSF" else (not p and old)
-            w(0, p)
-            if n == "ONS": return pulse
-            w(1, pulse)
+            if n == "ONS":
+                w(0, p)
+                return pulse
+            bit_logic.write_pulse(self.memory, a, p, pulse, scope)
         elif n in ("EQU", "NEQ", "LES", "LEQ", "GRT", "GEQ"):
             return p and {"EQU": operator.eq, "NEQ": operator.ne, "LES": operator.lt,
                           "LEQ": operator.le, "GRT": operator.gt, "GEQ": operator.ge}[n](r(0), r(1))

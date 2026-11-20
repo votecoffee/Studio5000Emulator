@@ -643,6 +643,89 @@ class ProgramFaultTests(unittest.TestCase):
         self.assertEqual(engine.memory.read('LabValues'),[88,13])
         self.assertEqual(engine.memory.read('SpeedCommand'),125)
 
+    def test_nested_aoi_coil_and_ons_array_faults_skip_the_write_and_retry(self):
+        cases = (
+            ('OTE', '', 1, 15, 125),
+            ('OTE', 'AFI()', 2, 9, 174),
+            ('OTL', '', 1, 15, 125),
+            ('OTU', '', 2, 9, 125),
+            ('ONS', '', 1, 15, 125),
+        )
+        for name, gate, bit, repaired_word, speed in cases:
+            with self.subTest(instruction=name, gate=gate):
+                self.setUp()
+                work = f'{gate}{name}(Samples[Index+1].{bit})MOV(13,Scaled)'
+                engine = self.engine(mutate=lambda root:nested_aoi_array_fault_fixture(root, work=work))
+                self.assertEqual(engine.blockers, [])
+                engine.enter_run()
+                engine.memory.write('LabValues[1]', 13)
+                engine.memory.write('LabIndex', 2)
+                engine.memory.write('SpeedCommand', 50)
+                engine.memory.write('StartPB', True)
+                engine.step()
+                fault = engine.last_cleared_program_fault
+                self.assertEqual((fault['type'], fault['code'], fault['instruction']), (4, 20, 'LABWRAPPER'))
+                self.assertIn(f'AOI:LabScale/Logic, {name}: Array index outside bounds', fault['detail'])
+                self.assertEqual(engine.memory.read('LabValues'), [88,13])
+                self.assertEqual(engine.memory.read('LabIndex'), 0)
+                self.assertEqual(engine.memory.read('SpeedCommand'), 51)
+                engine.step()
+                self.assertEqual(engine.memory.read('LabValues'), [88,repaired_word])
+                self.assertEqual(engine.memory.read('SpeedCommand'), speed)
+                self.assertIs(engine.last_cleared_program_fault, fault)
+                if name == 'ONS':
+                    engine.step()
+                    self.assertEqual(engine.memory.read('SpeedCommand'), 174)
+
+    def test_nested_aoi_false_latches_skip_invalid_index(self):
+        work = '[AFI()OTL(Samples[Index+1].1)OTU(Samples[Index+1].2),NOP()]MOV(13,Scaled)'
+        engine = self.engine(mutate=lambda root:nested_aoi_array_fault_fixture(root, work=work))
+        self.assertEqual(engine.blockers, [])
+        engine.memory.write('LabIndex', 2)
+        engine.memory.write('StartPB', True)
+        engine.step()
+        self.assertIsNone(engine.last_cleared_program_fault)
+        self.assertEqual(engine.memory.read('LabIndex'), 2)
+        self.assertEqual(engine.memory.read('LabValues'), [88,13])
+        self.assertEqual(engine.memory.read('SpeedCommand'), 125)
+
+    def test_nested_aoi_pulse_fault_restores_packed_word_before_handler(self):
+        for fallback, name, initial, pulsed, held in (
+            (False, 'OSR', 9, 15, 11),
+            (False, 'OSF', 11, 13, 9),
+            (True, 'OSR', 9, 15, 11),
+        ):
+            with self.subTest(fallback=fallback, instruction=name):
+                self.setUp()
+                gate = 'AFI()' if name == 'OSF' else ''
+                work = f'{gate}{name}(Samples[1].1,Samples[Index+1].2)MOV(13,Scaled)'
+
+                def configure(root):
+                    nested_aoi_array_fault_fixture(root, work=work)
+                    root.find('.//Routine[@Name="RecoverMove"]/RLLContent/Rung[last()]/Text').text = (
+                        'MOV(LabValues[1],FaultWords[3])MOV(0,LabIndex);')
+
+                engine = self.engine(mutate=configure)
+                self.assertEqual(engine.blockers, [])
+                engine.enter_run()
+                engine.memory.write('LabValues[1]', initial)
+                engine.memory.write('LabIndex', 2)
+                engine.memory.write('SpeedCommand', 50)
+                engine.memory.write('StartPB', True)
+                with patch('logixlab.bit_logic.available', return_value=not fallback):
+                    engine.step()
+                    fault = engine.last_cleared_program_fault
+                    self.assertEqual((fault['type'], fault['code'], fault['instruction']), (4, 20, 'LABWRAPPER'))
+                    self.assertIn(f'AOI:LabScale/Logic, {name}: Array index outside bounds', fault['detail'])
+                    self.assertEqual(engine.memory.read('FaultWords[3]'), initial)
+                    self.assertEqual(engine.memory.read('LabValues'), [88,initial])
+                    self.assertEqual(engine.memory.read('SpeedCommand'), 51)
+                    engine.step()
+                    self.assertEqual(engine.memory.read('LabValues'), [88,pulsed])
+                    engine.step()
+                    self.assertEqual(engine.memory.read('LabValues'), [88,held])
+                    self.assertIs(engine.last_cleared_program_fault, fault)
+
     def test_nested_aoi_arithmetic_errors_roll_back_without_handler(self):
         for work,cause in (
             ('DIV(Samples[0],Index,Scaled)', 'divide by zero'),

@@ -26,7 +26,7 @@ def validate(engine, op, scope):
     return True
 
 
-def _write_pulse(memory, args, storage, pulse, scope):
+def write_pulse(memory, args, storage, pulse, scope):
     # The output index can depend on the storage write. Save the original
     # scalar or packed word at its resolved address for bounds recovery.
     key, parts, _ = memory.check_writable(args[0], scope)
@@ -45,7 +45,7 @@ def prescan(memory, op, scope):
     name, args = op.name, op.args
     try:
         if name in ('OSR', 'OSF'):
-            _write_pulse(memory, args, name == 'OSR', False, scope)
+            write_pulse(memory, args, name == 'OSR', False, scope)
         else:
             memory.write(args[0], name == 'ONS', scope)
     except ArrayBoundsError:
@@ -71,7 +71,7 @@ def execute(memory, op, power, scope):
             memory.write(args[0], power, scope)
             return pulse
 
-        _write_pulse(memory, args, power, pulse, scope)
+        write_pulse(memory, args, power, pulse, scope)
     return power
 
 
@@ -85,7 +85,7 @@ def description(project):
                 one_shots='ONS/OSR false and OSF true skip prior storage reads; other transitions require known history',
                 prescan='OTE clears; ONS/OSR set storage; OSF clears storage; OSR/OSF clear pulse output; out-of-bounds selections skip the instruction',
                 packed_bits='Partial writes require known backing integers to preserve neighboring bits',
-                array_recovery='Whole-project ladder handlers can clear Type 4 Code 20 and skip any of these bit instructions',
+                array_recovery='Whole-project handlers can clear Type 4 Code 20 and skip the faulting instruction or its outer ladder AOI call',
                 pulse_recovery='OSR/OSF restore the original storage value before handling an out-of-bounds output index',
                 failures='Reached unknowns, unrecovered array faults and later errors roll back the advance and existing AOI state',
                 native_runtime_parity=False,

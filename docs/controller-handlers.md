@@ -91,6 +91,7 @@ outermost enabled AOI instruction with the incoming rung power.
 - Bitwise and bit transfers: AND, OR, XOR, NOT, MVM and BTD.
 - Contacts and comparisons: XIC, XIO, EQU, NEQ, LES, LEQ, GRT, GEQ, LIM,
   MEQ and CMP.
+- Coils and one-shots include OTE, OTL, OTU, ONS, OSR and OSF.
 - Timer and counter coverage includes TON, TOF, RTO, CTU and CTD. RES supports
   TIMER, COUNTER and CONTROL.
 
@@ -105,8 +106,13 @@ Numeric and matching-record COP/CPS and FLL resolve the selected addresses
 before writing. A reached invalid address leaves the faulting operation's
 destination untouched, including an invalid FLL destination with a zero
 length. Scalar arithmetic, CLR, bitwise operations and bit transfers likewise
-leave the destination untouched on an array fault. Contacts, comparisons and
-bit transfers skip indexed operands when their incoming rung is false.
+leave the destination untouched on an array fault. Contacts, comparisons,
+bit transfers, OTL and OTU skip indexed operands when their incoming rung is
+false. OTE can fault even on a false inner rung because it clears its
+destination. If the OSR or OSF pulse destination is out of bounds, the
+emulator restores the storage value, including its packed word, before
+the handler runs. A retry can still produce the original edge.
+
 Timers and counters can reach indexed operands on a false inner rung
 because their state may need to update. On an array fault, the emulator
 preserves the records, last timer execution time, counter edge and CONTROL
