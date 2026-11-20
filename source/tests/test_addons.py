@@ -267,6 +267,68 @@ class AddOnTests(unittest.TestCase):
         harness = self.engine(mode='routine', routine='MainProgram/MainRoutine')
         self.assertTrue(any('ordinary v35 5580 project' in blocker for blocker in harness.blockers), harness.blockers)
 
+    def test_task_this_configuration_in_aoi_reads_live_periodic_values_and_rolls_back(self):
+        from test_gsv_configuration import scalar
+
+        self.root.find('Controller/Tasks/Task').attrib.update(
+            Type='PERIODIC', Rate='10', Priority='2', DisableUpdateOutputs='false')
+        scalar(self.root.find('Controller/Tags'), 'WantedPriority', 'INT', 4)
+        fields = [('Rate', 'DINT', 10000, 20000), ('Watchdog', 'DINT', 500000, 12345),
+                  ('Priority', 'INT', 2, 4), ('DisableUpdateOutputs', 'DINT', 0, 1),
+                  ('InhibitTask', 'DINT', 0, 1), ('Instance', 'DINT', 0, 0)]
+        for name, dtype, _, _ in fields:
+            E.SubElement(self.definition().find('LocalTags'), 'LocalTag', Name='Seen' + name, DataType=dtype)
+        reads = ''.join(f'GSV(Task,tHiS,{name},Seen{name})' for name, _, _, _ in fields)
+        for mode in ('Logic', 'Prescan'):
+            text = self.body(mode=mode)[0].find('Text')
+            text.text = text.text.removesuffix(';') + reads + ';'
+        engine = self.engine([
+            'MOV(20000,TotalB)SSV(Task,THIS,Rate,TotalB);',
+            'MOV(12345,TotalB)SSV(Task,THIS,Watchdog,TotalB);',
+            'SSV(Task,THIS,Priority,WantedPriority);',
+            'MOV(1,TotalB)SSV(Task,THIS,DisableUpdateOutputs,TotalB)SSV(Task,THIS,InhibitTask,TotalB);',
+            'LabAccumulator(AccumulatorA,StepA,TotalA,SharedA);',
+            'DIV(1,Truncated,TotalB);',
+        ])
+        self.assertEqual(engine.blockers, [])
+        for name, _, initial, _ in fields:
+            self.assertEqual(engine.memory.read('AccumulatorA.Seen' + name), initial)
+        before = copy.deepcopy(engine.memory.values)
+        with self.assertRaisesRegex(ModelError, 'divide'):
+            engine.step(10)
+        self.assertEqual(engine.memory.values, before)
+        self.assertEqual(engine.fixed_scan_interval(), 10)
+        engine.memory.write('Truncated', 1)
+        engine.step(10)
+        for name, _, _, updated in fields:
+            self.assertEqual(engine.memory.read('AccumulatorA.Seen' + name), updated)
+
+    def test_task_this_event_timeout_configuration_in_st_aoi(self):
+        controller = self.root.find('Controller')
+        task = E.SubElement(controller.find('Tasks'), 'Task', Name='EventTask', Type='EVENT', Class='Standard',
+                            Rate='15', Priority='2', Watchdog='500', InhibitTask='false', DisableUpdateOutputs='true')
+        E.SubElement(E.SubElement(task, 'ScheduledPrograms'), 'ScheduledProgram', Name='EventProgram')
+        E.SubElement(task, 'EventInfo', EventTrigger='EVENT Instruction Only', EnableTimeout='true')
+        program = E.SubElement(controller.find('Programs'), 'Program', Name='EventProgram',
+                               Class='Standard', MainRoutineName='OnEvent')
+        E.SubElement(program, 'Tags')
+        main = E.SubElement(E.SubElement(program, 'Routines'), 'Routine', Name='OnEvent', Type='ST')
+        E.SubElement(E.SubElement(main, 'STContent'), 'Line', Number='0').text = (
+            'TotalB := 20000; SSV(Task,THIS,Rate,TotalB); LabAccumulator(AccumulatorA,StepA,TotalA,SharedA);')
+        for name in ('SeenRate', 'SeenTimeout'):
+            E.SubElement(self.definition().find('LocalTags'), 'LocalTag', Name=name, DataType='DINT')
+        logic = self.definition().find('Routines/Routine[@Name="Logic"]')
+        logic.remove(logic.find('RLLContent'))
+        logic.set('Type', 'ST')
+        E.SubElement(E.SubElement(logic, 'STContent'), 'Line', Number='0').text = (
+            'GSV(Task,THIS,Rate,SeenRate); GSV(Task,THIS,EnableTimeOut,SeenTimeout); Total := SeenRate;')
+
+        engine = self.engine(['EVENT(EventTask);'])
+        self.assertEqual(engine.blockers, [])
+        engine.step(10)
+        self.assertEqual(engine.memory.read('TotalA'), 20000)
+        self.assertEqual(engine.memory.read('AccumulatorA.SeenTimeout'), 1)
+
     def test_definition_gsv_reads_own_metadata_in_ladder_and_nested_st(self):
         accumulator = self.definition()
         accumulator.attrib.update(Revision='7.002', RevisionExtension='production',

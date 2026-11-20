@@ -108,9 +108,9 @@ class GsvThisTests(unittest.TestCase):
         e.project.tasks[0]['name']='Changed'
         with self.assertRaisesRegex(ModelError,'unchanged'):gsv_configuration.validate(e,op,'BackgroundProgram')
 
-    def test_aoi_harness_invalid_event_and_empty_instance_this_forms_remain_unqualified(self):
+    def test_aoi_setters_harness_invalid_event_and_empty_instance_remain_unqualified(self):
         self.assertTrue(self.engine(['GSV(Task,THIS,Watchdog,Out);'],harness=True).blockers)
-        e=aoi.AOIQueueTests.engine(self,lambda root:aoi.logic(root,['GSV(Task,THIS,Watchdog,Buffer[Index]);']));self.assertTrue(any('AOI' in b for b in e.blockers))
+        e=aoi.AOIQueueTests.engine(self,lambda root:aoi.logic(root,['SSV(Task,THIS,Watchdog,Buffer[Index]);']));self.assertTrue(any('SSV Task requires project task context' in b for b in e.blockers))
         import test_event_tasks as events
         e=events.EventTaskTests.engine(self,[['EVENT(Task1);'],['GSV(Task,THIS,LastScanTime,SpeedCommand);']],mutate=lambda root:events.EventTaskTests.timeout(root,'0.5'));self.assertTrue(e.blockers)
         for cls,instance,attribute in [('Task','','Watchdog'),('Task','0','Watchdog'),('Controller','THIS','TimeSlice'),('Program','','LastScanTime')]:self.assertTrue(self.engine([f'GSV({cls},{instance},{attribute},Out);']).blockers)

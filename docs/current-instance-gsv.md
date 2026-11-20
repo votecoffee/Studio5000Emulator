@@ -25,7 +25,8 @@ fails instead of guessing a task from a saved value or the first configured row.
 ## Attribute and execution limits
 
 Existing [configuration](gsv-configuration.md) and [timing](scan-time-gsv.md)
-contracts still apply. Rate requires a Periodic Task and Priority permits Periodic/Event Tasks.
+contracts still apply. Rate reads a Periodic interval or a configured Event
+timeout. Priority permits Periodic and qualified Event Tasks.
 Configuration times use microseconds and exact destination types. Program LastScanTime/MaxScanTime
 read the preceding committed interpreter snapshot. [Task timing](scan-time-gsv.md)
 also supports independent last/maximum durations in eligible multi-task projects,
@@ -43,11 +44,29 @@ a later fault roll back data, bindings, scheduling and uncommitted measurements.
 [Event Task Status](event-task-status.md) separately supports Task THIS inside
 qualified instruction-only Event tasks for Status GSV/SSV. Configuration reads
 and SSV InhibitTask also support Event THIS. Task and Program timing now
-support qualified ordinary Event contexts. AOIs and isolated routine harnesses
-remain unqualified.
+support qualified ordinary Event contexts. Their timing and status reads
+remain limited to ordinary Program contexts.
 Empty/numeric instance aliases and broader SSV forms remain unchanged.
 [SSV InhibitTask](task-inhibition.md) now permits THIS for supported ordinary Tasks. Existing named AOI reads retain their prior software profile.
 No FBD/SFC, CPU-preemption or new controller-profile behavior is introduced.
+
+## AOI Task configuration
+
+In a Standard AOI, ladder and Structured Text GSV Task THIS can read Name,
+Instance, Watchdog, DisableUpdateOutputs and InhibitTask. Rate and Priority
+apply to Periodic and qualified Event Tasks, and EnableTimeOut applies to
+qualified Event Tasks. Rate for an Event Task requires a defined timeout.
+Instance is the emulator's Task registry slot. Rate and Watchdog use DINT
+microseconds, Priority uses INT, and the flag reads use DINT 0 or 1.
+
+Each AOI call uses the calling Program's scheduled Task. The reads can see
+settings changed by earlier Program instructions in the same scan. An explicit
+AOI Prescan routine reads its scheduled owner's settings, including at startup
+before a Task release. Invalid destinations or a later fault roll back the
+advance. Isolated routine harnesses lack the scheduled caller context. AOI SSV,
+timing and status reads remain outside this profile. Native controller execution
+remains unverified.
+[Rockwell Task object reference](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/38-01/contents-ditamap/instruction-set/input-output-instructions/access-the-task-object.html)
 
 ## System lab
 

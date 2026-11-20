@@ -141,6 +141,8 @@ in ladder and ST. Calls resolve these names independently, even when two
 Programs share one AOI instance. An explicit AOI Prescan routine uses the
 unique scheduled owner during startup. Isolated routine harnesses and
 ambiguous schedules cannot supply this context.
+[Task configuration reads inside AOIs](current-instance-gsv.md#aoi-task-configuration)
+use the same caller context.
 
 Task Instance reads the zero-based Task slot in the current emulator registry.
 Slots follow the loaded Task inventory. A changed registry makes the attribute

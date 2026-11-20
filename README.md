@@ -235,6 +235,8 @@ Program and Routine names plus Task registry slots in ladder and ST.
 **System lab** shows how Routine THIS follows a called routine. Inside an
 AOI it reads the active Logic, Prescan or EnableInFalse routine name. Program
 and Task THIS Name reads inside an AOI follow its scheduled caller.
+[Task configuration reads inside AOIs](docs/current-instance-gsv.md#aoi-task-configuration)
+also follow the caller, including live period, priority and watchdog changes.
 [AOI definition GSV](docs/gsv-configuration.md#aoi-definition-reads)
 reads the name, revision, vendor, last-edit time and exported signature of a
 Standard AOI. Use its definition name in Program logic or THIS inside the AOI.

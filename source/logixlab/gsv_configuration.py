@@ -584,7 +584,8 @@ def source(engine, op, scope='', *, executing=False):
         raise ModelError('Unsupported GSV Controller configuration attribute '+op.args[2])
     if cls == 'program' and attribute == 'majorfaultrecord':
         return _major_fault_record(engine, instance, scope, executing=executing)
-    if (attribute == 'name' and cls in ('program', 'task') and instance.casefold() == 'this'
+    caller_configuration = cls == 'task' or (cls == 'program' and attribute == 'name')
+    if (op.name == 'GSV' and caller_configuration and instance.casefold() == 'this'
             and scope in engine.memory.frames):
         scope = engine.addons.caller_program
         if not scope:
@@ -783,6 +784,6 @@ def description():
                 selection='Structural destination validation without saved dynamic indices; false/prescan skip outputs; full writes establish unknown cells',
                 st_for_effects='Complete static destinations; aliases/AOI/changing selections conservatively cover enclosing arrays',
                 native_runtime_equivalence=False, ssv=True,
-                current_instance='Task, Program and Routine THIS in ordinary scheduled Continuous/Periodic/qualified Event Program routines. Program/Task Name, Routine Name and AddOnInstructionDefinition THIS inside Standard AOIs.',
+                current_instance='Task, Program and Routine THIS in ordinary scheduled Continuous/Periodic/qualified Event Program routines. Task configuration, Program and Routine Name, and AddOnInstructionDefinition THIS inside Standard AOIs.',
                 remaining=['Other THIS contexts, calculated/Safety AOI signatures, empty instances and native instance IDs','Continuous priority/rate and zero-watchdog defaults',
                            'Scan-time/interval/status/fault attributes','Other classes/attributes and broader SSV'])
