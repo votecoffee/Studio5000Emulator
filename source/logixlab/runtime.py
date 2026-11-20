@@ -1023,43 +1023,44 @@ class Engine:
     def _routine(self, key, depth):
         if depth > 32: raise ModelError("JSR nesting limit exceeded")
         routine = self.project.routines[key]
-        previous = self._executing_routine
-        self._executing_routine = routine
-        try:
-            self._execute_routine(routine,routine.program,depth)
-        finally:
-            self._executing_routine = previous
+        self._execute_routine(routine,routine.program,depth)
 
     def _execute_routine(self,routine,scope,depth,context=''):
         if depth>32:raise ModelError('Routine/AOI nesting limit exceeded')
-        if routine.kind=='FBD':self.function_blocks.execute(routine,scope,context);return
-        if routine.kind=='ST':self.structured.execute(routine,scope,depth,context);return
-        pc=0;enabled=True;plan=self._mcr_plans.get(routine.key.lower(),{})
-        while pc<len(routine.rungs):
-            rung_index=pc
-            rung=routine.rungs[pc];events=[];power=False;control='';breaking=False
-            role=plan.get(pc);forced=role in ('body','close') and not enabled
-            try:
-                power = self._sequence(rung["nodes"], True, scope, depth, events,force_false=forced)
-                if role=='open':enabled=power
-                elif role=='close':enabled=True
-                pc+=1
-            except JumpRoutine as jump:
-                pc=self.labels[routine.key.lower()][jump.label];control='jump '+jump.label
-            except ReturnRoutine:
-                control='return';pc=len(routine.rungs)
-            except BreakLoop:
-                control='break';breaking=True
-            visit = {"routine":routine.key,"context":context,"number":rung['number'],"rung_index":rung_index,
-                     "power":power,"events":events,'control':control,'task':self._executing_task,'release_ms':self.time_ms}
-            if plan:visit['mcr_forced_false'] = forced
-            if any('recovered_fault' in event for event in events):
-                visit['recovery_source'] = rung['text']
-            if any('operand_samples' in event for event in events):
-                visit['operand_source'] = rung['text']
-            self.trace.append(visit)
-            if len(self.trace)>5000:self.trace=self.trace[-5000:]
-            if breaking:raise BreakLoop()
+        previous = self._executing_routine
+        self._executing_routine = routine
+        try:
+            if routine.kind=='FBD':self.function_blocks.execute(routine,scope,context);return
+            if routine.kind=='ST':self.structured.execute(routine,scope,depth,context);return
+            pc=0;enabled=True;plan=self._mcr_plans.get(routine.key.lower(),{})
+            while pc<len(routine.rungs):
+                rung_index=pc
+                rung=routine.rungs[pc];events=[];power=False;control='';breaking=False
+                role=plan.get(pc);forced=role in ('body','close') and not enabled
+                try:
+                    power = self._sequence(rung["nodes"], True, scope, depth, events,force_false=forced)
+                    if role=='open':enabled=power
+                    elif role=='close':enabled=True
+                    pc+=1
+                except JumpRoutine as jump:
+                    pc=self.labels[routine.key.lower()][jump.label];control='jump '+jump.label
+                except ReturnRoutine:
+                    control='return';pc=len(routine.rungs)
+                except BreakLoop:
+                    control='break';breaking=True
+                visit = {"routine":routine.key,"context":context,"number":rung['number'],"rung_index":rung_index,
+                         "power":power,"events":events,'control':control,'task':self._executing_task,'release_ms':self.time_ms}
+                if plan:visit['mcr_forced_false'] = forced
+                if any('recovered_fault' in event for event in events):
+                    visit['recovery_source'] = rung['text']
+                if any('operand_samples' in event for event in events):
+                    visit['operand_source'] = rung['text']
+                self.trace.append(visit)
+                if len(self.trace)>5000:self.trace=self.trace[-5000:]
+                if breaking:raise BreakLoop()
+        finally:
+            self._executing_routine = previous
+
 
     def _sequence(self, nodes, power, scope, depth, events, *, force_false=False):
         if force_false:power=False

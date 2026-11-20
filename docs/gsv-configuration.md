@@ -123,11 +123,17 @@ The source basis is installed v35 accessing_the_time_sync_object and the
 
 ## Object identity reads
 
-Program Name and Routine Name use the current loaded source catalogs. Both
-require an ordinary scheduled caller. Program THIS selects its owning Program.
+In ordinary scheduled ladder and ST, Program Name and Routine Name use the
+current loaded source catalogs. Program THIS selects its owning Program.
 Routine THIS follows the executing routine through JSR and nested Event calls.
 A named Routine resolves within the caller's Program. String writes update LEN
 and the active DATA bytes and retain the unused backing bytes.
+
+Inside a Standard AOI, `GSV(Routine,THIS,Name,Destination)` writes the name of
+its running Logic, Prescan or EnableInFalse routine to a writable scalar
+string. It follows nested calls and returns to the caller's routine context
+when a call ends. AOI Routine Name reads require THIS. Native execution
+remains unverified. [Rockwell Add-On Instructions manual](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm010_-en-p.pdf)
 
 Task Instance reads the zero-based Task slot in the current emulator registry.
 Slots follow the loaded Task inventory. A changed registry makes the attribute

@@ -74,6 +74,18 @@ def current_instance(engine, cls, instance, scope='', *, executing=False, allow_
 
 
 def component_name(engine, cls, instance, scope, *, executing):
+    if cls == 'routine' and scope in engine.memory.frames:
+        if instance.casefold() != 'this':
+            raise ModelError('GSV Routine Name requires THIS inside an AOI')
+        if not executing:
+            return None
+        _, _, name = engine.memory.resolve(scope.removeprefix('@AOI:'))
+        definition = engine.project.aois[name]
+        routine = engine._executing_routine
+        if routine is None or definition.routines.get(routine.name.casefold()) is not routine:
+            raise ModelError('GSV Routine THIS requires the active AOI routine')
+        return routine.name
+
     owner = current_instance(engine, 'Program', 'THIS', scope, executing=executing, allow_event=True)
     project = engine.project
     catalog = project.executable_configuration
@@ -756,13 +768,13 @@ def description():
                 controller_device_source='v35 5580 project processor and firmware revision, virtual EtherNet/IP serial, and modeled controller mode at scan entry.',
                 controller_device_status='Remote keyswitch; Program 0x3070, Run 0x3060, software fault 0x3450 at retry entry.',
                 task_instance='Zero-based slot in the current emulator Task registry, independent of native CIP instance IDs.',
-                component_names='Named Program or THIS and Program-scoped Routine or THIS in ordinary scheduled project logic.',
+                component_names='Named Program or THIS and Program-scoped Routine or THIS in scheduled logic; Routine THIS also reads the active AOI routine.',
                 destinations='Exact BOOL/SINT/INT/DINT/LINT scalars, LEN/DATA strings, or a 33-cell SINT window for DeviceName; Module status also accepts the low word of a DINT',
                 times='Microseconds from exact milliseconds; no inferred defaults',
                 state='Source configuration with live Task InhibitTask, DisableUpdateOutputs, Watchdog, Periodic Rate and Periodic/Event Priority in project mode',
                 selection='Structural destination validation without saved dynamic indices; false/prescan skip outputs; full writes establish unknown cells',
                 st_for_effects='Complete static destinations; aliases/AOI/changing selections conservatively cover enclosing arrays',
                 native_runtime_equivalence=False, ssv=True,
-                current_instance='Task, Program and Routine THIS in ordinary scheduled Continuous/Periodic/qualified Event Program routines. AddOnInstructionDefinition THIS inside Standard AOIs.',
+                current_instance='Task, Program and Routine THIS in ordinary scheduled Continuous/Periodic/qualified Event Program routines. Routine and AddOnInstructionDefinition THIS inside Standard AOIs.',
                 remaining=['Other THIS contexts, calculated/Safety AOI signatures, empty instances and native instance IDs','Continuous priority/rate and zero-watchdog defaults',
                            'Scan-time/interval/status/fault attributes','Other classes/attributes and broader SSV'])

@@ -164,6 +164,53 @@ class AddOnTests(unittest.TestCase):
         self.body()[0].find('Text').text='MOV(Program:MainProgram.StepA,Count);'
         self.assertTrue(any('only its parameters' in b for b in self.engine().blockers))
 
+    def test_routine_this_reads_each_aoi_scan_mode_and_restores_the_program_context(self):
+        from test_string_operations import string_data
+
+        tags = self.root.find('Controller/Tags')
+        tag = E.SubElement(tags, 'Tag', Name='ProgramRoutine', DataType='STRING', TagType='Base')
+        string_data(E.SubElement(tag, 'Data', Format='Decorated'), 'saved')
+
+        for name in ('LabAccumulator', 'LabScale'):
+            E.SubElement(self.definition(name).find('LocalTags'), 'LocalTag', Name='SeenRoutine', DataType='STRING')
+        read_routine = 'GSV(Routine,THIS,Name,SeenRoutine)'
+        for mode in ('Logic', 'Prescan', 'EnableInFalse'):
+            text = self.body(mode=mode)[0].find('Text')
+            text.text = text.text.removesuffix(';') + read_routine + ';'
+
+        logic = self.definition('LabScale').find('Routines/Routine[@Name="Logic"]')
+        logic.remove(logic.find('RLLContent'))
+        logic.set('Type', 'ST')
+        E.SubElement(E.SubElement(logic, 'STContent'), 'Line', Number='0').text = (
+            read_routine + '; Result := Raw * Gain;')
+        engine = self.engine([
+            'XIC(EnableA)LabAccumulator(AccumulatorA,StepA,TotalA,SharedA);',
+            'LabWrapper(NestedScale,RawValue,ScaledValue);',
+            'GSV(Routine,THIS,Name,ProgramRoutine);',
+        ])
+        self.assertEqual(engine.blockers, [])
+        self.assertEqual(engine.memory.string('AccumulatorA.SeenRoutine'), 'Prescan')
+
+        engine.step()
+        self.assertEqual(engine.memory.string('AccumulatorA.SeenRoutine'), 'Logic')
+        self.assertEqual(engine.memory.string('NestedScale.Core.SeenRoutine'), 'Logic')
+        self.assertEqual(engine.memory.string('ProgramRoutine'), 'MainRoutine')
+
+        engine.memory.write('EnableA', False)
+        engine.step()
+        self.assertEqual(engine.memory.string('AccumulatorA.SeenRoutine'), 'EnableInFalse')
+        self.assertEqual(engine.memory.string('ProgramRoutine'), 'MainRoutine')
+
+    def test_routine_name_in_aoi_requires_this_and_a_writable_string(self):
+        for operands, message in (
+            ('Logic,Name,Total', 'requires THIS inside an AOI'),
+            ('THIS,Name,Total', 'scalar LEN/DATA string'),
+        ):
+            with self.subTest(operands=operands):
+                self.body()[0].find('Text').text = f'AFI()GSV(Routine,{operands});'
+                engine = self.engine(['LabAccumulator(AccumulatorA,StepA,TotalA,SharedA);'])
+                self.assertTrue(any(message in item for item in engine.blockers), engine.blockers)
+
     def test_definition_gsv_reads_own_metadata_in_ladder_and_nested_st(self):
         accumulator = self.definition()
         accumulator.attrib.update(Revision='7.002', RevisionExtension='production',
