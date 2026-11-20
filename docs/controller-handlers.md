@@ -78,6 +78,27 @@ JSR argument selection. ST calls retain their existing rollback behavior.
 
 [Rockwell JSR fault recovery example](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-02/contents-ditamap/studio-5000-logix-designer/controller-properties/major-fault-state.html)
 
+## Recover a nested ladder AOI array fault
+
+During a whole-project ladder scan, a Type 4 Code 20 array fault raised by
+MOV in an AOI's ladder Logic routine can reach the calling Program fault
+routine or Controller Fault Handler. This includes DINT subscript arithmetic
+overflow. If the handler clears the fault, execution resumes after the
+outermost enabled AOI instruction with the incoming rung power.
+
+The faulting MOV and the remaining statements in each interrupted AOI are
+skipped. Copied outputs from interrupted invocations are skipped. The
+emulator retains local and InOut writes completed before the fault when the
+scan commits. A failed clear or subsequent scan error rolls back those
+writes. The trace marks the outer AOI call, and the fault detail identifies
+the inner Logic routine and MOV.
+
+This profile covers the stated MOV path during normal ladder AOI execution.
+Array faults during AOI argument binding or output transfer, other faulting
+opcodes inside AOIs, Structured Text calls and prescan remain outside this
+recovery model. Native v35 behavior and partial-write parity remain unverified.
+[Rockwell AOI fault recovery reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/37-00/contents-ditamap/studio-5000-logix-designer/add-on-instructions/major-fault-state-and-add-on-instructions.html)
+
 ## Recover a ladder arithmetic array fault
 
 During whole-project ladder execution, ADD, SUB, MUL, DIV, MOD, NEG,

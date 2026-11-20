@@ -200,6 +200,8 @@ arithmetic, mixed numeric tags, [checked integer/REAL results](docs/lreal-result
 and copied AOI parameters. [Typed AOI input constants](docs/aoi-constants.md)
 now preserve decimal and binary/octal/hexadecimal L/U/UL values, plus finite
 LREAL inputs; choose **AOI constants lab** to try them.
+For [a MOV array fault inside a ladder AOI](docs/controller-handlers.md#recover-a-nested-ladder-aoi-array-fault),
+a successful Type 4 Code 20 clear resumes execution after the outermost AOI.
 [Time and date AOI parameters](docs/aoi-constants.md#time-and-date-parameters)
 support exact-type scalar Inputs and Outputs in ladder and Structured Text.
 Enable `RunTimeExample` in **AOI Constants Lab** to step through an exact

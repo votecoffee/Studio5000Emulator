@@ -2,6 +2,7 @@
 import base64
 import copy
 import unittest
+from pathlib import Path
 from xml.etree import ElementTree as ET
 from unittest.mock import patch
 import test_runtime as fixtures
@@ -118,6 +119,29 @@ def add_jsr_fault_call(root, *, return_destination=False):
 def set_fault_instruction(root, instruction):
     text = root.find('./Controller/Programs/Program/Routines/Routine/RLLContent/Rung/Text')
     text.text = f'XIC(StartPB){instruction}ADD(SpeedCommand,1,SpeedCommand);'
+
+
+def nested_aoi_array_fault_fixture(root, *, clear=True, bad_call_operand=False):
+    ladder_fault_fixture(root,clear=clear,handler_tail='MOV(0,LabIndex);')
+    sample = Path(__file__).resolve().parents[1] / 'samples/AOILab.L5X'
+    source = ET.parse(sample).find('Controller')
+    controller = root.find('Controller')
+    definitions = ET.SubElement(controller,'AddOnInstructionDefinitions')
+    for name,text in (
+        ('LabScale','MOV(73,Result)MOV(88,Samples[0])MOV(Samples[Index+1],Scaled)ADD(Scaled,11,Result);'),
+        ('LabWrapper','MOV(7,Result)LabScale(Core,Raw,2.0,Result,Index,Samples)ADD(Result,100,Result);'),
+    ):
+        definition = source.find(f'./AddOnInstructionDefinitions/AddOnInstructionDefinition[@Name="{name}"]')
+        definitions.append(definition)
+        parameters = definition.find('Parameters')
+        ET.SubElement(parameters,'Parameter',Name='Index',TagType='Base',DataType='DINT',
+                      Usage='Input',Required='true',Visible='true')
+        ET.SubElement(parameters,'Parameter',Name='Samples',TagType='Base',DataType='DINT',Dimensions='2',
+                      Usage='InOut',Required='true',Visible='true')
+        definition.find('./Routines/Routine[@Name="Logic"]/RLLContent/Rung/Text').text = text
+    controller.find('Tags').append(source.find('./Tags/Tag[@Name="NestedScale"]'))
+    raw = 'LabValues[LabIndex]' if bad_call_operand else '2.5'
+    set_fault_instruction(root,f'LabWrapper(NestedScale,{raw},SpeedCommand,LabIndex,LabValues)')
 
 
 def add_fault_record_array(root, dtype, name='LabRecords', **initial):
@@ -480,6 +504,57 @@ class ProgramFaultTests(unittest.TestCase):
         with self.assertRaisesRegex(ModelError,'divide by zero') as failure:
             engine.memory.read('LabValues[LabIndex/0]')
         self.assertNotIsInstance(failure.exception,ArrayBoundsError)
+        self.assertIsNone(engine.last_cleared_program_fault)
+
+    def test_nested_ladder_aoi_fault_unwinds_and_resumes_after_outer_call(self):
+        engine = self.engine(mutate=nested_aoi_array_fault_fixture)
+        self.assertEqual(engine.blockers,[])
+        engine.memory.write('LabIndex',2**31-1)
+        engine.memory.write('SpeedCommand',50)
+        engine.step()
+        self.assertIsNone(engine.last_cleared_program_fault)
+        engine.memory.write('StartPB',True)
+        engine.step()
+        fault = engine.last_cleared_program_fault
+        self.assertEqual((fault['type'],fault['code'],fault['instruction']),(4,20,'LABWRAPPER'))
+        self.assertIn('AOI:LabScale/Logic, MOV: DINT overflow in subscript',fault['detail'])
+        self.assertEqual(fault['handler'],{'routine':'MainProgram/RecoverMove','status':'cleared'})
+        self.assertEqual(engine.memory.read('CapturedFault'),1310724)
+        self.assertEqual(engine.memory.read('LabIndex'),0)
+        self.assertEqual(engine.memory.read('SpeedCommand'),51)
+        self.assertEqual(engine.memory.read('NestedScale.Result'),7.0)
+        self.assertEqual(engine.memory.read('NestedScale.Core.Result'),73.0)
+        self.assertEqual(engine.memory.read('LabValues'),[88,13])
+        recovered = next(event for row in engine.trace for event in row['events'] if event.get('recovered_fault'))
+        self.assertEqual((recovered['instruction'],recovered['out']),('LABWRAPPER',True))
+        self.assertIsNone(engine.addons.caller_program)
+        engine.step()
+        self.assertEqual(engine.memory.read('SpeedCommand'),125)
+        self.assertIs(engine.last_cleared_program_fault,fault)
+
+    def test_unhandled_nested_aoi_fault_rolls_back_local_and_reference_writes(self):
+        engine=self.engine(mutate=lambda root:nested_aoi_array_fault_fixture(root,clear=False))
+        self.assertEqual(engine.blockers,[])
+        engine.memory.write('StartPB',True)
+        engine.memory.write('LabIndex',2)
+        before=copy.deepcopy(engine.memory.values)
+        with self.assertRaisesRegex(ModelError,'completed without clearing'):
+            engine.step()
+        self.assertEqual(engine.memory.values,before)
+        self.assertEqual(engine.scan_count,0)
+        self.assertIsNone(engine.last_cleared_program_fault)
+        self.assertIsNone(engine.addons.caller_program)
+
+    def test_array_fault_in_aoi_call_binding_keeps_rollback(self):
+        engine=self.engine(mutate=lambda root:nested_aoi_array_fault_fixture(root,bad_call_operand=True))
+        self.assertEqual(engine.blockers,[])
+        engine.memory.write('StartPB',True)
+        engine.memory.write('LabIndex',2)
+        before=copy.deepcopy(engine.memory.values)
+        with self.assertRaisesRegex(ModelError,'Array index outside bounds'):
+            engine.step()
+        self.assertEqual(engine.memory.values,before)
+        self.assertEqual(engine.scan_count,0)
         self.assertIsNone(engine.last_cleared_program_fault)
 
     def test_failed_program_fault_recovery_rolls_back_the_scan(self):

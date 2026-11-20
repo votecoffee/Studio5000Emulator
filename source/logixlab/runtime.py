@@ -52,6 +52,10 @@ class NegativeTimerValueError(ModelError):
     """A timing path encountered a negative TIMER.PRE or ACC."""
 
 
+class AddOnLogicArrayError(ArrayBoundsError):
+    """An array fault from an eligible instruction in ladder AOI Logic."""
+
+
 class ReturnRoutine(Exception):
     pass
 
@@ -926,14 +930,17 @@ class Engine:
             self._immediate_output_advance=None
             self._message_advance=None
 
-    def _recover_ladder_fault(self, op, scope, error):
-        program_handler = self.project.program_fault_routines.get(scope)
-        controller_handler = self.project.fault_handler_routine
-        if (op.name in self.project.aois or self.mode != 'project'
+    def _recover_ladder_fault(self, op, scope, error, *, incoming):
+        if (scope in self.memory.frames or self.mode != 'project'
                 or self._program_advance is None or self._program_fault is not None):
             return None
+        program_handler = self.project.program_fault_routines.get(scope)
+        controller_handler = self.project.fault_handler_routine
         code = 20
-        if isinstance(error, control_operations.NegativeFileCursorError):
+        if op.name in self.project.aois:
+            if not incoming or not isinstance(error, AddOnLogicArrayError):
+                return None
+        elif isinstance(error, control_operations.NegativeFileCursorError):
             if op.name not in ('FAL', 'FSC', 'SRT', 'STD'):
                 return None
             code = 21
@@ -1089,7 +1096,12 @@ class Engine:
                     result=self._op(node,incoming,scope,depth,event=event)
                     power=False if force_false else result
                 except (ArrayBoundsError, control_operations.NegativeFileCursorError, NegativeTimerValueError) as error:
-                    code = self._recover_ladder_fault(node, scope, error)
+                    routine = self._executing_routine
+                    if (isinstance(error, ArrayBoundsError) and node.name == 'MOV'
+                            and scope in self.memory.frames and routine.name.casefold() == 'logic'
+                            and not self.addons.prescanning):
+                        raise AddOnLogicArrayError(f'{routine.key}, MOV: {error}') from error
+                    code = self._recover_ladder_fault(node, scope, error, incoming=incoming)
                     if code is None:
                         raise
                     power = incoming
