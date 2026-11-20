@@ -1,8 +1,8 @@
 # Numeric CASE selection in Structured Text
 
-App `26.1030.000222` supports CASE expressions using the existing narrow
-integer or REAL expression profile. Branch labels are immediate numeric
-values, comma-separated lists, ascending inclusive ranges, or combinations.
+CASE supports DINT, exact wide integer and float32 REAL comparisons. Branch
+labels are immediate numeric values, comma-separated lists, ascending inclusive
+ranges, or combinations.
 
 ```text
 CASE Temperature / ScaleFactor OF
@@ -24,8 +24,8 @@ SINT, INT and DINT selector operands use the existing DINT expression profile.
 Labels for an integer expression must be integers within signed DINT range.
 Existing signed radix labels remain available. Decimal, fractional and exponent
 labels are available for REAL expressions; signs may be separated from a number
-by whitespace. Tags, expressions, BOOL/string values and typed L/U/UL labels
-are rejected as branch labels.
+by whitespace. Branch labels must be literals. Typed L/U/UL labels require the
+matching wide integer selector type.
 
 The expression determines the comparison profile. A REAL operand or literal in
 the expression selects modeled float32 arithmetic. REAL labels are converted to
@@ -38,6 +38,32 @@ example, 16777217.0 and 16777216.0 round to the same float32 value, so whichever
 label appears first wins. Ranges are usually more useful than exact equality
 for calculated REAL values. Nonfinite or overflowing REAL labels, descending
 ranges and malformed forms block execution, including in unreachable code.
+
+### Exact wide integer selectors
+
+In the modeled v35 ControlLogix 5580 profile, selectors may use homogeneous
+scalar LINT, USINT, UINT, UDINT or ULINT expressions. Selector arithmetic is
+checked at the declared width. Untyped labels must fit both DINT and the
+selector type. Use L, U or UL on decimal or radix labels to select the full
+LINT, UDINT or ULINT range. Suffix matching is case-insensitive. Radix labels
+support underscore grouping and signed LINT bit patterns such as
+`16#FFFF_FFFF_FFFF_FFFFL` for -1. Floating labels and mixed numeric selector
+expressions are outside the wide CASE profile.
+
+```text
+CASE PartId OF
+    9007199254740992UL: Lane := 10;
+    9007199254740993UL..9007199254740995UL, 16#FFFF_FFFF_FFFF_FFFFUL: Lane := 20;
+    ELSE Lane := -1;
+END_CASE;
+```
+
+The adjacent labels above 2^53 remain distinct. In **Integer lab**, set
+RunStWideCase and step. The default StWideCaseInput is 9007199254740993, which
+selects StWideCaseResult=20. Set the input to 9007199254740992 for result 10,
+or 9007199254740996 for ELSE=-1.
+
+### Execution and faults
 
 Selected bodies retain the existing ST call, nested CASE, loop EXIT, prescan
 and rollback behavior. An unknown or faulting selector raises a runtime fault;
@@ -61,10 +87,10 @@ comparison profile and retain `native_runtime_parity=false`.
 
 ## Remaining scope
 
-Wide integer selectors and typed labels, additional literal/conversion forms,
-nonfinite REAL execution and native compiler/status/fault parity remain
-unqualified. The emulator uses its existing DINT/float32 expression rules;
-software tests do not establish native Studio/controller acceptance.
+Mixed numeric CASE selectors, binary64 label comparison, additional
+literal/conversion forms, nonfinite REAL execution and native
+compiler/status/fault parity remain unqualified. Studio 5000 v35 acceptance of
+the emulator's wide CASE forms has not been verified.
 
 The installed v35 CASE_OF help and Rockwell's
 [CASE_OF reference](https://www.rockwellautomation.com/en-mde/docs/studio-5000-logix-designer/37-01/contents-ditamap/instruction-set/structured-text-attributes/case_of.html)

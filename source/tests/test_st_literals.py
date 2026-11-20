@@ -129,7 +129,6 @@ class StructuredLiteralTests(unittest.TestCase):
 
     def test_typed_for_case_and_index_forms_do_not_bypass_existing_guards(self):
         for source in ('FOR SpeedCommand:=0 TO 3L DO WideDest:=1L; END_FOR;',
-                       'CASE 1L OF 1:WideDest:=1L; END_CASE;',
                        'CASE SpeedCommand OF 1L:WideDest:=1L; END_CASE;',
                        'WideDest:=WideA[0U];',
                        'FOR SpeedCommand:=0 TO 2#11L DO WideDest:=1L; END_FOR;',

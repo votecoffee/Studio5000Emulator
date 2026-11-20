@@ -94,8 +94,10 @@ See [IntegerLab.L5X](../source/samples/IntegerLab.L5X) and
 
 ## Remaining qualification
 
-Wide FOR counters/bounds, CASE selectors and array-index expressions remain
-blocked. [Narrow ST/CPT/CMP integer division](integer-expressions.md) has a
+[Wide integer CASE selection](st-case-selection.md#exact-wide-integer-selectors)
+compares labels at the selector's declared width. Wide FOR counters/bounds
+and array-index expressions remain blocked.
+[Narrow ST/CPT/CMP integer division](integer-expressions.md) has a
 separate DINT-intermediate profile. Additional wide math functions, mixed
 conversions, additional literal forms, wide file-expression consumers, LREAL/time types
 and native intermediate/status/fault parity remain unfinished. The controller

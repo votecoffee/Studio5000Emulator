@@ -204,10 +204,10 @@ class WideStructuredTests(unittest.TestCase):
         for source in ('WideDest:=TRUNC(WideA);','WideDest:=SQRT(StartPB);','Result:=WideA=StartPB;'):
             self.assertTrue(self.engine(source).blockers,source)
 
-    def test_wide_for_case_and_array_index_forms_remain_explicitly_blocked(self):
+    def test_wide_for_and_array_index_forms_remain_explicitly_blocked(self):
         for source in ('FOR SpeedCommand:=0 TO WideA DO WideDest:=1; END_FOR;',
                        'FOR WideDest:=0 TO 2 DO WideA:=WideA+1; END_FOR;',
-                       'CASE WideA OF 1:WideDest:=1; END_CASE;', 'WideDest:=Samples[WideA];'):
+                       'WideDest:=Samples[WideA];'):
             self.assertTrue(self.engine(source).blockers,source)
 
     def test_other_controller_and_firmware_profiles_are_rejected(self):

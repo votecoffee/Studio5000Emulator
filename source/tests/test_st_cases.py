@@ -1,4 +1,4 @@
-"""Numeric CASE selection follows DINT or finite float32 REAL evaluation."""
+"""Numeric CASE selection across narrow, wide integer and float32 selectors."""
 import copy
 import unittest
 from pathlib import Path
@@ -107,10 +107,66 @@ class NumericCaseTests(unittest.TestCase):
         for label in ('Step','TRUE',"'1'",'1+2','1 2','1 .2','1e 2','1e','1.2.3','1,,2','1..','..1','1..2..3','1UL','nan','inf'):
             self.assertTrue(self.engine('CASE Selector OF '+label+': State:=1; END_CASE;').blockers,label)
 
-    def test_non_numeric_or_wide_selector_and_typed_labels_remain_blocked(self):
+    def test_non_numeric_selectors_and_mismatched_typed_labels_block(self):
         for source in ('CASE TRUE OF 1: State:=1; END_CASE;',"CASE 'a' OF 1: State:=1; END_CASE;",
-                       'CASE 1L OF 1: State:=1; END_CASE;','CASE Selector OF 1L: State:=1; END_CASE;'):
+                       'CASE Selector OF 1L: State:=1; END_CASE;'):
             self.assertTrue(self.engine(source).blockers,source)
+
+    def test_exact_wide_range_list_and_first_match(self):
+        e=self.checked('CASE Selector OF 9007199254740992UL: State:=10; '
+                       '9007199254740993UL..9007199254740995UL, 16#FFFF_FFFF_FFFF_FFFFul: State:=20; '
+                       '9007199254740995UL: State:=30; ELSE State:=-1; END_CASE;',2**53,'ULINT')
+        for value,expected in ((2**53,10),(2**53+1,20),(2**53+2,20),(2**53+3,20),
+                               (2**53+4,-1),(2**64-1,20)):
+            with self.subTest(value=value):
+                e.memory.write('Selector',value)
+                e.step()
+                self.assertEqual(e.memory.read('State'),expected)
+
+    def test_wide_selector_expressions_and_all_wide_storage_bounds(self):
+        for dtype,expr,label,value in (
+            ('USINT','Selector','255',255),
+            ('UINT','Selector','65535',65535),
+            ('UDINT','Selector','4294967295u',2**32-1),
+            ('LINT','Selector+1L','- 9223372036854775807L',-2**63),
+            ('LINT','Selector','-9223372036854775808L',-2**63),
+            ('LINT','Selector','16#FFFF_FFFF_FFFF_FFFFL',-1),
+            ('ULINT','Selector','18446744073709551615UL',2**64-1),
+            ('LINT','1L','1',0),
+        ):
+            with self.subTest(dtype=dtype,expr=expr,label=label):
+                e=self.checked(f'CASE {expr} OF {label}: State:=7; ELSE State:=-1; END_CASE;',value,dtype)
+                e.step()
+                self.assertEqual(e.memory.read('State'),7)
+
+    def test_invalid_wide_labels_and_selectors_block_even_when_skipped(self):
+        for expr,label in (('Selector','1.0'),('Selector','2147483648'),('Selector','1L'),
+                           ('Selector','-1UL'),('Selector','18446744073709551616UL'),
+                           ('Selector','16#1_0000_0000_0000_0000UL'),('Selector','2UL..1UL'),
+                           ('Selector','2#2UL'),('Selector','1..4U'),('Selector','9'*5000+'UL'),
+                           ('Selector+0.5','1UL'),('Selector+0.0L','1UL'),
+                           ('Selector+State','1UL'),('Selector=1UL','1')):
+            with self.subTest(expr=expr,label=label):
+                source=f'IF FALSE THEN CASE {expr} OF {label}: State:=1; END_CASE; END_IF;'
+                self.assertTrue(self.engine(source,1,'ULINT').blockers)
+
+    def test_wide_case_rejects_unqualified_controller_profile(self):
+        def older_firmware(root):
+            root.find('./Controller').set('MajorRev','34')
+        self.assertTrue(self.engine('CASE Selector OF 1UL: State:=1; END_CASE;',
+                                    1,'ULINT',mutate=older_firmware).blockers)
+
+    def test_faulting_wide_selector_restores_prior_writes(self):
+        source='State:=7; CASE Selector+1UL OF 0: Sum:=1; ELSE Sum:=2; END_CASE;'
+        e=self.checked(source,2**64-1,'ULINT')
+        before=copy.deepcopy(e.memory.values)
+        with self.assertRaisesRegex(ModelError,'ULINT overflow'):
+            e.step()
+        self.assertEqual(e.memory.values,before)
+        self.assertEqual((e.scan_count,e.time_ms),(0,0))
+        e.memory.write('Selector',2**64-2)
+        e.step()
+        self.assertEqual(e.memory.read('Sum'),2)
 
     def test_nested_case_and_nearest_loop_exit(self):
         e=self.checked('State:=0; FOR Index:=0 TO 3 DO CASE Selector OF 1.0: CASE Index OF 1: EXIT; ELSE State:=State+1; END_CASE; ELSE State:=99; END_CASE; END_FOR;',1)
@@ -149,7 +205,7 @@ class NumericCaseTests(unittest.TestCase):
 
     def test_case_report_exposes_profile_without_claiming_native_parity(self):
         report=self.checked('CASE Selector OF 1.0: State:=1; END_CASE;').report()['structured_text']
-        self.assertIn('CASE (integer/REAL)',report['supported']);self.assertIn('REAL',report['case']['numeric_types'])
+        self.assertIn('CASE (integer/REAL)',report['supported']);self.assertIn('ULINT',report['case']['numeric_types']);self.assertIn('REAL',report['case']['numeric_types'])
         self.assertFalse(report['case']['native_runtime_parity'])
 
     def test_bundled_text_lab_case_fault_rolls_back_prior_work_and_recovers(self):

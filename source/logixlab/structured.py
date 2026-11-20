@@ -6,7 +6,7 @@ from dataclasses import dataclass,field
 from .model import ModelError,Op,operand_problem,split_indices
 from .expressions import Expression
 from .st_expression import STExpression
-from . import time_values
+from . import time_values, wide_st
 from . import system_values, array_sort, st_cases, st_timers, st_counter, st_oneshot, st_scale, st_signal, st_rate, st_moving, st_capture, st_filter, st_digital, st_accumulate, st_select, st_derivative, st_curves, st_pi, st_bit_moves, numeric_copy, numeric_fill
 from .integer_math import WIDE_TYPES
 
@@ -89,7 +89,7 @@ class Parser:
                 if temporal is not None:
                     pos = temporal[0]
                 else:
-                    match=re.match(r'(?:2|8|16)#[0-9A-Fa-f_]+|(?:\d+(?:\.(?!\.)\d*)?|\.\d+)(?:[eE][+-]?\d+)?|[A-Za-z_][\w]*|\[:=\]|:=|\.\.|<=|>=|<>|\*\*|[+*/(),;:\[\].=<>\-&]',self.source[pos:])
+                    match=re.match(st_cases.NUMBER+r'|[A-Za-z_][\w]*|\[:=\]|:=|\.\.|<=|>=|<>|\*\*|[+*/(),;:\[\].=<>\-&]',self.source[pos:])
                     if not match:raise ModelError(f'ST line {line+1}: unsupported syntax near {self.source[pos:pos+24]!r}')
                     pos+=len(match[0])
             token = self.source[start:pos]
@@ -361,11 +361,18 @@ class Structured:
 
     def case_contract(self,node,scope):
         expression=self.expression(node.expr)
-        if expression.typed_types or any(self.memory.resolve(ref,scope)[2] in WIDE_TYPES for ref in expression.refs):
-            raise ModelError('Wide ST CASE selectors remain unqualified')
-        kind,real,_=expression.analyze(self.memory,scope)
+        declared={self.memory.resolve(ref,scope)[2] for ref in expression.refs}
+        profile=None
+        if expression.typed_types or declared & WIDE_TYPES:
+            if expression.literal_types or expression.temporal_types:
+                raise ModelError('Wide integer CASE selectors require integer operands')
+            profile=wide_st.analyze(expression,self.memory,scope)
+            dtype,kind,_=profile
+        else:
+            kind,real,_=expression.analyze(self.memory,scope)
+            dtype='REAL' if real else 'DINT'
         if kind!='number':raise ModelError('CASE requires a numeric expression')
-        return [(st_cases.normalize(ranges,real),body) for ranges,body in node.cases]
+        return [(st_cases.normalize(ranges,dtype),body) for ranges,body in node.cases],profile
 
     def tick(self):
         self.engine.budget-=1
@@ -458,7 +465,10 @@ class Structured:
                             if self.boolean(expr,scope):chosen=body;result=True;break
                         self.trace(routine,n,context,result,detail='branch selected' if result else 'else / no branch');run(chosen)
                     elif n.kind=='case':
-                        cases=self.case_contract(n,scope);value=self.value(n.expr,scope);chosen=n.otherwise
+                        cases,profile=self.case_contract(n,scope)
+                        if profile is None:value=self.value(n.expr,scope)
+                        else:value=wide_st.evaluate(self.expression(n.expr),self.memory,scope,profile)
+                        chosen=n.otherwise
                         for ranges,body in cases:
                             if any(lo<=value<=hi for lo,hi in ranges):chosen=body;break
                         self.trace(routine,n,context,detail=value);run(chosen)
