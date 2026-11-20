@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.01" TargetName="AOIConstantsLab" TargetType="Controller" ContainsContext="false">
   <Controller Name="AOIConstantsLab" ProcessorType="1756-L85E" MajorRev="35" MinorRev="11">
-    <Description>Synthetic exact numeric AOI inputs, copied parameters and false-call output retention.</Description>
+    <Description>Synthetic numeric and temporal AOI operands, copied and reference parameters, and false-call output retention.</Description>
     <DataTypes />
     <Modules />
     <AddOnInstructionDefinitions>
@@ -23,6 +23,25 @@
           <Routine Name="Logic" Type="RLL">
             <RLLContent>
               <Rung Number="0" Type="N"><Text>MOV(Signed,SignedOut)MOV(Unsigned,UnsignedOut)MOV(Largest,LargestOut)MOV(Precise,PreciseOut);</Text></Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </AddOnInstructionDefinition>
+      <AddOnInstructionDefinition Name="LabTemporalOffset" Class="Standard" Revision="1.0" Vendor="LogixLab" ExecutePrescan="false" ExecutePostscan="false" ExecuteEnableInFalse="false">
+        <Parameters>
+          <Parameter Name="EnableIn" TagType="Base" DataType="BOOL" Usage="Input" Required="false" Visible="false" />
+          <Parameter Name="EnableOut" TagType="Base" DataType="BOOL" Usage="Output" Required="false" Visible="false" />
+          <Parameter Name="StartStamp" TagType="Base" DataType="LDT" Usage="Input" Required="true" Visible="true" />
+          <Parameter Name="Increment" TagType="Base" DataType="LTIME" Usage="Input" Required="true" Visible="true" />
+          <Parameter Name="AccumulatedDelay" TagType="Base" DataType="LTIME" Usage="InOut" Required="true" Visible="true" />
+          <Parameter Name="Stamp" TagType="Base" DataType="LDT" Usage="Output" Required="true" Visible="true" />
+        </Parameters>
+        <LocalTags />
+        <Routines>
+          <Routine Name="Logic" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text>ADD(AccumulatedDelay,Increment,AccumulatedDelay);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>ADD(StartStamp,AccumulatedDelay,Stamp);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>
@@ -52,6 +71,20 @@
           </Structure>
         </Data>
       </Tag>
+      <Tag Name="RunTimeExample" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="ElapsedDelay" DataType="LTIME" TagType="Base"><Data Format="Decorated"><DataValue DataType="LTIME" Value="0" /></Data></Tag>
+      <Tag Name="OffsetStamp" DataType="LDT" TagType="Base"><Data Format="Decorated"><DataValue DataType="LDT" Value="0" /></Data></Tag>
+      <Tag Name="TemporalOffset" DataType="LabTemporalOffset" TagType="Base">
+        <Data Format="Decorated">
+          <Structure DataType="LabTemporalOffset">
+            <DataValueMember Name="EnableIn" DataType="BOOL" Value="0" />
+            <DataValueMember Name="EnableOut" DataType="BOOL" Value="0" />
+            <DataValueMember Name="StartStamp" DataType="LDT" Value="0" />
+            <DataValueMember Name="Increment" DataType="LTIME" Value="0" />
+            <DataValueMember Name="Stamp" DataType="LDT" Value="0" />
+          </Structure>
+        </Data>
+      </Tag>
     </Tags>
     <Programs>
       <Program Name="MainProgram" MainRoutineName="MainRoutine" Class="Standard" Disabled="false">
@@ -60,7 +93,8 @@
           <Routine Name="MainRoutine" Type="RLL">
             <RLLContent>
               <Rung Number="0" Type="N"><Text>XIC(Enabled)LabTypedInputs(TypedInputs,16#0020000000000001L,8#37777777777U,2#1111111111111111111111111111111111111111111111111111111111111111UL,1.0000000000000002L,SignedResult,UnsignedResult,LargestResult,PreciseResult);</Text></Rung>
-              <Rung Number="1" Type="N"><Text>XIC(Enabled)DIV(1,ParameterLateDivisor,ParameterLateGuard);</Text></Rung>
+              <Rung Number="1" Type="N"><Text>XIC(RunTimeExample)LabTemporalOffset(TemporalOffset,LDT#2026-01-01-00:00:00.000_000_001,LT#1ns,ElapsedDelay,OffsetStamp);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>[XIC(Enabled),XIC(RunTimeExample)]DIV(1,ParameterLateDivisor,ParameterLateGuard);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

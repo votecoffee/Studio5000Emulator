@@ -58,6 +58,14 @@ the instance and caller values. Native v35 import and execution remain
 unverified.
 [Rockwell design considerations](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm094_-en-p.pdf)
 
+In **AOI Constants Lab**, enable `RunTimeExample` and step. Each call updates
+`ElapsedDelay` by one nanosecond through a scalar LTIME InOut. The LDT Output
+`OffsetStamp` starts at 1767225600000000002 ticks after the first call and
+increments by one on each subsequent call. Disable the gate to hold both
+tags. With the gate enabled, set `ParameterLateDivisor` to zero to trigger
+a fault after the call. Both tags retain their last committed values. Restore
+the divisor to one to resume.
+
 ## Aliases to scalar local tags
 
 In the v35 ControlLogix 5580 profile, an ordinary AOI Input or Output can

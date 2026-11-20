@@ -202,6 +202,8 @@ now preserve decimal and binary/octal/hexadecimal L/U/UL values, plus finite
 LREAL inputs; choose **AOI constants lab** to try them.
 [Time and date AOI parameters](docs/aoi-constants.md#time-and-date-parameters)
 support exact-type scalar Inputs and Outputs in ladder and Structured Text.
+Enable `RunTimeExample` in **AOI Constants Lab** to step through an exact
+timestamp update with a duration passed by reference.
 [Grouped DINT words](docs/aoi-constants.md#grouped-dint-inputs) also work for
 required scalar Inputs in ladder and Structured Text.
 [Constant InOut parameters](docs/aoi-constants.md#constant-inout-parameters)

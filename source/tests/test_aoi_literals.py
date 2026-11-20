@@ -249,6 +249,31 @@ class AOILiteralTests(unittest.TestCase):
         e=self.typed(mutate=st);self.enabled(e)
         self.assertEqual(e.memory.read('PreciseResult'),VALUES['Precise']);self.assertEqual(e.memory.read('LargestResult'),VALUES['Largest'])
 
+    def test_public_sample_temporal_inout_and_output_restore_on_fault(self):
+        self.root = E.parse(SAMPLE).getroot()
+        e = self.engine()
+        self.assertEqual(e.blockers, [])
+
+        def results():
+            return tuple(e.memory.read(ref, allow_time=True) for ref in ('ElapsedDelay', 'OffsetStamp'))
+
+        e.step()
+        self.assertEqual(results(), (0, 0))
+        e.memory.write('RunTimeExample', True)
+        e.step()
+        self.assertEqual(results(), (1, 1767225600000000002))
+        e.memory.write('ParameterLateDivisor', 0)
+        before = self.snapshot(e)
+        with self.assertRaisesRegex(ModelError, 'zero'):
+            e.step()
+        self.assertEqual(self.snapshot(e), before)
+        e.memory.write('ParameterLateDivisor', 1)
+        e.step()
+        self.assertEqual(results(), (2, 1767225600000000003))
+        e.memory.write('RunTimeExample', False)
+        e.step()
+        self.assertEqual(results(), (2, 1767225600000000003))
+
     def test_public_sample_registration_menu_and_report(self):
         from logixlab.server import SAMPLES
         self.assertIn('AOIConstantsLab',SAMPLES)
