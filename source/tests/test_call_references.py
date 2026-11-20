@@ -428,6 +428,87 @@ class CallReferenceTests(unittest.TestCase):
         e = self.engine(['AFI()JSR(BitWorker,0,PackedWord.1);'], old)
         self.assertIn('Routine parameter bit selections require', str(e.blockers))
 
+    def test_matching_time_types_copy_exact_values_through_ladder_and_st(self):
+        for dtype, raw, ticks in (
+            ('TIME32', 'T32#-1ms_2us', -1002),
+            ('TIME', 'T#1s_3us', 1000003),
+            ('LTIME', 'LT#1s_1ns', 1000000001),
+            ('DT', 'DT#2020-03-05-08:11:44.345_678(UTC+08:00)', 1583367104345678),
+            ('LDT', 'LDT#2020-10-25-11:05:20.123_456_789', 1603623920123456789),
+        ):
+            with self.subTest(dtype=dtype):
+                def setup(root):
+                    tags = root.find('./Controller/Tags')
+                    for name, value in (('TimeSource', raw), ('TimeFormal', '0'), ('TimeResult', '0')):
+                        tag = E.SubElement(tags, 'Tag', Name=name, TagType='Base', DataType=dtype)
+                        data = E.SubElement(tag, 'Data', Format='Decorated')
+                        E.SubElement(data, 'DataValue', DataType=dtype, Value=value)
+                    self.structured_routine('TimeWorker', 'SBR(TimeFormal);', 'RET(TimeFormal);')
+
+                e = self.checked(['JSR(TimeWorker,1,TimeSource,TimeResult);'], setup)
+                self.assertEqual(e.memory.read('TimeFormal', allow_time=True), 0)
+                e.step()
+                for name in ('TimeFormal', 'TimeResult'):
+                    self.assertEqual(e.memory.read(name, allow_time=True), ticks)
+                call = next(event for visit in e.trace for event in visit['events'] if event['instruction'] == 'JSR')
+                self.assertEqual(call['operand_samples'][2]['value'], str(ticks))
+                self.assertEqual(call['operand_samples'][3]['value'], str(ticks))
+
+    def test_indirect_timestamp_transfer_skips_false_indices_and_rolls_back_faults(self):
+        ticks = 1603623920123456789
+
+        def setup(root):
+            tags = root.find('./Controller/Tags')
+            for name in ('Timestamps', 'TimeWork', 'TimeResults'):
+                tag = E.SubElement(tags, 'Tag', Name=name, DataType='LDT', TagType='Base', Dimensions='3')
+                data = E.SubElement(tag, 'Data', Format='Decorated')
+                array = E.SubElement(data, 'Array', DataType='LDT', Dimensions='3')
+                if name == 'Timestamps':
+                    E.SubElement(array, 'Element', Index='[1]', Value=str(ticks))
+            E.SubElement(tags, 'Tag', Name='TimeSource', TagType='Alias', AliasFor='Timestamps')
+            self.routine('TimeWorker', [
+                'SBR(TimeWork[OutputIndex]);',
+                'RET(TimeWork[OutputIndex]);',
+            ])
+
+        e = self.checked([
+            'XIC(IndirectEnabled)JSR(TimeWorker,1,TimeSource[InputIndex],TimeResults[OutputIndex]);',
+            'XIC(EarlyReturn)DIV(1,0,WorkValue);',
+        ], setup)
+        e.step()
+        self.assertEqual(e.memory.read('TimeResults', allow_time=True), [None, None, None])
+        e.memory.write('InputIndex', 0)
+        e.memory.write('OutputIndex', 2)
+        e.memory.write('IndirectEnabled', True)
+        before = self.snapshot(e)
+        with self.assertRaisesRegex(ModelError, 'Unknown initial byte/value'):
+            e.step()
+        self.assertEqual(self.snapshot(e), before)
+        e.memory.write('InputIndex', 1)
+        e.memory.write('EarlyReturn', True)
+        before = self.snapshot(e)
+        with self.assertRaisesRegex(ModelError, 'zero'):
+            e.step()
+        self.assertEqual(self.snapshot(e), before)
+        e.memory.write('EarlyReturn', False)
+        e.step()
+        for name in ('TimeWork', 'TimeResults'):
+            self.assertEqual(e.memory.read(name, allow_time=True), [None, None, ticks])
+
+    def test_time_transfers_require_matching_declared_types(self):
+        for types in (('TIME', 'LTIME', 'LTIME'), ('LDT', 'LDT', 'DT'), ('LINT', 'LDT', 'LDT')):
+            with self.subTest(types=types):
+                def setup(root):
+                    tags = root.find('./Controller/Tags')
+                    for name, dtype in zip(('TimeSource', 'TimeFormal', 'TimeResult'), types):
+                        tag = E.SubElement(tags, 'Tag', Name=name, TagType='Base', DataType=dtype)
+                        data = E.SubElement(tag, 'Data', Format='Decorated')
+                        E.SubElement(data, 'DataValue', DataType=dtype, Value='0')
+                    self.structured_routine('TimeWorker', 'SBR(TimeFormal);', 'RET(TimeFormal);')
+
+                e = self.engine(['AFI()JSR(TimeWorker,1,TimeSource,TimeResult);'], setup)
+                self.assertIn('parameter data types and array dimensions must match exactly', str(e.blockers))
+
     def test_types_literal_bounds_and_older_profiles_remain_guarded(self):
         for text in ('JSR(DoubleValue,1,Inputs[99],Result);', 'JSR(DoubleValue,1,PackedWord.0,Result);', 'JSR(DoubleValue,1,RealInputs[InputIndex],Outputs[OutputIndex]);'):
             self.assertTrue(self.engine(['AFI()' + text]).blockers, text)

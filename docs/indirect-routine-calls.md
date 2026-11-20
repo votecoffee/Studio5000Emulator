@@ -9,7 +9,7 @@ and [checks](../source/tests/test_call_references.py).
 XIC(Enabled)JSR(DoubleValue,1,Inputs[InputIndex],Outputs[OutputIndex]);
 ```
 
-Ladder SBR destinations and RET sources also support indexed elements. Exact
+Ladder and ST SBR destinations and RET sources also support indexed elements. Exact
 parameter counts, declared types and array dimensions still match. Each
 direction permits 40 parameters; JSR/FOR share the existing 25-level nesting
 limit and execution budget. Main routines, recursion and AOI call restrictions
@@ -27,8 +27,8 @@ preflight even on an unreachable call. Unsuffixed inputs retain their existing
 bounded DINT/float32 REAL rules.
 
 Constants are read-only values, not output locations. SBR operands and JSR
-return destinations still require writable tags. Time/date,
-string/aggregate literals, wider FOR operands, other controller profiles and
+return destinations still require writable tags. Time/date, string and
+aggregate literals, wider FOR operands, other controller profiles and
 JSR inside AOIs are outside this increment. Existing ST JSR/RET calls use the
 same typed-value transfer rules. Literal values are captured with each resolved
 call or return; later faults restore all formal/result writes and call state.
@@ -133,6 +133,22 @@ source values, including when a branch returns early.
 
 Rockwell documents the [Structured Text call and transfer forms](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/37-02/contents-ditamap/instruction-set/program-control-instructions/jump-to-subroutine--jsr---subroutine--sbr---and-re.html).
 Native sampling of indirect ST operands remains unverified.
+
+## Time and date tags
+
+The emulator's v35 ControlLogix 5580 profile supports exact copies of
+TIME32, TIME, LTIME, DT and LDT tags through ladder and Structured Text
+JSR, SBR and RET. Each paired operand has the same declared type and
+dimensions. Scalar tags, matching arrays, aliases and runtime-selected
+elements use the existing address capture and copy rules.
+
+Values retain their declared microsecond or nanosecond ticks. The ladder
+monitor exposes these ticks as exact decimal text. A reached unknown scalar
+faults and rolls back the advance. A complete return write can establish a
+previously unknown destination. Calls use typed tags for this feature.
+Rockwell lists time and date parameter types in its
+[Studio 5000 v38 instruction help](https://www.rockwellautomation.com/en-gb/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/program-control-instructions/jump-to-subroutine--jsr---subroutine--sbr---and-re.html).
+Native v35 acceptance remains unverified.
 
 ## Packed BOOL parameters
 

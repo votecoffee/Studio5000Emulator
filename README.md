@@ -488,6 +488,8 @@ add exact LINT/unsigned and binary64 values to JSR inputs and RET outputs.
 [Grouped DINT words](docs/indirect-routine-calls.md#grouped-dint-parameters)
 can also supply those transfers in ladder and ST. [Packed BOOL parameters](docs/indirect-routine-calls.md#packed-bool-parameters)
 can copy individual bits of signed integer words.
+[Time and date parameters](docs/indirect-routine-calls.md#time-and-date-tags)
+retain exact ticks through matching JSR, SBR and RET tag transfers.
 
 [Statistics operand selection](docs/statistics-operands.md) defers dormant
 AVE/STD result indices and establishes unknown REAL/integer result elements.

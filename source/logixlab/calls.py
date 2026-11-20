@@ -94,6 +94,8 @@ class Calls:
         key,parts,dtype=self.memory.check_writable(ref,scope) if writable else self.memory.resolve(ref,scope)
         if key is None:
             raise ModelError('Routine parameter system selections are unsupported')
+        if dtype in TIME_TYPES and not self.indirect_profile(scope):
+            raise ModelError('Routine time/date parameters require the v35 ControlLogix 5580 profile')
         if parts and isinstance(parts[-1], tuple):
             _, _, width, signed = parts[-1]
             if not (self.indirect_profile(scope) and signed and width in (8, 16, 32)):
@@ -287,7 +289,11 @@ class Calls:
                                'AOI FOR/BRK, BRK inside MCR zones and SFC targets','Native postscan and hardware scheduling'])
 
     def values(self,operands):
-        return [coerce(p.immediate,p.dtype) if p.key is None else copy.deepcopy(self.memory.read(p.ref,p.scope)) for p in operands]
+        return [
+            coerce(operand.immediate, operand.dtype) if operand.key is None else
+            copy.deepcopy(self.memory.read(operand.ref, operand.scope, allow_time=operand.dtype in TIME_TYPES))
+            for operand in operands
+        ]
 
     def store(self,destinations,values):
         for dest,value in zip(destinations,values):
@@ -352,6 +358,9 @@ class Calls:
                 'dint_radix':dict(available=self.indirect_profile(''),radix_bases=[2,8,16],
                     transfers='JSR inputs and RET values accept grouped unsuffixed DINT words with exact type matching',
                     loop='Ladder FOR initial, terminal and step accept the same DINT words',native_runtime_parity=False),
+                'time_date':dict(available=self.indirect_profile(''),types=sorted(TIME_TYPES),
+                    contract='Copied tags with exact declared time/date types and dimensions',
+                    trace='Exact ticks shown as decimal text', native_runtime_parity=False),
                 'indirect':dict(available=self.indirect_profile(''),profile='v35-5580-caller-elements',
                                 selection='Structural JSR preflight; false/prescan skip live caller indices and values',
                                 capture='Input and return-destination addresses captured at call entry before input copies; current values copied before SBR writes',
