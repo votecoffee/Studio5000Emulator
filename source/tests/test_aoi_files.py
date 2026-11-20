@@ -203,7 +203,7 @@ class AOIFileTests(unittest.TestCase):
         for kind in ('type','dimensions','constant','wide','expression'):
             def bad(root):
                 if kind=='type':root.find('.//Parameter[@Name="Output"]').set('DataType','REAL')
-                elif kind=='dimensions':root.find('.//Parameter[@Name="Input"]').set('Dimensions','4')
+                elif kind=='dimensions':root.find('.//Parameter[@Name="Input"]').set('Dimensions','6')
                 elif kind=='constant':root.find('./Controller/Tags/Tag[@Name="OutputA"]').set('Constant','true')
                 elif kind=='wide':body(root).find('Rung[@Number="1"]/Text').text='FAL(Calc,?,?,ALL,Output[Calc.POS],2147483648L);'
                 else:body(root).find('Rung[@Number="1"]/Text').text='FAL(Calc,?,?,ALL,Output[Calc.POS],EXP(Input[Calc.POS]));'

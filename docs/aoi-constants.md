@@ -73,6 +73,18 @@ remain outside the supported profile. Native Studio 5000 import and packed
 layout remain unverified.
 See Rockwell's [Add-On Instructions manual](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm010_-en-p.pdf).
 
+## One-dimensional InOut arrays
+
+In v35 ControlLogix 5580 ladder and Structured Text, a one-dimensional InOut
+array can bind a same-type caller array at least as long as the formal
+declaration. A two-element declaration can therefore bind a four-element
+array. `SIZE` inside the AOI returns four, and references use the actual
+array's bounds. The AOI shares caller storage, so writes through the
+parameter update the caller's array. Scalar and multidimensional bindings
+still require matching shapes, and existing read-only and writable rules
+apply. Native monitor presentation remains unverified.
+See Rockwell's [single-dimension InOut guidance](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm010_-en-p.pdf).
+
 ## Constant InOut parameters
 
 In the v35 ControlLogix 5580 profile, an AOI may declare a required InOut

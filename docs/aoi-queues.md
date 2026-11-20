@@ -16,10 +16,11 @@ XIC(Push)LFL(Value,Stack[0],StackState,?,?);
 XIC(Pop)LFU(Stack[0],Popped,StackState,?,?);
 ```
 
-`Buffer` and `State` can be InOut parameters. In this bounded model, caller
-types and array dimensions must match the definition exactly. No implicit
-conversion, resizing or variable-sized array contract is inferred. Local
-`Stack` and `StackState` use the current instance's represented storage.
+`Buffer` and `State` can be InOut parameters. Caller types must match the
+definition exactly. A [one-dimensional actual](aoi-constants.md#one-dimensional-inout-arrays)
+can meet or exceed the declared length. The queue continues to use its
+configured CONTROL length and selected starting element. Local `Stack`
+and `StackState` use the current instance's represented storage.
 
 Subscript expressions are evaluated in the AOI frame before following a
 parameter/local binding. An AOI's `Buffer[Index]` uses that instance's Index,
@@ -102,5 +103,5 @@ This increment adds no FBD or SFC features.
 The installed v35 Using an Add-On Instruction and Parameter/Local Tag help was
 reviewed alongside Rockwell's [Add-On Instructions manual](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm010_-en-p.pdf)
 and [parameter/local-tag reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-02/contents-ditamap/studio-5000-logix-designer/add-on-instructions/parameter-local-tag-properties-dialog-box.html).
-The emulator's exact-dimension and one-dimensional-start restrictions are
-deliberately narrower than the complete native binding rules.
+The emulator's one-dimensional queue starting-element rules cover a bounded
+subset of the native instruction forms.

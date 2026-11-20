@@ -44,8 +44,14 @@ class AddOns:
                 k,p,t=resolve(argument,scope)
                 if k is None:raise ModelError('InOut requires a tag reference')
                 if any(isinstance(x,tuple) for x in p):raise ModelError('InOut bit selections are unsupported')
-                if t!=expected or shape(self.memory.at(k,p))!=dimensions(parameter.get('Dimensions','0')):
-                    raise ModelError(parameter.get('Name')+': InOut type/array dimensions must match exactly')
+                if t != expected:
+                    raise ModelError(f"{parameter.get('Name')}: InOut requires type {expected}, received {t}")
+                declared = dimensions(parameter.get('Dimensions', '0'))
+                actual = shape(self.memory.at(k, p))
+                larger_vector = (len(declared) == len(actual) == 1 and actual[0] > declared[0]
+                                 and numeric_available(self.engine.project))
+                if actual != declared and not larger_vector:
+                    raise ModelError(f"{parameter.get('Name')}: InOut dimensions {actual} do not meet {declared}")
                 bindings[parameter_name]=(self.memory.address(k,p),'')
             elif usage=='Output':
                 k,p,t=self.memory.check_writable(argument,scope)
@@ -153,6 +159,10 @@ class AddOns:
                     lifecycle='Required scalar Inputs are copied in prescan and on reached calls, including false ladder calls',
                     native_runtime_parity=False),
                 'local_state_policy':'Hidden saved local values remain unknown; Prescan or normal writes must establish them before reads',
+                'inout_arrays':dict(larger_one_dimension=numeric_available(project),
+                    contract='Exact element type; one-dimensional actual length may exceed formal length',
+                    bounds='References and SIZE use the actual array; other ranks require exact dimensions',
+                    native_runtime_parity=False),
                 'constant_inouts':{a.name:sorted(a.constant_inouts) for a in project.aois.values() if a.constant_inouts},
                 'local_aliases':{a.name:{name:target.reference for name,target in a.local_aliases.items()}
                                  for a in project.aois.values() if a.local_aliases},

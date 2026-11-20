@@ -148,11 +148,11 @@ class AOIQueueTests(unittest.TestCase):
         self.assertEqual(e.memory.read('DriverA.Stack[0]'),11);self.assertEqual(e.memory.read('DriverB.Stack[0]'),22)
         self.assertEqual(e.memory.read('DriverA.Word'),1)
 
-    def test_inout_type_dimensions_and_constant_bindings_remain_exact(self):
+    def test_inout_wrong_type_short_actual_and_constant_actual_are_blocked(self):
         for change in ('dimensions','type','constant'):
             def mutate(root):
                 tag=root.find('./Controller/Tags/Tag[@Name="BufferA"]')
-                if change=='dimensions':root.find('.//Parameter[@Name="Buffer"]').set('Dimensions','5')
+                if change=='dimensions':root.find('.//Parameter[@Name="Buffer"]').set('Dimensions','7')
                 elif change=='constant':tag.set('Constant','true')
                 else:root.find('.//Parameter[@Name="Buffer"]').set('DataType','REAL')
             self.assertTrue(self.engine(mutate).blockers)

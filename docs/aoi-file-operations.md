@@ -24,8 +24,10 @@ destination rules as an ordinary FAL call. FSC uses the bounded CMP profiles,
 including [binary64 comparisons](file-search.md#binary64-searches), with eager
 operand checks.
 
-AOI operands can be exact-type/dimension InOut bindings or represented saved
-locals. Array expressions resolve indices in the AOI frame, including
+AOI operands can be exact-type InOut bindings or represented saved locals.
+[One-dimensional InOut arrays](aoi-constants.md#one-dimensional-inout-arrays)
+can meet or exceed the declared length. Array expressions resolve indices in
+the AOI frame, including
 `Calc.POS`, nested AOIs and selected InOut banks. Covered forms include
 one-dimensional local arrays and exact-shaped multidimensional InOut arrays.
 Array/member bounds, constant protection, destination/CONTROL overlap checks,

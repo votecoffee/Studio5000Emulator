@@ -532,6 +532,59 @@ class AddOnTests(unittest.TestCase):
         members.find('Member[@Name="Fault"]').set('BitNumber','00')
         self.assertTrue(any('overlapping named BIT alias' in blocker for blocker in self.engine(rung).blockers))
 
+    def larger_inout_array(self):
+        parameter = self.definition().find('Parameters/Parameter[@Name="Shared"]')
+        parameter.set('Dimensions','2')
+        tag = self.root.find('Controller/Tags/Tag[@Name="SharedA"]')
+        tag.set('Dimensions','4')
+        data = tag.find('Data')
+        data.remove(data.find('DataValue'))
+        array = E.SubElement(data,'Array',DataType='DINT',Dimensions='4')
+        for index,value in enumerate((10,20,30,40)):
+            E.SubElement(array,'Element',Index=f'[{index}]',Value=str(value))
+        return parameter,tag
+
+    def test_larger_inout_array_exposes_actual_size_and_last_element_in_ladder_and_st(self):
+        self.larger_inout_array()
+        definition = self.definition()
+        logic = definition.find('Routines/Routine[@Name="Logic"]')
+        self.body()[0].find('Text').text = 'SIZE(Shared,0,Total)SUB(Total,1,Count)MOV(Step,Shared[Count]);'
+        rung = ['LabAccumulator(AccumulatorA,StepA,TotalA,SharedA);']
+        for language in ('RLL','ST'):
+            with self.subTest(language=language):
+                if language == 'ST':
+                    logic.remove(logic.find('RLLContent'))
+                    logic.set('Type','ST')
+                    E.SubElement(E.SubElement(logic,'STContent'),'Line',Number='0').text = (
+                        'SIZE(Shared,0,Total); Count := Total - 1; Shared[Count] := Step;')
+                engine = self.engine(rung)
+                self.assertEqual(engine.blockers, [])
+                engine.step()
+                self.assertEqual(engine.memory.read('TotalA'),4)
+                self.assertEqual(engine.memory.read('SharedA'),[10,20,30,2])
+
+    def test_larger_constant_inout_array_reports_actual_size(self):
+        parameter,tag = self.larger_inout_array()
+        parameter.set('Constant','true')
+        tag.set('Constant','true')
+        self.body()[0].find('Text').text = 'SIZE(Shared,0,Total);'
+        engine = self.engine(['LabAccumulator(AccumulatorA,StepA,TotalA,SharedA);'])
+        self.assertEqual(engine.blockers, [])
+        engine.step()
+        self.assertEqual(engine.memory.read('TotalA'),4)
+        self.assertEqual(engine.memory.read('SharedA'),[10,20,30,40])
+
+    def test_inout_extension_rejects_shorter_arrays_other_ranks_and_older_profiles(self):
+        parameter,_ = self.larger_inout_array()
+        rung = ['LabAccumulator(AccumulatorA,StepA,TotalA,SharedA);']
+        for declared in ('5','2,2'):
+            with self.subTest(declared=declared):
+                parameter.set('Dimensions',declared)
+                self.assertTrue(any('InOut dimensions' in blocker for blocker in self.engine(rung).blockers))
+        parameter.set('Dimensions','2')
+        self.root.find('Controller').set('ProcessorType','1756-L75')
+        self.assertTrue(any('InOut dimensions' in blocker for blocker in self.engine(rung).blockers))
+
     def test_recursive_aoi_call_is_blocked(self):
         E.SubElement(self.definition().find('Parameters'),'Parameter',Name='Peer',DataType='LabAccumulator',Usage='InOut',Required='true')
         self.body()[0].find('Text').text='AFI()LabAccumulator(Peer,Step,Total,Shared,Peer);'
