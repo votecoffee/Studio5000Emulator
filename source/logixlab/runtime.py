@@ -47,6 +47,7 @@ AOI_ARRAY_FAULT_RECOVERY_OPS = (
     | scalar_math.INSTRUCTIONS | bit_logic.INSTRUCTIONS | bit_transfer.INSTRUCTIONS
     | comparisons.INSTRUCTIONS | numeric_conversions.INSTRUCTIONS | real_math.INSTRUCTIONS
     | string_operations.INSTRUCTIONS | string_conversions.INSTRUCTIONS
+    | array_statistics.INSTRUCTIONS | array_sort.INSTRUCTIONS
 )
 _CONTROL_PRESCAN = {
     instruction: family.prescan

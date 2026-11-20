@@ -237,6 +237,14 @@ def add_array_calculation_tags(root):
         ET.SubElement(array,'Element',Index=f'[{index}]',Value=value)
 
 
+def nested_aoi_array_calculation_fixture(root, work):
+    nested_aoi_array_fault_fixture(root, work=work)
+    add_array_calculation_tags(root)
+    bind_nested_aoi_inout_arrays(root, ('RecordData', 'CONTROL', 'LabRecords'),
+                                 ('Window', 'DINT', 'LabQueue'),
+                                 ('StatsResult', 'REAL', 'LabStats'))
+
+
 def sort_extent_fault_fixture(root):
     ladder_fault_fixture(root, handler_tail='MOV(1,LabIndex);')
     add_array_calculation_tags(root)
@@ -874,6 +882,113 @@ class ProgramFaultTests(unittest.TestCase):
                 engine.memory.write(operand, value)
                 before = copy.deepcopy(engine.memory.values)
                 with self.assertRaisesRegex(ModelError, f'Type 4 Code {code}'):
+                    engine.step()
+                self.assertEqual(engine.memory.values, before)
+                self.assertEqual(engine.scan_count, 0)
+                self.assertIsNone(engine.last_cleared_program_fault)
+
+    def test_nested_aoi_statistics_faults_preserve_result_and_control(self):
+        operands = (
+            ('Window[Index+1]', 'StatsResult[0]', 'RecordData[0]', 0, 0),
+            ('Window[1]', 'StatsResult[Index+1]', 'RecordData[0]', 1, 0),
+            ('Window[1]', 'StatsResult[0]', 'RecordData[Index+1]', 0, 1),
+        )
+        for name, expected in (('AVE', 4.0), ('STD', 2.0)):
+            for source, dest, control, result_index, control_index in operands:
+                with self.subTest(instruction=name, source=source, dest=dest, control=control):
+                    self.setUp()
+                    work = f'{name}({source},0,{dest},{control},?,?)MOV(13,Scaled)'
+                    engine = self.engine(mutate=lambda root:nested_aoi_array_calculation_fixture(root, work))
+                    self.assertEqual(engine.blockers, [])
+                    engine.enter_run()
+                    before = copy.deepcopy(engine.memory.read('LabRecords'))
+                    engine.memory.write('LabIndex', 4)
+                    engine.memory.write('SpeedCommand', 50)
+                    engine.memory.write('StartPB', True)
+                    engine.step()
+                    fault = engine.last_cleared_program_fault
+                    self.assertEqual((fault['type'], fault['code'], fault['instruction']), (4,20,'LABWRAPPER'))
+                    self.assertIn(f'AOI:LabScale/Logic, {name}: Array index outside bounds', fault['detail'])
+                    self.assertEqual(engine.memory.read('LabRecords'), before)
+                    self.assertEqual(engine.memory.read('LabStats'), [11.0,22.0])
+                    self.assertEqual(engine.memory.read('LabIndex'), 0)
+                    self.assertEqual(engine.memory.read('SpeedCommand'), 51)
+                    engine.step()
+                    results = [11.0,22.0]
+                    results[result_index] = expected
+                    self.assertEqual(engine.memory.read('LabStats'), results)
+                    control_after = before.copy()
+                    control_after[control_index] = before[control_index] | dict(EN=True, DN=True, ER=False, POS=3)
+                    self.assertEqual(engine.memory.read('LabRecords'), control_after)
+                    self.assertEqual(engine.memory.read('LabQueue'), [99,6,2,4,77])
+                    self.assertEqual(engine.memory.read('SpeedCommand'), 125)
+                    self.assertIs(engine.last_cleared_program_fault, fault)
+
+    def test_nested_aoi_sort_faults_leave_window_and_control_untouched(self):
+        work = 'SRT(Window[Index+1],0,RecordData[0],?,?)MOV(Window[1],Scaled)'
+        for index, diagnostic in ((4, 'Array index outside bounds'),
+                                  (3, 'SRT LEN exceeds the selected dimension/member boundary')):
+            with self.subTest(index=index):
+                self.setUp()
+                engine = self.engine(mutate=lambda root:nested_aoi_array_calculation_fixture(root, work))
+                self.assertEqual(engine.blockers, [])
+                engine.enter_run()
+                before = copy.deepcopy(engine.memory.read('LabRecords'))
+                engine.memory.write('LabIndex', index)
+                engine.memory.write('SpeedCommand', 50)
+                engine.memory.write('StartPB', True)
+                engine.step()
+                fault = engine.last_cleared_program_fault
+                self.assertEqual((fault['type'], fault['code'], fault['instruction']), (4,20,'LABWRAPPER'))
+                self.assertIn(f'AOI:LabScale/Logic, SRT: {diagnostic}', fault['detail'])
+                self.assertEqual(engine.memory.read('LabQueue'), [99,6,2,4,77])
+                self.assertEqual(engine.memory.read('LabRecords'), before)
+                self.assertEqual(engine.memory.read('LabIndex'), 0)
+                self.assertEqual(engine.memory.read('SpeedCommand'), 51)
+                engine.step()
+                self.assertEqual(engine.memory.read('LabQueue'), [99,2,4,6,77])
+                self.assertEqual(engine.memory.read('LabRecords'),
+                                 [before[0] | dict(EN=True, DN=True), before[1]])
+                self.assertEqual(engine.memory.read('SpeedCommand'), 114)
+                engine.memory.write('LabIndex', 4)
+                engine.step()
+                self.assertEqual(engine.memory.read('LabQueue'), [99,2,4,6,77])
+                self.assertIs(engine.last_cleared_program_fault, fault)
+
+    def test_nested_aoi_statistics_extent_checks_result_before_latching_error(self):
+        for name in ('AVE', 'STD'):
+            with self.subTest(instruction=name):
+                self.setUp()
+                work = f'{name}(Window[4],0,StatsResult[Index+1],RecordData[0],?,?)MOV(13,Scaled)'
+                engine = self.engine(mutate=lambda root:nested_aoi_array_calculation_fixture(root, work))
+                self.assertEqual(engine.blockers, [])
+                engine.enter_run()
+                before = copy.deepcopy(engine.memory.read('LabRecords'))
+                engine.memory.write('LabIndex', 2)
+                engine.memory.write('StartPB', True)
+                engine.step()
+                fault = engine.last_cleared_program_fault
+                self.assertEqual((fault['type'], fault['code']), (4,20))
+                self.assertEqual(engine.memory.read('LabRecords'), before)
+                engine.step()
+                self.assertEqual(engine.memory.read('LabRecords'),
+                                 [before[0] | dict(EN=True, DN=False, ER=True, POS=1), before[1]])
+                self.assertEqual(engine.memory.read('LabStats'), [11.0,22.0])
+                self.assertEqual(engine.memory.read('SpeedCommand'), 125)
+                self.assertIs(engine.last_cleared_program_fault, fault)
+
+    def test_nested_aoi_negative_array_cursors_keep_scan_rollback(self):
+        for work, member in (('SRT(Window[1],0,RecordData[0],?,?)', 'POS'),
+                             ('STD(Window[1],0,StatsResult[0],RecordData[0],?,?)', 'LEN')):
+            with self.subTest(instruction=work):
+                self.setUp()
+                engine = self.engine(mutate=lambda root:nested_aoi_array_calculation_fixture(root, work))
+                self.assertEqual(engine.blockers, [])
+                engine.enter_run()
+                engine.memory.write(f'LabRecords[0].{member}', -1)
+                engine.memory.write('StartPB', True)
+                before = copy.deepcopy(engine.memory.values)
+                with self.assertRaisesRegex(ModelError, 'Type 4 Code 21'):
                     engine.step()
                 self.assertEqual(engine.memory.values, before)
                 self.assertEqual(engine.scan_count, 0)
