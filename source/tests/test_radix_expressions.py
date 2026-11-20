@@ -93,9 +93,10 @@ class RadixExpressionTests(unittest.TestCase):
         for key,value in [('ProcessorType','1756-L75'),('MajorRev','34')]:
             self.assertTrue(self.engine(['AFI()CPT(Dest,16#1L);'],mutate=lambda root:root.find('Controller').set(key,value),checked=False).blockers)
 
-    def test_default_st_index_and_binary64_profiles_do_not_expand_or_share_parser_cache(self):
-        for constructor in [lambda:Expression('16#FFL',integer_literals=True),lambda:Expression('16#FFL',structured=True),
-                            lambda:Expression('16#FFL',subscript=True),lambda:Condition('16#1L=1L',allow_wide=True,integer_literals=True)]:
+    def test_default_index_and_binary64_profiles_do_not_expand_or_share_parser_cache(self):
+        for constructor in (lambda:Expression('16#FFL',integer_literals=True),
+                            lambda:Expression('16#FFL',subscript=True),
+                            lambda:Condition('16#1L=1L',allow_wide=True,integer_literals=True)):
             with self.assertRaises(ModelError):constructor()
         with self.assertRaises(ValueError):literal('16#FFL')
         e=self.engine(['CPT(Dest,16#FFL);']);enabled=e.extensions.expression('16#FFL',integer_literals=True,radix_literals=True)
@@ -105,7 +106,7 @@ class RadixExpressionTests(unittest.TestCase):
                            ('LINT','FRD(16#1L)+1.0'),('LINT','16#1L**1e39')]:
             self.assertTrue(self.engine([f'AFI()CPT(Dest,{text});'],dtype=dtype,checked=False).blockers,(dtype,text))
         # Existing selected REAL extensions accept these forms without widening
-        # generic/ST/index parsing or the integer-only calculation profile.
+        # generic/index parsing or the integer-only calculation profile.
         for dtype,text,want in [('REAL','16#1L',1.0),('LINT','SQRT(16#1L)',1),('LINT','16#1L**2.0',1)]:
             e=self.engine([f'CPT(Dest,{text});'],dtype=dtype);e.step();self.assertEqual(e.memory.read('Dest'),want)
 

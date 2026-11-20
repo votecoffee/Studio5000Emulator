@@ -64,7 +64,7 @@ class IntegerStringConditionTests(unittest.TestCase):
     def test_eager_required_strings_numeric_faults_and_late_rollback(self):
         for expression in ('(Source>0)||(Word=OtherWord)','(Source<0)&&(Word=OtherWord)'):
             e=self.make([f'CMP({expression})OTE(RunLatch);']);e.memory.values['word']['DATA'][0]=None;self.fault(e,'unknown active')
-            e.memory.write('Word.DATA[0]',66);e.memory.write('Word.LEN',13);self.fault(e,'LEN/DATA')
+            e.memory.write('Word.DATA[0]',66);e.memory.write('Word.LEN',13);self.fault(e,'LEN 13 exceeds DATA capacity 12 for Word')
         for expression in ('(Word>OtherWord)||(1UL/0UL>0)','(Word=OtherWord)&&(Source>0)'):
             e=self.make([f'CMP({expression})OTE(RunLatch);'])
             if 'Source' in expression:e.memory.values['source']=None

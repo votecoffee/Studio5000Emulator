@@ -114,9 +114,10 @@ class MovRadixTests(unittest.TestCase):
     def test_constant_destinations_and_index_consumers_remain_guarded(self):
         def constant(root):root.find('./Controller/Tags/Tag[@Name="Results"]').set('Constant','true')
         self.assertTrue(self.engine(['AFI()MOV(16#FFFFFFFF,Results[1]);'],mutate=constant).blockers)
-        for text in ('FLL(16#FFFFFFFF,Results[1],1);','CLR(16#FFFFFFFF);'):
+        for text in ('FLL(16#FFFFFFFF,16#FFFFFFFF,1);', 'CLR(16#FFFFFFFF);'):
             self.assertTrue(self.engine([text]).blockers,text)
-        e=self.checked(['CPT(Results[1],16#FFFFFFFF);']);e.step();self.assertEqual(e.memory.read('Results[1]'),-1)
+        for text in ('FLL(16#FFFFFFFF,Results[1],1);', 'CPT(Results[1],16#FFFFFFFF);'):
+            e=self.checked([text]);e.step();self.assertEqual(e.memory.read('Results[1]'),-1)
         self.fault(self.checked(['MOV(1,Results[16#FFFFFFFF]);']),'DINT overflow')
         self.assertEqual(literal('16#FFFFFFFF'),4294967295)
 

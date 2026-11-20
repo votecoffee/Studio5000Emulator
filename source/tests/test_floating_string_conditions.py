@@ -74,7 +74,7 @@ class FloatingStringConditionTests(unittest.TestCase):
             for expression in ('(Source+0.0>0)||(Word=OtherWord)','(Source+0.0<0)&&(Word=OtherWord)'):
                 e=self.make([f'CMP({expression})OTE(RunLatch);'],precision=precision)
                 e.memory.values['word']['DATA'][0]=None;self.fault(e,'unknown active')
-                e.memory.write('Word.DATA[0]',66);e.memory.write('Word.LEN',13);self.fault(e,'LEN/DATA')
+                e.memory.write('Word.DATA[0]',66);e.memory.write('Word.LEN',13);self.fault(e,'LEN 13 exceeds DATA capacity 12 for Word')
             e=self.make(['CMP((Word=OtherWord)&&(Source+0.0>0))OTE(RunLatch);'],precision=precision)
             e.memory.values['source']=None;self.fault(e,'Unknown')
             e=self.make(['CMP((Word>OtherWord)||(1UL/0.0>0))OTE(RunLatch);'],precision=precision);self.fault(e,'zero')

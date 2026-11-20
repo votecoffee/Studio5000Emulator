@@ -73,7 +73,7 @@ class Expression:
                 self.tokens.append(('string',bytes(x&255 for x in ascii_bytes(text[start:pos].replace('$I','$L').replace('$i','$L'))).decode('latin-1')))
                 continue
             if structured and text[pos]=='&':self.tokens.append(('AND','AND'));pos+=1;continue
-            if radix_literals and integer_literals and text[pos].isdigit():
+            if (structured or radix_literals and integer_literals) and text[pos].isdigit():
                 radix = re.match(r'(?:2|8|16)#[0-9A-Fa-f_ ]+(?:[Uu][Ll]?|[Ll])(?![\w.])', text[pos:])
                 if radix:
                     from .numeric_storage import typed_literal

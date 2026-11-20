@@ -24,6 +24,28 @@ Quotient:=18446744073709551615UL/3UL;
 IF SignedValue=-9223372036854775808L THEN Ready:=TRUE; END_IF;
 ```
 
+## Binary, octal and hexadecimal values
+
+The same suffixes can follow radix digits with bases 2, 8 and 16. A
+short pattern is zero-filled to its declared width. The top bit of a
+full-width LINT pattern is its sign bit. UDINT and ULINT patterns stay
+unsigned. Digits may be grouped with underscores or spaces, and the
+suffix must follow the final digit directly.
+
+```text
+SignedValue:=16#8000_0000_0000_0000L;
+UnsignedValue:=16#FFFF FFFF FFFF FFFFUL;
+DwordValue:=8#377_777_777_77U;
+Ready:=16#FFFFL=65535L;
+```
+
+Values outside 32 bits for U or 64 bits for L and UL fail preflight. An
+explicit unary sign is evaluated after decoding the pattern. The tag
+watch retains exact decimal values and the ST viewer highlights the
+whole literal, including its suffix. The
+[Rockwell immediate-value reference](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/37-02/contents-ditamap/instruction-set/immediate-values.html)
+describes zero-fill and the suffix types.
+
 ## Type rules and execution
 
 Numeric tag operands, suffixed literals and numeric destination must share the
@@ -59,10 +81,9 @@ zero causes a later divide fault. Correct the input before retrying. See
 
 ## Remaining forms
 
-This increment accepts decimal digits with L/U/UL only. Typed radix, fractional,
-exponent, grouped-digit or prefix forms, mixed numeric conversions, typed
-instruction-call arguments, wide FOR/CASE/index forms and typed CASE labels
-remain unqualified. CPT/CMP and ladder operand lexers retain their own formats.
+Fractional or exponent suffix forms, grouped decimal digits, other prefixes,
+mixed numeric conversions, typed instruction-call arguments, wide FOR/CASE/index
+forms and typed CASE labels remain unqualified. CPT/CMP and ladder operand lexers retain their own formats.
 Power/other wide functions and native precision/status/fault/intermediate parity
 remain unfinished. Software checks do not establish native Studio/controller
 acceptance of these new forms.

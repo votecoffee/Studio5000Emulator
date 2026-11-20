@@ -214,10 +214,10 @@ def description(project):
     return dict(profile='v35-5580-homogeneous-wide-ST',types=sorted(WIDE_TYPES),
                 available=project.version=='35' and project.processor.upper() in CONTROLLERS,
                 operators=['+','-','*','/','MOD','AND','OR','XOR','NOT','ABS','comparisons'],
-                literals='Untyped signed DINT integers or matching decimal L/U/UL literals within declared range',
+                literals='Untyped signed DINT integers or matching decimal and binary/octal/hexadecimal L/U/UL literals within declared width',
                 arithmetic='Exact integers, quotient toward zero; every numeric intermediate must fit its declared type',
                 conditions='Wide comparisons with BOOL operands/logic; eager operand evaluation',
                 mixed_numeric_types=False,native_runtime_parity=False,
-                remaining=['Mixed numeric types/conversions, typed radix literals and typed instruction arguments','Power/other functions',
+                remaining=['Mixed numeric types/conversions and typed instruction arguments','Power/other functions',
                            'Wide FOR/CASE/index forms','File-expression consumers',
                            'Native math/status/fault/overflow/intermediate parity'])

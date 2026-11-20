@@ -82,7 +82,7 @@ class TimeConditionTests(unittest.TestCase):
             e=self.make([f'CMP({expression})OTE(RunLatch);']);e.memory.write('StartPB',True);e.memory.values['source']=None;self.fault(e,'Unknown')
         for expression in ('(Source>Mask)||(Word=OtherWord)','(Source<Mask)&&(Word=OtherWord)'):
             e=self.make([f'CMP({expression})OTE(RunLatch);']);e.memory.values['word']['DATA'][0]=None;self.fault(e,'unknown active')
-            e.memory.write('Word.DATA[0]',66);e.memory.write('Word.LEN',13);self.fault(e,'LEN/DATA')
+            e.memory.write('Word.DATA[0]',66);e.memory.write('Word.LEN',13);self.fault(e,'LEN 13 exceeds DATA capacity 12 for Word')
 
     def test_udt_members_and_late_fault_rollback(self):
         def record(root):

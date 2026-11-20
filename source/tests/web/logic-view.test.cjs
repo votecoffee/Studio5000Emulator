@@ -196,6 +196,13 @@ test('ST tokens preserve exact source including strings, radix literals and oper
   assert(tokens.some(t => t.kind === 'number' && t.text === '16#FFFF'));
   assert(tokens.some(t => t.kind === 'string' && t.text.includes('<tag>')));
 });
+test('ST syntax highlights grouped typed radix literals as one number', () => {
+  const source = 'Value := 16#8000 0000 0000 0000L + 2#11ul; // retain source';
+  const tokens = tokenizeST(source);
+  assert.deepEqual(tokens.filter(token => token.kind === 'number').map(token => token.text),
+    ['16#8000 0000 0000 0000L', '2#11ul']);
+  assert.equal(tokens.map(token => token.text).join(''), source);
+});
 test('ST block comments remain comments across lines and support nesting', () => {
   const state = {depth: 0}, lines = ['(* outer (* nested', '*) still outer', '*) Value := 1;'];
   const tokens = lines.map(line => tokenizeST(line, state));assert.equal(state.depth, 0);

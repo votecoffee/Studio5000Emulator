@@ -787,7 +787,8 @@ bounded profile. General CPU preemption, other event sources and Safety remain u
 [wide Structured Text](docs/wide-st.md) support homogeneous LINT/unsigned
 arithmetic, comparisons and bitwise operations for the v35 ControlLogix 5580
 model. **Integer lab** compares RLL/ST results and demonstrates exact
-[L/U/UL integer literals](docs/st-integer-literals.md). Complete mixed-type arithmetic,
+[decimal, binary, octal and hexadecimal L/U/UL integer literals](docs/st-integer-literals.md).
+Complete mixed-type arithmetic,
 additional expression forms and native math flags remain unfinished.
 
 [Numeric CASE selection](docs/st-case-selection.md) supports integer and REAL

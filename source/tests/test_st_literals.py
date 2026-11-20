@@ -1,4 +1,4 @@
-"""Typed decimal ST constants retain width, range and language boundaries."""
+"""Typed ST integer constants retain width, range and language boundaries."""
 import copy
 import unittest
 from pathlib import Path
@@ -73,8 +73,44 @@ class StructuredLiteralTests(unittest.TestCase):
         for text in ('1LU','1ULU','1ULL','1UU','1L2','1ULgarbage','1 L','1 UL'):
             self.assertTrue(self.engine('WideDest:='+text+';').blockers,text)
 
-    def test_real_exponent_radix_and_grouped_typed_forms_remain_unqualified(self):
-        for text in ('1.0L','1e3L','.5UL','16#FFU','2#11UL','8#77L','1_000L'):
+    def test_typed_radix_sources_decode_exact_signed_and_unsigned_patterns(self):
+        cases = (
+            ('LINT', '16#8000_0000_0000_0000L', -(1 << 63)),
+            ('LINT', '16#0020 0000 0000 0001l+2L', 9007199254740995),
+            ('LINT', '16#FFFFL', 65535),
+            ('UDINT', '8#377_777_777_77U', (1 << 32) - 1),
+            ('ULINT', '2#11ul', 3),
+            ('ULINT', '16#FFFF_FFFF_FFFF_FFFFUL/3UL', 6148914691236517205),
+        )
+        for dtype, source, expected in cases:
+            with self.subTest(dtype=dtype, source=source):
+                engine = self.checked('WideDest:='+source+';', dtype=dtype)
+                engine.step()
+                self.assertEqual(engine.memory.read('WideDest'), expected)
+
+        engine = self.checked('Result:=16#FFFF_FFFF_FFFF_FFFFUL=NOT 2#0UL;')
+        engine.step()
+        self.assertTrue(engine.memory.read('Result'))
+
+    def test_typed_radix_validates_bits_digits_and_attached_suffixes(self):
+        cases = (
+            ('LINT', '16#1_0000_0000_0000_0000L'),
+            ('UDINT', '16#1_0000_0000U'),
+            ('ULINT', '16#1_0000_0000_0000_0000UL'),
+            ('ULINT', '2#202UL'),
+            ('LINT', '8#78L'),
+            ('LINT', '16#FFFF L'),
+            ('LINT', '16#FFFF_L'),
+            ('LINT', '16#FFFFLU'),
+            ('LINT', '16#FFFFL+16#FFFFU'),
+            ('ULINT', '-16#1UL'),
+        )
+        for dtype, source in cases:
+            with self.subTest(dtype=dtype, source=source):
+                self.assertTrue(self.engine('IF FALSE THEN WideDest:='+source+'; END_IF;', dtype=dtype).blockers)
+
+    def test_real_exponent_and_grouped_decimal_forms_remain_unqualified(self):
+        for text in ('1.0L','1e3L','.5UL','1_000L'):
             self.assertTrue(self.engine('WideDest:='+text+';').blockers,text)
 
     def test_mixed_literal_types_and_numeric_destinations_are_rejected(self):
@@ -86,12 +122,16 @@ class StructuredLiteralTests(unittest.TestCase):
     def test_profile_gate_applies_to_typed_constants_without_tag_operands(self):
         for kwargs in (dict(processor='1756-L75'),dict(revision='34'),dict(processor='5069-L340ERM')):
             self.assertTrue(self.engine('Result:=1L=1L;',**kwargs).blockers)
+            self.assertTrue(self.engine('Result:=16#FFFFL=65535L;',**kwargs).blockers)
 
     def test_typed_for_case_and_index_forms_do_not_bypass_existing_guards(self):
         for source in ('FOR SpeedCommand:=0 TO 3L DO WideDest:=1L; END_FOR;',
                        'CASE 1L OF 1:WideDest:=1L; END_CASE;',
                        'CASE SpeedCommand OF 1L:WideDest:=1L; END_CASE;',
-                       'WideDest:=WideA[0U];'):
+                       'WideDest:=WideA[0U];',
+                       'FOR SpeedCommand:=0 TO 2#11L DO WideDest:=1L; END_FOR;',
+                       'CASE SpeedCommand OF 16#1L:WideDest:=1L; END_CASE;',
+                       'WideDest:=WideA[2#0U];'):
             self.assertTrue(self.engine(source).blockers,source)
 
     def test_cpt_and_cmp_lexers_do_not_accept_st_suffixes(self):
@@ -120,7 +160,8 @@ class StructuredLiteralTests(unittest.TestCase):
 
     def test_valid_literal_arithmetic_faults_roll_back_earlier_writes(self):
         for dtype,text in (('LINT','9223372036854775807L+1L'),('ULINT','0UL-1UL'),
-                           ('LINT','ABS(-9223372036854775808L)'),('ULINT','1UL/0UL')):
+                           ('LINT','ABS(-9223372036854775808L)'),('ULINT','1UL/0UL'),
+                           ('ULINT','16#FFFF_FFFF_FFFF_FFFFUL+1UL')):
             e=self.checked('SpeedCommand:=99; WideDest:='+text+';',dtype=dtype);before=copy.deepcopy(e.memory.values);schedule=e.scheduler_description()
             with self.assertRaises(ModelError):e.step()
             self.assertEqual(e.memory.values,before);self.assertEqual(e.scheduler_description(),schedule);self.assertEqual((e.scan_count,e.time_ms),(0,0))
@@ -147,7 +188,7 @@ class StructuredLiteralTests(unittest.TestCase):
             for node in definition.iter():
                 if node.get('DataType')=='DINT':node.set('DataType','LINT')
             logic=definition.find('./Routines/Routine[@Name="Logic"]');logic.remove(logic.find('RLLContent'));logic.set('Type','ST')
-            E.SubElement(E.SubElement(logic,'STContent'),'Line',Number='0').text='Total:=Shared+9007199254740993L; Shared:=Shared+1L;'
+            E.SubElement(E.SubElement(logic,'STContent'),'Line',Number='0').text='Total:=Shared+16#0020_0000_0000_0001L; Shared:=Shared+1L;'
             root.find('./Controller/AddOnInstructionDefinitions').append(definition)
             tag=E.SubElement(root.find('./Controller/Tags'),'Tag',Name='Instance',TagType='Base',DataType='LabAccumulator')
             obj=E.SubElement(E.SubElement(tag,'Data',Format='Decorated'),'Structure',DataType='LabAccumulator')

@@ -64,8 +64,8 @@ class LrealRadixExpressionTests(unittest.TestCase):
         def constant(root):root.find('./Controller/Tags/Tag[@Name="Dest"]').set('Constant', 'true')
         self.assertTrue(self.engine(['AFI()CPT(Dest,16#1L);'], dtype='LREAL', mutate=constant, checked=False).blockers)
 
-    def test_default_st_index_parsing_and_real_only_integer_guards_do_not_expand(self):
-        for create in [Expression, Condition, lambda text:Expression(text, structured=True), lambda text:Expression(text, subscript=True)]:
+    def test_default_index_parsing_and_real_only_integer_guards_do_not_expand(self):
+        for create in (Expression, Condition, lambda text:Expression(text, subscript=True)):
             with self.assertRaises(ModelError):create('16#1L')
         self.assertEqual(literal('16#FFFFFFFF'), 4294967295)
         self.assertEqual(Expression('16#FFFFFFFF').tree, ('literal', 4294967295))
