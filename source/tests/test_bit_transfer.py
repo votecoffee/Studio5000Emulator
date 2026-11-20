@@ -55,12 +55,17 @@ class BitTransferTests(unittest.TestCase):
                 e.step(); self.assertEqual(e.memory.read('Dest'), expected)
 
     def test_mask_literals_in_decimal_hex_octal_and_binary(self):
-        for mask in ('255', '16#FF', '8#377', '2#1111_1111'):
+        for mask in ('255', '16#FF', '8#377', '2#1111_1111', '16#00 FF', '8#3 77', '2#1111 1111'):
             e = self.checked([f'MVM(Source,{mask},Dest);'], values=(0x1234,0,-1))
             e.step(); self.assertEqual(e.memory.read('Dest'), -204)
-        for mask in ('-1', '16#FFFF_FFFF', '8#37777777777', '2#'+'1'*32):
+        for mask in ('-1', '16#FFFF_FFFF', '8#37777777777', '2#'+'1'*32, '16#FFFF FFFF', '8#37 777 777 777'):
             e = self.checked([f'MVM(Source,{mask},Dest);'], values=(-2147483648,0,7))
             e.step(); self.assertEqual(e.memory.read('Dest'), -2147483648)
+
+    def test_grouped_mvm_source_and_mask_keep_unselected_bits(self):
+        e = self.checked(['MVM(16#8000 00AA,16#FF00 00FF,Dest);'], values=(0, 0, 0x76543210))
+        e.step()
+        self.assertEqual(e.memory.read('Dest') & 0xFFFFFFFF, 0x805432AA)
 
     def test_full_replacement_establishes_unknown_destination(self):
         for rung in ('MVM(Source,-1,Dest);', 'BTD(Source,0,Dest,0,32);'):
@@ -116,14 +121,17 @@ class BitTransferTests(unittest.TestCase):
             e.step(); self.assertEqual(e.memory.read('Dest'),-1)
 
     def test_btd_literal_source_accepts_32_bit_pattern(self):
-        e = self.checked(['BTD(16#FEDC_BA98,24,Dest,0,8);'])
-        e.step(); self.assertEqual(e.memory.read('Dest'),254)
+        for source, bit, dest, length in (('16#FEDC_BA98', '24', '0', '8'),
+                                           ('16#FEDC BA98', '8#3 0', '2#0 000', '16#0 8')):
+            e = self.checked([f'BTD({source},{bit},Dest,{dest},{length});'])
+            e.step(); self.assertEqual(e.memory.read('Dest'),254)
 
     def test_btd_configuration_must_be_immediate_and_in_declared_bounds(self):
         for rung in ('BTD(Source,Mask,Dest,0,8);','BTD(Source,0,Dest,Mask,8);','BTD(Source,0,Dest,0,Mask);',
                      'BTD(Source,-1,Dest,0,8);','BTD(Source,32,Dest,0,8);','BTD(Source,0,Dest,32,8);',
                      'BTD(Source,0,Dest,0,0);','BTD(Source,0,Dest,0,33);','BTD(Source,0.0,Dest,0,8);',
-                     'BTD(Source,TRUE,Dest,0,8);'):
+                     'BTD(Source,TRUE,Dest,0,8);','BTD(Source,16#0 20,Dest,0,8);',
+                     'BTD(Source,0,Dest,0,16#FFFF FFFF);','BTD(Source,0,Dest,0,16#00 08U);'):
             with self.subTest(rung=rung): self.assertTrue(self.engine([rung]).blockers)
         for dtype,bits in (('SINT',8),('INT',16)):
             self.assertTrue(self.engine([f'BTD(Source,{bits},Dest,0,1);'],types=(dtype,'DINT','DINT')).blockers)
@@ -142,7 +150,8 @@ class BitTransferTests(unittest.TestCase):
             self.assertTrue(self.engine([rung]).blockers)
 
     def test_rejects_unbounded_and_noninteger_immediates_and_bad_arities(self):
-        for source in ('4294967296','2147483648','-2147483649','16#100000000','1.0','TRUE'):
+        for source in ('4294967296','2147483648','-2147483649','16#100000000','16#1 0000 0000',
+                       '2#1010 2111','8#3 87','16#AB CDUL','1.0','TRUE'):
             self.assertTrue(self.engine([f'MVM({source},-1,Dest);']).blockers)
             self.assertTrue(self.engine([f'BTD({source},0,Dest,0,8);']).blockers)
         for rung in ('MVM(Source,Dest);','BTD(Source,0,Dest,0);'):

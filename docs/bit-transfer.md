@@ -25,6 +25,13 @@ Source and mask immediates accept signed DINT decimal values or nonnegative
 elements, UDT members, aliases and supported AOI parameter/InOut bindings.
 Indirect array subscripts follow the existing bounded reference rules.
 
+On v35 ControlLogix 5580, MVM and BTD accept space-grouped DINT radix words
+in the source, MVM mask and BTD position/length operands. A word such as
+`16#FFFF FFFF` selects all 32 bits as an MVM mask. BTD positions and length
+must still fit their respective integer ranges. The monitor shows the exact
+operand text and its decoded DINT value. See installed v35 help topic 14454
+and Rockwell's [immediate value reference](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/37-02/contents-ditamap/instruction-set/immediate-values.html).
+
 Types and shapes are checked before execution. BOOL/bit references, REAL, wide
 and unsigned types, whole aggregates and read-only destinations are blocked.
 BTD positions and length cannot be tag operands. MVM/BTD calls remain blocked
@@ -66,7 +73,7 @@ from native controller major/minor faults and math flags.
 Open **Bit lab** in the webpage and choose **Step scan**. The authored
 [BitLab.L5X](../source/samples/BitLab.L5X) packs a signed byte and word, extracts
 fields, preserves a status word, moves overlapping bits and drops destination
-excess. Its first scan produces:
+excess. `MixedMask` and `LowWord` use grouped radix operands. Its first scan produces:
 
 | Tag | Expected value | Bit pattern |
 | --- | --- | --- |

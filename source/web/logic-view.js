@@ -188,9 +188,12 @@
     function read(ref, node) {
       if (node?.literalValues && Object.hasOwn(node.literalValues, ref)) return node.literalValues[ref];
       const bitwiseRadix = node?.opcode === 'MEQ' || ['AND','OR','XOR','NOT'].includes(node?.opcode) && node.operands?.slice(0,-1).includes(ref);
+      const transferRadix = current.state.version === '35' && /^1756-L8[1-5]E$/i.test(current.state.processor) &&
+        (node?.opcode === 'MVM' && node.operands.slice(0, 2).includes(ref) ||
+         node?.opcode === 'BTD' && node.operands.some((operand, i) => i !== 2 && operand === ref));
       const integerRadix = lrealMathRadix(node, ref, arg => snapshot?.read(arg)) || realMathRadix(node, ref, arg => snapshot?.read(arg)) || ['EQU','NEQ','LES','LEQ','GRT','GEQ','LIM'].includes(node?.opcode) || ['ADD','SUB','MUL','DIV','MOD','NEG','ABS'].includes(node?.opcode) && node.operands?.slice(0,-1).includes(ref);
       const bcdRadix = ['FRD','TOD'].includes(node?.opcode) && node.operands?.[0] === ref;
-      return snapshot?.read(ref, {movRadix: node?.opcode === 'MOV' && node.operands?.[0] === ref, bitwiseRadix, integerRadix, dintRadix: integerRadix, bcdRadix, callRadix: parameterRadix(node, ref, current.state.aoi_definitions)}) || null;
+      return snapshot?.read(ref, {movRadix: node?.opcode === 'MOV' && node.operands?.[0] === ref, bitwiseRadix, integerRadix, dintRadix: integerRadix || transferRadix, bcdRadix, callRadix: parameterRadix(node, ref, current.state.aoi_definitions)}) || null;
     }
     function operandDisplay(field, node, power) {
       if (current.draft) return {};

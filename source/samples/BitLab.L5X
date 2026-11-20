@@ -522,13 +522,13 @@
                 <Text>CLR(Packed)BTD(SourceByte,0,Packed,0,8)BTD(SourceWord,0,Packed,16,16);</Text>
               </Rung>
               <Rung Number="9" Type="N">
-                <Text>BTD(Packed,0,LowWord,0,16);</Text>
+                <Text>BTD(Packed,2#0 000,LowWord,8#0 0,16#0 010);</Text>
               </Rung>
               <Rung Number="10" Type="N">
                 <Text>BTD(Packed,24,HighByte,0,8);</Text>
               </Rung>
               <Rung Number="11" Type="N">
-                <Text>MVM(0,SourceByte,MixedMask);</Text>
+                <Text>MVM(16#0000 0000,SourceByte,MixedMask);</Text>
               </Rung>
               <Rung Number="12" Type="N">
                 <Text>MOV(16#1234,Overlap)BTD(Overlap,0,Overlap,4,12);</Text>
