@@ -1,7 +1,7 @@
 """Bounded Structured Text parser and execution; never Python eval/exec."""
 import copy
 import re
-from contextlib import nullcontext
+from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass,field
 from .model import ModelError,Op,operand_problem
 from .st_expression import STExpression
@@ -221,7 +221,6 @@ class Structured:
             if item.kind in ('assign','for'):writes.append(item.target)
             elif item.kind=='call':
                 op=item.op
-                if op.name=='JSR' and dependencies:raise ModelError('JSR inside FOR with tag-based bounds/step is unsupported')
                 if op.name=='GSV':
                     extra_writes.extend(system_values.write_effects(self.engine,op,scope))
                 elif op.name=='FLL':
@@ -323,13 +322,23 @@ class Structured:
         from .runtime import ReturnRoutine
         from .calls import BreakLoop
         dispatch = self.engine._event_dispatch
+        active_loops = []
 
-        def loop_state(loop):
-            return (
-                self.memory.read(loop.target, scope),
-                self.integer(loop.limit, scope),
-                self.integer(loop.step, scope),
-            )
+        def loop_bounds(loop):
+            return self.integer(loop.step, scope), self.integer(loop.limit, scope)
+
+        @contextmanager
+        def watch_loop(loop):
+            def read_operands():
+                return self.memory.read(loop.target, scope), *loop_bounds(loop)
+
+            watch = dispatch.watch_for_operands(read_operands) if dispatch else nullcontext()
+            active_loops.append(loop)
+            try:
+                with watch:
+                    yield
+            finally:
+                active_loops.pop()
 
         def run(nodes):
             for n in nodes:
@@ -365,6 +374,12 @@ class Structured:
                             elif n.op.name in st_curves.INSTRUCTIONS:st_curves.execute(self.engine,n.op,scope)
                             elif n.op.name in st_pi.INSTRUCTIONS:st_pi.execute(self.engine,n.op,scope)
                             elif n.op.name in st_bit_moves.INSTRUCTIONS:st_bit_moves.execute(self.engine,n.op,scope)
+                            elif n.op.name == 'JSR' and active_loops:
+                                # Include nested routines and RET destination writes.
+                                before = [loop_bounds(loop) for loop in active_loops]
+                                self.engine._op(n.op, True, scope, depth)
+                                if before != [loop_bounds(loop) for loop in active_loops]:
+                                    raise ModelError('JSR changed an active FOR limit or increment')
                             else:self.engine._op(n.op,True,scope,depth)
                         except ReturnRoutine:
                             detail = 'temporary end' if n.op.name == 'TND' else 'return'
@@ -385,11 +400,11 @@ class Structured:
                         self.trace(routine,n,context,detail=value);run(chosen)
                     elif n.kind=='for':
                         self.memory.write(n.target,self.integer(n.start,scope),scope)
-                        watch = dispatch.watch_for_operands(lambda: loop_state(n)) if dispatch else nullcontext()
-                        with watch:
+                        with watch_loop(n):
                             # Bounds and increment are re-evaluated at each loop test.
                             while True:
-                                self.tick();step=self.integer(n.step,scope);limit=self.integer(n.limit,scope)
+                                self.tick()
+                                step, limit = loop_bounds(n)
                                 if not step:raise ModelError('FOR step cannot be zero')
                                 current=self.memory.read(n.target,scope)
                                 if (step>0 and current>limit) or (step<0 and current<limit):break

@@ -406,6 +406,22 @@ destinations clear during modeled prescan, including inside conditional code.
 Prescan walks lexical ST sites rather than executing normal loop iterations.
 Native prescan-order and iteration parity have not been established.
 
+### Subroutine calls in Structured Text FOR loops
+
+An ST FOR with a tag-based limit or BY increment can call a ladder or
+Structured Text subroutine through JSR. For each reached call, the emulator
+compares the live limit and increment values of every enclosing FOR before
+and after the subroutine returns. This includes nested calls, alias writes
+and values copied out by RET. A change faults the advance and restores its
+writes. Prescan and skipped branches do not execute the call as a loop iteration.
+
+Direct loop statements retain the existing write-effect checks. Synchronous
+Event dispatch within a call also checks the active counters under the
+[Event policy](event-tasks.md#structured-text-for-loops).
+Rockwell documents [FOR operand forms](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm007_-en-p.pdf).
+The subroutine check is an emulator policy. Native sampling and fault behavior
+remain unverified.
+
 ## Aggregate queue payloads
 
 [String and explicit UDT FIFO/LIFO](record-queues.md) move exact matching logical

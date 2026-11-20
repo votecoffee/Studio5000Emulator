@@ -473,12 +473,15 @@ class EventTaskTests(unittest.TestCase):
             E.SubElement(trigger, 'Line', Number='0').text = 'UID(); EVENT(Task1); UIE();'
 
         engine = self.checked([
-            ['FOR SpeedCommand:=0 TO 2 DO JSR(Worker,0); Count0:=Count0+Count1; END_FOR;'],
+            ['FOR SpeedCommand:=0 TO SpeedSetpoint BY First0 DO '
+             'JSR(Worker,0); Count0:=Count0+Count1; END_FOR;'],
             ['ADD(Count1,1,Count1);'],
         ], st=True, mutate=subroutines)
+        engine.memory.write('SpeedSetpoint', 4)
+        engine.memory.write('First0', 2)
         engine.step()
         self.assertEqual(engine.memory.read('Count0'), 6)
-        self.assertEqual(engine.memory.read('SpeedCommand'), 3)
+        self.assertEqual(engine.memory.read('SpeedCommand'), 6)
         self.assertEqual(engine.scheduler_description()['tasks'][1]['executions'], 3)
 
     def test_for_dispatch_from_ladder_subroutine_rolls_back_loop_counter_change(self):

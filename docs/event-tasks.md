@@ -72,8 +72,10 @@ follow the normal priority and interrupt rules.
 The scheduler compares the caller's active FOR counters, limit values, and
 increments before and after synchronous dispatch by EVENT or the outermost UIE.
 A change faults the advance and restores both task and tag state. An Event
-queued during the loop can update those tags once the loop exits. JSR calls
-within FOR still require bounds and increments without tag dependencies.
+queued during the loop can update those tags once the loop exits.
+[JSR calls within FOR](execution-model.md#subroutine-calls-in-structured-text-for-loops)
+also check the limit and increment across the entire call, including returned
+values.
 
 Rockwell documents [EVENT and FOR syntax in Structured Text](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm014_-en-p.pdf).
 The loop operand check is an emulator policy. Native sampling and timing remain

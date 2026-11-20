@@ -121,13 +121,57 @@ class StructuredTests(unittest.TestCase):
     def test_for_mutating_bounds_and_dynamic_counter_are_blocked(self):
         for source in ('FOR Index:=0 TO Step DO Step:=Step+1; END_FOR;',
                        'FOR Index:=0 TO Index+3 DO Sum:=1; END_FOR;',
-                       'FOR Values[Index]:=0 TO 2 DO Sum:=1; END_FOR;',
-                       'FOR Index:=0 TO Step DO JSR(LadderScale,1,Sum,Scaled); END_FOR;'):
+                       'FOR Values[Index]:=0 TO 2 DO Sum:=1; END_FOR;'):
             with self.subTest(source=source):self.assertTrue(self.engine(source).blockers)
 
     def test_for_read_only_tag_bound_is_supported(self):
         e=self.engine('Sum:=0; FOR Index:=0 TO Step DO Sum:=Sum+Index; END_FOR;');self.assertEqual(e.blockers,[]);e.step()
         self.assertEqual(e.memory.read('Sum'),3)
+
+    def test_for_with_tag_limit_and_increment_calls_ladder_with_nested_st(self):
+        project = self.engine(
+            'Sum:=0; FOR Index:=0 TO Selector+1 BY Step DO '
+            'JSR(LadderScale,1,Index,Scaled); Sum:=Sum+Scaled; END_FOR;')
+        harness = Engine(project.project, 'routine', 'MainProgram/MainRoutine')
+        for engine in (project, harness):
+            with self.subTest(mode=engine.mode):
+                self.assertEqual(engine.blockers, [])
+                engine.memory.write('Selector', 3)
+                engine.memory.write('Step', 2)
+                engine.step()
+                self.assertEqual(engine.memory.read('Sum'), 15)
+                self.assertEqual(engine.memory.read('Index'), 6)
+                self.assertEqual(engine.memory.read('Scaled'), 9)
+
+    def test_for_jsr_rejects_return_to_limit_and_rolls_back_all_writes(self):
+        engine = self.engine(
+            'State:=7; FOR Index:=0 TO Step DO JSR(LadderScale,1,Index,Step); END_FOR;')
+        self.assertEqual(engine.blockers, [])
+        before = copy.deepcopy(engine.memory.values)
+        with self.assertRaisesRegex(ModelError, 'JSR changed an active FOR limit or increment'):
+            engine.step()
+        self.assertEqual(engine.memory.values, before)
+        self.assertEqual(engine.scan_count, 0)
+
+    def test_nested_for_jsr_protects_outer_increment_from_alias_write(self):
+        tags = self.root.find('./Controller/Tags')
+        E.SubElement(tags, 'Tag', Name='StepAlias', TagType='Alias', AliasFor='Step')
+        self.text('SBR(AdjustInput); StepAlias:=StepAlias+1; RET(AdjustInput);', 'TextAdjust')
+        engine = self.engine(
+            'FOR Index:=0 TO Selector BY Step DO FOR BitIndex:=0 TO 0 DO '
+            'IF Enable THEN JSR(LadderScale,1,Index,Scaled); END_IF; END_FOR; END_FOR;')
+        self.assertEqual(engine.blockers, [])
+        engine.memory.write('Selector', 4)
+        engine.memory.write('Step', 2)
+        engine.memory.write('Enable', False)
+        engine.step()
+        self.assertEqual(engine.memory.read('Index'), 6)
+        engine.memory.write('Enable', True)
+        before = copy.deepcopy(engine.memory.values)
+        with self.assertRaisesRegex(ModelError, 'JSR changed an active FOR limit or increment'):
+            engine.step()
+        self.assertEqual(engine.memory.values, before)
+        self.assertEqual(engine.scan_count, 1)
 
     def test_while_can_execute_zero_times_repeat_executes_once(self):
         e=self.engine('Sum:=0; WHILE FALSE DO Sum:=100; END_WHILE; REPEAT Sum:=Sum+1; UNTIL TRUE END_REPEAT;')
