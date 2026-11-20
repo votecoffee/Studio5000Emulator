@@ -57,7 +57,10 @@ class Extensions:
         # MEQ zero-extends signed SINT/INT values, unlike ordinary signed math.
         return value & ((1<<{'SINT':8,'INT':16,'DINT':32}[dtype])-1)
 
-    def integer(self,ref,scope):
+    def integer(self,ref,scope,*,string_position=False):
+        if string_position:
+            word=string_operations.position_word(self.memory,ref)
+            if word is not None:return word
         value=self.memory.read(ref,scope)
         try:dtype=self.memory.resolve(ref,scope)[2]
         except ModelError:dtype='DINT'  # A literal already accepted by read().
@@ -208,7 +211,7 @@ class Extensions:
             elif n=='MID':
                 capacity=text(a[0]);integer(a[1]);integer(a[2]);text(a[3],True)
                 for ref,minimum,maximum in ((a[1],0,(1<<31)-1),(a[2],1,capacity)):
-                    try:value=literal(ref)
+                    try:value=string_operations.position_literal(self.memory,ref)
                     except ValueError:continue
                     if not minimum<=value<=maximum:
                         raise ModelError('MID requires nonnegative quantity and Start within source DATA capacity')
@@ -308,7 +311,7 @@ class Extensions:
             text=self.memory.string(a[0],scope)+self.memory.string(a[1],scope)
             self.memory.write_string(a[2],text,scope)
         elif n=='MID':
-            length,start=self.integer(a[1],scope),self.integer(a[2],scope)
+            length,start=(self.integer(ref,scope,string_position=True) for ref in a[1:3])
             source=self.memory.string_slice(a[0],start,length,scope)
             self.memory.write_string(a[3],source,scope)
         elif n=='DTOS':

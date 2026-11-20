@@ -34,6 +34,16 @@ including unknown unused bytes. Represented NUL and high bytes are ordinary
 single-byte data; positions count bytes. False ladder rungs, unreached ST branches
 and prescan retain destinations. Reached calls execute on every scan.
 
+## Grouped radix positions and quantities
+
+In the v35 ControlLogix 5580 profile, ladder and ST calls accept grouped
+unsuffixed binary, octal and hexadecimal DINT immediates for Start in FIND,
+INSERT, MID and DELETE, and for Quantity in MID and DELETE. For example,
+`MID(Source,8#0000 0003,16#0000_0004,Dest)` copies three bytes beginning
+at position four. Short patterns are zero-filled to 32 bits, then interpreted
+as signed DINT values. Existing range checks apply to the decoded value.
+The ladder viewer shows the authored operand and its decoded value.
+
 ## Operand selection
 
 For v35 ControlLogix 5580 (1756-L81E through L85E), ladder CONCAT, MID, DTOS,

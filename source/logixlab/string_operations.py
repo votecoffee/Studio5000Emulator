@@ -1,7 +1,7 @@
 """Bounded FIND/INSERT/DELETE on represented single-byte LEN/DATA strings."""
 from .model import (ModelError, StringCapacityError, StringLengthError, StringNumericRangeError,
                     StringPositionError, ascii_bytes, ascii_literal_end, coerce, literal)
-from .integer_math import CONTROLLERS
+from .integer_math import CONTROLLERS, dint_radix
 
 INSTRUCTIONS = frozenset(('FIND', 'INSERT', 'DELETE'))
 INTEGERS = frozenset(('SINT', 'INT', 'DINT'))
@@ -45,10 +45,22 @@ def string_literal(ref):
     return bytes(value & 255 for value in ascii_bytes(ref)).decode('latin-1')
 
 
+def position_word(memory, ref):
+    project = memory.project
+    if project.version == '35' and project.processor.upper() in CONTROLLERS:
+        return dint_radix(ref)
+    return None
+
+
+def position_literal(memory, ref):
+    word = position_word(memory, ref)
+    return literal(ref) if word is None else word
+
+
 def integer_operand(memory, ref, scope, *, destination=False):
     if not destination:
         try:
-            value = literal(ref)
+            value = position_literal(memory, ref)
         except ValueError:
             pass
         else:
@@ -80,7 +92,8 @@ def validate(memory, op, scope):
 
 
 def integer_value(memory, ref, scope):
-    value = memory.read(ref, scope)
+    word = position_word(memory, ref)
+    value = memory.read(ref, scope) if word is None else word
     if type(value) is not int:
         raise ModelError('String position/quantity requires an integer value')
     return coerce(value, 'DINT')
@@ -114,6 +127,10 @@ def description():
     return dict(instructions=sorted(INSTRUCTIONS), languages=['RLL', 'ST'], encoding='single-byte Latin-1 storage',
                 strings='STRING and explicit DINT LEN / one-dimensional SINT DATA user strings',
                 positions='One-based SINT/INT/DINT tag or bounded DINT immediate; no expression operands',
+                position_radix=dict(languages=['RLL', 'ST'], firmware='35', controllers=sorted(CONTROLLERS),
+                    instructions=['FIND', 'INSERT', 'MID', 'DELETE'],
+                    operands='Start and Quantity accept grouped unsuffixed binary, octal and hexadecimal DINT words',
+                    native_runtime_parity=False),
                 search='Case-sensitive; first match at/after Start, zero when absent',
                 mid='Start within declared DATA; exact window within LEN; only selected DATA bytes are consumed',
                 find=dict(languages=['RLL','ST'],

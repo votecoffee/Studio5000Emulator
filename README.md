@@ -753,6 +753,8 @@ through two instances.
 
 [String search and editing](docs/string-operations.md) add FIND, INSERT and
 DELETE in ladder and ST, including explicit user strings and in-place edits.
+[Grouped radix immediates](docs/string-operations.md#grouped-radix-positions-and-quantities)
+can supply Start and Quantity in FIND, INSERT, MID and DELETE where those fields apply.
 Choose **String lab** for a combined ladder/ST example. Enable `FindWindow` to
 [search a known suffix](docs/string-operations.md#find-search-suffixes) after an
 unknown prefix; `FindResult` starts at 5 and moves to 7 when `FindStart` is 6.

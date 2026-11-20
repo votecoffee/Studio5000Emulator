@@ -2755,6 +2755,7 @@ class ProgramFaultTests(unittest.TestCase):
             ('STOD(LabText[0],SmallNumber)', 'LabText[0]', '128.5', 53),
             ('STOR(LabText[0],LabReals[0])', 'LabText[0]', '9' * 42, 53),
             ('FIND(LabText[0],LabText[1],LabPositions[0],LabValues[0])', 'LabPositions[0]', 0, 56),
+            ('FIND(LabText[0],LabText[1],16#FFFF FFFF,LabValues[0])', 'LabText[0]', 'abc', 56),
             ('FIND(LabText[0],LabText[1],1,LabValues[0])', 'LabText[0]', '', 56),
             ('INSERT(LabText[0],LabText[1],LabPositions[0],LabTextResults[0])', 'LabPositions[0]', 83, 56),
             ('MID(LabText[0],LabPositions[0],1,LabTextResults[0])', 'LabPositions[0]', -1, 56),

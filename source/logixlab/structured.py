@@ -276,7 +276,7 @@ class Structured:
                             a=n.op.args
                             for ref in (a[0],a[3]):self.memory.string(ref,scope)
                             self.memory.check_writable(a[3],scope)
-                            for ref in a[1:3]:self.engine.extensions.integer(ref,scope)
+                            for ref in a[1:3]:self.engine.extensions.integer(ref,scope,string_position=True)
                     elif n.kind=='if':
                         for expr,body in n.tests:
                             if self.type(expr,scope)!='bool':raise ModelError('IF requires a BOOL expression')

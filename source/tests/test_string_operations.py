@@ -52,6 +52,36 @@ class StringOperationTests(unittest.TestCase):
     def checked(self,*args,**kwargs):
         e=self.engine(*args,**kwargs);self.assertEqual(e.blockers,[]);return e
 
+    def test_grouped_dint_radix_positions_and_quantities(self):
+        cases = (
+            ('FIND(SourceA,Search,2#0000 0010,Result);', 'Result', 7),
+            ('INSERT(SourceA,SourceB,16#0000 0002,Dest);', 'Dest', 'AXYBC123ABC'),
+            ('MID(SourceA,8#0000 0003,16#0000_0004,Dest);', 'Dest', '123'),
+            ('DELETE(SourceA,2#0000 0011,8#0000 0004,Dest);', 'Dest', 'ABCABC'),
+        )
+        for st in (False, True):
+            for logic, destination, expected in cases:
+                with self.subTest(st=st, logic=logic):
+                    engine = self.checked(logic if st else [logic], st=st)
+                    engine.step()
+                    actual = (engine.memory.read(destination) if destination == 'Result'
+                              else engine.memory.string(destination))
+                    self.assertEqual(actual, expected)
+
+    def test_string_radix_preflight_rejects_invalid_or_out_of_profile_operands(self):
+        rejected = ('FIND(SourceA,Search,2#0000 0020,Result);',
+                    'FIND(SourceA,Search,16#1 0000 0000,Result);',
+                    'INSERT(SourceA,SourceB,16#0000 0002U,Dest);',
+                    'MID(SourceA,16#FFFF FFFF,1,Dest);',
+                    'MID(SourceA,1,16#0000 0053,Dest);')
+        for logic in rejected:
+            with self.subTest(logic=logic):
+                self.assertTrue(self.engine(['AFI()'+logic]).blockers)
+        def earlier_firmware(root):
+            root.find('Controller').set('MajorRev', '34')
+        self.assertTrue(self.engine(['FIND(SourceA,Search,2#0000 0010,Result);'],
+                                    mutate=earlier_firmware).blockers)
+
     def test_all_six_ladder_string_relations_accept_literals_in_either_position(self):
         for name, left, right, equal in (
             ('EQU', False, False, True), ('NEQ', True, True, False),
