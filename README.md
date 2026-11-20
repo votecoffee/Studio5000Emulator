@@ -590,6 +590,8 @@ demonstrates values beyond floating-point precision, high-bit masks and fault re
 [Event tasks](docs/event-tasks.md) add EVENT calls in ladder/ST for qualified
 instruction-only tasks. **Event lab** demonstrates immediate higher-priority
 dispatch, deferred lower/equal-priority work, first scans and request diagnostics.
+[Structured Text FOR loops](docs/event-tasks.md#structured-text-for-loops) can
+trigger and mask events, with rollback if dispatch changes active loop operands.
 
 [System-value reads](docs/gsv-configuration.md) add explicit Task/Controller
 configuration through GSV in ladder and ST. **System lab** shows task rates and

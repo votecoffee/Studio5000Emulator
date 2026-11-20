@@ -103,14 +103,15 @@ class InterruptControlTests(unittest.TestCase):
         with self.assertRaisesRegex(ModelError, 'Reset the faulted project'):e.enter_run()
         e = Engine(e.project); e.enter_run(); self.assertEqual(e.memory.read('Count1'), 0); self.assertIsNone(e._event_dispatch)
 
-    def test_profile_harness_aoi_arguments_and_st_for_forms_are_guarded(self):
+    def test_profile_harness_aoi_arguments_and_unbalanced_for_interrupts_are_guarded(self):
         e = self.checked([['UID()UIE();'], ['NOP();']]); self.assertTrue(Engine(e.project, 'routine', 'Program0/Main').blockers)
         for body in ('UID(Count0);', 'UIE(1);'):
             self.assertTrue(self.engine([[body], ['NOP();']]).blockers)
         for version, processor in (('34', '1756-L85E'), ('35', '1756-L73')):
             def profile(root):root.find('Controller').set('MajorRev', version); root.find('Controller').set('ProcessorType', processor)
             self.assertTrue(self.engine([['AFI()UID();'], ['NOP();']], mutate=profile).blockers)
-        self.assertTrue(self.engine([['FOR Count0:=0 TO 1 DO UID(); UIE(); END_FOR;'], ['NOP();']], st=True).blockers)
+        loop = self.checked([['FOR Count0:=0 TO 1 DO UID(); END_FOR;'], ['NOP();']], st=True)
+        self.fails(loop, 'Unbalanced UID/UIE')
         path = Path(__file__).resolve().parents[1] / 'samples/AOILab.L5X'; root = E.parse(path).getroot()
         root.find('./Controller/AddOnInstructionDefinitions/AddOnInstructionDefinition/Routines/Routine/RLLContent/Rung/Text').text = 'UID()UIE();'
         path = Path(self.tmp.name) / 'aoi.L5X'; E.ElementTree(root).write(path, encoding='utf8', xml_declaration=True); self.assertTrue(Engine(Project(path)).blockers)

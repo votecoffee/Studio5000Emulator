@@ -56,13 +56,25 @@ the task completes, it can be requested again in the same advance. An inhibited
 Event task is ignored. Naming an existing Continuous/Periodic task is a no-op
 and does not reschedule it.
 
-EVENT inside AOIs, routine harnesses and ST FOR loops remains unqualified.
-WHILE/REPEAT calls share the instruction budget. Higher-priority Event writes
-are visible immediately; waiting on a deferred Event from inside a caller loop
-cannot make progress until that caller returns and will exhaust the budget.
-Task logic can alter loop data, so ST FOR calls await full write-effect analysis.
-[Ladder FOR](ladder-loops.md) supports live loop data and separate per-task call
-stacks, including nested Event calls; native timing and sampling remain unverified.
+EVENT requires a scheduled project task context. WHILE/REPEAT calls share the
+instruction budget. Higher-priority Event writes are visible immediately. A
+deferred Event waits for the caller to return, so waiting for it in a caller
+loop can exhaust the instruction budget. [Ladder FOR](ladder-loops.md) supports
+live loop data and separate per-task call stacks.
+
+## Structured Text FOR loops
+
+Direct EVENT, UID, and UIE calls work in an ST FOR body, including inside its
+conditional branches and nested loops. Immediate and deferred requests follow
+the normal priority and interrupt rules. Tasks released by EVENT or by the
+outermost UIE may write other tags. If dispatch changes the live counter, limit
+value, or increment of any active enclosing FOR, the advance faults and restores
+both task and tag state. The check compares values before and after dispatch.
+Existing restrictions on direct writes to bound or increment tags still apply.
+
+Rockwell documents [EVENT and FOR syntax in Structured Text](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm014_-en-p.pdf).
+The loop operand check is an emulator policy. Native sampling and timing remain
+unverified.
 
 ## Configured timeouts
 

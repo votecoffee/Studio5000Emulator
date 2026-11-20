@@ -220,7 +220,6 @@ class Structured:
             if item.kind in ('assign','for'):writes.append(item.target)
             elif item.kind=='call':
                 op=item.op
-                if op.name in ('EVENT','UID','UIE'):raise ModelError(op.name+' inside FOR remains unqualified because task logic may change the loop counter/bounds')
                 if op.name=='JSR' and dependencies:raise ModelError('JSR inside FOR with tag-based bounds/step is unsupported')
                 if op.name=='GSV':
                     extra_writes.extend(system_values.write_effects(self.engine,op,scope))
@@ -322,6 +321,15 @@ class Structured:
     def execute(self,routine,scope,depth,context=''):
         from .runtime import ReturnRoutine
         from .calls import BreakLoop
+        active_for = []
+
+        def loop_state(loop):
+            return (
+                self.memory.read(loop.target, scope),
+                self.integer(loop.limit, scope),
+                self.integer(loop.step, scope),
+            )
+
         def run(nodes):
             for n in nodes:
                 self.tick()
@@ -356,6 +364,12 @@ class Structured:
                             elif n.op.name in st_curves.INSTRUCTIONS:st_curves.execute(self.engine,n.op,scope)
                             elif n.op.name in st_pi.INSTRUCTIONS:st_pi.execute(self.engine,n.op,scope)
                             elif n.op.name in st_bit_moves.INSTRUCTIONS:st_bit_moves.execute(self.engine,n.op,scope)
+                            elif active_for and n.op.name in ('EVENT', 'UIE'):
+                                # A dispatched task can write beyond the caller's known effects.
+                                before = [loop_state(loop) for loop in active_for]
+                                self.engine._op(n.op, True, scope, depth)
+                                if before != [loop_state(loop) for loop in active_for]:
+                                    raise ModelError(f'{n.op.name} dispatch changed an active FOR counter, limit, or increment')
                             else:self.engine._op(n.op,True,scope,depth)
                         except ReturnRoutine:
                             detail = 'temporary end' if n.op.name == 'TND' else 'return'
@@ -383,8 +397,13 @@ class Structured:
                             current=self.memory.read(n.target,scope)
                             if (step>0 and current>limit) or (step<0 and current<limit):break
                             self.trace(routine,n,context,detail=current)
-                            try:run(n.body)
-                            except ExitLoop:break
+                            active_for.append(n)
+                            try:
+                                run(n.body)
+                            except ExitLoop:
+                                break
+                            finally:
+                                active_for.pop()
                             self.memory.write(n.target,self.memory.read(n.target,scope)+step,scope)
                     elif n.kind in ('while','repeat'):
                         while True:

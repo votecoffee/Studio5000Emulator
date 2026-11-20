@@ -399,10 +399,70 @@ class EventTaskTests(unittest.TestCase):
         def old(root):root.find('Controller').set('ProcessorType','1756-L75')
         for mutation in (safety,incomplete,old):self.assertTrue(self.engine(mutate=mutation).blockers)
 
-    def test_routine_harness_and_for_calls_are_explicitly_unqualified(self):
-        e=self.checked([['EVENT(Task1);'],['NOP();']]);harness=Engine(e.project,'routine','Program0/Main');self.assertTrue(harness.blockers)
-        e=self.engine([['FOR SpeedCommand:=0 TO 2 DO EVENT(Task1); END_FOR;'],['NOP();']],st=True)
-        self.assertTrue(e.blockers);self.assertIn('FOR',str(e.blockers))
+    def test_event_calls_require_scheduled_task_context(self):
+        e = self.checked([['FOR SpeedCommand:=0 TO 2 DO EVENT(Task1); END_FOR;'], ['NOP();']], st=True)
+        harness = Engine(e.project, 'routine', 'Program0/Main')
+        self.assertIn('EVENT requires project task context', str(harness.blockers))
+
+    def test_for_event_dispatch_is_visible_in_each_iteration(self):
+        engine = self.checked([
+            ['FOR SpeedCommand:=0 TO SpeedSetpoint DO EVENT(Task1); Count0:=Count0+Count1; END_FOR;'],
+            ['ADD(Count1,1,Count1);'],
+        ], st=True)
+        engine.memory.write('SpeedSetpoint', 2)
+        engine.step()
+        self.assertEqual(engine.memory.read('Count0'), 6)
+        self.assertEqual(engine.memory.read('SpeedCommand'), 3)
+        self.assertEqual(engine.scheduler_description()['tasks'][1]['executions'], 3)
+
+    def test_for_uid_defers_events_until_uie_in_each_iteration(self):
+        engine = self.checked([
+            ['FOR SpeedCommand:=0 TO 2 DO UID(); EVENT(Task1); Count0:=Count0+Count1; UIE(); END_FOR;'],
+            ['ADD(Count1,1,Count1);'],
+        ], st=True)
+        engine.step()
+        self.assertEqual(engine.memory.read('Count0'), 3)
+        self.assertEqual(engine.memory.read('Count1'), 3)
+        self.assertEqual(engine.scheduler_description()['tasks'][1]['executions'], 3)
+
+    def test_for_event_dispatch_protects_inner_and_outer_loop_operands(self):
+        loop = ('FOR SpeedCommand:=0 TO SpeedSetpoint BY First0 DO '
+                'FOR Count0:=0 TO 1 DO IF Count0=0 THEN EVENT(Task1); END_IF; END_FOR; END_FOR;')
+        for target in ('Count0', 'SpeedCommand', 'SpeedSetpoint', 'First0'):
+            with self.subTest(target=target):
+                engine = self.checked([[loop], [f'ADD({target},1,{target})ADD(Count1,1,Count1);']], st=True)
+                engine.memory.write('SpeedSetpoint', 2)
+                engine.memory.write('First0', 1)
+                before = copy.deepcopy(engine.memory.values)
+                schedule = engine.scheduler_description()
+                with self.assertRaisesRegex(ModelError, 'EVENT dispatch changed an active FOR'):
+                    engine.step()
+                self.assertEqual(engine.memory.values, before)
+                self.assertEqual(engine.scheduler_description(), schedule)
+
+    def test_event_after_for_exit_can_change_the_previous_counter(self):
+        engine = self.checked([
+            ['FOR Count0:=0 TO 2 DO EXIT; END_FOR; EVENT(Task1);'],
+            ['ADD(Count0,1,Count0);'],
+        ], st=True)
+        engine.step()
+        self.assertEqual(engine.memory.read('Count0'), 1)
+
+    def test_for_uie_dispatch_rolls_back_and_allows_retry(self):
+        engine = self.checked([
+            ['FOR SpeedCommand:=0 TO 2 DO UID(); EVENT(Task1); UIE(); END_FOR;'],
+            ['XIC(StartPB)ADD(SpeedCommand,1,SpeedCommand);', 'ADD(Count1,1,Count1);'],
+        ], st=True)
+        engine.memory.write('StartPB', True)
+        before = copy.deepcopy(engine.memory.values)
+        with self.assertRaisesRegex(ModelError, 'UIE dispatch changed an active FOR'):
+            engine.step()
+        self.assertEqual(engine.memory.values, before)
+        self.assertEqual(engine.scheduler_description()['tasks'][1]['executions'], 0)
+        engine.memory.write('StartPB', False)
+        engine.step()
+        self.assertEqual(engine.memory.read('SpeedCommand'), 3)
+        self.assertEqual(engine.memory.read('Count1'), 3)
 
     def test_while_condition_observes_event_writes_and_instruction_budget_is_shared(self):
         e=self.checked([['WHILE Count1<3 DO EVENT(Task1); END_WHILE;'],['ADD(Count1,1,Count1);']],st=True);e.step()

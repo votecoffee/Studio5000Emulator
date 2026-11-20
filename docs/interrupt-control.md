@@ -44,6 +44,10 @@ sources remain unsupported. Native priority-register changes, persistent depth,
 unmatched behavior, fault handling and controller/Studio equivalence are
 unverified.
 
+In [Structured Text FOR loops](event-tasks.md#structured-text-for-loops),
+UID and UIE use the same nesting rules. Work dispatched by UIE must preserve
+the active loop counter, limit, and increment values.
+
 ## Event lab
 
 Enable GuardEvents and Step. The producer calls GuardedEvent, which nests two
