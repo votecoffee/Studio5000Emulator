@@ -20,6 +20,12 @@ original SHA-256; a changed or missing source prevents export. Original ACD/L5X
 files are never overwritten. Live values and scan history remain available in
 the separate JSON snapshot feature.
 
+Edited program rungs may call supported AOIs. The copy retains the AOI
+definitions and imported instance data. Apply checks the candidate with live
+values and also checks that the exported copy passes execution preflight with
+saved values. This catches cases where an indirect AOI operand resolves
+differently at import.
+
 Use **Open L5X** to reload the working copy in the emulator. It has a new source
 hash, its own revision-0 baseline, and no inherited native ACD correlation
 manifests. Changes persist in the saved L5X; there is no automatic save. This is

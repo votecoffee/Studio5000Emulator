@@ -63,7 +63,7 @@ class JumpRoutine(Exception):
 class Engine:
     """Deterministic model; a failed scan rolls back all simulator state."""
     def __init__(self, project, mode="project", routine="", *, defer_prescan=False, coordinated_clock=None,
-                 application_instance_id=None, network_binding=None, include_routines=()):
+                 application_instance_id=None, network_binding=None, include_routines=(), starting_values=None):
         self.project = project
         self.application_instance_id = application_instance_id
         self.network_binding = network_binding
@@ -73,7 +73,7 @@ class Engine:
         self.runtime_references = RuntimeReferences(project)
         self.mode = mode
         self.selected = routine.lower()
-        self.memory = Memory(project)
+        self.memory = Memory(project, starting_values=starting_values)
         self.extensions = Extensions(self)
         self.labels = {}
         self._mcr_plans = {}

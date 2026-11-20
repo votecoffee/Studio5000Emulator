@@ -163,7 +163,7 @@ def validate(project, draft):
 
 
 def apply_available(engine):
-    return bool(engine and engine.mode == 'project' and not engine.project.aois
+    return bool(engine and engine.mode == 'project'
                 and engine.project.executable_configuration.source_complete
                 and not getattr(engine, 'installed_download', None))
 
@@ -176,7 +176,7 @@ def prepare_apply(engine, draft):
 
     if not apply_available(engine):
         raise ModelError('Apply draft requires a complete ordinary project in whole-project mode')
-    if engine.fault or engine.module_major_fault or engine.calls.stack or engine.memory.frames:
+    if engine.fault or engine.module_major_fault or engine.calls.stack:
         raise ModelError('Apply draft requires a Program-mode project without a fault or active call')
     project, key, base_indices, layout_changed, diagnostics = _candidate_project(engine.project, draft)
     if diagnostics:

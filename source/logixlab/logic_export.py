@@ -63,7 +63,7 @@ def export(engine):
     keys=getattr(project,'runtime_edited_routines',())
     if type(revision) is not int or revision<=0 or not keys:
         raise ModelError('Apply supported routine edits before exporting edited logic')
-    if not project.executable_configuration.source_complete or project.aois:
+    if not project.executable_configuration.source_complete:
         raise ModelError('Edited logic export requires a complete ordinary project')
     try:raw=project.path.read_bytes()
     except OSError as error:raise ModelError('Original imported L5X is unavailable') from error
@@ -121,3 +121,11 @@ def verify_working_copy(engine):
         restored = reimported.routines.get(key)
         if restored is None or restored.problems or restored.rungs != project.routines[key].rungs:
             raise ModelError(f'Edited L5X would change rung source or operands in {project.routines[key].key}')
+    if project.aois:
+        from .runtime import Engine
+
+        # The installed engine checked live addresses. Recheck the exported
+        # routine with saved values in case those addresses resolve differently.
+        preview = Engine(reimported, defer_prescan=True, include_routines=result['edited_routines'])
+        if preview.blockers:
+            raise ModelError('Edited L5X execution is blocked: ' + preview.blockers[0])

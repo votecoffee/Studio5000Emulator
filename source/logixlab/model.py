@@ -823,10 +823,10 @@ class Project:
 
 
 class Memory:
-    def __init__(self, project):
+    def __init__(self, project, *, starting_values=None):
         self.project = project
         # Use store(), read() or at() for mutable access during a scan.
-        self.values = copy.deepcopy(project.initial)
+        self.values = copy.deepcopy(project.initial if starting_values is None else starting_values)
         self.value_order = {key: index for index, key in enumerate(self.values)}
         self._before = None
         self.message_cache = {}

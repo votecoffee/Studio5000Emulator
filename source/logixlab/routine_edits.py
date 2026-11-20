@@ -14,12 +14,15 @@ from .runtime import Engine
 
 def replacement_engine(engine, project):
     # The new logic and all mutable scan state are prepared before publication.
+    # AOI planning resolves concrete instance and InOut addresses. Build
+    # these frames with the carried values before previewing prescan.
+    starting_values=engine.memory.values if project.aois else None
     candidate=Engine(project,engine.mode,engine.selected,defer_prescan=True,
                      coordinated_clock=engine.coordinated_clock,application_instance_id=engine.application_instance_id,
-                     network_binding=engine.network_binding)
+                     network_binding=engine.network_binding,starting_values=starting_values)
     if candidate.blockers:
         raise ModelError('Candidate routine execution is blocked: ' + candidate.blockers[0])
-    candidate.memory.values=copy.deepcopy(engine.memory.values)
+    if starting_values is None:candidate.memory.values=copy.deepcopy(engine.memory.values)
     candidate.memory.first_scan=engine.memory.first_scan
     candidate._module_modes=engine._module_modes.copy()
     candidate._module_connections=engine._module_connections.copy()

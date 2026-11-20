@@ -197,8 +197,8 @@ runtime can locate the problem. An edit clears the previous result.
 This preflight uses the original initial values. To run the draft with the
 current tag values, switch the emulator to **Program** in whole-project mode
 and choose **Apply draft**. Apply supports complete Standard RLL projects
-within the existing edited L5X export profile. Projects with AOIs support
-drafting and preflight. Close any Studio sessions or
+within the existing edited L5X export profile, including program routines
+that call supported AOIs. Close any Studio sessions or
 native programming reservations on the emulator first.
 
 Apply rechecks the project source and revision, validates the replacement,
@@ -206,7 +206,10 @@ and reimports a temporary L5X to check rung text, comments, operands and
 imported initial values. A successful apply installs the routine in memory
 and returns to **Monitor**. The emulator retains live tags and scan counters,
 and clears the old trace for the replaced routine. The next scan uses the
-edited routine. Use **Save edited L5X** to download a working copy. [Saving
+edited routine. For projects with AOIs, Apply also resolves instance and InOut
+bindings with the current values. If the edit introduces an instance that
+needs initialization in its Prescan routine, use **Run** to perform normal
+Program-to-Run prescan. Use **Save edited L5X** to download a working copy. [Saving
 edited logic](edited-logic-l5x.md)
 
 ## Node and wire editor roadmap

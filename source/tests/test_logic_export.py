@@ -100,6 +100,100 @@ class LogicExportTests(unittest.TestCase):
         self.assertEqual(engine.project.path.read_bytes(), original_bytes)
         self.assertEqual(self.app.engine.memory.read('StartDelay.PRE'), 321)
 
+    def test_aoi_draft_keeps_live_instance_state_and_replans_inout_from_live_values(self):
+        self.app.command('demo', {'sample': 'AOILab'})
+        xml = ET.parse(self.app.engine.project.path)
+        tags = xml.find('./Controller/Tags')
+        pool = ET.SubElement(tags, 'Tag', Name='SharedPool', TagType='Base', DataType='DINT', Dimensions='2')
+        array = ET.SubElement(ET.SubElement(pool, 'Data', Format='Decorated'), 'Array', DataType='DINT', Dimensions='2')
+        for index, value in enumerate(('30', '40')):
+            ET.SubElement(array, 'Element', Index=f'[{index}]', Value=value)
+        for name, value in (('RouteIndex', '0'), ('SavedOutOfRange', '2')):
+            tag = ET.SubElement(tags, 'Tag', Name=name, TagType='Base', DataType='DINT')
+            ET.SubElement(ET.SubElement(tag, 'Data', Format='Decorated'), 'DataValue', DataType='DINT', Value=value)
+        original = ET.tostring(xml.getroot(), encoding='utf-8')
+        state = self.app.command('load', {'name': 'AOIRebind.L5X', 'content': base64.b64encode(original).decode()})
+        self.assertTrue(state['routine_edits']['draft_apply_available'])
+        self.assertEqual(state['blockers'], [])
+        engine = self.app.engine
+        self.app.command('step', {'dt': 10})
+        self.assertEqual(engine.memory.read('AccumulatorA.Count'), 2)
+        self.assertEqual(engine.memory.read('SharedA'), 12)
+        self.app.command('write', {'tag': 'RouteIndex', 'value': 2})
+        self.app.command('write', {'tag': 'SavedOutOfRange', 'value': 1})
+        routine = next(routine for routine in state['routines'] if routine['key'] == 'MainProgram/MainRoutine')
+        rows = [{key: row[key] for key in ('number', 'comment', 'text')} for row in routine['rungs']]
+        draft = {'format': 'logixlab-rll-draft', 'version': 1, 'routine': routine['key'],
+                 'source_sha256': state['source_sha256'], 'base_revision': 0, 'rungs': rows}
+        request = {'project_generation': state['project_generation'], 'draft': draft}
+
+        def use_inout(index):
+            rows[0]['text'] = f'XIC(EnableA)LabAccumulator(AccumulatorA,5,TotalA,SharedPool[{index}])OTE(AReady);'
+
+        before = copy.deepcopy(self.app.state())
+        use_inout('RouteIndex')
+        self.assertEqual(self.app.command('ladder-draft-validate', request), {'valid': True, 'diagnostics': []})
+        with self.assertRaisesRegex(ModelError, 'Candidate routine execution is blocked'):
+            self.app.command('ladder-draft-apply', request)
+        use_inout('SavedOutOfRange')
+        with self.assertRaisesRegex(ModelError, 'Edited L5X execution is blocked'):
+            self.app.command('ladder-draft-apply', request)
+        self.assertIs(self.app.engine, engine)
+        self.assertEqual(self.app.state(), before)
+
+        self.app.command('write', {'tag': 'RouteIndex', 'value': 1})
+        before = copy.deepcopy(self.app.state())
+        use_inout('RouteIndex')
+        applied = self.app.command('ladder-draft-apply', request)
+        self.assertEqual(applied['aoi_bindings']['AccumulatorA']['shared'], 'SharedPool[1]')
+        self.assertEqual(applied['aoi_instances'], before['aoi_instances'])
+        self.assertEqual(applied['tags'], before['tags'])
+        self.assertEqual(applied['scan'], before['scan'])
+        self.assertEqual(self.app.engine.memory.read('AccumulatorA.Count'), 2)
+        self.app.command('step', {'dt': 10})
+        self.assertEqual(self.app.engine.memory.read('AccumulatorA.Count'), 7)
+        self.assertEqual(self.app.engine.memory.read('SharedPool[1]'), 45)
+        self.assertEqual(self.app.engine.memory.read('SharedA'), 12)
+
+        result = self.app.command('export-edited-l5x', {})
+        exported = ET.fromstring(result['content'])
+        for name in ('AddOnInstructionDefinitions', 'Tags'):
+            element = f'./Controller/{name}'
+            self.assertEqual(ET.tostring(exported.find(element)), ET.tostring(xml.find(element)))
+        self.assertEqual(engine.project.path.read_bytes(), original)
+        self.app.command('load', {'name': result['filename'], 'content': base64.b64encode(result['content'].encode()).decode()})
+        self.assertEqual(self.app.engine.memory.read('TotalA'), 99)
+        self.assertEqual(self.app.engine.memory.read('RouteIndex'), 0)
+        self.assertEqual(self.app.state()['aoi_bindings']['AccumulatorA']['shared'], 'SharedPool[0]')
+        self.app.command('step', {'dt': 10})
+        self.assertEqual(self.app.engine.memory.read('AccumulatorA.Count'), 5)
+        self.assertEqual(self.app.engine.memory.read('SharedPool[0]'), 35)
+
+    def test_draft_can_switch_to_an_unused_aoi_instance_before_run_prescan(self):
+        self.app.command('demo', {'sample': 'AOILab'})
+        xml = ET.parse(self.app.engine.project.path)
+        tags = xml.find('./Controller/Tags')
+        spare = copy.deepcopy(tags.find("Tag[@Name='AccumulatorA']"))
+        spare.set('Name', 'SpareAccumulator')
+        tags.append(spare)
+        loaded = self.app.command('load', {'name': 'SpareAOI.L5X',
+            'content': base64.b64encode(ET.tostring(xml.getroot(), encoding='utf-8')).decode()})
+        first_scan = self.app.command('step', {'dt': 10})
+        routine = next(row for row in loaded['routines'] if row['key'] == 'MainProgram/MainRoutine')
+        rows = [{key: row[key] for key in ('number', 'comment', 'text')} for row in routine['rungs']]
+        rows[0]['text'] = rows[0]['text'].replace('AccumulatorA,', 'SpareAccumulator,')
+        draft = {'format': 'logixlab-rll-draft', 'version': 1, 'routine': routine['key'],
+                 'source_sha256': loaded['source_sha256'], 'base_revision': 0, 'rungs': rows}
+        applied = self.app.command('ladder-draft-apply', {'project_generation': loaded['project_generation'], 'draft': draft})
+        self.assertEqual(applied['tags'], first_scan['tags'])
+        self.assertNotIn('AccumulatorA', applied['aoi_instances'])
+        self.assertIn('SpareAccumulator', applied['aoi_instances'])
+
+        self.app.engine.enter_run()
+        self.app.command('step', {'dt': 10})
+        self.assertEqual(self.app.engine.memory.read('SpareAccumulator.Count'), 2)
+        self.assertEqual(self.app.engine.memory.read('AccumulatorA.Count'), 2)
+
     def test_unmodified_running_busy_changed_source_and_unknown_target_exports_are_rejected(self):
         with self.assertRaises(ModelError):self.app.command('export-edited-l5x',{})
         self.edit('MainRoutine',['MOV(123,SpeedSetpoint);'])
