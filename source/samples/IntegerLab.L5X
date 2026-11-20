@@ -390,6 +390,10 @@
       <Tag Name="StDoubleCaseInput" DataType="LREAL" TagType="Base"><Data Format="Decorated"><DataValue DataType="LREAL" Value="1.0000000000000002" /></Data></Tag>
       <Tag Name="StDoubleCaseDivisor" DataType="LREAL" TagType="Base"><Data Format="Decorated"><DataValue DataType="LREAL" Value="1.0" /></Data></Tag>
       <Tag Name="StDoubleCaseResult" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
+      <Tag Name="RunStRealWideCase" DataType="BOOL" TagType="Base"><Data Format="Decorated"><DataValue DataType="BOOL" Value="0" /></Data></Tag>
+      <Tag Name="StRealWideCaseInput" DataType="ULINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="ULINT" Value="9223372586610589697" /></Data></Tag>
+      <Tag Name="StRealWideCaseDivisor" DataType="REAL" TagType="Base"><Data Format="Decorated"><DataValue DataType="REAL" Value="1.0" /></Data></Tag>
+      <Tag Name="StRealWideCaseResult" DataType="DINT" TagType="Base"><Data Format="Decorated"><DataValue DataType="DINT" Value="0" /></Data></Tag>
       <Tag Name="StDivisor" TagType="Base" DataType="LINT" ExternalAccess="Read/Write">
         <Data Format="Decorated">
           <DataValue DataType="LINT" Radix="Decimal" Value="3" />
@@ -1169,6 +1173,13 @@
               <Line Number="32">        ELSE StDoubleCaseResult:=-1;</Line>
               <Line Number="33">    END_CASE;</Line>
               <Line Number="34">END_IF;</Line>
+              <Line Number="35">IF RunStRealWideCase THEN</Line>
+              <Line Number="36">    CASE StRealWideCaseInput/StRealWideCaseDivisor OF</Line>
+              <Line Number="37">        9223372036854775808.0: StRealWideCaseResult:=10;</Line>
+              <Line Number="38">        9223373136366403584.0: StRealWideCaseResult:=20;</Line>
+              <Line Number="39">        ELSE StRealWideCaseResult:=-1;</Line>
+              <Line Number="40">    END_CASE;</Line>
+              <Line Number="41">END_IF;</Line>
             </STContent>
           </Routine>
           <Routine Name="NarrowRealOutputs" Type="RLL">

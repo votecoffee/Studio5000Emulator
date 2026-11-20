@@ -6,7 +6,7 @@ from dataclasses import dataclass,field
 from .model import ModelError,Op,operand_problem,split_indices
 from .expressions import Expression
 from .st_expression import STExpression
-from . import time_values, wide_st
+from . import lreal_expressions, time_values, wide_st
 from . import system_values, array_sort, st_cases, st_timers, st_counter, st_oneshot, st_scale, st_signal, st_rate, st_moving, st_capture, st_filter, st_digital, st_accumulate, st_select, st_derivative, st_curves, st_pi, st_bit_moves, numeric_copy, numeric_fill
 from .integer_math import WIDE_TYPES
 
@@ -362,18 +362,25 @@ class Structured:
     def case_contract(self,node,scope):
         expression=self.expression(node.expr)
         declared={self.memory.resolve(ref,scope)[2] for ref in expression.refs}
-        destination='LREAL' if 'LREAL' in declared or 'LREAL' in expression.literal_types else None
-        profile=None
-        if destination is None and (expression.typed_types or declared & WIDE_TYPES):
-            if expression.literal_types or expression.temporal_types:
+        wide=bool(expression.typed_types or declared & WIDE_TYPES)
+        profile=evaluate=None
+        if wide or 'LREAL' in declared or expression.literal_types:
+            profile=lreal_expressions.analyze(expression,self.memory,scope,consumer='CASE',precision=None)
+        if profile is not None:
+            dtype=profile.get('precision','LREAL')
+            kind=profile['result_type']
+            evaluate=lreal_expressions.evaluate
+        elif wide:
+            if expression.temporal_types:
                 raise ModelError('Wide integer CASE selectors require integer operands')
             profile=wide_st.analyze(expression,self.memory,scope)
             dtype,kind,_=profile
+            evaluate=wide_st.evaluate
         else:
-            kind,real,_=expression.analyze(self.memory,scope,destination)
-            dtype=destination or ('REAL' if real else 'DINT')
+            kind,real,_=expression.analyze(self.memory,scope)
+            dtype='REAL' if real else 'DINT'
         if kind!='number':raise ModelError('CASE requires a numeric expression')
-        return [(st_cases.normalize(ranges,dtype),body) for ranges,body in node.cases],profile,destination
+        return [(st_cases.normalize(ranges,dtype),body) for ranges,body in node.cases],profile,evaluate
 
     def tick(self):
         self.engine.budget-=1
@@ -466,9 +473,9 @@ class Structured:
                             if self.boolean(expr,scope):chosen=body;result=True;break
                         self.trace(routine,n,context,result,detail='branch selected' if result else 'else / no branch');run(chosen)
                     elif n.kind=='case':
-                        cases,profile,destination=self.case_contract(n,scope)
-                        if profile is None:value=self.value(n.expr,scope,destination)
-                        else:value=wide_st.evaluate(self.expression(n.expr),self.memory,scope,profile)
+                        cases,profile,evaluate=self.case_contract(n,scope)
+                        if evaluate is None:value=self.value(n.expr,scope)
+                        else:value=evaluate(self.expression(n.expr),self.memory,scope,profile)
                         chosen=n.otherwise
                         for ranges,body in cases:
                             if any(lo<=value<=hi for lo,hi in ranges):chosen=body;break

@@ -33,7 +33,7 @@ def immediate(value):
 
 
 def analyze(expression, memory, scope='', destination_type=None, *, consumer='CPT', precision='LREAL'):
-    st = consumer == 'ST'
+    st = consumer in ('ST', 'CASE')
     declared = {ref: memory.resolve(ref, scope)[2] for ref in expression.refs}
     binary64 = destination_type == 'LREAL' or 'LREAL' in declared.values() or 'LREAL' in expression.literal_types
     if precision is None:
@@ -53,8 +53,8 @@ def analyze(expression, memory, scope='', destination_type=None, *, consumer='CP
     elif not binary64:return None
     if not available(memory.project):
         raise ModelError(precision+' expressions require the v35 ControlLogix 5580 profile')
-    condition = consumer == 'CMP' or (st and destination_type in (None, 'BOOL'))
-    if not condition and destination_type not in NUMERIC:
+    condition = consumer == 'CMP' or (consumer == 'ST' and destination_type in (None, 'BOOL'))
+    if not condition and consumer != 'CASE' and destination_type not in NUMERIC:
         raise ModelError(f'{precision} {consumer} requires a numeric scalar destination')
     functions = frozenset(FUNCTIONS) if precision == 'REAL' else MATH
     if st:
@@ -198,7 +198,7 @@ def evaluate(expression, memory, scope, profile):
         return visit(expression.tree)
     except OverflowError as error:
         # FAL's existing REAL overflow handler preserves completed cells and retry POS.
-        if precision == 'REAL' and profile['consumer'] != 'ST':
+        if precision == 'REAL' and profile['consumer'] not in ('ST', 'CASE'):
             raise
         raise ModelError(precision+' expression arithmetic domain/range failure: '+str(error)) from error
     except (ValueError, ZeroDivisionError) as error:
@@ -245,7 +245,7 @@ def real_description(project):
                 integer_functions='ABS/SQR/TRN/TRUNC do not select REAL by themselves; exact integer forms retain their existing qualification',
                 priority='LREAL selection first; narrow REAL, exact integer, string-only and generic/index consumers retain their existing paths',
                 structured_text=dict(selection='REAL tag, untyped floating literal or REAL destination with a wide integer tag or typed integer literal',
-                    operators='Existing ST arithmetic/functions; Boolean conditions and checked numeric assignments; pure integer roots stay exact',
+                    operators='Existing ST arithmetic/functions, Boolean conditions, checked numeric assignments and numeric CASE; pure integer roots stay exact',
                     native_runtime_parity=False),
                 constants='Bounded DINT/finite REAL; declared decimal/radix L/U/UL words, signed DINT words and immediate unary range checks before float32 conversion',
                 arithmetic='Finite float32 sources and every numeric intermediate; existing unary math, arithmetic and bounded power',

@@ -132,6 +132,8 @@ including values adjacent to a rounding midpoint.
 
 Each arithmetic result rounds to finite binary32. Numeric assignments apply
 the existing destination conversion and comparisons can feed Boolean conditions.
+[CASE](st-case-selection.md#real-selectors-with-wide-integer-operands) can select
+branches from the resulting REAL expression value.
 An LREAL operand or destination selects [binary64](lreal-expressions.md#structured-text).
 Functions alone do not select this extended ST profile. The existing exact
 integer powers and roots use their integer evaluator when the expression has

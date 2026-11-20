@@ -40,6 +40,21 @@ label appears first wins. Ranges are usually more useful than exact equality
 for calculated REAL values. Nonfinite or overflowing REAL labels, descending
 ranges and malformed forms block execution, including in unreachable code.
 
+### REAL selectors with wide integer operands
+
+A REAL tag or unsuffixed floating literal in the selector expression selects
+[binary32 arithmetic](real-expressions.md#structured-text) when the expression
+also contains a wide integer tag or typed integer literal. The modeled v35
+ControlLogix 5580 profile checks each integer at its declared width, rounds it
+directly to binary32 and rounds each intermediate result to binary32. Use
+ordinary REAL labels in this profile.
+
+In **Integer lab**, enable RunStRealWideCase. The default StRealWideCaseInput
+9223372586610589697 is one above the midpoint between two REAL values. It
+rounds up and selects StRealWideCaseResult=20. Set the input to the midpoint
+9223372586610589696 to see the round-to-even result of 10. Set
+StRealWideCaseDivisor to zero to fault the advance, then restore it to 1.0.
+
 ### Exact wide integer selectors
 
 In the modeled v35 ControlLogix 5580 profile, selectors may use homogeneous
@@ -114,11 +129,10 @@ comparison profile and retain `native_runtime_parity=false`.
 
 ## Remaining scope
 
-Mixed-width integer selectors, mixed REAL and wide integer expressions with
-no LREAL operand, additional literal/conversion forms, nonfinite floating
-execution and native compiler/status/fault parity remain unqualified. Wide
-integer and LREAL CASE are emulator extensions. Native v35 acceptance remains
-unverified.
+Mixed-width integer-only selectors, additional literal/conversion forms,
+nonfinite floating execution and native compiler/status/fault parity remain
+unqualified. Wide integer, mixed REAL/wide and LREAL CASE profiles have been
+tested in the emulator. Native v35 acceptance remains unverified.
 
 The installed v35 CASE_OF help and Rockwell's
 [CASE_OF reference](https://www.rockwellautomation.com/en-mde/docs/studio-5000-logix-designer/37-01/contents-ditamap/instruction-set/structured-text-attributes/case_of.html)

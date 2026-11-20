@@ -168,6 +168,51 @@ class NumericCaseTests(unittest.TestCase):
         e.step()
         self.assertEqual(e.memory.read('Sum'),2)
 
+    def test_mixed_real_case_rounds_ulint_directly_at_binary32_midpoint(self):
+        low=1<<63
+        midpoint=low+(1<<39)
+        high=low+(1<<40)
+        source=(f'CASE Selector+0.0 OF {low}.0: State:=10; {high}.0: State:=20; '
+                'ELSE State:=-1; END_CASE;')
+        e=self.checked(source,midpoint,'ULINT')
+        for value,expected in ((midpoint-1,10),(midpoint,10),(midpoint+1,20),(0,-1)):
+            with self.subTest(value=value):
+                e.memory.write('Selector',value)
+                e.step()
+                self.assertEqual(e.memory.read('State'),expected)
+
+    def test_mixed_real_case_from_real_tag_and_typed_integer_immediates(self):
+        for immediate in ('16777217U','16#100_0001UL'):
+            with self.subTest(immediate=immediate):
+                source=f'CASE {immediate}-Selector OF 0.0: State:=3; ELSE State:=-1; END_CASE;'
+                e=self.checked(source,16777216,'REAL')
+                e.step()
+                self.assertEqual(e.memory.read('State'),3)
+
+    def test_mixed_real_case_requires_numeric_values_and_qualified_firmware(self):
+        for selector in ('Selector+0.0=1.0','SIN(Selector)','Selector+TRUE+0.0'):
+            with self.subTest(selector=selector):
+                source=f'IF FALSE THEN CASE {selector} OF 1: State:=1; END_CASE; END_IF;'
+                self.assertTrue(self.engine(source,1,'ULINT').blockers)
+        def older_firmware(root):
+            root.find('./Controller').set('MajorRev','34')
+        self.assertTrue(self.engine('CASE Selector+0.0 OF 1: State:=1; END_CASE;',
+                                    1,'ULINT',mutate=older_firmware).blockers)
+
+    def test_mixed_real_case_overflow_rolls_back_with_line_context(self):
+        source='State:=7;\nCASE Selector*1e30 OF 0: Sum:=3; ELSE Sum:=2; END_CASE;'
+        e=self.checked(source,2**64-1,'ULINT')
+        before=copy.deepcopy(e.memory.values)
+        schedule=e.scheduler_description()
+        with self.assertRaisesRegex(ModelError,'ST line 2: REAL expression arithmetic domain/range failure'):
+            e.step()
+        self.assertEqual(e.memory.values,before)
+        self.assertEqual(e.scheduler_description(),schedule)
+        self.assertEqual((e.scan_count,e.time_ms),(0,0))
+        e.memory.write('Selector',0)
+        e.step()
+        self.assertEqual(e.memory.read('Sum'),3)
+
     def test_lreal_case_keeps_adjacent_labels_and_first_match(self):
         expression=('CASE Selector OF 1.0L: State:=10; '
                     '1.0000000000000002L..1.0000000000000004L,1e300L: State:=20; '
