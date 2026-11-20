@@ -74,6 +74,8 @@ mixed record conversion, cross-member traversal or native CPS synchronization.
 ## Selection and complete records
 
 Length is a scalar SINT/INT/DINT tag or an integer immediate in 0..100000.
+The immediate accepts decimal and grouped binary, octal and hexadecimal DINT
+forms. It counts complete logical destination records.
 Preflight validates schemas, shapes, destination permissions, index grammar
 and literal bounds without consuming saved lengths, dynamic indices or record
 values. Oversized static windows clip to the selected logical region.

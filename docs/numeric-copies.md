@@ -22,8 +22,11 @@ and finite REAL/[LREAL](lreal-copy.md). The copy moves byte images, not converte
 | DINT 0x12345678 to two INTs | 0x5678, 0x1234 |
 | SINT -1 to USINT | 255 |
 
-Length is an integer destination-element count from 0 through 100000. Requested
-bytes equal Length times destination element width. The actual transfer is the
+Length is an integer destination-element count from 0 through 100000. In the
+v35 ControlLogix 5580 profile, an immediate may be a decimal DINT or an
+unsuffixed binary, octal or hexadecimal DINT with grouped digits. For example,
+`COP(Src[0],Dst[0],16#0000_0002)` requests two destination elements.
+Requested bytes equal Length times destination element width. The actual transfer is the
 minimum of that request and the bytes remaining in both numeric regions. The
 actual transfer may not exceed 32768 bytes. Large requests can still succeed
 when source or destination boundaries clip them to a small transfer.

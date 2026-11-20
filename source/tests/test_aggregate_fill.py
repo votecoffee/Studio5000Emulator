@@ -165,7 +165,7 @@ class AggregateFillTests(unittest.TestCase):
     def test_radix_sources_use_existing_zero_and_all_ones_record_patterns(self):
         engine = self.checked([
             'FLL(16#ffff ffff,Masks[1],1);',
-            'FLL(2#0000_0000,Records[1],1);',
+            'FLL(2#0000_0000,Records[1],8#0000 0001);',
         ], self.integral_fields)
         engine.step()
         self.assert_mask_ones(engine.memory.read('Masks')[1])

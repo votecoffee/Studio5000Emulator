@@ -1,7 +1,7 @@
 """Bounded little-endian numeric COP/CPS regions, without aggregate ABI guesses."""
 import re
 import struct
-from .integer_math import CONTROLLERS
+from .integer_math import CONTROLLERS, dint_radix
 from .model import ModelError,coerce,literal
 from .real_math import real
 
@@ -10,6 +10,20 @@ SIZES={name:struct.calcsize('<'+fmt) for name,fmt in FORMATS.items()}
 MAX_BYTES=32768
 MAX_VISITS=100000
 MAX_STATIC_ALIAS_HOPS = 8
+
+
+def available(project):
+    return project.version == '35' and project.processor.upper() in CONTROLLERS
+
+
+def block_literal(ref):
+    word = dint_radix(ref)
+    return literal(ref) if word is None else word
+
+
+def read_length(engine, ref, scope):
+    word = dint_radix(ref) if available(engine.project) else None
+    return engine.extensions.integer(ref, scope) if word is None else word
 
 
 def static_reference(memory, ref, scope, *, follow_aliases=False):
@@ -37,13 +51,13 @@ def static_reference(memory, ref, scope, *, follow_aliases=False):
 def preflight(engine,op,scope):
     """Check numeric copy structure without live lengths, values or indices."""
     memory=engine.memory;project=memory.project
-    if project.version!='35' or project.processor.upper() not in CONTROLLERS:return False
+    if not available(project):return False
     previous=memory.structural;memory.structural=True
     try:
         st=memory.resolve(op.args[0],scope)[2];dt=memory.check_writable(op.args[1],scope)[2]
         if st not in FORMATS or dt not in FORMATS:return False
         location(memory,op.args[0],scope);location(memory,op.args[1],scope,writable=True)
-        try:count=literal(op.args[2])
+        try:count=block_literal(op.args[2])
         except ValueError:
             key,parts,dtype=memory.resolve(op.args[2],scope)
             if dtype not in ('SINT','INT','DINT') or isinstance(memory.at(key,parts),(dict,list)):
@@ -92,7 +106,7 @@ def prefix(memory,ref,scope,count,*,writable=False):
 def plan(engine,op,scope,count):
     memory=engine.memory;st=memory.resolve(op.args[0],scope)[2];dt=memory.check_writable(op.args[1],scope)[2]
     if st not in FORMATS or dt not in FORMATS:return None
-    if memory.project.version!='35' or memory.project.processor.upper() not in CONTROLLERS:
+    if not available(memory.project):
         if st==dt:return None
         raise ModelError('Mixed numeric copies require the v35 ControlLogix 5580 software profile')
     if type(count) is not int or not 0<=count<=100000:raise ModelError('Block length must be an integer in 0..100000')
@@ -145,12 +159,13 @@ def write_effects(engine,op,scope):
     from . import aggregate_copy
     aggregate=aggregate_copy.write_effects(engine,op,scope)
     if aggregate is not None:return aggregate
-    memory=engine.memory;count=engine.extensions.integer(op.args[2],scope)
+    memory=engine.memory;count=read_length(engine,op.args[2],scope)
     spec=plan(engine,op,scope,count)
     if spec is None:key,parts,_=memory.region(op.args[1],count,scope)
     else:
         _,(key,parts,dtype),size=spec;parts=parts[:(size+SIZES[dtype]-1)//SIZES[dtype]]
-    try:literal(op.args[2]);static=True
+    parse_length = block_literal if available(memory.project) else literal
+    try:parse_length(op.args[2]);static=True
     except ValueError:static=False
     static=static and all(re.fullmatch(r'\s*\d+\s*(?:,\s*\d+\s*)*',s) for s in re.findall(r'\[([^\]]*)\]',op.args[1]))
     if static:return [(key,p) for p in parts]
@@ -160,8 +175,8 @@ def write_effects(engine,op,scope):
 
 def description(project):
     return dict(profile='v35-5580-numeric-COP-CPS',instructions=['COP','CPS'],languages=['RLL','ST'],
-                available=project.version=='35' and project.processor.upper() in CONTROLLERS,
-                types=sorted(FORMATS),endianness='little',length='Destination element count; 0..100000',
+                available=available(project), types=sorted(FORMATS),endianness='little',
+                length='Destination element count, 0..100000; scalar SINT/INT/DINT tag or decimal/grouped radix DINT immediate',
                 transfer='Minimum of requested bytes and remaining source/destination numeric-region bytes; at most 32768 bytes',
                 partial='Preserve uncopied bytes in final destination element; its prior value must be known',
                 boundaries='Scalar, member or array region; row-major multidimensional arrays and resolved member arrays; no crossing structure members',

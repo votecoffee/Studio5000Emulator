@@ -144,6 +144,13 @@ class AggregateCopyTests(unittest.TestCase):
         with self.assertRaisesRegex(ModelError, 'outside bounds'):e.step()
         self.assertEqual(self.snapshot(e), before)
 
+    def test_grouped_radix_lengths_keep_the_logical_record_boundary(self):
+        engine = self.checked(['CPS(Records[2],CopyRecords[1],16#0001 86a0);'])
+        untouched = copy.deepcopy(engine.memory.read('CopyRecords[2]'))
+        engine.step()
+        self.assertEqual(engine.memory.read('CopyRecords[1]'), engine.memory.read('Records[2]'))
+        self.assertEqual(engine.memory.read('CopyRecords[2]'), untouched)
+
     def test_existing_st_calls_share_selection_and_for_protects_nested_bound_members(self):
         def st(root):
             routine = root.find('./Controller/Programs/Program/Routines/Routine')
@@ -153,7 +160,7 @@ class AggregateCopyTests(unittest.TestCase):
         self.assertEqual(e.memory.read('CopyRecords')[1]['Count'], 777)
         def loop(root):
             st(root); routine = root.find('./Controller/Programs/Program/Routines/Routine')
-            routine.remove(routine.find('STContent')); logic(routine, ['FOR SpeedCommand:=0 TO CopyRecords[1].Count DO COP(Records[0],CopyRecords[0],2); END_FOR;'])
+            routine.remove(routine.find('STContent')); logic(routine, ['FOR SpeedCommand:=0 TO CopyRecords[1].Count DO COP(Records[0],CopyRecords[0],2#0000 0010); END_FOR;'])
         self.assertTrue(any('bounds/step' in b for b in self.engine([], loop).blockers))
 
     def test_structural_errors_constants_and_excluded_schemas_stay_blocked(self):

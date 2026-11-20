@@ -208,12 +208,28 @@ class NumericCopyTests(unittest.TestCase):
         self.assertEqual(e.memory.read('Cells[1].Words'),[0x04030201,0x11223305,99]);self.assertEqual(e.memory.read('Cells[1].Sentinel'),77)
         self.assertEqual(e.memory.read('Cells[0].Words'),[0,0x11223344,99])
 
+    def test_grouped_radix_lengths_count_destination_elements_and_clip(self):
+        for instruction, length in (('COP', '16#0000 0002'), ('CPS', '2#0000 0010')):
+            with self.subTest(instruction=instruction):
+                engine = self.checked([f'XIC(StartPB){instruction}(Src[0],Dst[1],{length});'],
+                                      source_type='DINT', dest_type='INT', source=[0x00020001, 0x00040003, 0],
+                                      dest=[41, 42, 43])
+                engine.step()
+                self.assertEqual(engine.memory.read('Dst'), [41, 42, 43])
+                engine.memory.write('StartPB', True)
+                engine.step()
+                self.assertEqual(engine.memory.read('Dst'), [41, 1, 2])
+        for length in ('16#ffff ffff', '16#0001 86a1', '16#1_0000_0000', '16#2U'):
+            with self.subTest(length=length):
+                self.assertTrue(self.engine([f'AFI()COP(Src[0],Dst[0],{length});']).blockers)
+
     def test_st_for_guards_every_copied_element_and_dynamic_extent(self):
         for text in ('FOR SpeedCommand:=0 TO Dst[1] DO COP(Src[0],Dst[0],2); END_FOR;',
+                     'FOR SpeedCommand:=0 TO Dst[1] DO COP(Src[0],Dst[0],8#0000 0002); END_FOR;',
                      'FOR SpeedCommand:=0 TO Dst[2] DO COP(Src[0],Dst[0],Length); END_FOR;',
                      'FOR SpeedCommand:=0 TO Dst[1] DO COP(Src[0],Dst[Index],1); END_FOR;'):
             self.assertTrue(self.engine([text],dest_type='DINT',st=True).blockers)
-        e=self.checked(['FOR SpeedCommand:=0 TO Dst[2] DO COP(Src[0],Dst[0],1); END_FOR;'],dest_type='DINT',st=True);e.step()
+        e=self.checked(['FOR SpeedCommand:=0 TO Dst[2] DO COP(Src[0],Dst[0],16#0000 0001); END_FOR;'],dest_type='DINT',st=True);e.step()
 
     def test_st_for_guard_includes_partially_modified_destination_element(self):
         e=self.engine(['FOR SpeedCommand:=0 TO Dst[1] DO COP(Src[0],Dst[0],20); END_FOR;'],source_type='SINT',source=[1,2,3,4,5],source_dims=(5,),dest_type='DINT',st=True)

@@ -1,7 +1,7 @@
 """Matching basic-record COP/CPS with structural, lazy operand selection."""
 from .integer_math import CONTROLLERS
-from .model import ModelError, literal
-from .numeric_copy import prefix, static_reference
+from .model import ModelError
+from .numeric_copy import block_literal, prefix, static_reference
 from .numeric_fill import aggregate_template, scalar_count, MAX_ELEMENTS, AGGREGATE_SCALARS
 
 
@@ -22,8 +22,9 @@ def handle(engine, op, scope, *, execute=False):
             raise ModelError('Aggregate COP/CPS require identical declared element types')
         template = aggregate_template(project, dest_type, instruction='COP/CPS')
         for ref in op.args[:2]:memory.region(ref, 0, scope)
-        try:count = literal(op.args[2])
+        try:count = block_literal(op.args[2])
         except ValueError:
+            count = None
             key, parts, dtype = memory.resolve(op.args[2], scope)
             if dtype not in ('SINT', 'INT', 'DINT') or isinstance(memory.at(key, parts), (dict, list)):
                 raise ModelError('Aggregate COP/CPS length requires scalar SINT, INT or DINT')
@@ -35,7 +36,7 @@ def handle(engine, op, scope, *, execute=False):
     finally:memory.structural = previous
     if not execute:return True
 
-    count = memory.read(op.args[2], scope)
+    if count is None:count = memory.read(op.args[2], scope)
     if type(count) is not int or not 0 <= count <= MAX_ELEMENTS:
         raise ModelError('Aggregate COP/CPS length must be an integer in 0..100000')
     # Capture all addresses before writing, including indices/lengths stored
@@ -56,7 +57,7 @@ def write_effects(engine,op,scope):
     memory=engine.memory;previous=memory.structural;memory.structural=True
     try:
         if not handle(engine,op,scope):return None
-        try:count=literal(op.args[2])
+        try:count=block_literal(op.args[2])
         except ValueError:count=None
         if count==0:return []
         if count is not None and all(static_reference(memory,ref,scope) for ref in op.args[:2]):
@@ -75,6 +76,7 @@ def description(project):
                 types='Identical TIMER/COUNTER/CONTROL/STRING/PID or explicit nested qualified UDT element types',
                 pid='Copy represented CTL/REAL fields and DATA[17]; preserve each destination solver history until its ordinary INI/Run lifecycle resets it',
                 udt_scalar_fields=sorted(AGGREGATE_SCALARS-{'BIT'}),
+                length='Scalar SINT/INT/DINT tag or decimal/grouped radix DINT immediate, 0..100000',
                 selection='Structural preflight; false/prescan skip saved lengths, values and dynamic indices',
                 execution='Capture length and clipped source/destination windows before sequential stores; copy the minimum remaining element count',
                 clipping=True,clipping_boundary='Selected logical array/member or scalar; no crossing sibling members',

@@ -12,7 +12,8 @@ FLL(0,Records[Start],Length);
 ```
 
 Source can also be a scalar SINT/INT/DINT tag whose executed value is zero.
-Constant sources are allowed. The [all-ones form](#all-ones-record-fills) has a
+Length immediates accept decimal and grouped binary, octal and hexadecimal
+DINT forms. Constant sources are allowed. The [all-ones form](#all-ones-record-fills) has a
 narrower record profile. Other nonzero patterns, REAL/wider source types and
 whole-array sources remain outside this profile. Length is scalar SINT/INT/DINT
 or an integer immediate in 0..100000.

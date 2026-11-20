@@ -715,7 +715,8 @@ In **Data lab**, enable `InspectData` to see array and string DATA sizes.
 [Numeric file fills](docs/numeric-fill.md) add integer narrowing/sign extension,
 structural validation and lazy operand reads for FLL. Grouped binary, octal and
 hexadecimal DINT sources also work in FLL and
-[numeric queue loads](docs/queue-conversions.md). In **Data lab**, enable
+[numeric queue loads](docs/queue-conversions.md). The same immediate formats
+work for FLL, COP and CPS lengths. In **Data lab**, enable
 FillNumeric to compare guarded byte, word, signed and rounded REAL fills.
 
 [Numeric conversions](docs/numeric-conversions.md) support 8/16/32/64-bit packed BCD.

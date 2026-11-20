@@ -102,15 +102,25 @@ class ClippedFillTests(unittest.TestCase):
         with self.assertRaises(ModelError):e.step()
         self.assertEqual(self.snapshot(e), before)
 
+    def test_grouped_length_clips_and_negative_word_fails_atomically(self):
+        engine = self.checked(['FLL(99,Fills[3],16#0001 86a0);'])
+        engine.step()
+        self.assertEqual(engine.memory.read('Fills'), [11, 22, 33, 99, 99])
+        guarded = self.checked(['MOV(31,Dest);', 'FLL(99,Fills[3],16#ffff ffff);'])
+        before = self.snapshot(guarded)
+        with self.assertRaisesRegex(ModelError, 'length must be an integer in 0'):
+            guarded.step()
+        self.assertEqual(self.snapshot(guarded), before)
+
     def test_emulator_st_extension_clips_and_protects_the_complete_for_window(self):
         e = self.st('FLL(Source,Fills[3],100000);', value=4660); self.assertEqual(e.blockers, []); e.step(); self.assertEqual(e.memory.read('Fills'), [11, 22, 33, 52, 52])
-        e = self.st('FOR Dest:=0 TO Fills[0] DO FLL(Source,Fills[3],100000); END_FOR;', dest_type='DINT', value=3); self.assertEqual(e.blockers, []); e.step(); self.assertEqual(e.memory.read('Fills'), [11, 22, 33, 3, 3])
-        e = self.st('FOR Dest:=0 TO Fills[4] DO FLL(Source,Fills[3],100000); END_FOR;', dest_type='DINT'); self.assertTrue(e.blockers)
+        e = self.st('FOR Dest:=0 TO Fills[0] DO FLL(Source,Fills[3],16#0001 86a0); END_FOR;', dest_type='DINT', value=3); self.assertEqual(e.blockers, []); e.step(); self.assertEqual(e.memory.read('Fills'), [11, 22, 33, 3, 3])
+        e = self.st('FOR Dest:=0 TO Fills[4] DO FLL(Source,Fills[3],16#0001 86a0); END_FOR;', dest_type='DINT'); self.assertTrue(e.blockers)
 
     def test_st_dynamic_alias_effects_are_conservative_and_zero_literal_is_empty(self):
         def view(root):E.SubElement(root.find('./Controller/Tags'), 'Tag', Name='View', TagType='Alias', AliasFor='Fills[Mask]')
         e = self.st('FOR Dest:=0 TO Fills[0] DO FLL(Source,View,1); END_FOR;', dest_type='DINT', count=3, mutate=view); self.assertTrue(e.blockers)
-        e = self.st('FOR Dest:=0 TO Fills[0] DO FLL(Source,View,0); END_FOR;', dest_type='DINT', count=3, mutate=view); self.assertEqual(e.blockers, []); e.step(); self.assertEqual(e.memory.read('Fills'), [11, 22, 33, 44, 55])
+        e = self.st('FOR Dest:=0 TO Fills[0] DO FLL(Source,View,2#0000 0000); END_FOR;', dest_type='DINT', count=3, mutate=view); self.assertEqual(e.blockers, []); e.step(); self.assertEqual(e.memory.read('Fills'), [11, 22, 33, 44, 55])
 
     def test_aggregate_clipping_other_profiles_and_wide_types_stay_separate(self):
         import test_aggregate_fill as aggregate

@@ -8,7 +8,9 @@ FLL(Source,Destination,Length);
 ```
 
 Length is a scalar SINT/INT/DINT tag or bounded DINT immediate, with an executed
-value in 0..100000. Sources also accept bounded DINT or finite REAL immediates.
+value in 0..100000. Length immediates accept decimal and grouped binary, octal
+and hexadecimal DINT forms. Sources also accept bounded DINT or finite REAL
+immediates.
 Unsuffixed binary, octal and hexadecimal source words accept grouped digits.
 For example, `FLL(16#FFFF_FFFF,Values[0],3)` uses signed DINT -1.
 The shorter word `16#FFFF` uses DINT 65535 before any destination conversion.

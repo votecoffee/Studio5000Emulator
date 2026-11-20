@@ -8,7 +8,7 @@ const rung = nodes => ({number: '0', comment: 'Seal in', text: 'source retained'
 const seal = () => graph.compile(rung([op('XIO', 'Stop'), {branch: [[op('XIC', 'Start')], [op('XIC', 'Latch')]]}, op('OTE', 'Latch')]), 'Main/Main');
 test('grouped ladder radix monitoring applies only to immediate operands in the v35 profile', () => {
   const cases = {DTR: [0, 1], SQI: [1, 2], SQO: [1], SQL: [1], MVM: [0, 1], BTD: [0, 1, 3, 4],
-    FLL: [0], FFL: [0], LFL: [0], FFU: [], LFU: []};
+    FLL: [0, 2], COP: [2], CPS: [2], FFL: [0], LFL: [0], FFU: [], LFU: []};
   for (const [opcode, indices] of Object.entries(cases)) {
     const operands = ['Array', 'Mask', 'Data', 'Ctl', 'Length', 'Position'];
     for (const [index, ref] of operands.entries()) {

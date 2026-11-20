@@ -125,7 +125,9 @@ class Extensions:
                     (self.engine.project.version!='35' or self.engine.project.processor.upper() not in CONTROLLERS)):
                     raise ModelError('LREAL COP/CPS byte-copy forms remain unqualified')
             finally:self.memory.structural=previous
-        count=self.integer(a[2],scope)
+        count = (numeric_copy.read_length(self.engine, a[2], scope)
+                 if n in ('COP', 'CPS') and types <= numeric_copy.FORMATS.keys()
+                 else self.integer(a[2], scope))
         self.memory.check_writable(a[1],scope)
         if n in ('COP','CPS'):
             specification=numeric_copy.plan(self.engine,op,scope,count)

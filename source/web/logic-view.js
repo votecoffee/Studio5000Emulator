@@ -84,7 +84,7 @@
   const dintWordOperands = new Map([
     ['MVM', [0, 1]], ['BTD', [0, 1, 3, 4]], ['DTR', [0, 1]],
     ['SQI', [1, 2]], ['SQO', [1]], ['SQL', [1]],
-    ['FLL', [0]], ['FFL', [0]], ['LFL', [0]]
+    ['FLL', [0, 2]], ['COP', [2]], ['CPS', [2]], ['FFL', [0]], ['LFL', [0]]
   ]);
   function ladderWordRadix(node, ref, version, processor) {
     return version === '35' && /^1756-L8[1-5]E$/i.test(processor) &&
