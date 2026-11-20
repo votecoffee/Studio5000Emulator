@@ -121,14 +121,15 @@ def set_fault_instruction(root, instruction):
     text.text = f'XIC(StartPB){instruction}ADD(SpeedCommand,1,SpeedCommand);'
 
 
-def nested_aoi_array_fault_fixture(root, *, clear=True, bad_call_operand=False):
+def nested_aoi_array_fault_fixture(root, *, clear=True, bad_call_operand=False,
+                                   work='MOV(Samples[Index+1],Scaled)'):
     ladder_fault_fixture(root,clear=clear,handler_tail='MOV(0,LabIndex);')
     sample = Path(__file__).resolve().parents[1] / 'samples/AOILab.L5X'
     source = ET.parse(sample).find('Controller')
     controller = root.find('Controller')
     definitions = ET.SubElement(controller,'AddOnInstructionDefinitions')
     for name,text in (
-        ('LabScale','MOV(73,Result)MOV(88,Samples[0])MOV(Samples[Index+1],Scaled)ADD(Scaled,11,Result);'),
+        ('LabScale',f'MOV(73,Result)MOV(88,Samples[0]){work}ADD(Scaled,11,Result);'),
         ('LabWrapper','MOV(7,Result)LabScale(Core,Raw,2.0,Result,Index,Samples)ADD(Result,100,Result);'),
     ):
         definition = source.find(f'./AddOnInstructionDefinitions/AddOnInstructionDefinition[@Name="{name}"]')
@@ -531,6 +532,81 @@ class ProgramFaultTests(unittest.TestCase):
         engine.step()
         self.assertEqual(engine.memory.read('SpeedCommand'),125)
         self.assertIs(engine.last_cleared_program_fault,fault)
+
+    def test_nested_aoi_block_faults_leave_windows_untouched_until_retry(self):
+        cases = (
+            ('COP(Samples[Index+1],Samples[0],1)MOV(Samples[0],Scaled)', [13,13], 125),
+            ('CPS(Samples[0],Samples[Index+1],1)MOV(Samples[1],Scaled)', [88,88], 200),
+            ('FLL(28,Samples[Index+1],1)MOV(Samples[1],Scaled)', [88,28], 140),
+            ('FLL(28,Samples[Index+1],0)MOV(Samples[1],Scaled)', [88,13], 125),
+        )
+        for work,values,result in cases:
+            with self.subTest(work=work):
+                self.setUp()
+                engine=self.engine(mutate=lambda root:nested_aoi_array_fault_fixture(root,work=work))
+                self.assertEqual(engine.blockers,[])
+                engine.memory.write('StartPB',True)
+                engine.memory.write('LabIndex',2**31-1)
+                engine.memory.write('SpeedCommand',50)
+                engine.step()
+                fault=engine.last_cleared_program_fault
+                self.assertEqual((fault['type'],fault['code'],fault['instruction']),(4,20,'LABWRAPPER'))
+                self.assertIn(f'AOI:LabScale/Logic, {work[:3]}: DINT overflow in subscript',fault['detail'])
+                self.assertEqual(engine.memory.read('LabValues'),[88,13])
+                self.assertEqual(engine.memory.read('SpeedCommand'),51)
+                self.assertEqual(engine.memory.read('NestedScale.Result'),7.0)
+                self.assertEqual(engine.memory.read('NestedScale.Core.Result'),73.0)
+                engine.step()
+                self.assertEqual(engine.memory.read('LabValues'),values)
+                self.assertEqual(engine.memory.read('SpeedCommand'),result)
+                self.assertIs(engine.last_cleared_program_fault,fault)
+
+    def test_nested_aoi_record_copy_and_fill_resolve_addresses_before_writing(self):
+        for work,expected in (
+            ('COP(RecordData[Index+1],RecordData[0],1)', [31,31]),
+            ('FLL(0,RecordData[Index+1],1)', [7,0]),
+        ):
+            with self.subTest(work=work):
+                self.setUp()
+
+                def setup(root):
+                    nested_aoi_array_fault_fixture(root,work=work+'MOV(13,Scaled)')
+                    add_fault_record_array(root,'TIMER',ACC=7)
+                    controller=root.find('Controller')
+                    for definition in controller.findall('./AddOnInstructionDefinitions/AddOnInstructionDefinition'):
+                        ET.SubElement(definition.find('Parameters'),'Parameter',Name='RecordData',
+                                      TagType='Base',DataType='TIMER',Dimensions='2',
+                                      Usage='InOut',Required='true',Visible='true')
+                    wrapper=controller.find('./AddOnInstructionDefinitions/AddOnInstructionDefinition[@Name="LabWrapper"]')
+                    logic=wrapper.find('./Routines/Routine[@Name="Logic"]/RLLContent/Rung/Text')
+                    logic.text=logic.text.replace('Index,Samples)','Index,Samples,RecordData)')
+                    set_fault_instruction(root,'LabWrapper(NestedScale,2.5,SpeedCommand,LabIndex,LabValues,LabRecords)')
+
+                engine=self.engine(mutate=setup)
+                self.assertEqual(engine.blockers,[])
+                engine.memory.write('StartPB',True)
+                engine.memory.write('LabIndex',1)
+                engine.memory.write('LabRecords[1].ACC',31)
+                engine.step()
+                fault=engine.last_cleared_program_fault
+                self.assertEqual((fault['code'],fault['instruction']),(20,'LABWRAPPER'))
+                self.assertIn(f'AOI:LabScale/Logic, {work[:3]}: Array index outside bounds',fault['detail'])
+                self.assertEqual([engine.memory.read(f'LabRecords[{i}].ACC') for i in range(2)],[7,31])
+                engine.step()
+                self.assertEqual([engine.memory.read(f'LabRecords[{i}].ACC') for i in range(2)],expected)
+
+    def test_invalid_fill_length_in_aoi_rolls_back_without_handler(self):
+        work='FLL(28,Samples[0],Index)MOV(Samples[1],Scaled)'
+        engine=self.engine(mutate=lambda root:nested_aoi_array_fault_fixture(root,work=work))
+        self.assertEqual(engine.blockers,[])
+        engine.memory.write('StartPB',True)
+        engine.memory.write('LabIndex',-1)
+        before=copy.deepcopy(engine.memory.values)
+        with self.assertRaisesRegex(ModelError,'FLL length must be an integer'):
+            engine.step()
+        self.assertEqual(engine.memory.values,before)
+        self.assertEqual(engine.scan_count,0)
+        self.assertIsNone(engine.last_cleared_program_fault)
 
     def test_unhandled_nested_aoi_fault_rolls_back_local_and_reference_writes(self):
         engine=self.engine(mutate=lambda root:nested_aoi_array_fault_fixture(root,clear=False))

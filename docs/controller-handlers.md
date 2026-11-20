@@ -81,23 +81,28 @@ JSR argument selection. ST calls retain their existing rollback behavior.
 ## Recover a nested ladder AOI array fault
 
 During a whole-project ladder scan, a Type 4 Code 20 array fault raised by
-MOV in an AOI's ladder Logic routine can reach the calling Program fault
-routine or Controller Fault Handler. This includes DINT subscript arithmetic
-overflow. If the handler clears the fault, execution resumes after the
-outermost enabled AOI instruction with the incoming rung power.
+MOV, COP, CPS or FLL in an AOI's ladder Logic routine can reach the calling
+Program fault routine or Controller Fault Handler. This includes DINT
+subscript arithmetic overflow. If the handler clears the fault, execution
+resumes after the outermost enabled AOI instruction with the incoming rung
+power.
 
-The faulting MOV and the remaining statements in each interrupted AOI are
-skipped. Copied outputs from interrupted invocations are skipped. The
+The faulting instruction and the remaining statements in each interrupted AOI
+are skipped. Interrupted invocations also skip their output copies. The
 emulator retains local and InOut writes completed before the fault when the
-scan commits. A failed clear or subsequent scan error rolls back those
-writes. The trace marks the outer AOI call, and the fault detail identifies
-the inner Logic routine and MOV.
+scan commits. A failed clear or subsequent scan error rolls back those writes.
+The trace marks the outer AOI call. The fault detail names the inner Logic
+routine and the faulting opcode.
 
-This profile covers the stated MOV path during normal ladder AOI execution.
-Array faults during AOI argument binding or output transfer, other faulting
-opcodes inside AOIs, Structured Text calls and prescan remain outside this
-recovery model. Native v35 behavior and partial-write parity remain unverified.
-[Rockwell AOI fault recovery reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/37-00/contents-ditamap/studio-5000-logix-designer/add-on-instructions/major-fault-state-and-add-on-instructions.html)
+Numeric and matching-record COP/CPS and FLL resolve the selected addresses
+before writing. A reached invalid address leaves the faulting operation's
+destination untouched, including an invalid FLL destination with a zero
+length. Invalid length values still cause scan rollback.
+
+This recovery profile covers the four opcodes during normal ladder AOI
+execution. AOI argument, output-transfer, Structured Text and prescan faults
+remain outside this profile. Native v35 behavior remains unverified.
+[Rockwell AOI fault recovery reference](https://www.rockwellautomation.com/en-ua/docs/studio-5000-logix-designer/37-01/contents-ditamap/studio-5000-logix-designer/add-on-instructions/major-fault-state-and-add-on-instructions.html)
 
 ## Recover a ladder arithmetic array fault
 

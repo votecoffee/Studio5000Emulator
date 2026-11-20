@@ -39,6 +39,8 @@ ARRAY_FAULT_RECOVERY_OPS = (
     | numeric_conversions.INSTRUCTIONS | real_math.INSTRUCTIONS
     | string_operations.INSTRUCTIONS | string_conversions.INSTRUCTIONS | ladder_pid.INSTRUCTIONS
 )
+# These ladder AOI instructions resolve every array address before writing.
+AOI_ARRAY_FAULT_RECOVERY_OPS = frozenset(('MOV', 'COP', 'CPS', 'FLL'))
 _CONTROL_PRESCAN = {
     instruction: family.prescan
     for family in (control_operations, sequencer_operations, array_statistics, file_bit_compare)
@@ -1097,10 +1099,10 @@ class Engine:
                     power=False if force_false else result
                 except (ArrayBoundsError, control_operations.NegativeFileCursorError, NegativeTimerValueError) as error:
                     routine = self._executing_routine
-                    if (isinstance(error, ArrayBoundsError) and node.name == 'MOV'
+                    if (isinstance(error, ArrayBoundsError) and node.name in AOI_ARRAY_FAULT_RECOVERY_OPS
                             and scope in self.memory.frames and routine.name.casefold() == 'logic'
                             and not self.addons.prescanning):
-                        raise AddOnLogicArrayError(f'{routine.key}, MOV: {error}') from error
+                        raise AddOnLogicArrayError(f'{routine.key}, {node.name}: {error}') from error
                     code = self._recover_ladder_fault(node, scope, error, incoming=incoming)
                     if code is None:
                         raise
