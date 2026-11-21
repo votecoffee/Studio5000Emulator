@@ -131,8 +131,8 @@ Timers and counters can reach indexed operands on a false inner rung
 because their state may need to update. On an array fault, the emulator
 preserves the records, last timer execution time, counter edge and CONTROL
 file progress. A false RES skips the indexed record. Invalid lengths,
-division by zero, arithmetic result overflow and negative timer fields
-still cause scan rollback in the AOI.
+division by zero and arithmetic result overflow still cause scan rollback
+in the AOI.
 
 DTR can update its reference on either rung state. A bad index preserves the
 reference until a later scan can reach it. SIZE, TRN, FRD, TOD and SWPB skip
@@ -392,7 +392,10 @@ tag and clear the fault. In a flat DINT record, word 2 holds
 
 A clear skips the current timer call and preserves incoming rung power.
 The next valid call uses the elapsed time since its last successful
-execution. An uncleared fault rolls back the scan. The other rung states
+execution. For a timer in ladder AOI Logic or EnableInFalse, the fault
+unwinds to the outermost AOI and skips the interrupted Output copies.
+The fault detail identifies the timer's routine and opcode. An uncleared
+fault rolls back the scan. The other rung states
 still require known nonnegative PRE/ACC under the existing software
 validation rules. Native timing, fault and controller behavior remain
 unverified.

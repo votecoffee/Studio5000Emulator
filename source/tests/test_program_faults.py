@@ -122,8 +122,9 @@ def set_fault_instruction(root, instruction):
 
 
 def nested_aoi_array_fault_fixture(root, *, clear=True, bad_call_operand=False,
-                                   work='MOV(Samples[Index+1],Scaled)'):
-    ladder_fault_fixture(root,clear=clear,handler_tail='MOV(0,LabIndex);')
+                                   work='MOV(Samples[Index+1],Scaled)', fault_code=20,
+                                   handler_tail='MOV(0,LabIndex);'):
+    ladder_fault_fixture(root, clear=clear, fault_code=fault_code, handler_tail=handler_tail)
     sample = Path(__file__).resolve().parents[1] / 'samples/AOILab.L5X'
     source = ET.parse(sample).find('Controller')
     controller = root.find('Controller')
@@ -268,10 +269,18 @@ def bind_nested_aoi_inouts(root, *arrays, scalars=()):
     set_fault_instruction(root, f'LabWrapper(NestedScale,2.5,SpeedCommand,LabIndex,LabValues,{actuals})')
 
 
-def nested_aoi_record_fault_fixture(root, dtype, work, **initial):
-    nested_aoi_array_fault_fixture(root, work=work)
+def nested_aoi_record_fault_fixture(root, dtype, work, *, fault_code=20,
+                                    handler_tail='MOV(0,LabIndex);', **initial):
+    nested_aoi_array_fault_fixture(root, work=work, fault_code=fault_code, handler_tail=handler_tail)
     add_fault_record_array(root, dtype, **initial)
     bind_nested_aoi_inouts(root, ('RecordData', dtype, 'LabRecords'))
+
+
+def nested_aoi_timer_value_fault_fixture(root, opcode, member, *, fault_code=34):
+    work = f'XIC(Samples[1].0){opcode}(RecordData[1],?,?)MOV(13,Scaled)'
+    correction = 100 if member == 'PRE' else 4
+    repair = f'MOV(LabRecords[1].{member},LabIndex)MOV({correction},LabRecords[1].{member});'
+    nested_aoi_record_fault_fixture(root, 'TIMER', work, fault_code=fault_code, handler_tail=repair)
 
 
 def add_bit_diagnostic_tags(root, *, single=False):
@@ -1862,15 +1871,51 @@ class ProgramFaultTests(unittest.TestCase):
                 self.assertEqual(engine._file_incremental, progress-{selected})
                 self.assertEqual(engine._file_arithmetic_retry, progress-{selected})
 
-    def test_nested_aoi_negative_timer_field_keeps_existing_rollback(self):
-        work = 'TON(RecordData[Index+1],?,?)MOV(13,Scaled)'
-        engine = self.engine(mutate=lambda root:nested_aoi_record_fault_fixture(root, 'TIMER', work))
+    def test_nested_aoi_negative_timer_value_recovery_preserves_the_last_execution(self):
+        for opcode in ('TON', 'TOF', 'RTO'):
+            for member, correction in (('PRE', 100), ('ACC', 4)):
+                with self.subTest(opcode=opcode, member=member):
+                    self.setUp()
+                    engine = self.engine(mutate=lambda root: nested_aoi_timer_value_fault_fixture(
+                        root, opcode, member))
+                    self.assertEqual(engine.blockers, [])
+                    memory = engine.memory
+                    memory.write('StartPB', True)
+                    engine.step()
+                    if opcode == 'TOF':
+                        memory.write('LabValues[1]', 12)
+                    engine.step()
+                    expected = copy.deepcopy(memory.read('LabRecords'))
+                    expected[1][member] = correction
+                    clock = engine.last_timer.copy()
+                    prior_result = memory.read('NestedScale.Result')
+                    memory.write(f'LabRecords[1].{member}', -1)
+                    memory.write('SpeedCommand', 50)
+                    engine.step()
+                    fault = engine.last_cleared_program_fault
+                    self.assertEqual((fault['type'], fault['code'], fault['instruction']), (4, 34, 'LABWRAPPER'))
+                    self.assertIn(f'AOI:LabScale/Logic, {opcode}: TIMER.{member} is negative', fault['detail'])
+                    self.assertEqual(memory.read('CapturedFault'), 2228228)
+                    self.assertEqual(memory.read('LabIndex'), -1)
+                    self.assertEqual(memory.read('LabRecords'), expected)
+                    self.assertEqual(engine.last_timer, clock)
+                    self.assertEqual(memory.read('SpeedCommand'), 51)
+                    self.assertEqual(memory.read('NestedScale.Result'), 7)
+                    self.assertNotEqual(prior_result, 7)
+                    engine.step()
+                    self.assertEqual(memory.read('LabRecords[1].ACC'), expected[1]['ACC'] + 20)
+                    self.assertEqual(memory.read('LabRecords[0]'), expected[0])
+                    self.assertIs(engine.last_cleared_program_fault, fault)
+
+    def test_uncleared_nested_aoi_negative_timer_value_rolls_back(self):
+        engine = self.engine(mutate=lambda root: nested_aoi_timer_value_fault_fixture(
+            root, 'TON', 'PRE', fault_code=20))
         self.assertEqual(engine.blockers, [])
         engine.enter_run()
         engine.memory.write('StartPB', True)
         engine.memory.write('LabRecords[1].PRE', -1)
         before = copy.deepcopy(engine.memory.values)
-        with self.assertRaisesRegex(ModelError, 'Type 4 Code 34'):
+        with self.assertRaisesRegex(ModelError, 'Program fault 4/34.*without clearing'):
             engine.step()
         self.assertEqual(engine.memory.values, before)
         self.assertEqual(engine.scan_count, 0)

@@ -211,6 +211,8 @@ handler before the callee starts. An Input copy fault restores earlier
 copies and the prior bindings. An Output copy fault reverses that call's
 Output copies after the body runs. Recovery also covers faults inside
 ladder EnableInFalse routines and preserves false rung-out.
+Nested ladder AOI timers also support Type 4 Code 34 recovery for
+negative PRE or ACC on a timing rung.
 Ladder prescan skips the rest of an AOI after an eligible array fault
 during parameter transfer or an authored Prescan routine.
 [Time and date AOI parameters](docs/aoi-constants.md#time-and-date-parameters)

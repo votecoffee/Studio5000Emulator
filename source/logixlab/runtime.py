@@ -65,8 +65,12 @@ class NegativeTimerValueError(ModelError):
     """A timing path encountered a negative TIMER.PRE or ACC."""
 
 
-class AddOnBodyArrayError(ArrayBoundsError):
-    """An array fault reached in a recoverable ladder AOI routine."""
+class AddOnBodyFault(ModelError):
+    """A recoverable fault reached in a ladder AOI routine."""
+
+    def __init__(self, code, detail):
+        super().__init__(detail)
+        self.code = code
 
 
 class ReturnRoutine(Exception):
@@ -737,7 +741,7 @@ class Engine:
                     try:
                         self.addons.call(op, False, scope, depth+1, prescan=True,
                                          recover_prescan=recover_prescan)
-                    except (CallOperandBoundsError, AddOnBodyArrayError):
+                    except (CallOperandBoundsError, AddOnBodyFault):
                         # Unwind to the outermost AOI and skip it without a user fault handler.
                         if not recover_prescan or scope in self.memory.frames:
                             raise
@@ -959,8 +963,9 @@ class Engine:
         controller_handler = self.project.fault_handler_routine
         code = 20
         if op.name in self.project.aois:
-            operand_fault = isinstance(error, CallOperandBoundsError) and error.call is op
-            if not (operand_fault or isinstance(error, AddOnBodyArrayError)):
+            if isinstance(error, AddOnBodyFault):
+                code = error.code
+            elif not (isinstance(error, CallOperandBoundsError) and error.call is op):
                 return None
         elif isinstance(error, control_operations.NegativeFileCursorError):
             if op.name not in ('FAL', 'FSC', 'SRT', 'STD'):
@@ -1117,7 +1122,8 @@ class Engine:
                 try:
                     result=self._op(node,incoming,scope,depth,event=event)
                     power=False if force_false else result
-                except (ArrayBoundsError, control_operations.NegativeFileCursorError, NegativeTimerValueError) as error:
+                except (ArrayBoundsError, control_operations.NegativeFileCursorError,
+                        NegativeTimerValueError, AddOnBodyFault) as error:
                     routine = self._executing_routine
                     operand_fault = (isinstance(error, CallOperandBoundsError) and error.call is node
                                      and node.name in self.project.aois)
@@ -1125,10 +1131,12 @@ class Engine:
                     aoi_body = name in ('logic', 'enableinfalse')
                     if self.addons.prescanning:
                         aoi_body = self.addons.prescan_recovery and (aoi_body or name == 'prescan')
-                    if (isinstance(error, ArrayBoundsError)
-                            and (node.name in AOI_ARRAY_FAULT_RECOVERY_OPS or operand_fault)
-                            and scope in self.memory.frames and aoi_body):
-                        raise AddOnBodyArrayError(f'{routine.key}, {node.name}: {error}') from error
+                    if scope in self.memory.frames and aoi_body:
+                        if isinstance(error, ArrayBoundsError) and (node.name in AOI_ARRAY_FAULT_RECOVERY_OPS or operand_fault):
+                            raise AddOnBodyFault(20, f'{routine.key}, {node.name}: {error}') from error
+                        if (not self.addons.prescanning and isinstance(error, NegativeTimerValueError)
+                                and node.name in ('TON', 'TOF', 'RTO')):
+                            raise AddOnBodyFault(34, f'{routine.key}, {error}') from error
                     code = self._recover_ladder_fault(node, scope, error)
                     if code is None:
                         raise
