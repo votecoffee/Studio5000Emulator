@@ -18,7 +18,7 @@ class BreakLoop(Exception):
 
 
 class CallOperandBoundsError(ArrayBoundsError):
-    """A live operand of this JSR or FOR faulted outside the called routine."""
+    """A live operand faulted outside the body of this call."""
 
     def __init__(self, call, message):
         super().__init__(message)

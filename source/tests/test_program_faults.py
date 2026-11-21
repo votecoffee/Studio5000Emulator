@@ -1815,16 +1815,89 @@ class ProgramFaultTests(unittest.TestCase):
         self.assertIsNone(engine.last_cleared_program_fault)
         self.assertIsNone(engine.addons.caller_program)
 
-    def test_array_fault_in_aoi_call_binding_keeps_rollback(self):
-        engine=self.engine(mutate=lambda root:nested_aoi_array_fault_fixture(root,bad_call_operand=True))
-        self.assertEqual(engine.blockers,[])
-        engine.memory.write('StartPB',True)
-        engine.memory.write('LabIndex',2)
-        before=copy.deepcopy(engine.memory.values)
-        with self.assertRaisesRegex(ModelError,'Array index outside bounds'):
+    def test_enabled_aoi_binding_fault_skips_the_call_until_the_index_is_repaired(self):
+        engine = self.engine(mutate=lambda root: nested_aoi_array_fault_fixture(
+            root, bad_call_operand=True, work='MOV(13,Scaled)'))
+        self.assertEqual(engine.blockers, [])
+        memory = engine.memory
+        before = copy.deepcopy(memory.read('NestedScale'))
+        frames = copy.deepcopy(memory.frames)
+        memory.write('StartPB', True)
+        memory.write('LabIndex', 2)
+        memory.write('SpeedCommand', 50)
+        engine.step()
+        fault = engine.last_cleared_program_fault
+        self.assertEqual((fault['type'], fault['code'], fault['instruction']), (4, 20, 'LABWRAPPER'))
+        self.assertIn('AOI call binding: Array index outside bounds', fault['detail'])
+        self.assertEqual(memory.read('NestedScale'), before)
+        self.assertEqual(memory.frames, frames)
+        self.assertEqual(memory.read('LabValues'), [12, 13])
+        self.assertEqual(memory.read('SpeedCommand'), 51)
+        self.assertEqual(memory.read('LabIndex'), 0)
+        engine.step()
+        self.assertEqual(memory.read('LabValues'), [88, 13])
+        self.assertEqual(memory.read('SpeedCommand'), 125)
+
+    def test_nested_aoi_binding_fault_preserves_prior_caller_writes(self):
+        for operands, retry_speed in (
+            ('Core,Samples[Index+1],2.0,Result,Index,Samples', 125),
+            ('Core,Raw,2.0,Samples[Index+1],Index,Samples', 108),
+        ):
+            with self.subTest(operands=operands):
+                self.setUp()
+
+                def configure(root):
+                    nested_aoi_array_fault_fixture(root, work='MOV(13,Scaled)')
+                    wrapper = root.find('.//AddOnInstructionDefinition[@Name="LabWrapper"]/Routines')
+                    logic = wrapper.find('Routine[@Name="Logic"]/RLLContent/Rung/Text')
+                    logic.text = f'MOV(7,Result)LabScale({operands})ADD(Result,100,Result);'
+
+                engine = self.engine(mutate=configure)
+                self.assertEqual(engine.blockers, [])
+                memory = engine.memory
+                before = copy.deepcopy(memory.read('NestedScale.Core'))
+                saved_samples = memory.read('LabValues')[:]
+                memory.write('StartPB', True)
+                memory.write('LabIndex', 2)
+                memory.write('SpeedCommand', 50)
+                engine.step()
+                fault = engine.last_cleared_program_fault
+                self.assertEqual((fault['type'], fault['code'], fault['instruction']), (4, 20, 'LABWRAPPER'))
+                self.assertIn('AOI:LabWrapper/Logic, LABSCALE: AOI call binding:', fault['detail'])
+                self.assertEqual(memory.read('NestedScale.Core'), before)
+                self.assertEqual(memory.read('NestedScale.Result'), 7)
+                self.assertEqual(memory.read('LabValues'), saved_samples)
+                self.assertEqual(memory.read('SpeedCommand'), 51)
+                engine.step()
+                self.assertEqual(memory.read('SpeedCommand'), retry_speed)
+
+    def test_false_aoi_binding_fault_keeps_scan_rollback(self):
+        engine = self.engine(mutate=lambda root: nested_aoi_array_fault_fixture(root, bad_call_operand=True))
+        self.assertEqual(engine.blockers, [])
+        engine.memory.write('LabIndex', 2)
+        before = copy.deepcopy(engine.memory.values)
+        with self.assertRaisesRegex(ModelError, 'Array index outside bounds'):
             engine.step()
-        self.assertEqual(engine.memory.values,before)
-        self.assertEqual(engine.scan_count,0)
+        self.assertEqual(engine.memory.values, before)
+        self.assertEqual(engine.scan_count, 0)
+        self.assertIsNone(engine.last_cleared_program_fault)
+
+    def test_aoi_output_index_fault_after_body_keeps_scan_rollback(self):
+        def configure(root):
+            nested_aoi_array_fault_fixture(root, work='MOV(13,Scaled)')
+            tag = root.find('./Controller/Tags/Tag[@Name="LabValues"]/Data/Array')
+            tag.find('Element[@Index="[0]"]').set('Value', '0')
+            set_fault_instruction(root, 'LabWrapper(NestedScale,2.5,LabValues[LabValues[0]],LabIndex,LabValues)')
+
+        engine = self.engine(mutate=configure)
+        self.assertEqual(engine.blockers, [])
+        engine.memory.write('LabValues[0]', 0)
+        engine.memory.write('StartPB', True)
+        before = copy.deepcopy(engine.memory.values)
+        with self.assertRaisesRegex(ModelError, r'Array index outside bounds: LabValues\[LabValues\[0\]\]'):
+            engine.step()
+        self.assertEqual(engine.memory.values, before)
+        self.assertEqual(engine.scan_count, 0)
         self.assertIsNone(engine.last_cleared_program_fault)
 
     def test_failed_program_fault_recovery_rolls_back_the_scan(self):

@@ -194,8 +194,19 @@ qualification history. This includes an ALMD command operand reached on
 a false rung inside an enabled AOI. After the handler clears the fault,
 the next reached call uses the retained state.
 
-AOI argument, output-transfer, Structured Text and prescan faults remain
-outside this profile. Native v35 behavior remains unverified.
+An out-of-bounds subscript during initial binding of an enabled ladder AOI
+call can also raise Type 4 Code 20 in the v35 ControlLogix 5580 model. Binding
+checks the instance and the required arguments before copying inputs, changing
+the instance enable bits, or publishing reference bindings. A failing nested
+binding leaves the callee untouched and retains writes its caller completed
+before reaching the call. If the handler clears the fault, the next enabled
+scan attempts the call again with fresh operands.
+
+False-call binding faults, faults during parameter transfer after binding,
+Structured Text and prescan still use their existing rollback behavior.
+The entry-binding rule is a software-model extension. Native v35 behavior
+remains unverified. See the [Rockwell AOI parameter reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm010_-en-p.pdf)
+for parameter passing and scan modes.
 [Rockwell AOI fault recovery reference](https://www.rockwellautomation.com/en-ua/docs/studio-5000-logix-designer/37-01/contents-ditamap/studio-5000-logix-designer/add-on-instructions/major-fault-state-and-add-on-instructions.html)
 
 ## Recover a ladder arithmetic array fault

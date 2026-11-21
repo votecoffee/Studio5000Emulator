@@ -6,7 +6,8 @@ not evidence of the saved state of an existing instance.
 from contextlib import contextmanager
 
 from . import time_values
-from .model import ModelError, coerce, dimensions, literal, operations
+from .calls import CallOperandBoundsError
+from .model import ArrayBoundsError, ModelError, coerce, dimensions, literal, operations
 from .numeric_storage import available as numeric_available, typed_literal
 
 
@@ -158,7 +159,12 @@ class AddOns:
         copy_outputs = prescan or power or definition.modes['EnableInFalse']
         # In v35, a false ladder call without EnableInFalse only copies Inputs.
         resolve_outputs_and_inouts = copy_outputs or not numeric_available(self.engine.project)
-        definition,frame,address=self.bind(op,scope,resolve_outputs_and_inouts=resolve_outputs_and_inouts)
+        try:
+            definition,frame,address=self.bind(op,scope,resolve_outputs_and_inouts=resolve_outputs_and_inouts)
+        except ArrayBoundsError as error:
+            if power and not prescan and not self.prescanning and numeric_available(self.engine.project):
+                raise CallOperandBoundsError(op, f'AOI call binding: {error}') from error
+            raise
         self.memory.write(address+'.EnableIn',bool(power) if not prescan else False)
         self.memory.write('EnableOut',bool(power) if not prescan else False,frame)
         for parameter,argument in zip(definition.required,op.args[1:]):

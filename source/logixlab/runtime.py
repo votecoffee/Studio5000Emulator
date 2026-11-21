@@ -951,7 +951,8 @@ class Engine:
         controller_handler = self.project.fault_handler_routine
         code = 20
         if op.name in self.project.aois:
-            if not incoming or not isinstance(error, AddOnLogicArrayError):
+            binding_fault = isinstance(error, CallOperandBoundsError) and error.call is op
+            if not incoming or not (isinstance(error, AddOnLogicArrayError) or binding_fault):
                 return None
         elif isinstance(error, control_operations.NegativeFileCursorError):
             if op.name not in ('FAL', 'FSC', 'SRT', 'STD'):
@@ -1110,7 +1111,10 @@ class Engine:
                     power=False if force_false else result
                 except (ArrayBoundsError, control_operations.NegativeFileCursorError, NegativeTimerValueError) as error:
                     routine = self._executing_routine
-                    if (isinstance(error, ArrayBoundsError) and node.name in AOI_ARRAY_FAULT_RECOVERY_OPS
+                    binding_fault = (isinstance(error, CallOperandBoundsError) and error.call is node
+                                     and incoming and node.name in self.project.aois)
+                    if (isinstance(error, ArrayBoundsError)
+                            and (node.name in AOI_ARRAY_FAULT_RECOVERY_OPS or binding_fault)
                             and scope in self.memory.frames and routine.name.casefold() == 'logic'
                             and not self.addons.prescanning):
                         raise AddOnLogicArrayError(f'{routine.key}, {node.name}: {error}') from error
