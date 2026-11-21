@@ -65,8 +65,8 @@ class NegativeTimerValueError(ModelError):
     """A timing path encountered a negative TIMER.PRE or ACC."""
 
 
-class AddOnLogicArrayError(ArrayBoundsError):
-    """An array fault from an eligible instruction in ladder AOI Logic."""
+class AddOnBodyArrayError(ArrayBoundsError):
+    """An array fault reached in a recoverable ladder AOI routine."""
 
 
 class ReturnRoutine(Exception):
@@ -943,7 +943,7 @@ class Engine:
             self._immediate_output_advance=None
             self._message_advance=None
 
-    def _recover_ladder_fault(self, op, scope, error, *, incoming):
+    def _recover_ladder_fault(self, op, scope, error):
         if (scope in self.memory.frames or self.mode != 'project'
                 or self._program_advance is None or self._program_fault is not None):
             return None
@@ -952,7 +952,7 @@ class Engine:
         code = 20
         if op.name in self.project.aois:
             operand_fault = isinstance(error, CallOperandBoundsError) and error.call is op
-            if not (operand_fault or (incoming and isinstance(error, AddOnLogicArrayError))):
+            if not (operand_fault or isinstance(error, AddOnBodyArrayError)):
                 return None
         elif isinstance(error, control_operations.NegativeFileCursorError):
             if op.name not in ('FAL', 'FSC', 'SRT', 'STD'):
@@ -1115,10 +1115,10 @@ class Engine:
                                      and node.name in self.project.aois)
                     if (isinstance(error, ArrayBoundsError)
                             and (node.name in AOI_ARRAY_FAULT_RECOVERY_OPS or operand_fault)
-                            and scope in self.memory.frames and routine.name.casefold() == 'logic'
+                            and scope in self.memory.frames and routine.name.casefold() in ('logic', 'enableinfalse')
                             and not self.addons.prescanning):
-                        raise AddOnLogicArrayError(f'{routine.key}, {node.name}: {error}') from error
-                    code = self._recover_ladder_fault(node, scope, error, incoming=incoming)
+                        raise AddOnBodyArrayError(f'{routine.key}, {node.name}: {error}') from error
+                    code = self._recover_ladder_fault(node, scope, error)
                     if code is None:
                         raise
                     power = incoming

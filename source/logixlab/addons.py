@@ -188,16 +188,15 @@ class AddOns:
             raise
         self.instances[address]={'definition':definition.name,'scope':frame}
         if copy_outputs:
-            with self.program_context(scope, prescan=prescan):
-                if prescan:
-                    self.engine._prescan_routine(definition.routines['logic'],frame,depth+1)
-                    if definition.modes['Prescan']:
-                        self.engine._execute_routine(definition.routines['prescan'],frame,depth+1,address)
-                elif power:
-                    self.engine._execute_routine(definition.routines['logic'],frame,depth+1,address)
-                else:
-                    self.engine._execute_routine(definition.routines['enableinfalse'],frame,depth+1,address)
             try:
+                with self.program_context(scope, prescan=prescan):
+                    if prescan:
+                        self.engine._prescan_routine(definition.routines['logic'],frame,depth+1)
+                        if definition.modes['Prescan']:
+                            self.engine._execute_routine(definition.routines['prescan'],frame,depth+1,address)
+                    else:
+                        mode = 'logic' if power else 'enableinfalse'
+                        self.engine._execute_routine(definition.routines[mode],frame,depth+1,address)
                 with self._transfer(op, 'output', recover_operands):
                     self._copy_outputs(definition, op, scope, frame)
             finally:

@@ -164,6 +164,24 @@ def aoi_input_index_fault_fixture(root, *, clear=True):
                                'LabValues[LabSelect],LabValues[NestedScale.Index])')
 
 
+def set_aoi_false_routine(definition, text):
+    definition.set('ExecuteEnableInFalse', 'true')
+    routine = ET.SubElement(definition.find('Routines'), 'Routine', Name='EnableInFalse', Type='RLL')
+    rung = ET.SubElement(ET.SubElement(routine, 'RLLContent'), 'Rung', Number='0', Type='N')
+    ET.SubElement(rung, 'Text').text = text
+
+
+def aoi_false_body_fault_fixture(root, *, clear=True, nested=False):
+    nested_aoi_array_fault_fixture(root, clear=clear)
+    wrapper = root.find('.//AddOnInstructionDefinition[@Name="LabWrapper"]')
+    work = 'LabScale(Core,Raw,2.0,Result,Index,Samples)' if nested else 'MOV(Samples[Index+1],Result)'
+    set_aoi_false_routine(wrapper, f'OTL(EnableOut)MOV(89,Samples[0]){work}MOV(6,Samples[0]);')
+    observed = 88 if nested else 89
+    handler = root.find('.//Routine[@Name="RecoverMove"]/RLLContent')
+    handler.find('Rung/Text').text = (
+        f'EQU(LabValues[0],{observed})XIO(NestedScale.EnableOut)OTE(FaultWitness);')
+
+
 def aoi_output_index_fault_fixture(root, *, clear=True, authored_false=False):
     nested_aoi_array_fault_fixture(root, clear=clear, work='MOV(13,Scaled)')
     tags = root.find('./Controller/Tags')
@@ -180,11 +198,8 @@ def aoi_output_index_fault_fixture(root, *, clear=True, authored_false=False):
     logic = wrapper.find('./Routines/Routine[@Name="Logic"]/RLLContent/Rung/Text')
     logic.text = logic.text.replace(');', ')OTU(EarlyBit)MOV(Index,EarlyIndex);')
     if authored_false:
-        wrapper.set('ExecuteEnableInFalse', 'true')
-        routine = ET.SubElement(wrapper.find('Routines'), 'Routine', Name='EnableInFalse', Type='RLL')
-        rung = ET.SubElement(ET.SubElement(routine, 'RLLContent'), 'Rung', Number='0', Type='N')
-        ET.SubElement(rung, 'Text').text = (
-            'MOV(88,Samples[0])MOV(124,Result)OTU(EarlyBit)MOV(Index,EarlyIndex)OTL(EnableOut);')
+        set_aoi_false_routine(wrapper, 'MOV(88,Samples[0])MOV(124,Result)OTU(EarlyBit)'
+                                      'MOV(Index,EarlyIndex)OTL(EnableOut);')
     set_fault_instruction(root, 'LabWrapper(NestedScale,2.5,LabValues[1].0,LabValues[0],'
                                'LabValues[LabValues[0]],LabIndex,LabValues)')
     handler = root.find('.//Routine[@Name="RecoverMove"]/RLLContent')
@@ -1963,6 +1978,47 @@ class ProgramFaultTests(unittest.TestCase):
         self.assertEqual(memory.frames['@AOI:nestedscale']['selected'], ('LabValues[1]', ''))
         self.assertEqual(memory.read('LabValues'), [88, 12])
         self.assertEqual(memory.read('SpeedCommand'), 125)
+
+    def test_aoi_false_body_fault_skips_output_copy_and_keeps_enableout_false(self):
+        for nested, changed, output, origin in (
+            (False, 89, 13, 'AOI:LabWrapper/EnableInFalse'),
+            (True, 88, 24, 'AOI:LabScale/Logic'),
+        ):
+            with self.subTest(nested=nested):
+                self.setUp()
+                engine = self.engine(mutate=lambda root: aoi_false_body_fault_fixture(root, nested=nested))
+                self.assertEqual(engine.blockers, [])
+                memory = engine.memory
+                saved_output = memory.read('NestedScale.Result')
+                memory.write('LabIndex', 2)
+                memory.write('SpeedCommand', 50)
+                engine.step()
+                fault = engine.last_cleared_program_fault
+                self.assertEqual((fault['type'], fault['code'], fault['instruction']), (4, 20, 'LABWRAPPER'))
+                self.assertIn(f'{origin}, MOV: Array index outside bounds', fault['detail'])
+                self.assertEqual(memory.read('LabValues'), [changed, 13])
+                self.assertEqual(memory.read('NestedScale.Result'), saved_output)
+                self.assertEqual(memory.read('SpeedCommand'), 50)
+                self.assertTrue(memory.read('FaultWitness'))
+                self.assertFalse(memory.read('NestedScale.EnableOut'))
+                self.assertFalse(next(event['out'] for row in engine.trace for event in row['events']
+                                      if event.get('recovered_fault')))
+                engine.step()
+                self.assertEqual(memory.read('LabValues'), [6, 13])
+                self.assertEqual(memory.read('SpeedCommand'), output)
+                self.assertFalse(memory.read('NestedScale.EnableOut'))
+
+    def test_uncleared_aoi_false_body_fault_rolls_back_body_writes(self):
+        engine = self.engine(mutate=lambda root: aoi_false_body_fault_fixture(root, clear=False))
+        self.assertEqual(engine.blockers, [])
+        memory = engine.memory
+        memory.write('LabIndex', 2)
+        before = copy.deepcopy((memory.values, memory.frames))
+        with self.assertRaisesRegex(ModelError, 'completed without clearing'):
+            engine.step()
+        self.assertEqual((memory.values, memory.frames), before)
+        self.assertEqual(engine.scan_count, 0)
+        self.assertIsNone(engine.last_cleared_program_fault)
 
     def test_false_aoi_input_transfer_fault_preserves_the_previous_instance(self):
         engine = self.engine(mutate=aoi_input_index_fault_fixture)

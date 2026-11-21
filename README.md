@@ -209,7 +209,8 @@ bit shifts, sequencers, bit diagnostics, supported GSV/SSV forms, PID and alarms
 An out-of-range argument at a reached ladder AOI call can also invoke the
 handler before the callee starts. An Input copy fault restores earlier
 copies and the prior bindings. An Output copy fault reverses that call's
-Output copies after the body runs. A false call keeps its rung-out false.
+Output copies after the body runs. Recovery also covers faults inside
+ladder EnableInFalse routines and preserves false rung-out.
 [Time and date AOI parameters](docs/aoi-constants.md#time-and-date-parameters)
 support exact-type scalar Inputs and Outputs in ladder and Structured Text.
 Enable `RunTimeExample` in **AOI Constants Lab** to step through an exact

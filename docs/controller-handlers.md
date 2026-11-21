@@ -80,11 +80,12 @@ JSR argument selection. ST calls retain their existing rollback behavior.
 
 ## Recover a nested ladder AOI array fault
 
-During a whole-project ladder scan, an array fault inside an AOI's ladder
-Logic routine can reach the calling Program fault routine or Controller Fault
-Handler as Type 4 Code 20, including DINT overflow while evaluating an array
-subscript. If the handler clears the fault, execution resumes after the
-outermost enabled AOI instruction with the incoming rung power.
+During a whole-project ladder scan, an eligible array fault in an AOI's
+ladder Logic or EnableInFalse routine can reach the calling Program fault
+routine or Controller Fault Handler as Type 4 Code 20. This includes DINT
+overflow while evaluating an array subscript. If the handler clears the
+fault, execution resumes after the outermost AOI instruction with its
+incoming rung power.
 
 - Data and arithmetic: MOV, CLR, COP, CPS, FLL, ADD, SUB, MUL, DIV, MOD,
   NEG, ABS and CPT.
@@ -112,7 +113,7 @@ The faulting instruction and the remaining statements in each interrupted AOI
 are skipped. Interrupted invocations also skip their output copies. The
 emulator retains local and InOut writes completed before the fault when the
 scan commits. A failed clear or subsequent scan error rolls back those writes.
-The trace marks the outer AOI call. The fault detail names the inner Logic
+The trace marks the outer AOI call. The fault detail names the originating
 routine and the faulting opcode.
 
 Numeric and matching-record COP/CPS and FLL resolve the selected addresses
@@ -218,14 +219,15 @@ handler clears the fault.
 Recovery preserves false rung-out when a false call faults during binding
 or parameter transfer. A false call without an EnableInFalse routine
 copies only its required Inputs and skips Output and InOut selection.
-An authored EnableInFalse routine can copy Outputs, and its EnableOut
-is false when a fault interrupts that transfer.
+An authored EnableInFalse routine can copy Outputs. A qualifying fault
+inside that routine or its nested ladder calls skips the remainder of the
+interrupted routines and their Output copies. The false invocation clears
+EnableOut before the handler runs.
 
-Faults inside the authored EnableInFalse body, Structured Text and prescan
-still use scan rollback. These parameter recovery rules are software-model
-extensions. Native v35 behavior remains unverified.
+Structured Text instructions and prescan remain outside this recovery
+profile. Native v35 behavior remains unverified.
 [Rockwell AOI parameter and scan mode reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm010_-en-p.pdf)
-[Rockwell AOI fault recovery reference](https://www.rockwellautomation.com/en-ua/docs/studio-5000-logix-designer/37-01/contents-ditamap/studio-5000-logix-designer/add-on-instructions/major-fault-state-and-add-on-instructions.html)
+[Rockwell major fault and AOI reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm014_-en-p.pdf)
 
 ## Recover a ladder arithmetic array fault
 
