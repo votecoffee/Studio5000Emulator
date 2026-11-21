@@ -99,7 +99,7 @@ class RealIntegerLiteralTests(unittest.TestCase):
         e=self.comparison(['LIM(1L,Source,1UL)OTE(RunLatch);'],values=(1,1,1));e.memory.values['source']=None;self.fault(e,'Unknown')
 
     def test_domains_ranges_and_later_faults_roll_back_the_advance(self):
-        for call,pattern in [('DIV(1L,0UL,Results[1]);','zero'),('MOD(1U,0L,Results[1]);','zero'),
+        for call,pattern in [('DIV(1L,0UL,Results[1]);','zero'),
                              ('XPY(-1L,0.5,Results[1]);','finite'),('LN(0UL,Results[1]);','finite'),
                              ('XPY(18446744073709551615UL,3L,Results[1]);','finite')]:
             e=self.checked(['XIC(StartPB)'+call]);e.step();e.memory.write('StartPB',True);self.fault(e,pattern)

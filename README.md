@@ -753,11 +753,11 @@ Enable `MixedArithmetic` in **Integer lab** for exact LINT/DINT and unsigned
 examples across ADD/SUB/MUL/DIV/MOD/NEG/ABS. Enable `ArithmeticConstants`
 for mixed tag/constant examples: signed DINT literals must fit the destination,
 while the destination covers every source tag type's full range.
-Ladder `MOD` also supports finite REAL sources mixed with SINT/INT/DINT and
-representable narrow integer results. Enable `RealModulo` for fractional
-remainders and rounded results. Floating MOD with a zero divisor rolls back the scan.
-[Integer MOD with a zero divisor](docs/scalar-math.md#integer-mod-with-a-zero-divisor)
-writes zero and continues the rung on the v35 5580 ladder profile. Reporting must be
+Ladder `MOD` supports mixed numeric sources and integer, REAL and LREAL results
+in the v35 5580 profile. Enable `RealModulo` for fractional remainders and rounded
+results. A zero divisor writes zero and continues the rung for
+[integer MOD](docs/scalar-math.md#integer-mod-with-a-zero-divisor) and
+[floating MOD](docs/scalar-math.md#finite-real-remainder). Reporting must be
 enabled in the controller export to set the task's modeled `S:MINOR` bit.
 
 [Numeric move and clear](docs/numeric-storage.md) support signed/unsigned integer

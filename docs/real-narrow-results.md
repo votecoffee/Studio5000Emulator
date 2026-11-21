@@ -37,7 +37,7 @@ Existing decimal and declared-width radix source rules apply. Structural
 preflight checks references, types, shapes, literals and permissions without
 reading saved values or live indices. False rungs and prescan retain numeric
 outputs and skip live operands. Full writes can establish unknown results.
-Reached unknowns, invalid indices, zero divisors, domains, nonfinite results,
+Reached unknowns, invalid indices, DIV by zero, domain errors, nonfinite results,
 out-of-range destinations and later failures restore the advance, including
 earlier writes, timing and supported AOI bindings.
 

@@ -81,7 +81,6 @@ class LrealConstantTests(unittest.TestCase):
 
     def test_zero_divisor_overflow_and_late_fault_restore_values_and_timing(self):
         for call,value,error in [('DIV(Source,0,Results[1]);',1.0,'zero'),
-                                  ('MOD(Source,0,Results[1]);',1.0,'zero'),
                                   ('MUL(Source,2147483647,Results[1]);',1e308,'Nonfinite LREAL')]:
             e=self.checked(['MOV(99,SpeedCommand);',call],value=value);self.fault(e,error)
         e=self.checked(['ADD(Source,1,Results[1]);','GRT(Source,0)OTE(RunLatch);','DIV(1,Index,SpeedCommand);'])

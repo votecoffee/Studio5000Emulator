@@ -77,22 +77,56 @@ class RealRemainderTests(unittest.TestCase):
         e.memory.write('Inputs[1]',-7.5);e.step();self.assertEqual(e.memory.read('Results'),[None,-1.5,None])
 
     def test_either_unknown_source_is_required_only_when_reached_and_recovers(self):
-        for instruction in ('MOD(Inputs[0],Mask,Results[1]);','MOD(Source,Inputs[0],Results[1]);'):
+        for instruction in ('MOD(Inputs[0],Mask,Results[1]);','MOD(Source,Inputs[0],Results[1]);',
+                            'MOD(Inputs[0],0.0,Results[1]);'):
             e=self.checked(['MOV(99,SpeedCommand);',instruction]);before=self.snapshot(e)
             with self.assertRaisesRegex(ModelError,'Unknown'):e.step()
             self.assertEqual(self.snapshot(e),before)
             e.memory.write('Inputs[0]',2);e.step();self.assertIsNotNone(e.memory.read('Results[1]'))
 
-    def test_zero_and_underflowed_immediate_divisors_roll_back_then_retry(self):
-        for divisor in (0.0,-0.0,1e-50):
-            e=self.checked(['MOV(99,SpeedCommand);',f'MOD(Source,{divisor},Results[1]);']);before=self.snapshot(e)
-            with self.assertRaisesRegex(ModelError,'zero'):e.step()
-            self.assertEqual(self.snapshot(e),before)
-        e=self.checked(['MOV(99,SpeedCommand);','MOD(Source,Mask,Results[1]);'],divisor=0)
-        before=self.snapshot(e)
-        with self.assertRaisesRegex(ModelError,'zero'):e.step()
-        self.assertEqual(self.snapshot(e),before)
-        e.memory.write('Mask',2);e.step();self.assertEqual(e.memory.read('Results[1]'),-1.5)
+    def test_zero_divisors_write_zero_in_each_floating_profile(self):
+        cases = [
+            ('Source', '0.0', 'REAL'),
+            ('Source', '-0.0', 'DINT'),
+            ('Source', '1e-50', 'REAL'),
+            ('Source', 'Mask', 'REAL'),
+            ('1U', '0L', 'REAL'),
+            ('3', '0', 'LREAL'),
+            ('1L', '0.0L', 'REAL'),
+            ('Source', '-0.0L', 'LREAL'),
+            ('Source', '1e-400L', 'DINT'),
+        ]
+        for dividend, divisor, dest in cases:
+            with self.subTest(dividend=dividend, divisor=divisor, dest=dest):
+                e = self.checked([f'MOD({dividend},{divisor},Results[1])OTE(RunLatch);'],
+                                 dest=dest, divisor=0)
+                e.step()
+                result = e.memory.read('Results')[1]
+                self.assertEqual(e.memory.read('Results'), [None, 0, None])
+                self.assertIs(type(result), int if dest == 'DINT' else float)
+                self.assertTrue(e.memory.read('RunLatch'))
+
+    def test_floating_mod_sets_minor_only_with_reporting_and_clears_next_scan(self):
+        for dtype in ('REAL', 'LREAL'):
+            for reporting in ('true', 'false'):
+                with self.subTest(dtype=dtype, reporting=reporting):
+                    def configuration(root):
+                        root.find('Controller').set('ReportMinorOverflow', reporting)
+
+                    e = self.checked(['XIC(StartPB)MOD(Source,Mask,Results[1]);',
+                                      'XIC(S:MINOR)OTE(MotorRunning);'],
+                                     source=dtype, dest=dtype, divisor=0, mutate=configuration)
+                    e.step()
+                    self.assertEqual(e.memory.read('Results'), [None, None, None])
+                    self.assertFalse(e.memory.read('MotorRunning'))
+                    e.memory.write('StartPB', True)
+                    e.step()
+                    self.assertEqual(e.memory.read('Results')[1], 0.0)
+                    self.assertIs(e.memory.read('MotorRunning'), reporting == 'true')
+                    e.memory.write('Mask', 2)
+                    e.step()
+                    self.assertEqual(e.memory.read('Results')[1], -1.5)
+                    self.assertFalse(e.memory.read('MotorRunning'))
 
     def test_unrepresentable_integer_result_rolls_back_all_writes_and_retries(self):
         e=self.checked(['MOV(99,SpeedCommand);','MOD(Source,Mask,Results[1]);'],dest='SINT',value=127.5,divisor=1000)

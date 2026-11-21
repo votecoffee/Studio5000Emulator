@@ -85,7 +85,11 @@ def execute_lreal(engine,op,scope):
     if op.name in ('NEG','ABS'):result=-a if op.name=='NEG' else abs(a)
     else:
         b=values[1]
-        if op.name in ('DIV','MOD') and b==0:raise ModelError(op.name+' LREAL divide by zero')
+        if b == 0:
+            if op.name == 'MOD':
+                return execute_zero_modulo(engine, op, scope)
+            if op.name == 'DIV':
+                raise ModelError('DIV LREAL divide by zero')
         result=({'ADD':operator.add,'SUB':operator.sub,'MUL':operator.mul,'DIV':operator.truediv,'MOD':math.fmod}[op.name])(a,b)
     write_lreal_math_result(memory, op.args[-1], result, scope)
     return True
@@ -100,7 +104,11 @@ def execute_real(engine,op,scope):
     if op.name in ('NEG','ABS'):result=-a if op.name=='NEG' else abs(a)
     else:
         b=values[1]
-        if op.name in ('DIV','MOD') and b==0:raise ModelError(op.name+' REAL divide by zero')
+        if b == 0:
+            if op.name == 'MOD':
+                return execute_zero_modulo(engine, op, scope)
+            if op.name == 'DIV':
+                raise ModelError('DIV REAL divide by zero')
         result=({'ADD':operator.add,'SUB':operator.sub,'MUL':operator.mul,'DIV':operator.truediv,'MOD':math.fmod}[op.name])(a,b)
     memory.write(op.args[-1],real(result),scope)
     return True
@@ -272,7 +280,8 @@ def description(project):
                     radix_sources=dict(bases=[2,8,16],types=['DINT','LINT','UDINT','ULINT'],selection='Explicit binary64 math only; default conversion helpers and other consumers remain separate',native_runtime_parity=False),
                     source_types=sorted({*INT_BITS,'REAL','LREAL'}),
                     promotion='Convert every required source to binary64 before calculation; signed/unsigned values retain their numeric sign, REAL retains its stored precision',
-                    calculation='Finite host binary64; MOD uses fmod with dividend sign; zero divisors and nonfinite results fault atomically',
+                    calculation='Finite host binary64. Nonzero-divisor MOD uses fmod with dividend sign. DIV by zero and nonfinite results fault atomically.',
+                    modulo_zero='Writes zero and continues the rung. Sets S:MINOR when ReportMinorOverflow is explicitly true.',
                     selection='Structural/lazy operands, complete unknown writes and existing alias/member/AOI references',
                     native_runtime_parity=False),
                 real_arithmetic=dict(instructions=sorted(ARITHMETIC),source_types=sorted({*INT_BITS,'REAL'}),
@@ -288,7 +297,7 @@ def description(project):
                 real_remainder=dict(sources=['SINT','INT','DINT','REAL'], destinations=['SINT','INT','DINT','REAL'],
                                     selection='A REAL source or floating immediate selects float32 inputs, host fmod and float32 result',
                                     conversion='Integer results round nearest, ties to even; out-of-range results roll back',
-                                    zero='Zero after float32 conversion stops and rolls back; native zero-result/minor fault is not modeled',
+                                    zero='Zero after float32 conversion writes zero and continues the rung. Sets S:MINOR when ReportMinorOverflow is explicitly true.',
                                     native_precision=False),
                 bitwise=dict(types=list(INT_BITS), instructions=sorted(BITWISE),
                              promotion='Zero-extend declared source patterns; NOT inverts after promotion; keep destination low bits',
@@ -321,7 +330,7 @@ def description(project):
                 integer_modulo_zero=dict(result='A true integer MOD writes zero and continues the rung',
                     status='Sets S:MINOR when ReportMinorOverflow is explicitly true',
                     scope='RLL v35 5580 only', native_runtime_parity=False),
-                failures='Reached unknowns, invalid indices, DIV and floating MOD zero divisors, excluded ranges and later faults roll back the advance',
+                failures='Reached unknowns, invalid indices, DIV zero divisors, excluded ranges and later faults roll back the advance',
                 native_runtime_parity=False, native_math_status=False,
                 remaining=['Other arithmetic destination conversions/mixed signed-to-unsigned forms, larger/typed arithmetic constants, unsigned bitwise sources for floating destinations, and other wide/unsigned/LREAL remainder mixtures',
                            'Native overflow/status/fault/lifecycle/packed layout and broader controller qualification'])

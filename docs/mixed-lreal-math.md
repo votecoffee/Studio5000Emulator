@@ -34,9 +34,10 @@ to binary64 9007199254740992, so subtracting LREAL 9007199254740992 yields zero.
 ULINT's maximum converts to the binary64 value 2^64. These are software solver
 rules, not a claim of native bit-for-bit precision or overflow/status behavior.
 
-DIV uses the host floating quotient. MOD uses host fmod with the dividend's sign;
-it does not form an intermediate quotient. Zero divisors and nonfinite results
-fault and roll back the advance. Both operands remain required even if one is
+DIV uses the host floating quotient. MOD uses host fmod to preserve the dividend's
+sign for a nonzero divisor. A [zero MOD divisor](scalar-math.md#finite-real-remainder)
+writes zero and continues the rung. DIV by zero and nonfinite results roll back
+the advance. Both operands remain required even if one is
 zero or the operation could be algebraically simplified. Native signed-zero,
 subnormal, rounding, fault-continuation, status and lifecycle parity remain
 unverified. No controller execution-time prediction is made.

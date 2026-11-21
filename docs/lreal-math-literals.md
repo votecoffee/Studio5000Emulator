@@ -47,7 +47,7 @@ live indirect indices. False rungs and prescan skip those values and calculation
 Domain checks occur when reached; unit powers and zero products still consume
 all required sources. Full writes establish unknown selected destinations and
 retain neighboring values. Aliases, member arrays and existing copied AOI outputs,
-InOuts and local storage keep their contracts. Domain/range errors, zero divisors,
+InOuts and local storage keep their contracts. Domain/range errors, DIV by zero,
 unknown sources, invalid indices and later faults roll back the entire advance,
 including task timing, traces and AOI bindings.
 

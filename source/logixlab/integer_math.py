@@ -111,7 +111,7 @@ def quotient(a, b):
 
 
 def execute_zero_modulo(engine, op, scope):
-    """Complete a qualified ladder integer MOD with a zero divisor."""
+    """Complete a qualified ladder MOD with a converted zero divisor."""
     project = engine.project
     routine = engine._executing_routine
     if (project.version != '35' or project.processor.upper() not in CONTROLLERS

@@ -94,7 +94,7 @@ class RealDestinationMathTests(unittest.TestCase):
             e=self.checked([call]);self.fault(e,'Unknown')
 
     def test_zero_domains_overflow_and_late_faults_restore_advance(self):
-        for call in ('DIV(1,0,Results[1]);','MOD(1,0,Results[1]);','XPY(0,-1,Results[1]);',
+        for call in ('DIV(1,0,Results[1]);','XPY(0,-1,Results[1]);',
                      'LN(0,Results[1]);','LOG(-1,Results[1]);','ASN(2,Results[1]);',
                      'ACS(-2,Results[1]);','XPY(2147483647,2147483647,Results[1]);',
                      'MUL(3.4e38,2,Results[1]);'):

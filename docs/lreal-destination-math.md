@@ -38,7 +38,7 @@ beyond binary64 precision. Integer-only comparisons keep their existing exact
 rules; binary64 ordering still requires an actual LREAL input.
 
 The existing finite solvers, dividend-sign remainder, power domains, signed zero,
-subnormals and unknown/full-write rules remain. Zero divisors, complex-domain
+subnormals and unknown/full-write rules remain. DIV by zero, complex-domain
 powers, nonfinite results and later failures stop and roll back the advance.
 Native numerical precision, math flags, overflow/minor-fault continuation and
 lifecycle equivalence remain unverified.

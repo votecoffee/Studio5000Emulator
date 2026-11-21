@@ -29,7 +29,7 @@ instruction consumes every required source value. Its complete numeric write
 can establish an unknown destination element or member without reading the old
 value. Aliases and existing AOI InOut/local bindings use the same storage rules.
 Unwritten siblings remain unknown. Reached unknowns, invalid indices, zero
-divisors in DIV or floating MOD, excluded ranges and later faults roll back the complete advance,
+divisors in DIV, excluded ranges and later faults roll back the complete advance,
 including values, task/time state and existing AOI bindings.
 
 Structural validation and operand selection apply to all eleven operations.
@@ -112,7 +112,7 @@ False/prescan skip live values and indices, but invalid constant/type/permission
 combinations remain static blockers even on false rungs. Multiplication by zero
 still requires the tag source; unknown data is not folded away. Full writes can
 establish unknown destinations through arrays, UDT members, aliases and AOI
-InOut/local bindings. Zero divisors, overflow/underflow, bad indices, unknowns and
+InOut/local bindings. DIV by zero, overflow/underflow, bad indices, unknowns and
 later faults retain whole-advance rollback, including AOI bindings and siblings.
 
 Enable **ArithmeticConstants** in **Integer lab** for eight examples, including
@@ -204,11 +204,16 @@ can establish unknown destination elements/members through aliases and AOI
 bindings, retaining unwritten siblings. A late fault also restores earlier
 remainder writes and existing AOI bindings.
 
-Sources and results must be finite. Zero divisors, including nonzero immediates
-that round to float32 zero, stop and roll back. The native zero-result/minor-fault
-behavior is not modeled. The host remainder avoids forming a quotient, allowing
-very small nonzero divisors without quotient overflow or cancellation; native
-intermediate rounding and bit-for-bit results remain unqualified.
+Sources and results must be finite. When the divisor converts to zero at the
+selected precision, REAL and LREAL MOD write zero and continue the rung. This
+includes negative zero and literals that underflow during conversion. The
+current task can read `S:MINOR` after the write when the controller export
+explicitly enables `ReportMinorOverflow`. The flag starts clear on the next
+task invocation. Native fault-record parity remains unverified.
+
+For nonzero divisors, the host remainder avoids forming a quotient. This
+supports very small nonzero divisors without quotient overflow or cancellation.
+Native intermediate rounding and bit-for-bit results remain unqualified.
 
 Two integer sources retain the existing exact quotient/remainder calculation,
 including when the destination is REAL. Homogeneous wide-integer and widening integer-tag operations
