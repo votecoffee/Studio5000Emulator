@@ -14,7 +14,9 @@ LIM(0L,0.5,1UL)OTE(InRange);
 LIM(1U,0.5,0L)OTE(OutsideReversedRange);
 ```
 
-Every required numeric operand converts to finite REAL before comparison.
+Finite operands convert to REAL before comparison.
+[NaN and infinity](numeric-comparisons.md#nan-and-infinity) can come from
+floating tags. Floating literals require a finite value.
 Integer tags retain their stored values and signs, but large values can round
 during conversion. DINT/UDINT 16777217 compares equal to 16777216.0 because
 both become float32 16777216. Typed decimal and radix integer words use their

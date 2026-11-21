@@ -13,6 +13,7 @@
   add('OSR', 'One Shot Rising', 'Storage Bit|Output Bit');add('OSF', 'One Shot Falling', 'Storage Bit|Output Bit');
   for (const [op, title] of Object.entries({EQU: 'Equal', NEQ: 'Not Equal', LES: 'Less Than', LEQ: 'Less Than or Equal',
     GRT: 'Greater Than', GEQ: 'Greater Than or Equal'})) add(op, title, 'Source A|Source B');
+  add('ISNAN', 'Is Not a Number', 'Source');add('ISINF', 'Is Infinity', 'Source');
   add('LIM', 'Limit Test', 'Low Limit|Test|High Limit');add('MEQ', 'Masked Equal', 'Source|Mask|Compare');add('CMP', 'Compare', 'Expression');
   for (const [op, title] of Object.entries({ADD: 'Add', SUB: 'Subtract', MUL: 'Multiply', DIV: 'Divide', MOD: 'Modulo',
     AND: 'Bitwise AND', OR: 'Bitwise OR', XOR: 'Bitwise XOR', XPY: 'X to Power of Y'})) add(op, title, 'Source A|Source B|Dest');

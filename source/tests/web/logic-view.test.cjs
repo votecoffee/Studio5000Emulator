@@ -36,6 +36,18 @@ test('MSG faceplate links EN, DN and ER to the configured MESSAGE control', () =
   assert.deepEqual(face.rows.map(row => [row.label, row.ref]), [['Message Control', 'ReadControl']]);
   assert.deepEqual(face.flags.map(flag => flag.ref), ['ReadControl.EN', 'ReadControl.DN', 'ReadControl.ER']);
 });
+test('floating exception faceplates show one source and stay in the condition region', () => {
+  for (const [opcode, title] of [['ISNAN', 'Is Not a Number'], ['ISINF', 'Is Infinity']]) {
+    const g = graph.compile(rung([op(opcode, 'DivResult'), op('OTE', 'Exception')]));
+    const node = g.nodes.find(node => node.opcode === opcode);
+    const face = instruction.describe(node);
+    const drawing = graph.layout(g, 1200);
+    assert.equal(face.title, title);
+    assert.deepEqual(face.rows.map(row => [row.label, row.ref]), [['Source', 'DivResult']]);
+    assert(drawing.nodes[node.id].x < drawing.width / 2);
+    assert(drawing.nodes[g.order.at(-1)].x > drawing.width / 2);
+  }
+});
 test('ALMA faceplate binds rate settings, live rate and condition shelf flags', () => {
   const face = instruction.describe({opcode: 'ALMA', operands: ['Alarm', 'Input', 'Ack', 'Disable', 'Enable']});
   assert.deepEqual(face.rows.slice(-4).map(row => [row.label, row.ref, row.member]), [

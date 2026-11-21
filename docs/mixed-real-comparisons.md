@@ -6,10 +6,12 @@ before the existing float32 conversion. Other result and consumer profiles
 retain their scope.
 
 App `26.1104.094330` extends the v35 ControlLogix 5580 ladder software profile
-for EQU, NEQ, LES, LEQ, GRT, GEQ and LIM. A scalar REAL tag selects finite
+for EQU, NEQ, LES, LEQ, GRT, GEQ and LIM. A scalar REAL tag selects
 float32 comparison when no actual LREAL input selects the separate binary64
 profile. Other tag inputs may be SINT, INT, DINT, LINT, USINT, UINT, UDINT, ULINT
 or REAL. Both relation positions and every limit position are supported.
+See [NaN and infinity](numeric-comparisons.md#nan-and-infinity) for
+exceptional values read from a floating tag.
 
 ```text
 EQU(RealInput,DintInput)OTE(Equal);

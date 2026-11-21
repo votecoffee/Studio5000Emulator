@@ -1,4 +1,5 @@
 """Lazy numeric ladder comparisons for the bounded v35 5580 profile."""
+import math
 import operator
 
 from . import integer_math, time_values
@@ -9,7 +10,8 @@ from .numeric_storage import lreal_math_source, real_math_source, typed_literal
 
 RELATIONS = {'EQU': operator.eq, 'NEQ': operator.ne, 'LES': operator.lt,
              'LEQ': operator.le, 'GRT': operator.gt, 'GEQ': operator.ge}
-INSTRUCTIONS = frozenset((*RELATIONS, 'LIM', 'MEQ'))
+FLOAT_PREDICATES = {'ISNAN': math.isnan, 'ISINF': math.isinf}
+INSTRUCTIONS = frozenset((*RELATIONS, *FLOAT_PREDICATES, 'LIM', 'MEQ'))
 INTEGER_RANK = {dtype: rank for rank, dtype in enumerate(('SINT','USINT','INT','UINT','DINT','UDINT','LINT','ULINT'))}
 
 
@@ -19,12 +21,21 @@ def available(project):
 
 def validate(engine, op, scope):
     """Validate types and references without requiring saved comparison values."""
-    if op.name not in INSTRUCTIONS or not available(engine.project):return False
+    if op.name not in INSTRUCTIONS:
+        return False
+    if not available(engine.project):
+        if op.name in FLOAT_PREDICATES:
+            raise ModelError(f'{op.name} requires the v35 ControlLogix 5580 ladder profile')
+        return False
     memory = engine.memory
     previous = memory.structural
     memory.structural = True
     try:
-        if op.name == 'MEQ':
+        if op.name in FLOAT_PREDICATES:
+            key, parts, dtype = memory.resolve(op.args[0], scope)
+            if dtype not in ('REAL', 'LREAL') or isinstance(memory.at(key, parts), (list, dict)):
+                raise ModelError(f'{op.name} requires one scalar REAL or LREAL tag')
+        elif op.name == 'MEQ':
             masked_values(engine, op.args, scope)
         else:
             if lreal_specification(memory,op.args,scope) or real_specification(memory,op.args,scope):return True
@@ -156,6 +167,8 @@ def masked_values(engine, args, scope):
 def execute(engine, op, power, scope):
     if not power:return False
     memory = engine.memory
+    if op.name in FLOAT_PREDICATES:
+        return FLOAT_PREDICATES[op.name](memory.read(op.args[0], scope))
     if op.name == 'MEQ':
         source, mask, compare = masked_values(engine, op.args, scope)
         return (source & mask) == (compare & mask)
@@ -166,11 +179,17 @@ def execute(engine, op, power, scope):
         ticks = [time_values.read_operand(memory, ref, scope) * time_values.ns_per_tick(dtype)
                  for ref, dtype in zip(op.args, temporal)]
         return RELATIONS[op.name](*ticks)
-    profile=floating or radix or ordering_profile(engine,op,scope)
-    if profile=='LREAL':values=[lreal_math_source(memory,arg,scope,execute=True,radix=True) for arg in op.args]
-    elif profile=='REAL':values=[real_math_source(memory,arg,scope,execute=True,radix=True) for arg in op.args]
-    else:values = [integer_math.read_source(memory,arg,scope,radix=bool(radix),signed_dint=bool(radix)) for arg in op.args]
+    if floating:
+        read_source = lreal_math_source if floating == 'LREAL' else real_math_source
+        values = [read_source(memory, arg, scope, execute=True, radix=True, allow_nonfinite_tag=True)
+                  for arg in op.args]
+    else:
+        if not radix:
+            ordering_profile(engine, op, scope)
+        values = [integer_math.read_source(memory,arg,scope,radix=bool(radix),signed_dint=bool(radix)) for arg in op.args]
     if op.name == 'LIM':
+        if floating and any(math.isnan(value) for value in values):
+            return False
         low, value, high = values
         return low <= value <= high if low <= high else value >= low or value <= high
     return RELATIONS[op.name](*values)
@@ -180,6 +199,11 @@ def description(project):
     return dict(available=available(project), profile='v35-5580-lazy-numeric-comparisons',
                 language='RLL', instructions=sorted(INSTRUCTIONS),
                 selection='Structural preflight; false/prescan skip saved values and dynamic indices; true calls consume every operand',
+                floating_exceptions=dict(instructions=sorted((*RELATIONS, 'LIM', *FLOAT_PREDICATES)),
+                    relations='NEQ is true with either operand NaN. Other relations and LIM are false with any NaN.',
+                    ordering='Negative infinity precedes finite values. Positive infinity follows finite values.',
+                    predicates='ISNAN tests for NaN. ISINF tests for either sign of infinity. Each reads one scalar REAL or LREAL tag.',
+                    scope='Direct ladder v35 5580; exceptional values are read from tags', native_runtime_parity=False),
                 time_date=dict(types=sorted(time_values.TYPES), instructions=sorted(RELATIONS),
                     operands='Same-family scalar tags or typed literals; exact ordering at nanosecond precision',
                     conditions=dict(consumers=['CMP','FSC'],
@@ -215,7 +239,7 @@ def description(project):
                     constants='DINT radix words, bounded DINT/finite REAL and decimal/radix L/U/UL integer or floating L/l constants; declared range/precision before binary64 promotion',
                     radix_sources=dict(bases=[2,8,16],types=['DINT','LINT','UDINT','ULINT'],selection='Explicit binary64 ordering and LIM only; integer-only, REAL-only and masks retain separate profiles',native_runtime_parity=False),
                     selection_by_literal='A floating L/l constant can select LREAL without an LREAL tag; typed integer-only forms retain their existing profile',
-                    calculation='Finite host binary64, exact comparisons without tolerance; stored REAL precision retained and large integers may round',
+                    calculation='Host binary64, exact comparisons without tolerance; stored REAL precision retained and large integers may round. Floating tags can supply NaN or infinity.',
                     limits='Inclusive normal limits; reversed limits accept values at or outside their endpoints after promotion',
                     excluded='Unsuffixed decimal integers outside DINT, negative-prefix radix words, other consumer/controller profiles and native parity',
                     native_runtime_parity=False),
@@ -223,7 +247,7 @@ def description(project):
                     operands='Scalar numeric tags/constants with a REAL tag or unsuffixed floating immediate and no LREAL selection; constant-only comparisons execute',
                     constants='Bounded DINT/finite REAL, signed DINT radix words and decimal/radix L/U/UL integers checked at declared range before float32 conversion; a REAL tag or unsuffixed floating immediate selects the profile',
                     radix_sources=dict(bases=[2,8,16],types=['DINT','LINT','UDINT','ULINT'],selection='A REAL tag or unsuffixed floating immediate after LREAL priority; constant-only forms are included',native_runtime_parity=False),
-                    calculation='Convert every required source to finite float32 before comparison; inclusive/reversed limits use converted bounds; large integers and literals may round',
+                    calculation='Convert finite sources to float32 before comparison; inclusive/reversed limits use converted bounds. Floating tags can supply NaN or infinity.',
                     selection_by_literal='An unsuffixed floating immediate selects finite float32 for all numeric tags/constants; typed integer-only forms retain exact integer rules',
                     precedence='LREAL tags or floating L/l literals retain the separate binary64 profile; integer-only comparisons retain their existing exact rules',
                     native_runtime_parity=False),

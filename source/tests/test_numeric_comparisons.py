@@ -159,5 +159,7 @@ class NumericComparisonTests(unittest.TestCase):
         def old(root):root.find('Controller').set('ProcessorType', '1756-L75')
         e = self.checked(mutate=old);e.step();self.assertTrue(e.memory.read('RunLatch'))
         self.assertFalse(e.report()['numeric_comparisons']['available'])
-        report = self.checked().report()['numeric_comparisons'];self.assertEqual(len(report['instructions']), 8)
+        report = self.checked().report()['numeric_comparisons']
+        self.assertEqual(set(report['instructions']),
+                         {'EQU','NEQ','LES','LEQ','GRT','GEQ','LIM','MEQ','ISNAN','ISINF'})
         self.assertFalse(report['native_runtime_parity'])

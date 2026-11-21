@@ -8,7 +8,7 @@
   const CONTACTS = new Set(['XIC', 'XIO']);
   const COILS = new Set(['OTE', 'OTL', 'OTU']);
   const INLINE = new Set([...CONTACTS, ...COILS, 'ONS', 'AFI']);
-  const CONDITIONS = new Set([...CONTACTS, 'ONS', 'AFI', 'EQU', 'NEQ', 'LES', 'LEQ', 'GRT', 'GEQ', 'LIM', 'MEQ', 'CMP', 'LBL']);
+  const CONDITIONS = new Set([...CONTACTS, 'ONS', 'AFI', 'EQU', 'NEQ', 'LES', 'LEQ', 'GRT', 'GEQ', 'LIM', 'MEQ', 'CMP', 'ISNAN', 'ISINF', 'LBL']);
   const port = (node, name) => ({node, port: name});
 
   function compile(rung, routine = '', editing = false) {

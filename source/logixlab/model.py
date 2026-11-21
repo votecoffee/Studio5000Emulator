@@ -78,7 +78,7 @@ class Branch:
 
 ARITIES = {"XIC": 1, "XIO": 1, "OTE": 1, "OTL": 1, "OTU": 1,
            "ONS": 1, "OSR": 2, "OSF": 2, "AFI": 0, "NOP": 0,
-           "EQU": 2, "NEQ": 2, "LES": 2, "LEQ": 2, "GRT": 2, "GEQ": 2,
+           "EQU": 2, "NEQ": 2, "LES": 2, "LEQ": 2, "GRT": 2, "GEQ": 2, "ISNAN": 1, "ISINF": 1,
            "LIM": 3, "MOV": 2, "CLR": 1, "ADD": 3, "SUB": 3, "MUL": 3,
            "DIV": 3, "MOD": 3, "NEG": 2, "ABS": 2,
            "AND": 3, "OR": 3, "XOR": 3, "NOT": 2, "MVM": 3, "BTD": 5,

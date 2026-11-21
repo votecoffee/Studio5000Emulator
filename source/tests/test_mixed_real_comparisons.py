@@ -1,4 +1,4 @@
-"""Finite float32 promotion for REAL-tag ladder relations and limits."""
+"""REAL-tag ladder relations, limits and floating exception tests."""
 import itertools
 import unittest
 from xml.etree import ElementTree as E
@@ -108,6 +108,77 @@ class MixedRealComparisonTests(unittest.TestCase):
     def test_signed_zero_subnormal_and_tiny_literal_conversion(self):
         e=self.checked(['EQU(Source,0)OTE(RunLatch);'],values=(-0.0,3,10));e.step();self.assertTrue(e.memory.read('RunLatch'))
         e=self.checked(['GRT(Source,1e-50)OTE(RunLatch);'],values=(1.401298464324817e-45,3,10));e.step();self.assertTrue(e.memory.read('RunLatch'))
+
+    def test_direct_relations_apply_nan_rules_after_real_and_lreal_promotion(self):
+        for source, other in (('REAL', 'DINT'), ('REAL', 'LREAL'), ('LREAL', 'REAL')):
+            for name, refs in itertools.product(RELATIONS, ('Source,Mask', 'Mask,Source', 'Source,Source')):
+                with self.subTest(source=source, other=other, relation=name, refs=refs):
+                    e = self.checked(['DIV(0,0,Source);', f'{name}({refs})OTE(RunLatch);'],
+                                     source=source, other=other)
+                    e.step()
+                    self.assertIs(e.memory.read('RunLatch'), name == 'NEQ')
+
+    def test_lim_with_nan_always_clears_even_for_reversed_bounds(self):
+        for dtype in ('REAL', 'LREAL'):
+            for refs in ('Source,4,10', '10,4,Source', '10,Source,0', '0,Source,10'):
+                with self.subTest(dtype=dtype, refs=refs):
+                    e = self.checked(['DIV(0,0,Source);', f'LIM({refs})OTE(RunLatch);'], source=dtype)
+                    e.memory.write('RunLatch', True)
+                    e.step()
+                    self.assertFalse(e.memory.read('RunLatch'))
+
+    def test_infinity_orders_and_can_be_a_limit_endpoint(self):
+        for comparison in ('GRT(Source,7)', 'LES(Mask,-7)', 'EQU(Source,Source)',
+                           'LIM(Mask,0,Source)', 'LIM(Mask,Source,Source)', 'LIM(Source,Mask,Mask)'):
+            with self.subTest(comparison=comparison):
+                e = self.checked(['DIV(1,0,Source);', 'DIV(-1,0,Mask);', comparison+'OTE(RunLatch);'],
+                                 source='REAL', other='LREAL')
+                e.step()
+                self.assertTrue(e.memory.read('RunLatch'))
+
+    def test_isnan_and_isinf_distinguish_runtime_floating_values(self):
+        for dtype in ('REAL', 'LREAL'):
+            with self.subTest(dtype=dtype):
+                e = self.checked(['XIC(StartPB)DIV(Mask,0,Source);',
+                                  'IsNAN(Source)OTE(RunLatch);', 'IsINF(Source)OTE(MotorRunning);'],
+                                 source=dtype, values=(7,0,0))
+                e.step()
+                self.assertFalse(e.memory.read('RunLatch'))
+                self.assertFalse(e.memory.read('MotorRunning'))
+                e.memory.write('StartPB', True)
+                e.step()
+                self.assertTrue(e.memory.read('RunLatch'))
+                self.assertFalse(e.memory.read('MotorRunning'))
+                for value in (-1, 1):
+                    e.memory.write('Mask', value)
+                    e.step()
+                    self.assertFalse(e.memory.read('RunLatch'))
+                    self.assertTrue(e.memory.read('MotorRunning'))
+
+    def test_predicates_require_floating_tags_and_skip_inactive_indices(self):
+        def older_target(root):
+            root.find('Controller').set('ProcessorType', '1756-L75')
+
+        for name in ('ISNAN', 'ISINF'):
+            with self.subTest(name=name):
+                for arg in ('Mask', '1.0', 'Values'):
+                    self.assertTrue(self.engine([f'AFI(){name}({arg});']).blockers)
+                self.assertTrue(self.engine([f'{name}(Source);'], mutate=older_target).blockers)
+                e = self.checked([f'XIC(StartPB){name}(Values[Index])OTE(RunLatch);'])
+                e.step()
+                self.assertFalse(e.memory.read('RunLatch'))
+                e.memory.write('StartPB', True)
+                self.fault(e, 'outside bounds')
+                e.memory.write('Index', 0)
+                self.fault(e, 'Unknown')
+                e.memory.write('Values[0]', 4.5)
+                e.step()
+                self.assertFalse(e.memory.read('RunLatch'))
+
+    def test_nan_comparison_still_requires_the_other_operand(self):
+        e = self.checked(['DIV(0,0,Source);', 'NEQ(Source,Values[0])OTE(RunLatch);'])
+        self.fault(e, 'Unknown')
+        self.assertEqual(e.memory.read('Source'), 7.0)
 
     def test_literal_type_shape_and_other_family_guards_remain_structural(self):
         for token in ('TRUE','2147483648','-2147483649','1e40','1e999','1LU','Values'):

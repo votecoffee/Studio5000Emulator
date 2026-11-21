@@ -25,8 +25,9 @@ relation position or any LIM position while one actual LREAL input remains.
 Floating/typed/larger literals remain excluded.
 
 Declared types select the profile independently of saved values. Every required
-source is read, then all operands promote to finite host binary64 before
-comparison. Signed values retain their numeric signs; unsigned values retain
+source is read, then finite operands promote to host binary64 before
+comparison. See [NaN and infinity](numeric-comparisons.md#nan-and-infinity) for
+exceptional floating tag values. Signed values retain their numeric signs; unsigned values retain
 their nonnegative values. REAL contributes its already stored float32 value.
 No tolerance is applied. Comparisons do not write or convert the stored inputs.
 

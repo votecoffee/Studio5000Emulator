@@ -11,7 +11,7 @@ source-range checks and exact integer calculations. Other consumer and narrowing
 profiles retain their scope.
 
 The v35 ControlLogix 5580 software profile validates EQU, NEQ, LES, LEQ, GRT,
-GEQ, LIM and MEQ structurally. Saved numeric values may remain unknown at import.
+GEQ, LIM, MEQ, ISNAN and ISINF structurally. Saved numeric values may remain unknown at import.
 Declared types, scalar shape, static references and existing immediate/profile
 restrictions are still checked, even on false rungs.
 
@@ -24,6 +24,28 @@ writes, coils, task/time state and existing AOI bindings roll back on failure.
 The six standalone relations also have a
 [string tag and literal profile](string-operations.md#ladder-string-comparison-literals).
 String ordering uses active bytes.
+
+## NaN and infinity
+
+Direct ladder comparisons can read exceptional values stored in a REAL or
+LREAL tag. With NaN in either operand, NEQ goes true and EQU, LES, LEQ, GRT
+and GEQ go false. LIM goes false with NaN in any of its three operands,
+including reversed limits. The software orders negative infinity below
+finite values and positive infinity above them.
+[Rockwell controller guide, page 171](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm100_-en-p.pdf)
+[Rockwell LIM reference](https://www.rockwellautomation.com/en-ie/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/compare-instructions/limit--limit-.html)
+
+ISNAN goes true for NaN. ISINF goes true for positive or negative infinity.
+Each takes one scalar REAL or LREAL tag. False rungs skip reading the source.
+The predicates leave the source and math status flags alone.
+[Rockwell ISNAN reference](https://www.rockwellautomation.com/en-za/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/compare-instructions/is-not-a-number--isnan-.html)
+[Rockwell ISINF reference](https://www.rockwellautomation.com/en-ua/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/compare-instructions/is-infinity--isinf-.html)
+
+Use `ISNAN(Quotient)OTE(QuotientIsNaN);` after a
+[floating DIV](scalar-math.md#floating-div-with-a-zero-divisor). Exceptional
+inputs are supported here for direct ladder instructions. Exceptional
+values inside CMP expressions and native fault and status parity remain
+unqualified.
 
 ## Mixed integer ordering and limits
 

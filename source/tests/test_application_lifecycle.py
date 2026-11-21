@@ -3595,7 +3595,9 @@ class ApplicationLifecycleTests(unittest.TestCase):
         with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
         for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
         write('CompareIndex',0);write('CompareValues[0]',5001);row=step();self.assertFalse(row['InRange'])
-        report=self.post('report',{})['numeric_comparisons'];self.assertEqual(len(report['instructions']),8);self.assertFalse(report['native_runtime_parity'])
+        report=self.post('report',{})['numeric_comparisons']
+        self.assertTrue({'ISNAN','ISINF'}.issubset(report['instructions']))
+        self.assertFalse(report['native_runtime_parity'])
 
     def test_imported_unknown_numeric_comparisons_are_lazy_and_atomic_through_http(self):
         import base64
@@ -3836,6 +3838,37 @@ class ApplicationLifecycleTests(unittest.TestCase):
         values = {row['name']: row['value'] for row in state['tags']}
         self.assertEqual(values['Results[2]'], '-9223372036854775808')
         self.assertFalse(values['MotorRunning'])
+
+    def test_floating_div_comparisons_and_predicates_through_http(self):
+        import base64
+        from test_mixed_real_comparisons import MixedRealComparisonTests
+
+        fixture = MixedRealComparisonTests()
+        fixture.setUp()
+        try:
+            engine = fixture.checked([
+                'XIC(StartPB)DIV(Mask,0,Source);',
+                'NEQ(Source,Source)OTE(RunLatch);',
+                'IsNaN(Source)OTE(MotorRunning);',
+                'IsInf(Source)OTE(PartPulse);',
+                'LIM(10,11,Source)OTE(BatchComplete);',
+            ])
+            data = base64.b64encode(engine.project.path.read_bytes()).decode()
+        finally:
+            fixture.doCleanups()
+        loaded = self.post('load', {'name':'FloatingComparisonLab.L5X','content':data})
+        self.assertEqual(loaded['blockers'], [])
+        self.post('write', {'tag':'StartPB','value':True})
+        self.post('write', {'tag':'Mask','value':0})
+        state = self.post('step', {'dt':10})
+        values = {row['name']: row['value'] for row in state['tags']}
+        self.assertEqual([values[name] for name in ('Source','RunLatch','MotorRunning','PartPulse','BatchComplete')],
+                         ['NaN',True,True,False,False])
+        self.post('write', {'tag':'Mask','value':1})
+        state = self.post('step', {'dt':10})
+        values = {row['name']: row['value'] for row in state['tags']}
+        self.assertEqual([values[name] for name in ('Source','RunLatch','MotorRunning','PartPulse','BatchComplete')],
+                         ['Infinity',False,False,True,True])
 
     def test_imported_unknown_real_modulo_and_late_failure_are_atomic_through_http(self):
         import base64

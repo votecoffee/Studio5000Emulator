@@ -1,4 +1,5 @@
 """Scalar MOV/CLR and explicit numeric conversions for the v35 5580 model."""
+import math
 import re
 from . import string_operations, time_values
 from .st_literals import scan as typed_integer
@@ -66,7 +67,7 @@ def source_type(memory, ref, scope):
     raise ModelError('MOV immediate requires bounded DINT or finite REAL')
 
 
-def lreal_math_source(memory, ref, scope, *, execute=False, radix=False):
+def lreal_math_source(memory, ref, scope, *, execute=False, radix=False, allow_nonfinite_tag=False):
     """Selected math input; radix decoding requires the binary64 consumer opt-in."""
     typed=typed_literal(ref) if radix or '#' not in ref else None
     if typed is not None:
@@ -79,6 +80,8 @@ def lreal_math_source(memory, ref, scope, *, execute=False, radix=False):
                 raise ModelError('LREAL math source requires one numeric scalar')
             if not execute:return dtype
             value=memory.read(ref,scope)
+            if allow_nonfinite_tag and dtype in ('REAL', 'LREAL') and isinstance(value, float) and not math.isfinite(value):
+                return value
         else:
             dtype='DINT' if type(value) is int else 'REAL' if type(value) is float else None
             if dtype is None:raise ModelError('LREAL math immediate requires a numeric literal')
@@ -100,13 +103,16 @@ def math_source_type(memory, ref, scope, *, radix=False):
     return 'REAL' if type(value) is float else None
 
 
-def real_math_source(memory, ref, scope, *, execute=False, radix=False):
+def real_math_source(memory, ref, scope, *, execute=False, radix=False, allow_nonfinite_tag=False):
     """Selected REAL input; validate its declared type before float32 conversion."""
     dtype=lreal_math_source(memory,ref,scope,radix=radix)
     if dtype=='LREAL':raise ModelError('REAL math source narrowing from LREAL is not qualified')
     if not execute:return dtype
     typed=typed_literal(ref) if radix or '#' not in ref else None
-    return real(typed[1] if typed is not None else memory.read(ref,scope))
+    value = typed[1] if typed is not None else memory.read(ref, scope)
+    if typed is None and allow_nonfinite_tag and dtype == 'REAL' and isinstance(value, float) and not math.isfinite(value):
+        return value
+    return real(value)
 
 
 def floating_math_profile(memory, op, scope, *, radix=False):

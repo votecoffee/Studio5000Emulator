@@ -777,6 +777,8 @@ can skip an out-of-bounds destination and continue initialization.
 
 [Numeric ladder comparisons](docs/numeric-comparisons.md) validate unknown values
 without consuming them on false rungs, including MEQ and LIM dynamic indices.
+Direct ladder comparisons handle NaN and infinity, and `ISNAN` and `ISINF`
+test a scalar REAL or LREAL tag.
 Enable `CompareEnable` in **Data lab** to try mask, range and equality tests.
 Enable `MixedCompare` for signed/unsigned MEQ examples, including adjacent
 64-bit values. All three operands are read-only; wide immediate restrictions remain.
