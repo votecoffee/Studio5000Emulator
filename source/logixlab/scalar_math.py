@@ -5,6 +5,7 @@ import operator
 from . import time_values
 from .bit_transfer import operand, unsigned
 from .integer_math import CONTROLLERS, WIDE_TYPES, bit_value, bitwise_immediate_widths, profile, typed_profile, typed_integer, radix_profile, pattern, integer_bounds, dint_radix, read_source, quotient, execute_zero_divisor
+from .integer_math import signed_floating_exception
 from .model import INT_BITS, UNSIGNED_BITS, ModelError, coerce, literal
 from .numeric_storage import floating_math_profile, lreal_math_source, typed_literal, write_lreal_math_result
 from .real_math import real
@@ -86,11 +87,7 @@ def execute_floating_divide_by_zero(engine, op, scope, dividend, divisor, precis
         sign = math.copysign(1.0, dividend) * math.copysign(1.0, divisor)
         result = math.copysign(math.inf, sign)
     if dtype in INT_BITS and dtype not in UNSIGNED_BITS:
-        if math.isnan(result):
-            result = 0
-        else:
-            low, high = integer_bounds(dtype)
-            result = low if result < 0 else high
+        result = signed_floating_exception(result, dtype)
     elif dtype not in ('REAL', 'LREAL'):
         raise ModelError(f'DIV {precision} divide by zero')
     return execute_zero_divisor(engine, op, scope, result)

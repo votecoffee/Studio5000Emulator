@@ -1,5 +1,6 @@
 """Typed scalar MOV/CLR, conversion bits, lazy values and rollback."""
 import copy
+import math
 import unittest
 from unittest.mock import patch
 from xml.etree import ElementTree as E
@@ -68,6 +69,69 @@ class NumericStorageTests(unittest.TestCase):
         e = self.checked(source='DINT', dest='USINT', value=-1);e.step();self.assertEqual(e.memory.read('Results[1]'), 255)
         e = self.checked(source='REAL', dest='USINT', value=-1.0)
         with self.assertRaisesRegex(ModelError, 'overflow'):e.step()
+
+    def test_float_mov_preserves_exceptions_across_both_precisions(self):
+        for source in ('REAL', 'LREAL'):
+            for dest in ('REAL', 'LREAL'):
+                with self.subTest(source=source, dest=dest):
+                    e = self.checked(['XIC(StartPB)MOV(Source,Results[Index])OTE(RunLatch);'],
+                                     source=source, dest=dest)
+                    e.memory.write('Index', 99)
+                    e.memory.write_floating_exception('Source', math.nan)
+                    e.step()
+                    self.assertEqual(e.memory.read('Results'), [None] * 3)
+                    self.assertFalse(e.memory.read('RunLatch'))
+                    e.memory.write('Index', 1)
+                    e.memory.write('StartPB', True)
+                    for value in (math.nan, math.inf, -math.inf):
+                        e.memory.write_floating_exception('Source', value)
+                        e.step()
+                        result = e.memory.read('Results[1]')
+                        if math.isnan(value):
+                            self.assertTrue(math.isnan(result))
+                        else:
+                            self.assertEqual(result, value)
+                        self.assertTrue(e.memory.read('RunLatch'))
+                        self.assertFalse(e.memory.minor_fault)
+                    self.assertEqual(e.memory.read('Results')[::2], [None, None])
+
+    def test_mov_float_exceptions_into_signed_limits_and_rolls_back_later_fault(self):
+        def enable_reporting(root):
+            root.find('Controller').set('ReportMinorOverflow', 'true')
+
+        for source in ('REAL', 'LREAL'):
+            for dest, bits in (('SINT', 8), ('INT', 16), ('DINT', 32), ('LINT', 64)):
+                with self.subTest(source=source, dest=dest):
+                    e = self.checked(['MOV(Source,Results[1])OTE(RunLatch);',
+                                      'XIC(S:MINOR)OTE(MotorRunning);',
+                                      'XIC(StartPB)MOV(Source,Results[Index]);'],
+                                     source=source, dest=dest, mutate=enable_reporting)
+                    for value, expected in ((math.nan, 0), (math.inf, (1 << (bits - 1)) - 1),
+                                            (-math.inf, -(1 << (bits - 1)))):
+                        e.memory.write_floating_exception('Source', value)
+                        e.step()
+                        self.assertEqual(e.memory.read('Results[1]'), expected)
+                        self.assertTrue(e.memory.read('RunLatch'))
+                        self.assertEqual(e.memory.read('MotorRunning'), math.isinf(value))
+                    e.memory.write_floating_exception('Source', math.inf)
+                    e.memory.write('StartPB', True)
+                    e.memory.write('Index', 99)
+                    before = self.snapshot(e)
+                    with self.assertRaisesRegex(ModelError, 'outside bounds'):
+                        e.step()
+                    self.assertEqual(self.snapshot(e), before)
+
+    def test_mov_unsigned_exception_still_rejects_and_can_retry(self):
+        e = self.checked(['MOV(99,SpeedCommand);', 'MOV(Source,Results[1]);'],
+                         source='LREAL', dest='ULINT')
+        e.memory.write_floating_exception('Source', math.inf)
+        before = self.snapshot(e)
+        with self.assertRaises(ModelError):
+            e.step()
+        self.assertEqual(self.snapshot(e), before)
+        e.memory.write('Source', 4.5)
+        e.step()
+        self.assertEqual(e.memory.read('Results[1]'), 4)
 
     def test_clr_all_nine_scalar_types_establishes_unknowns(self):
         for dtype in ('SINT', 'INT', 'DINT', 'LINT', 'USINT', 'UINT', 'UDINT', 'ULINT', 'REAL'):

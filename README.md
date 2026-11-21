@@ -766,8 +766,10 @@ can write NaN or signed infinity to REAL or LREAL. Signed integer destinations
 get zero, the maximum or the minimum, according to the result.
 
 [Numeric move and clear](docs/numeric-storage.md) support signed/unsigned integer
-and REAL scalar MOV conversions, typed CLR zeros and full writes to unknown
-destinations. Enable `MoveNumeric` in **Data lab** to try the examples.
+and REAL/LREAL scalar MOV conversions, typed CLR zeros and full writes to unknown
+destinations. MOV preserves NaN and infinities in floating destinations and
+converts them to zero or a signed integer limit. Enable `MoveNumeric` in
+**Data lab** to try the finite conversions.
 
 [Ladder contacts and coils](docs/bit-logic.md) allow unknown BOOL values during
 validation, establish complete coil values and read one-shot history only when

@@ -127,6 +127,14 @@ def execute_zero_divisor(engine, op, scope, result):
     return True
 
 
+def signed_floating_exception(value, dtype):
+    """Convert NaN or signed infinity to a signed integer destination."""
+    if math.isnan(value):
+        return 0
+    low, high = integer_bounds(dtype)
+    return low if value < 0 else high
+
+
 def profile(engine, op, scope):
     """Return the one declared wide type, or None for the existing narrow path."""
     types = []

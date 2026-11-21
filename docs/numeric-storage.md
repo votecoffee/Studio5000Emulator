@@ -19,12 +19,29 @@ sources and zero-extends unsigned sources. For example, DINT 16#12345678 becomes
 SINT 120 or INT 22136; signed -1 becomes the unsigned destination's all-ones value.
 Native overflow/status effects accompanying these conversions remain unmodeled.
 
-LREAL uses finite binary64 storage and conversion; see [its supported forms](lreal-storage.md).
+LREAL uses binary64 storage and conversion. See [its supported forms](lreal-storage.md).
 Integer-to-REAL conversion produces float32, including precision loss for large
 integers. REAL sources also use float32; integer results round to nearest, ties
 to even, and must fit the signed or unsigned destination. Excluded REAL ranges
 fail the complete advance rather than guessing native overflow result bits.
 Thus integer -1 can move to USINT 255, while REAL -1.0 to USINT remains excluded.
+
+### NaN and infinity
+
+A REAL or LREAL source tag can hold a NaN or an infinity produced by
+[floating DIV](scalar-math.md#floating-div-with-a-zero-divisor). Ladder MOV
+preserves NaN and the sign of infinity in either floating-point destination.
+When converting to SINT, INT, DINT or LINT, MOV stores zero for NaN, the signed
+maximum for positive infinity, and the signed minimum for negative infinity.
+These moves establish the destination and continue the rung. An infinity
+converted to a signed integer sets the modeled task `S:MINOR` bit when the
+controller export explicitly enables `ReportMinorOverflow`. An unsigned
+destination still rejects a nonfinite source.
+
+For the conversion rules, see [Rockwell's Replacement Guidelines, pp. 171–172](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm100_-en-p.pdf#page=171).
+Native math flags, fault records and NaN payload bits have not been qualified.
+
+### Operand evaluation
 
 Preflight checks types, scalar shape, permissions and immediate bounds without
 reading saved scalar values or live indices. False rungs and ordinary prescan

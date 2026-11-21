@@ -3839,6 +3839,42 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual(values['Results[2]'], '-9223372036854775808')
         self.assertFalse(values['MotorRunning'])
 
+    def test_mov_copies_div_exceptions_and_converts_signed_results_through_http(self):
+        import base64
+        from test_numeric_storage import NumericStorageTests
+
+        fixture = NumericStorageTests()
+        fixture.setUp()
+        try:
+            engine = fixture.checked([
+                'XIC(StartPB)DIV(0.0L,Index,Inputs[0]);',
+                'XIC(StartPB)DIV(-3.5L,Index,Inputs[1]);',
+                'XIC(StartPB)MOV(Inputs[0],Results[0])MOV(Inputs[1],Results[1]);',
+                'XIC(StartPB)MOV(Results[1],SpeedCommand)OTE(RunLatch);',
+                'XIC(StartPB)ISINF(Results[1])OTE(MotorRunning);',
+            ], source='LREAL', dest='REAL')
+            content = base64.b64encode(engine.project.path.read_bytes()).decode()
+        finally:
+            fixture.doCleanups()
+        loaded = self.post('load', {'name': 'FloatingMove.L5X', 'content': content})
+        self.assertEqual(loaded['blockers'], [])
+        self.post('write', {'tag': 'StartPB', 'value': True})
+        state = self.post('step', {'dt': 10})
+        values = {row['name']: row['value'] for row in state['tags']}
+        self.assertEqual(values['Results[0]'], 'NaN')
+        self.assertEqual(values['Results[1]'], '-Infinity')
+        self.assertEqual(values['SpeedCommand'], -2147483648)
+        self.assertTrue(values['RunLatch'])
+        self.assertTrue(values['MotorRunning'])
+        self.post('write', {'tag': 'Index', 'value': 2})
+        state = self.post('step', {'dt': 10})
+        values = {row['name']: row['value'] for row in state['tags']}
+        self.assertEqual(values['Results[0]'], 0)
+        self.assertEqual(values['Results[1]'], -1.75)
+        self.assertEqual(values['SpeedCommand'], -2)
+        self.assertTrue(values['RunLatch'])
+        self.assertFalse(values['MotorRunning'])
+
     def test_floating_div_comparisons_and_predicates_through_http(self):
         import base64
         from test_mixed_real_comparisons import MixedRealComparisonTests

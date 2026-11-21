@@ -3,8 +3,8 @@ import math
 import re
 from . import string_operations, time_values
 from .st_literals import scan as typed_integer
-from .integer_math import CONTROLLERS, WIDE_TYPES, bit_value
-from .model import INT_BITS, ModelError, coerce, literal
+from .integer_math import CONTROLLERS, WIDE_TYPES, bit_value, signed_floating_exception
+from .model import INT_BITS, UNSIGNED_BITS, ModelError, coerce, literal
 from .real_math import real
 
 INSTRUCTIONS = frozenset(('MOV', 'CLR'))
@@ -190,23 +190,33 @@ def execute(engine, op, power, scope):
     memory = engine.memory
     source = specification(memory, op, scope)
     key, parts, dtype = destination(memory, op.args[-1], scope, allow_time=True, allow_string=op.name == 'MOV')
+    if op.name == 'CLR':
+        memory.store(key, parts, coerce(0, dtype))
+        return True
+    ref = op.args[0]
     capacity = memory.project.string_capacity(dtype)
     if capacity is not None:
-        ref = op.args[0]
         text = string_operations.string_literal(ref)
         value = memory.string(ref, scope, limit=capacity) if text is None else text[:capacity]
         memory.write_string(op.args[-1], value, scope)
         return True
     if dtype in time_values.TYPES or source in time_values.TYPES:
-        value = 0
-        if source is not None:
-            ticks = time_values.read_operand(memory, op.args[0], scope)
-            value = time_values.convert_move(ticks, source, dtype)
+        ticks = time_values.read_operand(memory, ref, scope)
+        value = time_values.convert_move(ticks, source, dtype)
         memory.store(key, parts, coerce(value, dtype))
         return True
-    typed=typed_literal(op.args[0]) if op.name=='MOV' else None
-    value = convert(typed[1] if typed is not None else memory.read(op.args[0], scope), source, dtype) if op.name == 'MOV' else coerce(0, dtype)
-    memory.store(key, parts, value)
+    typed = typed_literal(ref)
+    value = typed[1] if typed is not None else memory.read(ref, scope)
+    if source in ('REAL', 'LREAL') and isinstance(value, float) and not math.isfinite(value):
+        if dtype in ('REAL', 'LREAL'):
+            memory.write_floating_exception(op.args[-1], value, scope)
+            return True
+        if dtype in INT_BITS and dtype not in UNSIGNED_BITS:
+            memory.store(key, parts, signed_floating_exception(value, dtype))
+            if math.isinf(value) and engine.project.controller_configuration.report_minor_overflow is True:
+                memory.minor_fault = True
+            return True
+    memory.store(key, parts, convert(value, source, dtype))
     return True
 
 
@@ -235,6 +245,12 @@ def description(project):
                 integers='Preserve low destination bits; sign-extend signed sources and zero-extend unsigned sources when widening',
                 real='Finite REAL binary32 and LREAL binary64; source precision retained before destination conversion; nearest-even integer results must fit',
                 lreal='Declared LREAL tags and finite floating L/l MOV literals; binary64 storage/conversion, CLR and atomic tag access; expression and wire-layout profiles remain separate',
+                floating_exceptions=dict(sources=['REAL', 'LREAL'],
+                    floating_result='MOV preserves NaN or signed infinity in either floating type',
+                    signed_result='SINT, INT, DINT and LINT store zero for NaN or the signed limit for infinity',
+                    minor_status='Infinity converted to a signed integer sets modeled S:MINOR with explicit ReportMinorOverflow',
+                    unsigned_result='The checked conversion rejects nonfinite values',
+                    native_runtime_parity=False),
                 selection='Structural preflight; false/prescan skip values and live indices; true full writes establish unknown destinations',
                 clearing='CLR writes typed zero without reading the old scalar value',
                 failures='Reached unknown source, invalid indices, excluded REAL ranges and later faults roll back the advance',
