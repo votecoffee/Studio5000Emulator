@@ -14,7 +14,7 @@ from .wall_clock import CoordinatedClock, ClockAdjustment, adjusted_microseconds
 from .runtime_references import RuntimeReferences
 from .change_detection import ChangeDetection
 from . import event_status, system_values, integer_math, scalar_math, numeric_storage, bit_logic, bit_transfer, numeric_fill, size_truncate, comparisons, string_operations, control_operations, sequencer_operations, numeric_conversions, real_math, array_statistics, array_sort, file_search, file_arithmetic, string_conversions, event_tasks, file_incremental, wide_st, st_cases, task_inhibit, mcr, data_transition, file_bit_compare, st_timers, st_counter, st_oneshot, st_scale, st_signal, st_rate, st_moving, st_capture, st_filter, st_digital, st_accumulate, st_select, st_derivative, st_curves, st_pi, st_bit_moves, numeric_copy, aggregate_copy, ladder_pid, ladder_alarm, ladder_analog_alarm, lreal_expressions, time_values
-from .model import ARITIES, ArrayBoundsError, Branch, Memory, ModelError, Op, operations, unknown_shape
+from .model import ARITIES, ArrayBoundsError, Branch, Memory, ModelError, Op, SubscriptOverflowBoundsError, operations, unknown_shape
 from .extended import Extensions
 from .function_blocks import FunctionBlocks,description as fbd_description
 from .addons import AddOns
@@ -562,7 +562,7 @@ class Engine:
         if n in bit_transfer.INSTRUCTIONS:bit_transfer.preflight(self.memory,op,scope);return
         if scalar_math.validate(self,op,scope):return
         if numeric_storage.validate(self,op,scope):return
-        if bit_logic.validate(self,op,scope):return
+        if bit_logic.validate(self,op,scope,kind=kind):return
         if self.extensions.validate(op,scope):return
         if n in ("TND", "AFI", "NOP"): return
         if n in ("TON", "TOF", "RTO", "CTU", "CTD", "RES"):
@@ -876,12 +876,14 @@ class Engine:
             programs=self._program_advance
             def run_task(due,task,entries):
                 previous_task,previous_first=self._executing_task,self.memory.first_scan
+                previous_minor = self.memory.minor_fault
                 self.time_ms=due;self._executing_task=task
                 previous_calls=self.calls.stack;self.calls.stack=[]
                 measured_task=task.casefold() if isinstance(task,str) else None
                 measure_invocation = not single_timing and measured_task in task_timings
                 task_scan_wall=self.wall_time() if measure_invocation else None
                 task_scan_start=task_runtime.perf_counter_ns() if measure_invocation else None
+                self.memory.minor_fault = False
                 try:
                     for entry in entries:
                         name=self.project.routines[entry].program.casefold()
@@ -907,6 +909,7 @@ class Engine:
                 finally:
                     self.calls.stack=previous_calls
                     self._executing_task,self.memory.first_scan=previous_task,previous_first
+                    self.memory.minor_fault = previous_minor
             self._event_dispatch=event_tasks.Dispatch(self,batch,run_task) if batch else None
             for position,(due,task,entries) in enumerate(runs):
                 index=batch.releases[position][1] if batch else None
@@ -987,6 +990,13 @@ class Engine:
         if not program_handler and (not controller_handler or not self.project.program_hierarchy.has_no_fault_routine(
                 scope, source_sha256=self.project.sha256)):
             return None
+        if code == 20 and self.project.controller_configuration.report_minor_overflow is True:
+            cause = error
+            while cause is not None:
+                if isinstance(cause, SubscriptOverflowBoundsError):
+                    self.memory.minor_fault = True
+                    break
+                cause = cause.__cause__
         routine = self._executing_routine.key
         fault = {'type':4, 'code':code, 'program':scope, 'routine':routine,
                  'instruction':op.name, 'detail':str(error), 'timestamp_us':self.wall_time()}
@@ -1030,6 +1040,8 @@ class Engine:
         before = copy.deepcopy(self.memory.values)
         message_cache = self.memory.message_cache.copy()
         previous_budget, previous_first, previous_trace = self.budget, self.memory.first_scan, self.trace
+        previous_minor = self.memory.minor_fault
+        self.memory.minor_fault = False
         self.budget = self.instruction_limit
         self.memory.first_scan = False
         self.trace = []
@@ -1051,6 +1063,7 @@ class Engine:
         finally:
             self._handler_clear_requested = False
             self.budget, self.memory.first_scan = previous_budget, previous_first
+            self.memory.minor_fault = previous_minor
 
     def _record_tag_changes(self, before):
         changes = []

@@ -398,7 +398,8 @@ demonstrates lazy operands and rollback. Enable `RunStRadixIndex` in **Integer l
 to try [grouped signed DINT words](docs/array-index-expressions.md#signed-radix-words-in-subscripts)
 as array offsets, masks and indirect bit indices. Eligible ladder instructions
 can route [array subscript overflow](docs/controller-handlers.md#recover-an-array-subscript-overflow)
-to a Type 4 Code 20 fault handler.
+to a Type 4 Code 20 fault handler. When the controller export enables minor
+overflow reporting, ladder logic can also test `S:MINOR` during that scan.
 
 [REAL-result math](docs/real-destination-math.md) adds float32 input conversion
 for basic arithmetic, power and eleven unary forms across integer/REAL sources.

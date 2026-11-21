@@ -5,15 +5,21 @@ from .model import ArrayBoundsError, ModelError
 INSTRUCTIONS = frozenset(('XIC', 'XIO', 'OTE', 'OTL', 'OTU', 'ONS', 'OSR', 'OSF'))
 WRITES = {'OTE': (0,), 'OTL': (0,), 'OTU': (0,), 'ONS': (0,), 'OSR': (0, 1), 'OSF': (0, 1)}
 PRESCAN_WRITES = frozenset(('OTE', 'ONS', 'OSR', 'OSF'))
+MINOR_FLAG = 's:minor'
+MINOR_FLAG_OPS = frozenset(('XIC', 'XIO', 'OTE', 'OTL', 'OTU'))
 
 
 def available(project):
     return project.version == '35' and project.processor.upper() in CONTROLLERS
 
 
-def validate(engine, op, scope):
+def validate(engine, op, scope, *, kind='RLL'):
     if op.name not in INSTRUCTIONS or not available(engine.project):return False
     memory = engine.memory
+    if any(ref.casefold() == MINOR_FLAG for ref in op.args):
+        if kind != 'RLL' or op.name not in MINOR_FLAG_OPS or scope in memory.frames:
+            raise ModelError('S:MINOR requires a ladder contact or coil outside AOI bodies')
+        return True
     previous = memory.structural
     memory.structural = True
     try:
@@ -43,6 +49,8 @@ def write_pulse(memory, args, storage, pulse, scope):
 
 def prescan(memory, op, scope):
     name, args = op.name, op.args
+    if name == 'OTE' and args[0].casefold() == MINOR_FLAG:
+        return
     try:
         if name in ('OSR', 'OSF'):
             write_pulse(memory, args, name == 'OSR', False, scope)
@@ -55,6 +63,12 @@ def prescan(memory, op, scope):
 
 def execute(memory, op, power, scope):
     name, args = op.name, op.args
+    if args[0].casefold() == MINOR_FLAG:
+        if name in ('XIC', 'XIO'):
+            return power and (memory.minor_fault == (name == 'XIC'))
+        if name == 'OTE' or power:
+            memory.minor_fault = power and name != 'OTU'
+        return power
     if name in ('XIC', 'XIO'):
         if not power:return False
         value = bool(memory.read(args[0], scope))
@@ -87,6 +101,7 @@ def description(project):
                 packed_bits='Partial writes require known backing integers to preserve neighboring bits',
                 array_recovery='Whole-project handlers can clear Type 4 Code 20 and skip the faulting instruction or its outer ladder AOI call',
                 pulse_recovery='OSR/OSF restore the original storage value before handling an out-of-bounds output index',
+                minor_status='S:MINOR contacts and coils outside AOI bodies; task-local scan flag for reported DINT subscript overflow',
                 failures='Reached unknowns, unrecovered array faults and later errors roll back the advance and existing AOI state',
                 native_runtime_parity=False,
                 remaining=['Native packed BOOL layout, fault/postscan/lifecycle parity and broader controller qualification'])

@@ -39,6 +39,10 @@ class ArrayBoundsError(ModelError):
     """An array subscript overflowed or selected outside existing storage."""
 
 
+class SubscriptOverflowBoundsError(ArrayBoundsError):
+    """DINT arithmetic overflowed while evaluating a subscript."""
+
+
 class BlockExtentError(ModelError):
     """A valid start selected a region larger than its storage boundary."""
 
@@ -1022,6 +1026,7 @@ class Memory:
         self._store_undo = None
         self.message_cache = {}
         self.first_scan = True
+        self.minor_fault = False
         self._resolved = {}
         self.frames = {}
         self.validating = False
@@ -1089,7 +1094,7 @@ class Memory:
         try:
             return self.index(expr,scope)
         except SubscriptOverflowError as error:
-            raise ArrayBoundsError(str(error)) from error
+            raise SubscriptOverflowBoundsError(str(error)) from error
 
     def bound_suffix(self,suffix,scope):
         """Evaluate caller subscripts before following alias or AOI bindings."""

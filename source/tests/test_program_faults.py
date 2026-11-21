@@ -146,6 +146,22 @@ def nested_aoi_array_fault_fixture(root, *, clear=True, bad_call_operand=False,
     set_fault_instruction(root,f'LabWrapper(NestedScale,{raw},SpeedCommand,LabIndex,LabValues)')
 
 
+def minor_subscript_status_fixture(root, *, reporting=True, nested=False):
+    controller = root.find('Controller')
+    if reporting is not None:
+        controller.set('ReportMinorOverflow', str(reporting).lower())
+    if nested:
+        nested_aoi_array_fault_fixture(root)
+    else:
+        ladder_fault_fixture(root, handler_tail='CLR(LabIndex);')
+        set_fault_instruction(root, 'MOV(LabValues[LabIndex+1],SpeedCommand)')
+    main = controller.find('./Programs/Program/Routines/Routine/RLLContent')
+    ET.SubElement(ET.SubElement(main, 'Rung', Number='2', Type='N'), 'Text').text = (
+        'XIC(S:MINOR)OTE(MotorRunning);')
+    handler = controller.find('.//Routine[@Name="RecoverMove"]/RLLContent/Rung/Text')
+    handler.text = 'XIC(S:MINOR)OTE(FaultWitness);'
+
+
 def aoi_input_index_fault_fixture(root, *, clear=True):
     nested_aoi_array_fault_fixture(root, clear=clear, work='MOV(13,Scaled)')
     tags = root.find('./Controller/Tags')
@@ -651,6 +667,55 @@ class ProgramFaultTests(unittest.TestCase):
                 self.assertIs(engine.last_cleared_program_fault,record)
                 self.assertEqual(engine.memory.read('LabValues[1]'),93 if destination else 13)
                 self.assertEqual(engine.memory.read('SpeedCommand'),52 if destination else 14)
+
+    def test_reported_subscript_overflow_sets_minor_status_for_handler_and_current_scan(self):
+        cases = (
+            (True, False, 2**31 - 1, True),
+            (True, True, 2**31 - 1, True),
+            (False, False, 2**31 - 1, False),
+            (None, False, 2**31 - 1, False),
+            (True, False, 2, False),
+        )
+        for reporting, nested, index, expected in cases:
+            with self.subTest(reporting=reporting, nested=nested, index=index):
+                self.setUp()
+                engine = self.engine(mutate=lambda root: minor_subscript_status_fixture(
+                    root, reporting=reporting, nested=nested))
+                self.assertEqual(engine.blockers, [])
+                self.assertIs(engine.project.controller_configuration.report_minor_overflow, reporting)
+                memory = engine.memory
+                memory.write('LabIndex', index)
+                memory.write('StartPB', True)
+                memory.write('SpeedCommand', 50)
+                engine.step()
+                fault = engine.last_cleared_program_fault
+                self.assertEqual((fault['type'], fault['code']), (4, 20))
+                self.assertIs(memory.read('FaultWitness'), expected)
+                self.assertIs(memory.read('MotorRunning'), expected)
+                self.assertEqual(memory.read('LabIndex'), 0)
+                self.assertEqual(memory.read('SpeedCommand'), 51)
+                engine.step()
+                self.assertFalse(memory.read('MotorRunning'))
+                self.assertIs(engine.last_cleared_program_fault, fault)
+
+    def test_ladder_can_set_test_and_clear_minor_status_without_a_tag(self):
+        engine = self.engine([
+            'XIC(StartPB)OTL(S:MINOR);',
+            'XIC(S:MINOR)OTE(MotorRunning);',
+            'OTU(S:MINOR);',
+            'XIO(S:MINOR)OTE(PartPulse);',
+            'XIC(StartPB)OTE(S:MINOR);',
+        ])
+        self.assertEqual(engine.blockers, [])
+        engine.memory.write('StartPB', True)
+        engine.step()
+        self.assertTrue(engine.memory.read('MotorRunning'))
+        self.assertTrue(engine.memory.read('PartPulse'))
+        engine.memory.write('StartPB', False)
+        engine.step()
+        self.assertFalse(engine.memory.read('MotorRunning'))
+        self.assertTrue(engine.memory.read('PartPulse'))
+        self.assertNotIn('s:minor', engine.memory.values)
 
     def test_array_subscript_overflow_skips_move_and_reuses_repaired_index(self):
         for selector,index,repaired in (('LabIndex+1',2**31-1,0),('LabIndex/-1',-2**31,-1)):

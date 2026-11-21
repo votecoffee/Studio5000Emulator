@@ -43,8 +43,16 @@ active causes scan rollback.
 Ordinary arithmetic result overflow, division by zero in a subscript, and
 overflow confined to a packed integer bit selector follow scan rollback.
 Structured Text statements retain transactional rollback for index faults.
-The emulator models the major-fault recovery path. Native minor fault
-flags and records remain unverified.
+
+When the controller export explicitly sets `ReportMinorOverflow="true"`,
+the v35 5580 ladder model sets `S:MINOR` before dispatching an eligible
+subscript arithmetic overflow to the major-fault handler. The handler
+and later rungs in the same task invocation can test the flag with XIC
+or XIO. OTE, OTL and OTU can change it. The emulator starts each task
+invocation with the flag clear. Ordinary out-of-bounds indices and
+exports with disabled or unspecified reporting still use Code 20 alone.
+The modeled flag is available in ladder outside AOI bodies. Native
+minor-fault records and controller status behavior remain unverified.
 [Rockwell math status and array subscript faults](https://www.rockwellautomation.com/en-ca/docs/studio-5000-logix-designer/37-01/contents-ditamap/math-status-flags.html)
 
 ## Recover COP and CPS array faults
