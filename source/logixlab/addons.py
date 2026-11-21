@@ -159,12 +159,12 @@ class AddOns:
                             finally:self.memory.structural=old_structural
             finally:self.memory.validating=previous
 
-    def call(self,op,power,scope,depth,prescan=False):
+    def call(self,op,power,scope,depth,prescan=False,*,recover_prescan=False):
         if depth>32:raise ModelError('AOI nesting limit exceeded')
         definition = self.engine.project.aois[op.name]
         copy_outputs = prescan or power or definition.modes['EnableInFalse']
         qualified = numeric_available(self.engine.project)
-        recover_operands = qualified and not prescan and not self.prescanning
+        recover_operands = qualified and (recover_prescan if prescan else not self.prescanning)
         # In v35, a false ladder call without EnableInFalse only copies Inputs.
         resolve_outputs_and_inouts = copy_outputs or not qualified
         try:

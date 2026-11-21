@@ -211,6 +211,8 @@ handler before the callee starts. An Input copy fault restores earlier
 copies and the prior bindings. An Output copy fault reverses that call's
 Output copies after the body runs. Recovery also covers faults inside
 ladder EnableInFalse routines and preserves false rung-out.
+Ladder prescan skips an AOI call with an array fault during parameter
+binding or copying and continues with the next instruction.
 [Time and date AOI parameters](docs/aoi-constants.md#time-and-date-parameters)
 support exact-type scalar Inputs and Outputs in ladder and Structured Text.
 Enable `RunTimeExample` in **AOI Constants Lab** to step through an exact

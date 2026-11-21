@@ -732,7 +732,15 @@ class Engine:
                 if self.budget<0:raise ModelError('Prescan instruction budget exceeded')
                 n,a=op.name,op.args
                 def w(member,value):self.memory.write(a[0]+member,value,scope)
-                if n in self.project.aois:self.addons.call(op,False,scope,depth+1,prescan=True)
+                if n in self.project.aois:
+                    recover_prescan = self.mode == 'project'
+                    try:
+                        self.addons.call(op, False, scope, depth+1, prescan=True,
+                                         recover_prescan=recover_prescan)
+                    except CallOperandBoundsError:
+                        # Unwind to the outermost AOI and skip it without a user fault handler.
+                        if not recover_prescan or scope in self.memory.frames:
+                            raise
                 elif n in ladder_pid.INSTRUCTIONS:ladder_pid.prescan(self,op,scope)
                 elif n=='ALMD':ladder_alarm.prescan(self,op,scope)
                 elif n=='ALMA':ladder_analog_alarm.prescan(self,op,scope)

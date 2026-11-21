@@ -224,8 +224,18 @@ inside that routine or its nested ladder calls skips the remainder of the
 interrupted routines and their Output copies. The false invocation clears
 EnableOut before the handler runs.
 
-Structured Text instructions and prescan remain outside this recovery
-profile. Native v35 behavior remains unverified.
+During whole-project ladder prescan in the v35 5580 model, an array fault
+in AOI binding or Input or Output transfer aborts the outermost AOI
+invocation. Prescan continues with the next instruction without calling
+the Program fault routine or Controller Fault Handler. An interrupted Input
+copy restores the instance and prior InOut bindings. An interrupted Output
+copy reverses the copies from that call. If a nested binding fails during
+Logic prescan, the outer AOI skips its authored Prescan routine and Output
+copies.
+
+Faults raised by the authored Prescan body and Structured Text prescan
+remain outside the AOI parameter prescan rule. Native v35 behavior remains
+unverified.
 [Rockwell AOI parameter and scan mode reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm010_-en-p.pdf)
 [Rockwell major fault and AOI reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm014_-en-p.pdf)
 
