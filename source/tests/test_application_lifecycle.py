@@ -3891,6 +3891,38 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual((row['Results[0]'],row['Results[1]'],row['Results[2]']),(-1.5,None,None))
         self.post('write',{'tag':'StartPB','value':False});self.post('write',{'tag':'Index','value':999});self.post('step',{'dt':10})
 
+    def test_float_div_results_feed_cmp_relations_through_http(self):
+        import base64
+        from test_real_remainder import RealRemainderTests
+
+        fixture = RealRemainderTests()
+        fixture.setUp()
+        try:
+            engine = fixture.checked([
+                'XIC(StartPB)DIV(0.0,Mask,Results[0]);',
+                'XIC(StartPB)DIV(7.5,Mask,Results[1]);',
+                'XIC(StartPB)CMP(Results[0]<>Results[0])OTE(RunLatch);',
+                'XIC(StartPB)CMP(Results[1]>100.0L)OTE(MotorRunning);',
+                'XIC(StartPB)CMP((Results[1]>100UL)&&!StopPB)OTE(PartPulse);',
+            ], divisor=0)
+            data = base64.b64encode(engine.project.path.read_bytes()).decode()
+        finally:
+            fixture.doCleanups()
+        loaded = self.post('load', {'name':'CmpFloatingResults.L5X','content':data})
+        self.assertEqual(loaded['blockers'], [])
+        names = ('Results[0]', 'Results[1]', 'RunLatch', 'MotorRunning', 'PartPulse')
+
+        def step():
+            state = self.post('step', {'dt':10})
+            values = {row['name']: row['value'] for row in state['tags']}
+            return [values[name] for name in names]
+
+        self.assertEqual(step(), [None,None,False,False,False])
+        self.post('write', {'tag':'StartPB','value':True})
+        self.assertEqual(step(), ['NaN','Infinity',True,True,True])
+        self.post('write', {'tag':'Mask','value':2})
+        self.assertEqual(step(), [0.0,3.75,False,False,False])
+
     def test_bit_lab_real_bitwise_converts_rounds_and_rolls_back_through_http(self):
         self.assertEqual(self.post('demo',{'sample':'BitLab'})['blockers'],[])
         names=('RealBitAnd','RealBitOr','RealBitXor','RealBitNot')

@@ -128,7 +128,7 @@ def analyze(expression, memory, scope='', destination_type=None, *, consumer='CP
     return result
 
 
-def evaluate(expression, memory, scope, profile):
+def evaluate(expression, memory, scope, profile, *, allow_nonfinite_relations=False):
     precision = profile.get('precision','LREAL')
     def number(value):
         if precision == 'REAL' and type(value) is int:
@@ -145,7 +145,7 @@ def evaluate(expression, memory, scope, profile):
                 value = -magnitude if value < 0 else magnitude
         return coerce(value, precision)
 
-    def visit(node):
+    def visit(node, *, relation_operand=False):
         kind, value = node[:2]
         if kind == 'literal':
             return value if type(value) is bool else number(immediate(value))
@@ -157,6 +157,8 @@ def evaluate(expression, memory, scope, profile):
             if profile['types'][value] == 'string':return memory.string(value, scope)
             result = memory.read(value, scope)
             dtype = profile['declared'][value]
+            if relation_operand and dtype in ('REAL', 'LREAL') and isinstance(result, float) and not math.isfinite(result):
+                return result
             return coerce(result, 'BOOL') if dtype == 'BOOL' else number(coerce(result, dtype))
         if kind == 'unary':
             if value in ('+', '-') and node[2][0] in ('literal','typed_literal'):
@@ -169,9 +171,10 @@ def evaluate(expression, memory, scope, profile):
         if kind == 'call':
             return number(expression.function_map[value](visit(node[2])))
         # Both operands are required, including Boolean operations.
-        x, y = visit(node[2]), visit(node[3])
         if value in RELATIONS:
-            return RELATIONS[value](x, y)
+            return RELATIONS[value](visit(node[2], relation_operand=allow_nonfinite_relations),
+                                    visit(node[3], relation_operand=allow_nonfinite_relations))
+        x, y = visit(node[2]), visit(node[3])
         if value in LOGICAL:
             return (x and y) if value in ('&&', 'AND') else (x or y) if value in ('||', 'OR') else x != y
         if value in ('/', 'MOD') and not y:
@@ -224,9 +227,10 @@ def description(project):
                 operators=sorted(ARITHMETIC), functions=sorted(MATH), exponent_limit=1024,
                 arithmetic='Finite binary64 intermediates; REAL tags retain their stored float32 precision; integer tags convert to binary64',
                 comparisons='CMP/FSC: six numeric or string relations, BOOL tags and eager Boolean composition',
+                cmp_exceptional_relations='Direct floating tag operands may supply NaN or infinity to CMP relations.',
                 strings='Built-in STRING and declared DINT LEN/SINT DATA strings; compare active bytes lexically and case-sensitively; validate LEN and required bytes; no string arithmetic/literals',
                 references='Existing structural/lazy scalar, alias, member, array and AOI bindings; full unknown destination writes',
-                failures='Required unknowns, bounds, nonfinite/domain/zero/late faults roll back the modeled advance',
+                failures='Required unknowns, bounds, nonfinite arithmetic, domain/zero and later faults roll back the modeled advance',
                 structured_text=dict(numeric_tags=sorted(NUMERIC), destination='Scalar numeric or BOOL',
                     literals='Bounded DINT, finite REAL, floating L/l and decimal or radix L/U/UL integers',
                     destination_conversion='Evaluate in binary64, then convert once to a checked numeric destination',
@@ -251,6 +255,7 @@ def real_description(project):
                 arithmetic='Finite float32 sources and every numeric intermediate; existing unary math, arithmetic and bounded power',
                 operators=sorted(ARITHMETIC),functions=sorted(FUNCTIONS),exponent_limit=1024,
                 comparisons='CMP/FSC numeric or string relations, BOOL tags and eager Boolean composition; numeric bitwise and FRD/TOD excluded',
+                cmp_exceptional_relations='Direct REAL tag operands may supply NaN or infinity to CMP relations.',
                 strings='Built-in STRING and declared DINT LEN/SINT DATA strings; compare active bytes lexically and case-sensitively; validate LEN and required bytes; no string arithmetic/literals',
                 destination_types=sorted(NUMERIC-{'LREAL'}),destination_conversion='Nearest-even integer conversion with range checks; REAL results retain float32 precision',
                 failures='Unknowns, bounds, domains, integer ranges and later failures roll back; FAL REAL calculation overflow retains the existing ER/POS/prefix/retry behavior',

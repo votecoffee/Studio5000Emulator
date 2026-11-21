@@ -55,6 +55,11 @@ logical negation and Boolean composition. Both operands are evaluated eagerly;
 an unknown, domain error or zero divisor cannot hide behind an already true or
 false Boolean operand. BOOL tags cannot serve as numeric arguments.
 
+In ladder CMP, a REAL or LREAL tag can supply NaN or infinity directly to a
+relation. For example, `CMP(Result<>Result)` is true when Result is NaN.
+Math inside the condition and FSC require finite operands.
+See [NaN and infinity](numeric-comparisons.md#nan-and-infinity).
+
 ## AOIs, selection and recovery
 
 Scalar LREAL AOI Input/Output parameters are supported in this controller

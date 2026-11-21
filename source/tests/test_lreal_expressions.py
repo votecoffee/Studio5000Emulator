@@ -37,6 +37,60 @@ class LrealExpressionTests(unittest.TestCase):
         self.assertEqual(e.blockers, [])
         return e
 
+    def test_cmp_nan_relations_at_narrow_real_wide_real_and_lreal_precision(self):
+        for source, other in (('REAL', 'DINT'), ('REAL', 'ULINT'), ('REAL', 'LREAL'), ('LREAL', 'REAL')):
+            for relation in ('=', '<>', '<', '<=', '>', '>='):
+                with self.subTest(source=source, other=other, relation=relation):
+                    expr = f'((Source){relation}Other)&&(Other>0)'
+                    e = self.checked(['DIV(0,0,Source);', f'CMP({expr})OTE(RunLatch);'],
+                                     source=source, other=other)
+                    e.step()
+                    self.assertIs(e.memory.read('RunLatch'), relation == '<>')
+
+    def test_cmp_orders_signed_infinities_and_compares_nan_on_both_sides(self):
+        e = self.checked([
+            'DIV(1,0,Source);',
+            'DIV(-1,0,Other);',
+            'DIV(0,0,Results[1]);',
+            'CMP((Source>2)&&(Other<0)&&(Source=Source))OTE(RunLatch);',
+            'CMP((Other>=Results[1])||(Results[1]=Results[1]))OTE(MotorRunning);',
+            'CMP((1<>Results[1])&&(Results[1]<>Results[1]))OTE(PartPulse);',
+        ], source='REAL', other='LREAL')
+        e.step()
+        self.assertTrue(e.memory.read('RunLatch'))
+        self.assertFalse(e.memory.read('MotorRunning'))
+        self.assertTrue(e.memory.read('PartPulse'))
+
+    def test_cmp_keeps_eager_bounds_and_unknown_checks_after_nan_relation(self):
+        for dtype in ('REAL', 'LREAL'):
+            with self.subTest(dtype=dtype):
+                e = self.checked(['DIV(0,0,Source);',
+                                  'XIC(StartPB)CMP((Source<>Source)||(Inputs[Index]>0))OTE(RunLatch);'],
+                                 source=dtype)
+                e.memory.write('Index', 999)
+                e.step()
+                self.assertFalse(e.memory.read('RunLatch'))
+                e.memory.write('StartPB', True)
+                self.fault(e, 'outside bounds')
+                e.memory.write('Index', 1)
+                self.fault(e, 'Unknown')
+                e.memory.write('Inputs[1]', 1)
+                e.step()
+                self.assertTrue(e.memory.read('RunLatch'))
+
+    def test_exceptional_cmp_reads_are_limited_to_direct_tag_relations(self):
+        for dtype in ('REAL', 'LREAL'):
+            with self.subTest(dtype=dtype):
+                rung = 'CMP((Source<>Source)||(ABS(Source)>0))OTE(RunLatch);'
+                e = self.checked(['DIV(0,0,Source);', rung], source=dtype)
+                self.fault(e, 'Nonfinite')
+                self.assertEqual(e.memory.read('Source'), 3.0)
+                e = self.checked(['DIV(0,0,Source);'], source=dtype)
+                e.step()
+                condition = Condition('Source<>Source', allow_wide=True, lreal=True)
+                with self.assertRaisesRegex(ModelError, 'Nonfinite'):
+                    condition.evaluate(e.memory, 'mainprogram')
+
     def test_all_one_hundred_numeric_source_pairs_with_lreal_destination(self):
         for source, other in itertools.product(TYPES, repeat=2):
             with self.subTest(source=source, other=other):

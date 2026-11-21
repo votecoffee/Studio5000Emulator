@@ -96,25 +96,31 @@ class Condition(Expression):
                 raise ModelError('Integer expression power requires the v35 ControlLogix 5580 profile')
         return real,types
 
-    def evaluate(self,memory,scope=''):
+    def evaluate(self,memory,scope='',*,allow_nonfinite_relations=False):
         temporal=time_values.condition_profile(self,memory,scope)
         if temporal is not None:return bool(time_values.evaluate_condition(self,memory,scope,temporal))
         floating=self.floating_profile(memory,scope)
         if floating is not None:
             from . import lreal_expressions
-            return bool(lreal_expressions.evaluate(self,memory,scope,floating))
+            return bool(lreal_expressions.evaluate(
+                self, memory, scope, floating, allow_nonfinite_relations=allow_nonfinite_relations))
         wide=self.wide_profile(memory,scope)
         if wide is not None:
             from . import wide_st
             return bool(wide_st.evaluate(self,memory,scope,wide))
         real,types=self.validate(memory,scope)
+        compare_nonfinite = (allow_nonfinite_relations and real and memory.project.version == '35'
+                             and memory.project.processor.upper() in CONTROLLERS)
         def number(x):return coerce(x,'REAL' if real else 'DINT')
-        def visit(node):
+        def visit(node, *, relation_operand=False):
             kind,value=node[:2]
             if kind=='literal':return number(value)
             if kind=='ref':
                 if types[value]=='string':return memory.string(value,scope)
-                x=memory.read(value,scope);return number(x) if types[value]=='number' else bool(x)
+                x=memory.read(value,scope)
+                if relation_operand and types[value]=='number' and isinstance(x, float) and not math.isfinite(x):
+                    return x
+                return number(x) if types[value]=='number' else bool(x)
             if kind=='call':
                 x=visit(node[2]);return number(index_function(value,x) if value in BCD_FUNCTIONS or not real and value=='SQR' else FUNCTIONS[value](x))
             if kind=='unary':
@@ -124,8 +130,10 @@ class Condition(Expression):
                 return number(x if value=='+' else -x if value=='-' else ~x)
             # Both sides are checked/evaluated. No assumed short-circuit path can
             # conceal an unknown value, out-of-bounds access or arithmetic fault.
+            if value in RELATIONS:
+                return RELATIONS[value](visit(node[2], relation_operand=compare_nonfinite),
+                                        visit(node[3], relation_operand=compare_nonfinite))
             x,y=visit(node[2]),visit(node[3])
-            if value in RELATIONS:return RELATIONS[value](x,y)
             if value in LOGICAL:return (x and y) if value=='&&' else (x or y) if value=='||' else x!=y
             if value in ('/','MOD') and not y:raise ModelError('CMP divide by zero')
             if value=='**' and abs(y)>1024:raise ModelError('CMP exponent outside modeled range')

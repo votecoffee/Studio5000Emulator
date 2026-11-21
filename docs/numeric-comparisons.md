@@ -42,10 +42,13 @@ The predicates leave the source and math status flags alone.
 [Rockwell ISINF reference](https://www.rockwellautomation.com/en-ua/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/compare-instructions/is-infinity--isinf-.html)
 
 Use `ISNAN(Quotient)OTE(QuotientIsNaN);` after a
-[floating DIV](scalar-math.md#floating-div-with-a-zero-divisor). Exceptional
-inputs are supported here for direct ladder instructions. Exceptional
-values inside CMP expressions and native fault and status parity remain
-unqualified.
+[floating DIV](scalar-math.md#floating-div-with-a-zero-divisor).
+Ladder `CMP` can also read a REAL or LREAL tag directly on either side of a
+relation. For example, `CMP(Quotient<>Quotient)OTE(QuotientIsNaN);` detects a
+NaN, and `CMP((Quotient>Limit)&&Ready)OTE(High);` can compare a stored infinity
+within a Boolean condition. Required operands are still evaluated eagerly.
+Arithmetic and math functions inside the condition require finite inputs.
+[Rockwell CMP reference](https://www.rockwellautomation.com/en-nl/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/compare-instructions/compare--cmp-.html)
 
 ## Mixed integer ordering and limits
 
