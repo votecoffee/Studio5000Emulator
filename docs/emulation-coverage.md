@@ -28,6 +28,7 @@ firmware features are separate profiles, not implicit L85E capabilities.
 | FBD Boolean records | [BAND/BOR/BNOT/BXOR](fbd-boolean.md), strict BOOL inputs, known-value requirements and four logical types | Tagless functions and native initialization/layout/lifecycle/fault parity |
 | Function blocks | [Single-sheet signal graphs](function-blocks.md), Sixty-three blocks including target bit moves, conversions/remainder, advanced math, bitwise/masked operations, comparisons, limits, basic arithmetic, enhanced selection, derivatives, accumulation, integration, rate limiting, extrema, Boolean logic, latches and timers/counter/one-shots, typed references/wires, BOOL diagnostics, enables and rollback | Other blocks/functions, multiple sheets, feedback/connectors, AOIs, native ordering/layout/lifecycle/status/fault and transfer/edit parity |
 | Ladder (RLL) | 108 built-in dispatch entries, branches, bounded calls, [FOR/BRK loops](ladder-loops.md), [paired MCR zones](master-control.md), traces and prescan | Additional instructions, operand forms, full scan/status/fault semantics |
+| Ladder fault handling | [Program and Controller handlers](controller-handlers.md) for modeled Code 20 array faults, Code 21 file cursors and Code 34 timer values, including nested ladder AOIs; bounded AOI parameter, EnableInFalse and prescan recovery; [S:MINOR for reported subscript arithmetic overflow](controller-handlers.md#recover-an-array-subscript-overflow) | Other fault codes and operand states, general minor-fault records and continuation, native timing and fault effects, and broader language coverage |
 | User interrupt control | [UID/UIE](interrupt-control.md), balanced task-local nesting in RLL/ST, queued EVENT requests, outer-UIE priority drain, called routines and transactional guards | Native unmatched/persistent-state behavior, CPU/Periodic preemption, latency, watchdog/fault/Safety/AOI/harness and other profiles remain separate |
 | Event tasks | [Instruction-only EVENT dispatch](event-tasks.md), RLL/ST, [configured and runtime timeouts](event-tasks.md#runtime-timeout-settings), priority ordering, first scans, active/pending diagnostics, [ST FOR calls and subroutines](event-tasks.md#structured-text-for-loops) and transactional rollback | Native time slicing and pending-duplicate semantics, external triggers, CPU/status/fault parity |
 | Program DisableFlag | [Runtime Program control](program-disable.md) in ladder/ST, named/THIS, SINT write, SINT/DINT readback including [caller AOIs](program-disable.md#readback-inside-aois), independent first scans, activation of imported disabled targets, enabled default for ordinary omissions, and rollback | Other Program kinds and native write/lifecycle parity |
@@ -140,9 +141,10 @@ describes current semantics. The [roadmap](roadmap.md) sets implementation order
   remain separate from modeled controller timing.
 - [ ] **E04 — Lifecycle:** power-up, warm/cold restart, retentive memory,
   initialization, task start/stop, Program/Run transitions and first/last scans.
-- [ ] **E05 — Faults/status:** native-style major/minor fault records, math status
-  flags, handler dispatch, clear/retry behavior and effects before a fault.
-  Current whole-scan rollback is a simulator policy, not controller fault parity.
+- [ ] **E05 — Faults/status:** extend [ladder handler recovery](controller-handlers.md)
+  beyond the modeled array, timer and file cursor cases. Qualify minor-fault
+  records and continuation, additional math status flags, and behavior across
+  languages and scan modes. Verify which native effects survive faults.
 - [ ] **E06 — System objects:** extend the [Task/Controller GSV profile](gsv-configuration.md)
   to remaining attributes; extend [bounded SSV task inhibition](task-inhibition.md) to further supported forms and Program/module/clock/axis
   objects, state changes and access rules. Implement actual event/interrupt
