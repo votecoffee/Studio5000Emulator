@@ -108,7 +108,7 @@ class TimestampBridgeTests(unittest.TestCase):
         self.assertTrue(self.engine(['AFI()MOV(Source,Dest);'],mutate=old).blockers)
 
     def test_warm_late_failure_restores_timestamp_echo_and_task_progress_then_retries(self):
-        e=self.checked(['MOV(Source,Dest);','MOV(Dest,Mask);','DIV(1,SpeedSetpoint,SpeedCommand);'])
+        e=self.checked(['MOV(Source,Dest);','MOV(Dest,Mask);','CPT(SpeedCommand,1/SpeedSetpoint);'])
         e.memory.write('SpeedSetpoint',1);e.step();e.memory.write('Source',TICKS+9);e.memory.write('SpeedSetpoint',0)
         self.fault(e,'zero');self.assertEqual(e.memory.read('Dest',allow_time=True),TICKS)
         e.memory.write('SpeedSetpoint',1);e.step();self.assertEqual(e.memory.read('Mask'),TICKS+9)
@@ -127,7 +127,7 @@ class TimestampBridgeTests(unittest.TestCase):
             tag=E.SubElement(c.find('Tags'),'Tag',Name='Bridge',DataType='LegacyClockBridge',TagType='Base')
             obj=E.SubElement(E.SubElement(tag,'Data',Format='Decorated'),'Structure',DataType='LegacyClockBridge')
             for name,dtype in (('EnableIn','BOOL'),('EnableOut','BOOL'),('LocalTicks','LINT')):E.SubElement(obj,'DataValueMember',Name=name,DataType=dtype,Value='0')
-        e=self.checked(['LegacyClockBridge(Bridge,Source,Dest,Mask);','DIV(1,SpeedSetpoint,SpeedCommand);'],mutate=aoi)
+        e=self.checked(['LegacyClockBridge(Bridge,Source,Dest,Mask);','CPT(SpeedCommand,1/SpeedSetpoint);'],mutate=aoi)
         e.memory.write('SpeedSetpoint',1);e.step();self.assertEqual(e.memory.read('Bridge.LocalTicks'),TICKS)
         e.memory.write('Source',TICKS+5);e.memory.write('SpeedSetpoint',0);self.fault(e,'zero')
         e.memory.write('SpeedSetpoint',1);e.step();self.assertEqual(e.memory.read('Bridge.LocalTicks'),TICKS+5)

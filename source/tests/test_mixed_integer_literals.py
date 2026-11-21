@@ -85,7 +85,7 @@ class MixedIntegerLiteralTests(unittest.TestCase):
 
     def test_later_fault_rolls_back_completed_mixed_typed_file_writes(self):
         e = self.checked(rungs=['XIC(StartPB)FAL(Ctl,?,?,ALL,Queue[Ctl.POS],Queue[Ctl.POS]+Small+1L);',
-                                'XIC(StartPB)DIV(1,0,SpeedCommand);'])
+                                'XIC(StartPB)CPT(SpeedCommand,1/0);'])
         e.step();e.memory.write('StartPB', True);self.fault(e, 'zero')
 
     @staticmethod

@@ -169,7 +169,7 @@ class TaskStartGsvTests(unittest.TestCase):
     def test_interval_reset_source_guards_and_later_fault_restore_pending_history(self):
         e=self.checked([
             'XIC(Flag)SSV(Task,FastTask,MaximumInterval,SplitMaximum[Index]);',
-            'DIV(1,Index,Out);',
+            'CPT(Out,1/Index);',
         ])
         e.memory.write('Index',99);e.enter_run();e.step(25)
         e.memory.write('Flag',True);self.fault(e,'outside bounds')
@@ -182,7 +182,7 @@ class TaskStartGsvTests(unittest.TestCase):
         e.step(1)
         t=e._task_scan_timings['fasttask']
         self.assertEqual((t.minimum_interval_ns,t.maximum_interval_ns,t.executions),(5000,0,2))
-        e=self.checked(['SSV(Task,FastTask,MinimumInterval,MinimumTime);','DIV(1,Index,Out);'])
+        e=self.checked(['SSV(Task,FastTask,MinimumInterval,MinimumTime);','CPT(Out,1/Index);'])
         e.memory.write('Index',0);self.fault(e,'zero')
         self.assertIsNone(e._timing_advance)
         self.assertTrue(self.engine(['SSV(Task,FastTask,MinimumInterval,Stamp);']).blockers)
@@ -211,7 +211,7 @@ class TaskStartGsvTests(unittest.TestCase):
     def test_start_time_reset_skips_dormant_pair_checks_both_words_and_rolls_back(self):
         e=self.checked([
             'XIC(Flag)SSV(Task,FastTask,StartTime,NamedWords[Index]);',
-            'DIV(1,Index,Out);',
+            'CPT(Out,1/Index);',
         ])
         e.memory.write('Index',99);e.enter_run();e.step(25)
         e.memory.write('Flag',True);self.fault(e,'outside bounds')
@@ -308,7 +308,7 @@ class TaskStartGsvTests(unittest.TestCase):
         e.memory.write('Index',1);e.step(25);self.assertEqual(e.memory.read('StartWords'),[101,0,0,999])
 
     def test_late_fault_restores_all_starts_intervals_counts_values_and_scheduling(self):
-        e=self.checked(self.reads()+['DIV(1,Index,Out);']);e.memory.write('Index',1);e.step(25)
+        e=self.checked(self.reads()+['CPT(Out,1/Index);']);e.memory.write('Index',1);e.step(25)
         e.memory.write('Index',0);self.fault(e,'zero');e.memory.write('Index',1);prior=e._task_scan_timings['fasttask'];e.step(25)
         self.assertEqual(e.memory.read('Stamp'),prior.start_time_us);self.assertEqual(self.word(e,'MaxWords'),prior.maximum_interval_ns//1000)
 

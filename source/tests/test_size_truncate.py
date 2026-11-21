@@ -180,7 +180,7 @@ class SizeTruncateTests(unittest.TestCase):
         self.assertEqual(self.snapshot(e), before)
 
     def test_trn_late_fault_rolls_back_size_and_wide_results(self):
-        e = self.checked(['SIZE(Grid,0,Results[0]);', 'TRN(Source,Dest);', 'DIV(1,Mask,SpeedCommand);'], dest='LINT')
+        e = self.checked(['SIZE(Grid,0,Results[0]);', 'TRN(Source,Dest);', 'CPT(SpeedCommand,1/Mask);'], dest='LINT')
         before = self.snapshot(e)
         with self.assertRaisesRegex(ModelError, 'zero'):e.step()
         self.assertEqual(self.snapshot(e), before)

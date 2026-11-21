@@ -85,7 +85,7 @@ class LrealComparisonLiteralTests(unittest.TestCase):
             e=self.checked([call+'OTE(RunLatch);']);self.fault(e,'Unknown')
 
     def test_late_failure_restores_prior_coils_values_timing_and_traces(self):
-        e=self.checked(['EQU(0.1L,0.1L)OTE(RunLatch);','DIV(1,Index,SpeedCommand);']);self.fault(e,'zero');e.memory.write('Index',1);e.step();self.assertTrue(e.memory.read('RunLatch'))
+        e=self.checked(['EQU(0.1L,0.1L)OTE(RunLatch);','CPT(SpeedCommand,1/Index);']);self.fault(e,'zero');e.memory.write('Index',1);e.step();self.assertTrue(e.memory.read('RunLatch'))
 
     def test_alias_and_member_sources_remain_read_only(self):
         def fields(root):

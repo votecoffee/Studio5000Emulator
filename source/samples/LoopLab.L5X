@@ -99,7 +99,7 @@
                 <Text>XIC(Enabled)FOR(Accumulate,Index,Start,Finish,Increment)OTE(Completed);</Text>
               </Rung>
               <Rung Number="2" Type="N">
-                <Text>ADD(Scans,1,Scans)DIV(1,FaultDivisor,GuardResult);</Text>
+                <Text>ADD(Scans,1,Scans)CPT(GuardResult,1/FaultDivisor);</Text>
               </Rung>
               <Rung Number="3" Type="N"><Text>CLR(SelectedTotal)CLR(SelectedIterations);</Text></Rung>
               <Rung Number="4" Type="N"><Text>XIC(SelectedLoop)FOR(IndirectAccumulate,IndexSlots[LoopSlot],InitialValues[BoundsSlot],TerminalValues[BoundsSlot],StepValues[BoundsSlot])OTE(SelectedCompleted);</Text></Rung>

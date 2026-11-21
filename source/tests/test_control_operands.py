@@ -96,7 +96,7 @@ class ControlOperandTests(unittest.TestCase):
 
     def test_reset_and_queue_late_faults_restore_flags_payloads_and_incremental_state(self):
         for text in ('RES(Controls[ControlIndex]);', 'FFL(Inputs[SourceIndex],Queue[0],Ctl,?,?);'):
-            e = self.checked(['XIC(StartPB)' + text, 'XIC(StartPB)DIV(1,SpeedSetpoint,SpeedCommand);'], length=2)
+            e = self.checked(['XIC(StartPB)' + text, 'XIC(StartPB)CPT(SpeedCommand,1/SpeedSetpoint);'], length=2)
             e.step(); e.memory.write('ControlIndex', 1); e.memory.write('SourceIndex', 1); e.memory.write('Inputs[1]', 47)
             e.memory.write('Controls[1].POS', 9); e.memory.write('Controls[1].EN', True)
             key = file_incremental.identity(e, 'Controls[1]', ''); e._file_incremental.add(key)

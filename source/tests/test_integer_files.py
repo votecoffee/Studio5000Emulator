@@ -105,7 +105,7 @@ class IntegerFileTests(unittest.TestCase):
             e = self.checked(['XIC(StartPB)FAL(Ctl,?,?,ALL,Queue[Ctl.POS],' + expr + ');'], dtype=dtype, queue=queue); e.step(); e.memory.write('StartPB', True); before = self.snapshot(e)
             with self.assertRaises(ModelError):e.step()
             self.assertEqual(self.snapshot(e), before)
-        e = self.checked(['XIC(StartPB)FAL(Ctl,?,?,ALL,Queue[Ctl.POS],Incoming);', 'XIC(StartPB)DIV(1,0,SpeedCommand);']); e.step(); e.memory.write('StartPB', True); before = self.snapshot(e)
+        e = self.checked(['XIC(StartPB)FAL(Ctl,?,?,ALL,Queue[Ctl.POS],Incoming);', 'XIC(StartPB)CPT(SpeedCommand,1/0);']); e.step(); e.memory.write('StartPB', True); before = self.snapshot(e)
         with self.assertRaisesRegex(ModelError, 'zero'):e.step()
         self.assertEqual(self.snapshot(e), before)
 

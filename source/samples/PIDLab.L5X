@@ -338,7 +338,7 @@
               </Rung>
               <Rung Number="5" Type="N">
                 <Comment>Set FaultDivisor to zero to verify transactional rollback, then correct it and retry.</Comment>
-                <Text>DIV(1,FaultDivisor,Quotient);</Text>
+                <Text>CPT(Quotient,1/FaultDivisor);</Text>
               </Rung>
             </RLLContent>
           </Routine>

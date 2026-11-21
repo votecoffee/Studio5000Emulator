@@ -123,7 +123,7 @@ class ArrayIndexExpressionTests(unittest.TestCase):
                                        ('Index/Divisor',-2147483648,-1,'overflow'),('(Index+1)/Divisor',2147483647,2,'overflow'),
                                        ('Index/Divisor',-3,2,'outside bounds')]:
             e=self.checked(['MOV(99,SpeedCommand);',f'MOV(Source,Results[{expr}]);'],index=index,divisor=divisor);self.fault(e,text)
-        e=self.checked(['MOV(Source,Results[Index/Divisor]);','DIV(1,LateDivisor,SpeedCommand);']);e.memory.write('LateDivisor',0);self.fault(e,'zero')
+        e=self.checked(['MOV(Source,Results[Index/Divisor]);','CPT(SpeedCommand,1/LateDivisor);']);e.memory.write('LateDivisor',0);self.fault(e,'zero')
         e.memory.write('LateDivisor',1);e.step();self.assertEqual(e.memory.read('Results'),[None,7,None])
 
     def test_alias_udt_member_nested_and_multidimensional_indices(self):

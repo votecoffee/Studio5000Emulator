@@ -85,7 +85,7 @@ class RadixBitwiseTests(unittest.TestCase):
             self.assertTrue(self.engine(['AFI()MEQ(Source,16#1UL,1L)OTE(RunLatch);'],source=source,value=value).blockers)
 
     def test_later_fault_rolls_back_exact_wide_result_and_retry(self):
-        e = self.checked(['OR(Source,16#FFFFFFFFU,Results[1]);','DIV(1,Index,SpeedCommand);'],
+        e = self.checked(['OR(Source,16#FFFFFFFFU,Results[1]);','CPT(SpeedCommand,1/Index);'],
                          source='ULINT',dest='ULINT',value=1<<63)
         self.fault(e,'zero');e.memory.write('Index',1);e.step()
         self.assertEqual(e.memory.read('Results'),[None,(1<<63)+(1<<32)-1,None])

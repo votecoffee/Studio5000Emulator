@@ -74,7 +74,7 @@ class LrealCopyTests(unittest.TestCase):
         e.memory.write('Index',99);self.fault(e,'outside bounds')
 
     def test_late_fault_recovers_and_preserves_exact_images(self):
-        e=self.scalar(extra=['DIV(1,SpeedSetpoint,SpeedCommand);']);e.memory.write('SpeedSetpoint',0);self.fault(e,'zero')
+        e=self.scalar(extra=['CPT(SpeedCommand,1/SpeedSetpoint);']);e.memory.write('SpeedSetpoint',0);self.fault(e,'zero')
         e.memory.write('SpeedSetpoint',1);e.step();self.assertEqual(e.memory.read('Dst'),0x3ff0000000000001)
 
     def aoi(self):

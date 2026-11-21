@@ -759,6 +759,8 @@ results. A zero divisor writes zero and continues the rung for
 [integer MOD](docs/scalar-math.md#integer-mod-with-a-zero-divisor) and
 [floating MOD](docs/scalar-math.md#finite-real-remainder). Reporting must be
 enabled in the controller export to set the task's modeled `S:MINOR` bit.
+[Integer DIV with a zero divisor](docs/scalar-math.md#integer-div-with-a-zero-divisor)
+copies the dividend and continues the rung under the same reporting policy.
 
 [Numeric move and clear](docs/numeric-storage.md) support signed/unsigned integer
 and REAL scalar MOV conversions, typed CLR zeros and full writes to unknown

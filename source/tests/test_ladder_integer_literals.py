@@ -153,7 +153,7 @@ class LadderIntegerLiteralTests(unittest.TestCase):
                             ('UDINT', '4294967295U+1U'), ('ULINT', '1UL/0UL')]:
             e = self.checked(['MOV(99,SpeedCommand);', 'CPT(Dest,' + text + ');'], dtype=dtype)
             self.fault(e)
-        e = self.checked(['CPT(Dest,9007199254740993L);', 'DIV(1,0,SpeedCommand);'])
+        e = self.checked(['CPT(Dest,9007199254740993L);', 'CPT(SpeedCommand,1/0);'])
         self.fault(e, 'zero')
 
     def test_v35_5580_gate_also_applies_to_literal_only_comparisons(self):

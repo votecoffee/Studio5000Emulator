@@ -128,7 +128,7 @@ class NumericStorageTests(unittest.TestCase):
             self.assertTrue(self.engine([text], mutate=constant).blockers)
 
     def test_late_fault_restores_new_values_source_guards_and_scheduler(self):
-        e = self.checked(['MOV(Source,Results[0]);', 'CLR(Results[1]);', 'DIV(1,Mask,SpeedCommand);'], value=4660)
+        e = self.checked(['MOV(Source,Results[0]);', 'CLR(Results[1]);', 'CPT(SpeedCommand,1/Mask);'], value=4660)
         e.memory.write('Mask', 0);before = self.snapshot(e)
         with self.assertRaisesRegex(ModelError, 'zero'):e.step()
         self.assertEqual(self.snapshot(e), before)

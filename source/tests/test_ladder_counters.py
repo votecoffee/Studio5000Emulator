@@ -194,7 +194,7 @@ class LadderCounterTests(unittest.TestCase):
         self.assertEqual(self.snapshot(e),before)
 
     def test_late_fault_restores_resets_counts_flags_and_schedule(self):
-        e=self.checked(['RES(CounterCells[0]);','CTU(CounterCells[0],?,?);','DIV(1,SpeedSetpoint,SpeedCommand);']);e.memory.write('SpeedSetpoint',0);before=self.snapshot(e)
+        e=self.checked(['RES(CounterCells[0]);','CTU(CounterCells[0],?,?);','CPT(SpeedCommand,1/SpeedSetpoint);']);e.memory.write('SpeedSetpoint',0);before=self.snapshot(e)
         with self.assertRaisesRegex(ModelError,'zero'):e.step()
         self.assertEqual(self.snapshot(e),before);e.memory.write('SpeedSetpoint',1);e.step();self.assertEqual(e.memory.read('CounterCells[0].ACC'),1);self.assertFalse(e.memory.read('CounterCells[0].OV'))
 

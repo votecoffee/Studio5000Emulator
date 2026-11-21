@@ -96,17 +96,12 @@ class ScalarMathTests(unittest.TestCase):
         self.assertTrue(self.engine(['ADD(Source,2147483648,Results[0]);'], dtype='LINT').blockers)
         self.assertTrue(self.engine(['ADD(Source,-1,Results[0]);'], dtype='ULINT').blockers)
 
-    def test_false_rungs_skip_zero_divisors_and_true_div_rolls_back(self):
-        for name in ('DIV', 'MOD'):
+    def test_false_rungs_skip_zero_divisors_and_true_rungs_complete(self):
+        for name, zero_result in (('DIV', 7), ('MOD', 0)):
             e = self.checked(['MOV(99,SpeedCommand);', 'XIC(StartPB)' + operation(name) + ';']);e.memory.write('Mask', 0);e.step()
             self.assertEqual(e.memory.read('Results'), [None, None, None])
-            e.memory.write('StartPB', True);before = self.snapshot(e)
-            if name == 'DIV':
-                with self.assertRaisesRegex(ModelError, 'zero'):e.step()
-                self.assertEqual(self.snapshot(e), before)
-            else:
-                e.step()
-                self.assertEqual(e.memory.read('Results[1]'), 0)
+            e.memory.write('StartPB', True);e.step()
+            self.assertEqual(e.memory.read('Results[1]'), zero_result)
             e.memory.write('Mask', 3);e.step();self.assertEqual(e.memory.read('Results[1]'), EXPECTED[name])
 
     def test_integer_division_and_remainder_sign_and_real_destination_rounding_remain(self):

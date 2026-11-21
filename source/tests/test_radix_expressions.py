@@ -79,7 +79,7 @@ class RadixExpressionTests(unittest.TestCase):
     def test_direct_overflow_zero_and_late_fault_restore_all_prior_results(self):
         for text in ['16#7FFFFFFFFFFFFFFFL+2#1L','16#1L/2#0L','ABS(16#8000000000000000L)']:
             e=self.engine(['MOV(77,SpeedCommand);',f'CPT(Dest,{text});']);self.fault(e,'overflow|zero')
-        e=self.engine(['CPT(Dest,16#0020000000000001L);','DIV(1,SpeedCommand,SpeedCommand);'])
+        e=self.engine(['CPT(Dest,16#0020000000000001L);','CPT(SpeedCommand,1/SpeedCommand);'])
         e.memory.write('SpeedCommand',0);self.fault(e,'zero');e.memory.write('SpeedCommand',1);e.step()
         self.assertEqual(e.memory.read('Dest'),9007199254740993)
 
@@ -134,7 +134,7 @@ class RadixExpressionTests(unittest.TestCase):
     def test_mid_file_overflow_and_late_fault_restore_cells_and_control_progress(self):
         e=self.engine(['FAL(Ctl,?,?,ALL,Queue[Ctl.POS],Queue[Ctl.POS]+2#1L);'],file=True,queue=(0,(1<<63)-1,0,0,99))
         self.fault(e,'overflow');e.memory.write('Queue[1]',1);e.step();self.assertEqual(e.memory.read('Queue'),[1,2,1,1,99])
-        e=self.engine(['FAL(Ctl,?,?,ALL,Queue[Ctl.POS],16#0020000000000001L);','DIV(1,0,SpeedCommand);'],file=True)
+        e=self.engine(['FAL(Ctl,?,?,ALL,Queue[Ctl.POS],16#0020000000000001L);','CPT(SpeedCommand,1/0);'],file=True)
         self.fault(e,'zero')
 
     def test_warm_aoi_direct_and_file_bindings_keep_exact_values_and_rollback(self):

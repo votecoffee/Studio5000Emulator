@@ -155,7 +155,7 @@ class BasicRecordQueueTests(unittest.TestCase):
         e.step();self.assertEqual((e.memory.read('ItemA.ACC'),e.memory.read('ItemB.ACC'),e.memory.read('DriverA.RecordOut.ACC'),e.memory.read('DriverB.RecordOut.ACC')),(11,22,11,22))
 
     def test_later_fault_restores_records_controls_bindings_and_scheduler(self):
-        e=self.checked(['XIC(StartPB)FFL(Incoming,Queue[0],Ctl,?,?);','XIC(StartPB)DIV(1,SpeedCommand,SpeedSetpoint);']);e.step();e.memory.write('StartPB',True);e.memory.write('SpeedCommand',0);self.fault(e,'zero')
+        e=self.checked(['XIC(StartPB)FFL(Incoming,Queue[0],Ctl,?,?);','XIC(StartPB)CPT(SpeedSetpoint,1/SpeedCommand);']);e.step();e.memory.write('StartPB',True);e.memory.write('SpeedCommand',0);self.fault(e,'zero')
         e.memory.write('SpeedCommand',1);e.step();self.assertEqual(e.memory.read('Ctl.POS'),1);self.assertEqual(e.memory.read('Queue[0]'),e.memory.read('Incoming'))
 
     def test_payload_moves_do_not_copy_or_reset_private_timer_or_file_history(self):

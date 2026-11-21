@@ -65,7 +65,7 @@ class LrealStorageTests(unittest.TestCase):
             obj=E.SubElement(E.SubElement(E.SubElement(c.find('Tags'),'Tag',Name='Packet',DataType='DoublePacket',TagType='Base'),'Data',Format='Decorated'),'Structure',DataType='DoublePacket')
             E.SubElement(obj,'DataValueMember',Name='Guard',DataType='DINT',Value='777')
             E.SubElement(c.find('Tags'),'Tag',Name='Selected',DataType='LREAL',TagType='Alias',AliasFor='Packet.Value')
-        e=self.checked(['MOV(Source,Selected);','CLR(Results[1]);','DIV(1,Mask,SpeedCommand);'],source='LREAL',dest='LREAL',value=1.0000000000000002,mutate=member)
+        e=self.checked(['MOV(Source,Selected);','CLR(Results[1]);','CPT(SpeedCommand,1/Mask);'],source='LREAL',dest='LREAL',value=1.0000000000000002,mutate=member)
         e.memory.write('Mask',0);before=self.snapshot(e)
         with self.assertRaisesRegex(ModelError,'zero'):e.step()
         self.assertEqual(self.snapshot(e),before);e.memory.write('Mask',1);e.step()

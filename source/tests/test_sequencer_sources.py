@@ -74,7 +74,7 @@ class SequencerSourceTests(unittest.TestCase):
             tags=root.find('./Controller/Tags');obj=E.SubElement(E.SubElement(E.SubElement(tags,'Tag',Name='Packet',DataType='SmallPacket',TagType='Base'),'Data',Format='Decorated'),'Structure',DataType='SmallPacket')
             E.SubElement(obj,'DataValueMember',Name='Value',DataType='SINT',Value='-1');E.SubElement(obj,'DataValueMember',Name='Guard',DataType='DINT',Value='777');E.SubElement(tags,'Tag',Name='Selected',DataType='SINT',TagType='Alias',AliasFor='Packet.Value')
         e=self.checked(['SQL(Queue[0],Selected,Ctl,?,?);','SQI(Queue[0],255,Selected,Ctl,?,?)OTE(RunLatch);'],mutate=packet);e.step();self.assertTrue(e.memory.read('RunLatch'));self.assertEqual(e.memory.read('Packet.Guard'),777);self.assertEqual(e.memory.read('Queue[3]'),999)
-        e=self.checked(['SQL(Queue[0],Incoming,Ctl,?,?);','DIV(1,PayloadIndex,SpeedCommand);'],source_type='INT',index=0);self.fault(e,'zero');e.memory.write('PayloadIndex',1);e.step();self.assertEqual(e.memory.read('Queue[0]'),-1)
+        e=self.checked(['SQL(Queue[0],Incoming,Ctl,?,?);','CPT(SpeedCommand,1/PayloadIndex);'],source_type='INT',index=0);self.fault(e,'zero');e.memory.write('PayloadIndex',1);e.step();self.assertEqual(e.memory.read('Queue[0]'),-1)
 
     def aoi(self,dtype='SINT'):
         f=aoi.AOISequencerTests();f.setUp();self.addCleanup(f.doCleanups)

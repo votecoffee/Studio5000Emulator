@@ -171,7 +171,7 @@ class AOIPIDTests(unittest.TestCase):
             E.SubElement(task,'EventInfo',EventTrigger='EVENT Instruction Only',EnableTimeout='false')
             program=E.SubElement(root.find('./Controller/Programs'),'Program',Name='Trigger',MainRoutineName='MainRoutine',Class='Standard',Disabled='false');E.SubElement(program,'Tags')
             content=E.SubElement(E.SubElement(E.SubElement(program,'Routines'),'Routine',Name='MainRoutine',Type='RLL'),'RLLContent')
-            for i,text in enumerate(('EVENT(MainTask);','DIV(1,FaultDivisor,Quotient);')):E.SubElement(E.SubElement(content,'Rung',Number=str(i),Type='N'),'Text').text=text
+            for i,text in enumerate(('EVENT(MainTask);','CPT(Quotient,1/FaultDivisor);')):E.SubElement(E.SubElement(content,'Rung',Number=str(i),Type='N'),'Text').text=text
             trigger=E.SubElement(root.find('./Controller/Tasks'),'Task',Name='TriggerTask',Type='CONTINUOUS',Priority='10',Watchdog='500',Class='Standard',InhibitTask='false')
             E.SubElement(E.SubElement(trigger,'ScheduledPrograms'),'ScheduledProgram',Name='Trigger')
         e=self.active(event);e.step();self.assertEqual(e.memory.read('CVA'),45)

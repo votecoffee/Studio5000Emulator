@@ -173,7 +173,9 @@ backlog, not a source of invented schemas or automatically enabled behavior.
   and native status semantics remain unfinished.
 - [ ] **D02 — Numeric edge behavior:** overflow/truncation, carry and math flags,
   divide-by-zero, rounding, REAL/LREAL NaN/infinity/subnormal handling and
-  conversions. The current engine rejects nonfinite REAL/LREAL values.
+  conversions. Qualified ladder [integer DIV](scalar-math.md#integer-div-with-a-zero-divisor)
+  and [MOD](scalar-math.md#integer-mod-with-a-zero-divisor) continue with a zero
+  divisor. The current engine rejects nonfinite REAL/LREAL values.
 - [ ] **D03 — Time types:** extend [DT, LDT, TIME32, TIME and LTIME storage](time-date-storage.md);
   typed literals, display radix, units, epoch/zone rules, comparisons, arithmetic,
   conversions and transfer encoding. The installed help lists these names, but

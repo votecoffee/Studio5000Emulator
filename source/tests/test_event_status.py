@@ -96,8 +96,8 @@ class EventStatusTests(unittest.TestCase):
         self.assertEqual(e.memory.read('CallerStatus'),1);self.assertEqual(e.memory.read('EntryStatus'),1)
 
     def test_parent_and_event_faults_restore_status_with_other_task_state(self):
-        for bodies in ([['EVENT(Task1);','DIV(1,Divisor,SpeedCommand);'],['EVENT(Task1);']],
-                       [['EVENT(Task1);'],['EVENT(Task1);','DIV(1,Divisor,SpeedCommand);']]):
+        for bodies in ([['EVENT(Task1);','CPT(SpeedCommand,1/Divisor);'],['EVENT(Task1);']],
+                       [['EVENT(Task1);'],['EVENT(Task1);','CPT(SpeedCommand,1/Divisor);']]):
             e=self.checked(bodies);e.memory.write('Divisor',0);self.fault(e,'zero');e.memory.write('Divisor',1);e.step();self.assertEqual(e._task_event_status['task1'],5)
 
     def test_st_named_and_this_status_replacements_share_live_state(self):
@@ -155,7 +155,7 @@ class EventStatusTests(unittest.TestCase):
         self.assertTrue(self.engine(mutate=timeout).blockers)
 
     def test_timeout_status_replacement_and_late_fault_preserve_prior_deadline(self):
-        e=self.checked([['DIV(1,Divisor,SpeedCommand);'],
+        e=self.checked([['CPT(SpeedCommand,1/Divisor);'],
                         ['GSV(Task,THIS,Status,EntryStatus);','SSV(Task,THIS,Status,Command);',
                          'GSV(Task,THIS,Status,ExitStatus);','ADD(Count1,1,Count1);']],
                        mutate=lambda root:events.EventTaskTests.timeout(root,'5'))

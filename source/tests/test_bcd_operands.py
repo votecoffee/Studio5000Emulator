@@ -122,7 +122,7 @@ class BCDOperandTests(unittest.TestCase):
                 if node is not None:node.set('DataType',kind)
         f.body()[0].find('Text').text='TOD(Step,Shared)FRD(Shared,Count)FRD(Shared,Total);'
         rungs=['XIC(EnableA)LabAccumulator(AccumulatorA,StepA,TotalA,SharedA);','XIC(EnableB)LabAccumulator(AccumulatorB,StepB,TotalB,SharedB);']
-        if late:rungs+=['DIV(1,StepA,Truncated);']
+        if late:rungs+=['CPT(Truncated,1/StepA);']
         e=f.engine(rungs);self.assertEqual(e.blockers,[]);return e
 
     def test_aoi_narrow_input_local_output_and_dint_inout(self):

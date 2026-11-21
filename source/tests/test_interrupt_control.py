@@ -93,7 +93,7 @@ class InterruptControlTests(unittest.TestCase):
     def test_child_and_later_faults_restore_pending_writes_first_scans_and_retry(self):
         for child in (True, False):
             bodies = [['UID()EVENT(Task1)UIE()ADD(Count0,1,Count0);'], ['ADD(Count1,1,Count1);']]
-            bodies[1 if child else 0].append('DIV(1,SpeedSetpoint,SpeedCommand);')
+            bodies[1 if child else 0].append('CPT(SpeedCommand,1/SpeedSetpoint);')
             e = self.checked(bodies); e.memory.write('SpeedSetpoint', 0); self.fails(e, 'zero')
             e.memory.write('SpeedSetpoint', 1); e.step(); self.assertEqual((e.memory.read('Count0'), e.memory.read('Count1')), (1, 1))
 

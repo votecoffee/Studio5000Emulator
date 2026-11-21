@@ -135,7 +135,7 @@ class LrealIntegerLiteralTests(unittest.TestCase):
                            ('LN(-1L)', 'LREAL'), ('2L**1025U', 'LREAL')]:
             e = self.checked(['MOV(99,SpeedCommand);', 'CPT(Results[1],' + text + ');'], dest=dest)
             self.fault(e, 'overflow|zero|domain|exponent')
-        e = self.checked(['CPT(Results[1],3L/2U);', 'DIV(1,0,SpeedCommand);'])
+        e = self.checked(['CPT(Results[1],3L/2U);', 'CPT(SpeedCommand,1/0);'])
         self.fault(e, 'zero')
 
     def test_alias_udt_and_function_index_with_typed_constant(self):

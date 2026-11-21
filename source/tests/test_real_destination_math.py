@@ -100,7 +100,7 @@ class RealDestinationMathTests(unittest.TestCase):
                      'MUL(3.4e38,2,Results[1]);'):
             e=self.checked(['MOV(99,SpeedCommand);',call]);self.fault(e,'zero|finite REAL|REAL value')
         e=self.checked(['XPY(Source,Mask,Results[1]);'],value=-2,other='REAL');e.memory.write('Mask',.5);self.fault(e,'finite REAL')
-        e=self.checked(['ADD(Source,2,Results[1]);','SQR(Source,Results[2]);','DIV(1,Index,SpeedCommand);'])
+        e=self.checked(['ADD(Source,2,Results[1]);','SQR(Source,Results[2]);','CPT(SpeedCommand,1/Index);'])
         self.fault(e,'zero');e.memory.write('Index',1);e.step();self.assertEqual(e.memory.read('Results'),[None,5.0,real(math.sqrt(3))])
 
     def test_alias_udt_unknown_writes_overlap_and_guards(self):
@@ -191,7 +191,7 @@ class RealDestinationMathTests(unittest.TestCase):
     def test_integer_result_indices_are_lazy_and_late_faults_restore_unknowns(self):
         engine = self.checked([
             'XIC(StartPB)ADD(Inputs[Index],0,Results[Index]);',
-            'XIC(StartPB)DIV(1,Mask,SpeedCommand);',
+            'XIC(StartPB)CPT(SpeedCommand,1/Mask);',
         ], source='REAL', dest='LINT')
         engine.memory.write('Index', 99)
         engine.enter_run()

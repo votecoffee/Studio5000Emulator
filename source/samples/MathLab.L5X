@@ -568,7 +568,7 @@
               <Rung Number="16" Type="N"><Text>XIC(UnaryDoubleEnabled)XIC(UnaryDoubleDomainFault)LN(UnaryDoubleDomain,UnaryDoubleDomainResult);</Text></Rung>
               <Rung Number="17" Type="N"><Text>XIC(UnaryDoubleEnabled)XIC(UnaryDoubleLiteralFault)LN(0,UnaryDoubleLiteralResult);</Text></Rung>
               <Rung Number="18" Type="N"><Text>XIC(UnaryDoubleEnabled)XIC(UnaryDoubleOverflowFault)DEG(UnaryDoubleLarge,UnaryDoubleOverflowResult);</Text></Rung>
-              <Rung Number="19" Type="N"><Text>XIC(UnaryDoubleEnabled)DIV(1,UnaryDoubleLateDivisor,UnaryDoubleLateResult);</Text></Rung>
+              <Rung Number="19" Type="N"><Text>XIC(UnaryDoubleEnabled)CPT(UnaryDoubleLateResult,1/UnaryDoubleLateDivisor);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="MixedPower" Type="RLL">
@@ -583,7 +583,7 @@
               <Rung Number="7" Type="N"><Text>XIC(MixedPowerEnabled)XPY(MixedPowerNegativeBase,MixedPowerExponent,MixedPowerNegativeResult);</Text></Rung>
               <Rung Number="8" Type="N"><Text>XIC(MixedPowerEnabled)XIC(MixedPowerDomainFault)XPY(MixedPowerNegativeBase,MixedPowerFraction,MixedPowerDomainResult);</Text></Rung>
               <Rung Number="9" Type="N"><Text>XIC(MixedPowerEnabled)XIC(MixedPowerOverflowFault)XPY(MixedPowerLarge,2,MixedPowerOverflowResult);</Text></Rung>
-              <Rung Number="10" Type="N"><Text>XIC(MixedPowerEnabled)DIV(1,MixedPowerLateDivisor,MixedPowerLateResult);</Text></Rung>
+              <Rung Number="10" Type="N"><Text>XIC(MixedPowerEnabled)CPT(MixedPowerLateResult,1/MixedPowerLateDivisor);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="LrealAdvanced" Type="RLL">
@@ -601,7 +601,7 @@
               <Rung Number="10" Type="N"><Text>XIC(LrealMath)ASN(LrealInverse,LrealAsn);</Text></Rung>
               <Rung Number="11" Type="N"><Text>XIC(LrealMath)ACS(LrealInverse,LrealAcs);</Text></Rung>
               <Rung Number="12" Type="N"><Text>XIC(LrealMath)ATN(LrealInverse,LrealAtn);</Text></Rung>
-              <Rung Number="13" Type="N"><Text>XIC(LrealMath)DIV(1,LrealLateDivisor,LrealLateResult);</Text></Rung>
+              <Rung Number="13" Type="N"><Text>XIC(LrealMath)CPT(LrealLateResult,1/LrealLateDivisor);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="LrealTruncate" Type="RLL">
@@ -612,7 +612,7 @@
               <Rung Number="3" Type="N"><Text>XIC(TrnEnabled)TRN(TrnUnsignedInput,TrnUlint);</Text></Rung>
               <Rung Number="4" Type="N"><Text>XIC(TrnEnabled)TRN(Input,TrnFromReal);</Text></Rung>
               <Rung Number="5" Type="N"><Text>XIC(TrnEnabled)TRN(TrnInput,TrnReal);</Text></Rung>
-              <Rung Number="6" Type="N"><Text>XIC(TrnEnabled)DIV(1,TrnDivisor,TrnLateResult);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(TrnEnabled)CPT(TrnLateResult,1/TrnDivisor);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="MathText" Type="ST">

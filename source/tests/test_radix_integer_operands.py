@@ -94,13 +94,12 @@ class RadixIntegerOperandTests(unittest.TestCase):
         self.assertEqual(e.memory.read('Results'),[None,0,None])
         e=self.checked(['LIM(16#0L,Inputs[1],16#0L)OTE(RunLatch);']);self.fault(e,'Unknown')
 
-    def test_reached_overflow_and_zero_divisors_restore_previous_writes(self):
+    def test_reached_overflow_restores_previous_writes(self):
         for call,dest,pattern in [('ADD(16#FFFFFFFFFFFFFFFFUL,1UL,Results[1]);','ULINT','overflow'),
                                   ('SUB(16#0UL,1UL,Results[1]);','ULINT','overflow'),
                                   ('ABS(16#8000000000000000L,Results[1]);','LINT','overflow'),
                                   ('NEG(16#8000000000000000L,Results[1]);','LINT','overflow'),
-                                  ('DIV(16#8000000000000000L,-1L,Results[1]);','LINT','overflow'),
-                                  ('DIV(1L,16#0L,Results[1]);','LINT','zero')]:
+                                  ('DIV(16#8000000000000000L,-1L,Results[1]);','LINT','overflow')]:
             e=self.checked(['MOV(77,SpeedCommand);',call],dest=dest);self.fault(e,pattern)
 
     def test_alias_members_and_overlapping_sources_preserve_exact_values_and_neighbors(self):

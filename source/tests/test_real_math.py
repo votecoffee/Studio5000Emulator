@@ -154,7 +154,7 @@ class RealMathTests(unittest.TestCase):
         self.assertEqual(e.memory.read('ScaledValue'),16.0)
 
     def test_late_fault_rolls_back_math_and_expression_outputs(self):
-        e=self.checked(['SQR(Source,Dest);','CPT(Mask,SQRT(-25.0));','DIV(1,0,SpeedCommand);'])
+        e=self.checked(['SQR(Source,Dest);','CPT(Mask,SQRT(-25.0));','CPT(SpeedCommand,1/0);'])
         before=copy.deepcopy(e.memory.values)
         with self.assertRaises(ModelError):e.step()
         self.assertEqual(e.memory.values,before)

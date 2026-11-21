@@ -114,7 +114,7 @@ class ClippedAggregateTests(unittest.TestCase):
         for node in root.findall('./Controller/AddOnInstructionDefinitions/AddOnInstructionDefinition[@Name="FillWorker"]/Routines/Routine/RLLContent/Rung/Text'):node.text=node.text.replace(',1);',',100000);')
 
     def test_aoi_inout_local_clips_and_later_fault_roll_back_bindings(self):
-        e=self.checked(['XIC(EnabledA)FillWorker(First,Records,IndexA);','XIC(EnabledB)FillWorker(Second,Records,IndexB);','DIV(1,SpeedSetpoint,SpeedCommand);'],self.clipped_aoi)
+        e=self.checked(['XIC(EnabledA)FillWorker(First,Records,IndexA);','XIC(EnabledB)FillWorker(Second,Records,IndexB);','CPT(SpeedCommand,1/SpeedSetpoint);'],self.clipped_aoi)
         e.memory.write('IndexB',1)
         for i,value in enumerate((11,22,33)):e.memory.write(f'Records[{i}].Count',value)
         e.memory.write('SpeedSetpoint',0);self.fault(e,'zero');e.memory.write('SpeedSetpoint',1);e.step()

@@ -213,7 +213,7 @@ class AOILiteralTests(unittest.TestCase):
         self.enabled(e);self.assertEqual(e.memory.read('PreciseResult'),VALUES['Precise'])
 
     def test_later_fault_restores_copied_inputs_outputs_and_bindings(self):
-        e=self.typed(tail=['DIV(1,TestDivisor,TestGuard);']);e.memory.write('Enabled',True)
+        e=self.typed(tail=['CPT(TestGuard,1/TestDivisor);']);e.memory.write('Enabled',True)
         e.memory.write('TestDivisor',0);before=self.snapshot(e)
         with self.assertRaises(ModelError):e.step()
         self.assertEqual(self.snapshot(e),before)

@@ -90,7 +90,7 @@ class ClippedFillTests(unittest.TestCase):
         e = self.checked(['XIC(StartPB)FLL(Source,Fills[3],Mask);'], source_type='REAL', dest_type='DINT', value=3.4e38, count=100000); e.step(); e.memory.write('StartPB', True); before = self.snapshot(e)
         with self.assertRaisesRegex(ModelError, 'overflow'):e.step()
         self.assertEqual(self.snapshot(e), before)
-        e = self.checked(['XIC(StartPB)FLL(Source,Fills[3],Mask)DIV(1,Dest,SpeedCommand);'], value=4660, count=100000); e.step(); e.memory.write('StartPB', True); before = self.snapshot(e)
+        e = self.checked(['XIC(StartPB)FLL(Source,Fills[3],Mask)CPT(SpeedCommand,1/Dest);'], value=4660, count=100000); e.step(); e.memory.write('StartPB', True); before = self.snapshot(e)
         with self.assertRaisesRegex(ModelError, 'zero'):e.step()
         self.assertEqual(self.snapshot(e), before); e.memory.write('Dest', 1); e.step(); self.assertEqual(e.memory.read('Fills')[3:], [52, 52])
 

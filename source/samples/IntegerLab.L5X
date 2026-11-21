@@ -984,7 +984,7 @@
               <Rung Number="2" Type="N"><Text>XIC(ExactRootPowerEnabled)XPY(3,34U,ExactPowerWide);</Text></Rung>
               <Rung Number="3" Type="N"><Text>XIC(ExactRootPowerEnabled)XPY(-1,18446744073709551615UL,ExactPowerOdd);</Text></Rung>
               <Rung Number="4" Type="N"><Text>XIC(ExactRootPowerEnabled)XPY(9007199254740993UL,1,ExactPowerSelected[ExactRootPowerIndex]);</Text></Rung>
-              <Rung Number="5" Type="N"><Text>XIC(ExactRootPowerEnabled)DIV(1,ExactPowerLateDivisor,ExactPowerLateResult);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(ExactRootPowerEnabled)CPT(ExactPowerLateResult,1/ExactPowerLateDivisor);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="RealIntegerOutputs" Type="RLL">
@@ -994,7 +994,7 @@
               <Rung Number="2" Type="N"><Text>XIC(RealIntegerEnabled)SUB(16777217U,16777216.0,RealIntegerCollapsed);</Text></Rung>
               <Rung Number="3" Type="N"><Text>XIC(RealIntegerEnabled)SUB(16777217.0L,16777216.0,RealIntegerBinary64);</Text></Rung>
               <Rung Number="4" Type="N"><Text>XIC(RealIntegerEnabled)XPY(4.0,0.5,RealIntegerSelected[RealIntegerIndex]);</Text></Rung>
-              <Rung Number="5" Type="N"><Text>XIC(RealIntegerEnabled)DIV(1,RealIntegerLateDivisor,RealIntegerLateResult);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(RealIntegerEnabled)CPT(RealIntegerLateResult,1/RealIntegerLateDivisor);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="RealResults" Type="RLL">
@@ -1026,7 +1026,7 @@
               <Rung Number="24" Type="N"><Text>XIC(RealResultsEnabled)XIC(RealResultsDomainFault)XPY(0,-1,RealResultsSub);</Text></Rung>
               <Rung Number="25" Type="N"><Text>XIC(RealResultsEnabled)XIC(RealResultsZeroFault)DIV(1,1e-50,RealResultsSub);</Text></Rung>
               <Rung Number="26" Type="N"><Text>XIC(RealResultsEnabled)XIC(RealResultsOverflowFault)MUL(3.4e38,2,RealResultsSub);</Text></Rung>
-              <Rung Number="27" Type="N"><Text>XIC(RealResultsEnabled)DIV(1,RealResultsLateDivisor,RealResultsLateResult);</Text></Rung>
+              <Rung Number="27" Type="N"><Text>XIC(RealResultsEnabled)CPT(RealResultsLateResult,1/RealResultsLateDivisor);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="RealCompare" Type="RLL">
@@ -1046,7 +1046,7 @@
               <Rung Number="12" Type="N"><Text>XIC(RealCompareEnabled)EQU(RealCompareNegativeZero,0)OTE(RealCompareZeroEqual);</Text></Rung>
               <Rung Number="13" Type="N"><Text>XIC(RealCompareEnabled)GRT(DoubleA,RealCompareUnit)OTE(RealCompareDoublePriority);</Text></Rung>
               <Rung Number="14" Type="N"><Text>XIC(RealCompareEnabled)GRT(RealCompareExact,RealComparePrevious)OTE(RealCompareExactInteger);</Text></Rung>
-              <Rung Number="15" Type="N"><Text>XIC(RealCompareEnabled)DIV(1,RealCompareLateDivisor,RealCompareLateResult);</Text></Rung>
+              <Rung Number="15" Type="N"><Text>XIC(RealCompareEnabled)CPT(RealCompareLateResult,1/RealCompareLateDivisor);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="DoubleResults" Type="RLL">
@@ -1068,7 +1068,7 @@
               <Rung Number="14" Type="N"><Text>XIC(DoubleResultsEnabled)XIC(DoubleResultsDomainFault)XPY(DoubleResultsNegative,DoubleResultsHalf,DoubleResultsDomainResult);</Text></Rung>
               <Rung Number="15" Type="N"><Text>XIC(DoubleResultsEnabled)XIC(DoubleResultsZeroFault)DIV(3,0,DoubleResultsZeroResult);</Text></Rung>
               <Rung Number="16" Type="N"><Text>XIC(DoubleResultsEnabled)XIC(DoubleResultsOverflowFault)XPY(2147483647,2147483647,DoubleResultsOverflowResult);</Text></Rung>
-              <Rung Number="17" Type="N"><Text>XIC(DoubleResultsEnabled)DIV(1,DoubleResultsLateDivisor,DoubleResultsLateResult);</Text></Rung>
+              <Rung Number="17" Type="N"><Text>XIC(DoubleResultsEnabled)CPT(DoubleResultsLateResult,1/DoubleResultsLateDivisor);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="DoubleConstants" Type="RLL">
@@ -1090,7 +1090,7 @@
               <Rung Number="14" Type="N"><Text>XIC(EnableDoubleConstants)SUB(DoubleConstantsPrecise,16777217,DoubleConstantsPrecision);</Text></Rung>
               <Rung Number="15" Type="N"><Text>XIC(EnableDoubleConstants)GRT(DoubleA,1)OTE(DoubleConstantsPrecisionGreater);</Text></Rung>
               <Rung Number="16" Type="N"><Text>XIC(EnableDoubleConstants)XIC(DoubleConstantsZeroFault)DIV(DoubleConstantsValues[DoubleConstantsIndex],0,DoubleConstantsFaultResult);</Text></Rung>
-              <Rung Number="17" Type="N"><Text>XIC(EnableDoubleConstants)DIV(1,DoubleConstantsLateDivisor,DoubleConstantsLateResult);</Text></Rung>
+              <Rung Number="17" Type="N"><Text>XIC(EnableDoubleConstants)CPT(DoubleConstantsLateResult,1/DoubleConstantsLateDivisor);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="MixedDoubleCompare" Type="RLL">
@@ -1106,7 +1106,7 @@
               <Rung Number="8" Type="N"><Text>XIC(EnableDoubleCompare)EQU(DoubleCompareLint,DoubleCompareWide)OTE(DoubleCompareWideEqual);</Text></Rung>
               <Rung Number="9" Type="N"><Text>XIC(EnableDoubleCompare)EQU(DoubleCompareUlint,DoubleCompareMax)OTE(DoubleCompareUnsignedEqual);</Text></Rung>
               <Rung Number="10" Type="N"><Text>XIC(EnableDoubleCompare)GRT(DoubleCompareTiny,DoubleCompareZero)OTE(DoubleCompareTinyGreater);</Text></Rung>
-              <Rung Number="11" Type="N"><Text>XIC(EnableDoubleCompare)DIV(1,DoubleCompareLateDivisor,DoubleCompareLateResult);</Text></Rung>
+              <Rung Number="11" Type="N"><Text>XIC(EnableDoubleCompare)CPT(DoubleCompareLateResult,1/DoubleCompareLateDivisor);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="MixedDouble" Type="RLL">
@@ -1119,7 +1119,7 @@
               <Rung Number="5" Type="N"><Text>XIC(EnableMixedDouble)MOD(DoubleA,MixedDoubleDivisor,MixedDoubleRemainder);</Text></Rung>
               <Rung Number="6" Type="N"><Text>XIC(EnableMixedDouble)SUB(MixedDoubleLint,MixedDoubleRounded,MixedDoubleWide);</Text></Rung>
               <Rung Number="7" Type="N"><Text>XIC(EnableMixedDouble)ADD(MixedDoubleUlint,DoubleA,MixedDoubleUnsigned);</Text></Rung>
-              <Rung Number="8" Type="N"><Text>XIC(EnableMixedDouble)DIV(1,MixedDoubleLateDivisor,MixedDoubleLateResult);</Text></Rung>
+              <Rung Number="8" Type="N"><Text>XIC(EnableMixedDouble)CPT(MixedDoubleLateResult,1/MixedDoubleLateDivisor);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="DoubleMath" Type="RLL">
@@ -1139,7 +1139,7 @@
               <Rung Number="12" Type="N"><Text>XIC(EnableDoubleMath)GRT(DoubleA,DoubleB)OTE(DoubleGt);</Text></Rung>
               <Rung Number="13" Type="N"><Text>XIC(EnableDoubleMath)GEQ(DoubleA,DoubleB)OTE(DoubleGe);</Text></Rung>
               <Rung Number="14" Type="N"><Text>XIC(EnableDoubleMath)LIM(DoubleLow,DoubleA,DoubleHigh)OTE(DoubleInLimits);</Text></Rung>
-              <Rung Number="15" Type="N"><Text>XIC(EnableDoubleMath)DIV(1,DoubleMathDivisor,DoubleMathFaultResult);</Text></Rung>
+              <Rung Number="15" Type="N"><Text>XIC(EnableDoubleMath)CPT(DoubleMathFaultResult,1/DoubleMathDivisor);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="DoubleStorage" Type="RLL">
@@ -1149,7 +1149,7 @@
               <Rung Number="2" Type="N"><Text>XIC(EnableDouble)MOV(DoubleInput,DoubleRounded);</Text></Rung>
               <Rung Number="3" Type="N"><Text>XIC(EnableDouble)MOV(DoubleInput,DoubleAsInteger);</Text></Rung>
               <Rung Number="4" Type="N"><Text>XIC(EnableDouble)CLR(DoubleClear);</Text></Rung>
-              <Rung Number="5" Type="N"><Text>XIC(EnableDouble)DIV(1,DoubleDivisor,DoubleLateResult);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(EnableDouble)CPT(DoubleLateResult,1/DoubleDivisor);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="WideText" Type="ST">
@@ -1229,7 +1229,7 @@
               <Rung Number="6" Type="N"><Text>XIC(NarrowRealEnabled)ADD(NarrowRealInput,0UL,NarrowRealSelected[NarrowRealIndex]);</Text></Rung>
               <Rung Number="7" Type="N"><Text>XIC(NarrowRealEnabled)EQU(NarrowRealSINT,2)OTE(NarrowRealRoundedEven);</Text></Rung>
               <Rung Number="8" Type="N"><Text>XIC(NarrowRealEnabled)XIC(NarrowRealBoundaryEnabled)ADD(NarrowRealBoundarySource,0UL,NarrowRealBoundaryResult);</Text></Rung>
-              <Rung Number="9" Type="N"><Text>XIC(NarrowRealEnabled)DIV(1,NarrowRealLateDivisor,NarrowRealLateResult);</Text></Rung>
+              <Rung Number="9" Type="N"><Text>XIC(NarrowRealEnabled)CPT(NarrowRealLateResult,1/NarrowRealLateDivisor);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="CheckedIntegerMath" Type="RLL">
@@ -1243,7 +1243,7 @@
               <Rung Number="6" Type="N"><Text>XIC(CheckedMathEnabled)ABS(CheckedMathWide,CheckedMathAbsolute);</Text></Rung>
               <Rung Number="7" Type="N"><Text>XIC(CheckedMathEnabled)ADD(1UL,2L,CheckedMathLiteral);</Text></Rung>
               <Rung Number="8" Type="N"><Text>XIC(CheckedMathEnabled)ADD(CheckedMathWide,CheckedMathUnsigned,CheckedMathSelected[CheckedMathIndex]);</Text></Rung>
-              <Rung Number="9" Type="N"><Text>XIC(CheckedMathEnabled)DIV(1,CheckedMathLateDivisor,CheckedMathLateResult);</Text></Rung>
+              <Rung Number="9" Type="N"><Text>XIC(CheckedMathEnabled)CPT(CheckedMathLateResult,1/CheckedMathLateDivisor);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

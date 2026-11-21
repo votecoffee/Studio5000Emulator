@@ -101,14 +101,14 @@ class EventTaskTests(unittest.TestCase):
             self.assertEqual(e.scheduler_description()['tasks'][1]['executions'],i)
 
     def test_event_body_fault_rolls_back_parent_writes_clock_and_scheduler(self):
-        e=self.checked([['ADD(Count0,1,Count0);','EVENT(Task1);'],['ADD(Count1,1,Count1);','DIV(1,0,SpeedCommand);']])
+        e=self.checked([['ADD(Count0,1,Count0);','EVENT(Task1);'],['ADD(Count1,1,Count1);','CPT(SpeedCommand,1/0);']])
         before=copy.deepcopy(e.memory.values);schedule=copy.deepcopy(e.scheduler_description())
         with self.assertRaises(ModelError):e.step()
         self.assertEqual(e.memory.values,before);self.assertEqual(e.scheduler_description(),schedule)
         self.assertEqual((e.scan_count,e.time_ms),(0,0));self.assertIsNone(e._event_dispatch);self.assertIsNone(e._executing_task)
 
     def test_later_parent_fault_rolls_back_completed_events_overlaps_and_first_scans(self):
-        e=self.checked([['EVENT(Task1);','DIV(1,0,SpeedCommand);'],['ADD(Count1,1,Count1);','EVENT(Task1);','XIC(S:FS)ADD(First1,1,First1);']])
+        e=self.checked([['EVENT(Task1);','CPT(SpeedCommand,1/0);'],['ADD(Count1,1,Count1);','EVENT(Task1);','XIC(S:FS)ADD(First1,1,First1);']])
         before=copy.deepcopy(e.memory.values);schedule=copy.deepcopy(e.scheduler_description())
         with self.assertRaises(ModelError):e.step()
         self.assertEqual(e.memory.values,before);self.assertEqual(e.scheduler_description(),schedule)
@@ -208,7 +208,7 @@ class EventTaskTests(unittest.TestCase):
 
     def test_fault_before_deferred_execution_discards_pending_work_and_diagnostics(self):
         e=self.graph([dict(Priority='2'),dict(Type='EVENT',Priority='5')],
-                     [['EVENT(Task1);','EVENT(Task1);','DIV(1,0,SpeedCommand);'],['ADD(Count1,1,Count1);']])
+                     [['EVENT(Task1);','EVENT(Task1);','CPT(SpeedCommand,1/0);'],['ADD(Count1,1,Count1);']])
         before=copy.deepcopy(e.memory.values);schedule=copy.deepcopy(e.scheduler_description())
         with self.assertRaisesRegex(ModelError,'rolled back'):e.step()
         self.assertEqual(e.memory.values,before);self.assertEqual(e.scheduler_description(),schedule)
@@ -216,7 +216,7 @@ class EventTaskTests(unittest.TestCase):
     def test_deferred_fault_rolls_back_completed_tasks_and_retry_has_no_stale_queue(self):
         e=self.graph([dict(Priority='2'),dict(Type='EVENT',Priority='5'),dict(Type='EVENT',Priority='6')],
                      [['EVENT(Task1);','EVENT(Task1);','EVENT(Task2);'],['ADD(Count1,1,Count1);','TON(StartDelay,?,?);'],
-                      ['DIV(10,SpeedSetpoint,SpeedCommand);']])
+                      ['CPT(SpeedCommand,10/SpeedSetpoint);']])
         e.memory.write('SpeedSetpoint',0);before=copy.deepcopy(e.memory.values);schedule=copy.deepcopy(e.scheduler_description())
         with self.assertRaisesRegex(ModelError,'rolled back'):e.step()
         self.assertEqual(e.memory.values,before);self.assertEqual(e.scheduler_description(),schedule)
@@ -227,7 +227,7 @@ class EventTaskTests(unittest.TestCase):
 
     def test_later_base_fault_rolls_back_already_completed_deferred_task(self):
         e=self.graph([dict(Priority='2'),dict(Type='EVENT',Priority='5'),dict(Priority='6')],
-                     [['EVENT(Task1);'],['ADD(Count1,1,Count1);'],['DIV(1,0,SpeedCommand);']])
+                     [['EVENT(Task1);'],['ADD(Count1,1,Count1);'],['CPT(SpeedCommand,1/0);']])
         before=copy.deepcopy(e.memory.values);schedule=copy.deepcopy(e.scheduler_description())
         with self.assertRaisesRegex(ModelError,'rolled back'):e.step()
         self.assertEqual(e.memory.values,before);self.assertEqual(e.scheduler_description(),schedule)

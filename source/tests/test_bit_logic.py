@@ -195,7 +195,7 @@ class BitLogicTests(unittest.TestCase):
         self.assertTrue(self.engine(['OTE(S:FS);']).blockers)
 
     def test_later_fault_restores_coils_latches_edge_storage_and_scheduler(self):
-        e = self.checked(['XIC(StartPB)OTE(State.Output)OTL(State.Latch)OSR(State.Storage,State.Pulse);', 'DIV(1,Mask,SpeedCommand);'])
+        e = self.checked(['XIC(StartPB)OTE(State.Output)OTL(State.Latch)OSR(State.Storage,State.Pulse);', 'CPT(SpeedCommand,1/Mask);'])
         e.memory.write('StartPB', False);e.memory.write('Mask', 1);e.step()
         e.memory.write('StartPB', True);e.memory.write('Mask', 0);before = self.snapshot(e)
         with self.assertRaisesRegex(ModelError, 'zero'):e.step()

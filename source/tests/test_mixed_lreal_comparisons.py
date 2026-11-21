@@ -67,7 +67,7 @@ class MixedLrealComparisonTests(unittest.TestCase):
         e=self.checked(['EQU(Source,Mask);']);e.memory.values['mask']=None;self.fault(e,'Unknown')
 
     def test_late_fault_restores_coils_values_scheduler_and_timing_then_recovers(self):
-        e=self.checked(['MOV(99,SpeedCommand);','GRT(Source,Mask)OTE(RunLatch);','DIV(1,Index,SpeedCommand);']);self.fault(e,'zero');e.memory.write('Index',1);e.step();self.assertTrue(e.memory.read('RunLatch'))
+        e=self.checked(['MOV(99,SpeedCommand);','GRT(Source,Mask)OTE(RunLatch);','CPT(SpeedCommand,1/Index);']);self.fault(e,'zero');e.memory.write('Index',1);e.step();self.assertTrue(e.memory.read('RunLatch'))
 
     def test_alias_and_udt_members_retain_declared_comparison_types(self):
         def fields(root):

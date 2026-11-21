@@ -69,7 +69,7 @@ class DintRadixExpressionTests(unittest.TestCase):
     def test_overflow_divide_by_zero_and_late_fault_restore_warm_scan(self):
         for text in ['-16#80000000', '16#80000000-1', '16#FFFFFFFF/0', 'ABS(16#80000000)']:
             e = self.engine(['MOV(77,SpeedCommand);', f'CPT(Dest,{text});'], dtype='DINT'); self.fault(e, 'overflow|zero')
-        e = self.engine(['CPT(Dest,Source+16#FFFFFFFF);', 'DIV(1,SpeedCommand,SpeedCommand);'], dtype='DINT')
+        e = self.engine(['CPT(Dest,Source+16#FFFFFFFF);', 'CPT(SpeedCommand,1/SpeedCommand);'], dtype='DINT')
         e.memory.write('SpeedCommand', 0); self.fault(e, 'zero')
         e.memory.write('SpeedCommand', 1); e.step(); self.assertEqual(e.memory.read('Dest'), 6)
 
@@ -131,7 +131,7 @@ class DintRadixExpressionTests(unittest.TestCase):
         e.memory.write('Ctl.IN', False); self.fault(e, 'Unknown')
         e.memory.write('Queue[2]', 2); e.step(); self.assertEqual(e.memory.read('Ctl.POS'), 2)
         e = self.engine(['FAL(Ctl,?,?,ALL,Queue[Ctl.POS],Queue[Ctl.POS]+16#FFFFFFFF);',
-                         'DIV(1,0,SpeedCommand);'], file=True, dtype='DINT')
+                         'CPT(SpeedCommand,1/0);'], file=True, dtype='DINT')
         self.fault(e, 'zero')
 
     def test_warm_aoi_direct_and_file_bindings(self):

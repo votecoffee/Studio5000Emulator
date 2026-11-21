@@ -354,7 +354,7 @@ class AddOnTests(unittest.TestCase):
             'SSV(Task,THIS,Priority,WantedPriority);',
             'MOV(1,TotalB)SSV(Task,THIS,DisableUpdateOutputs,TotalB)SSV(Task,THIS,InhibitTask,TotalB);',
             'LabAccumulator(AccumulatorA,StepA,TotalA,SharedA);',
-            'DIV(1,Truncated,TotalB);',
+            'CPT(TotalB,1/Truncated);',
         ])
         self.assertEqual(engine.blockers, [])
         for name, _, initial, _ in fields:
@@ -394,7 +394,7 @@ class AddOnTests(unittest.TestCase):
         prescan = self.body(mode='Prescan')[0].find('Text')
         prescan.text = prescan.text.removesuffix(';') + diagnostics
 
-        engine = self.engine(['EVENT(EventTask);', 'DIV(1,Truncated,TotalB);'])
+        engine = self.engine(['EVENT(EventTask);', 'CPT(TotalB,1/Truncated);'])
         self.assertEqual(engine.blockers, [])
         self.assertEqual(engine.memory.read('AccumulatorA.SeenStatus'), 0)
         self.assertEqual(engine.memory.read('AccumulatorA.SeenOverlaps'), 0)
@@ -463,7 +463,7 @@ class AddOnTests(unittest.TestCase):
         engine = self.engine([
             'XIC(EnableA)CLR(TotalB)SSV(Task,THIS,LastScanTime,TotalB);',
             'LabAccumulator(AccumulatorA,StepA,TotalA,SharedA);',
-            'DIV(1,Truncated,TotalB);',
+            'CPT(TotalB,1/Truncated);',
         ])
         self.assertEqual(engine.blockers, [])
         engine.memory.write('EnableA', False)
@@ -507,7 +507,7 @@ class AddOnTests(unittest.TestCase):
             'SSV(Program,THIS,DisableFlag,DisableCommand);',
             'LabAccumulator(AccumulatorA,StepA,TotalA,SharedA);',
             'LabWrapper(NestedScale,RawValue,ScaledValue);',
-            'DIV(1,Truncated,TotalB);',
+            'CPT(TotalB,1/Truncated);',
         ])
         self.assertEqual(engine.blockers, [])
         self.assertEqual(engine.memory.read('AccumulatorA.StartupDisable'), 0)
@@ -727,7 +727,7 @@ class AddOnTests(unittest.TestCase):
         self.assertEqual(e.memory.read('SharedA'),12);self.assertEqual(e.memory.read('SharedB'),23)
 
     def test_later_fault_rolls_back_local_output_inout_time_and_timer_metadata(self):
-        e=self.engine(['LabAccumulator(AccumulatorA,StepA,TotalA,SharedA);','DIV(1,0,TotalB);'])
+        e=self.engine(['LabAccumulator(AccumulatorA,StepA,TotalA,SharedA);','CPT(TotalB,1/0);'])
         before=copy.deepcopy(e.memory.values)
         with self.assertRaisesRegex(ModelError,'divide'):e.step()
         self.assertEqual(e.memory.values,before);self.assertEqual(e.last_timer,{})
@@ -1217,7 +1217,7 @@ class AddOnTests(unittest.TestCase):
         self.add_packed_output()
         engine = self.engine([
             'LabAccumulator(AccumulatorA,1,TotalA,SharedA,Truncated.2);',
-            'DIV(1,StepA,TotalB);',
+            'CPT(TotalB,1/StepA);',
         ])
         self.assertEqual(engine.blockers, [])
         engine.memory.write('Truncated', 9)

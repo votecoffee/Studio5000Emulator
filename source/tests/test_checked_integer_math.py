@@ -64,7 +64,9 @@ class CheckedIntegerMathTests(unittest.TestCase):
         e=self.make(['MUL(Source,Mask,Dest);'],values=(0,3,0));e.memory.values['mask']=None;self.fault(e,'Unknown')
         e=self.make(['MUL(Source,Mask,Dest);'],dest='SINT',values=(1000,0,0));self.fault(e,'overflow|range')
         e=self.make(['ABS(Source,Dest);'],dest='UINT',values=(-7,0,0));self.fault(e,'overflow|range')
-        e=self.make(['DIV(Source,Mask,Dest);'],values=(7,0,0));self.fault(e,'zero')
+        e=self.make(['DIV(Source,Mask,Dest);'],values=(7,0,0));e.step()
+        self.assertEqual(e.memory.read('Dest'), 7)
+        e=self.make(['DIV(Source,Mask,Dest);'],dest='SINT',values=(1000,0,0));self.fault(e,'overflow|range')
 
     def test_false_prescan_and_selected_alias_writes_establish_unknowns(self):
         def arrays(root):
@@ -79,7 +81,7 @@ class CheckedIntegerMathTests(unittest.TestCase):
         e.memory.write('SpeedCommand',0);self.fault(e,'Unknown');e.memory.write('SpeedCommand',1);e.step();self.assertEqual(e.memory.read('Dest'),[101,10,999])
 
     def test_late_faults_restore_earlier_integer_results_then_retry(self):
-        e=self.make(['ADD(Source,Mask,Dest);','DIV(1,SpeedCommand,SpeedCommand);'])
+        e=self.make(['ADD(Source,Mask,Dest);','CPT(SpeedCommand,1/SpeedCommand);'])
         e.memory.write('SpeedCommand',0);self.fault(e,'zero');e.memory.write('SpeedCommand',1);e.step();self.assertEqual(e.memory.read('Dest'),10)
 
     def test_permissions_shapes_old_profiles_and_unrelated_consumers_stay_separate(self):

@@ -97,7 +97,7 @@ class LrealTruncateTests(unittest.TestCase):
         self.assertEqual((e.memory.read('Source'),e.memory.read('Packet.Value'),e.memory.read('Packet.Guard')),(-16777217.0,-16777217.0,777))
 
     def test_late_fault_restores_scheduler_timing_values_then_recovers(self):
-        e=self.checked(['TRN(Source,Results[1]);','DIV(1,Index,SpeedCommand);']);self.fault(e,'zero')
+        e=self.checked(['TRN(Source,Results[1]);','CPT(SpeedCommand,1/Index);']);self.fault(e,'zero')
         e.memory.write('Index',1);e.memory.write('Source',-3.9999999999999996);e.step();self.assertEqual(e.memory.read('Results[1]'),-3.0)
 
     def aoi(self):

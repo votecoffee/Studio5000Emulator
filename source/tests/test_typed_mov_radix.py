@@ -84,7 +84,7 @@ class TypedMovRadixTests(unittest.TestCase):
         self.assertEqual(e.memory.read('Results'),[None,(1<<64)-1,None])
 
     def test_later_fault_restores_exact_values_and_retry_preserves_guards(self):
-        e = self.checked(['MOV(16#0020_0000_0000_0001L,Results[1]);','DIV(1,Index,Dest);'],dest='LINT')
+        e = self.checked(['MOV(16#0020_0000_0000_0001L,Results[1]);','DIV(1.0,Index,Dest);'],dest='LINT')
         self.fault(e,'zero');e.memory.write('Index',1);e.step()
         self.assertEqual(e.memory.read('Results'),[None,9007199254740993,None])
 

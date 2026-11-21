@@ -85,8 +85,8 @@ class EventTimingTests(unittest.TestCase):
         self.assertEqual(tuple(getattr(e._task_scan_timings['task1'],a) for a in ('last_ns','maximum_ns','executions')),(5000,5000,1));self.assertTrue(e._task_scheduler.inhibitions[1])
 
     def test_parent_and_event_faults_restore_all_event_measurements(self):
-        for bodies in ([['EVENT(Task1);','DIV(1,Divisor,SpeedCommand);'],['EVENT(Task1);']],
-                       [['EVENT(Task1);'],['DIV(1,Divisor,SpeedCommand);']]):
+        for bodies in ([['EVENT(Task1);','CPT(SpeedCommand,1/Divisor);'],['EVENT(Task1);']],
+                       [['EVENT(Task1);'],['CPT(SpeedCommand,1/Divisor);']]):
             e=self.checked(bodies);e.memory.write('Divisor',0);self.fault(e,'zero');self.assertEqual(e._task_scan_timings['task1'],TaskMeasurements())
             e.memory.write('Divisor',1);e.step();self.assertEqual(e._task_scan_timings['task1'].executions,1)
 

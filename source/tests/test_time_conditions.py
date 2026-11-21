@@ -90,7 +90,7 @@ class TimeConditionTests(unittest.TestCase):
             for name,kind in [('Fine','LTIME'),('Coarse','TIME')]:E.SubElement(members,'Member',Name=name,DataType=kind,Dimension='0')
             tag=E.SubElement(root.find('./Controller/Tags'),'Tag',Name='Record',DataType='TimeRecord',TagType='Base');obj=E.SubElement(E.SubElement(tag,'Data',Format='Decorated'),'Structure',DataType='TimeRecord')
             for name,kind,value in [('Fine','LTIME',1001),('Coarse','TIME',1)]:E.SubElement(obj,'DataValueMember',Name=name,DataType=kind,Value=str(value))
-        e=self.make(['CMP(Record.Fine>Record.Coarse)OTE(RunLatch);','DIV(1,SpeedCommand,SpeedCommand);'],change=record)
+        e=self.make(['CMP(Record.Fine>Record.Coarse)OTE(RunLatch);','CPT(SpeedCommand,1/SpeedCommand);'],change=record)
         e.memory.write('SpeedCommand',0);self.fault(e,'zero');e.memory.write('SpeedCommand',1);e.step();self.assertTrue(e.memory.read('RunLatch'))
 
     def test_fsc_all_types_all_modes_hold_and_live_string_resume(self):

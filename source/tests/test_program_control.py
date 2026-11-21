@@ -119,7 +119,7 @@ class ProgramControlTests(unittest.TestCase):
     def test_fault_rolls_back_live_flags_first_scans_program_and_task_progress(self):
         engine = self.checked(['SSV(Program,Program1,DisableFlag,Command);',
                                'GSV(Program,Program1,DisableFlag,Readback);'],
-                              worker=['DIV(1,Divisor,Count1);', 'XIC(S:FS)ADD(First1,1,First1);'])
+                              worker=['CPT(Count1,1/Divisor);', 'XIC(S:FS)ADD(First1,1,First1);'])
         engine.step(10)
         engine.memory.write('Command', 1)
         engine.step(10)
@@ -174,7 +174,7 @@ class ProgramControlTests(unittest.TestCase):
             'GSV(Program,Program1,DisableFlag,Readback);',
         ], st=True, worker=[
             'XIC(S:FS)MOV(StartDelay.ACC,First1);', 'TON(StartDelay,?,?);',
-            'GSV(Program,THIS,DisableFlag,WideReadback);', 'DIV(1,Divisor,Count1);',
+            'GSV(Program,THIS,DisableFlag,WideReadback);', 'CPT(Count1,1/Divisor);',
         ], mutate=source)
         self.assertEqual(engine.memory.read('StartDelay.ACC'),123)
         engine.step(10)

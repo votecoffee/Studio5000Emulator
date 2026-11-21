@@ -162,7 +162,7 @@ class RuntimeTests(unittest.TestCase):
         self.assertEqual(e.memory.read('SpeedCommand'),99)
 
     def test_divide_fault_rolls_back_earlier_writes_and_time(self):
-        e=self.engine(['MOV(99,SpeedCommand);','DIV(1,0,DisplayedPartCount);'])
+        e=self.engine(['MOV(99,SpeedCommand);','CPT(DisplayedPartCount,1/0);'])
         before=copy.deepcopy(e.memory.values)
         with self.assertRaisesRegex(ModelError,'rolled back'): e.step()
         self.assertEqual(e.memory.values,before)
@@ -193,7 +193,7 @@ class RuntimeTests(unittest.TestCase):
             'MOV(99,SpeedCommand);',
             'OTL(RunLatch);',
             'TON(StartDelay,?,?);',
-            'XIC(StartPB)DIV(1,0,DisplayedPartCount);',
+            'XIC(StartPB)CPT(DisplayedPartCount,1/0);',
         ], add_cold_tag)
         self.assertEqual(engine.blockers, [])
         memory = engine.memory

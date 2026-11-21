@@ -102,7 +102,7 @@ class SsvWallClockTests(unittest.TestCase):
 
     def test_cst_offset_skips_invalid_indices_then_rolls_back_and_retries(self):
         e = self.engine(['XIC(ReadClock)SSV(WallClockTime,,CSTOffset,ClockUnknown[ClockIndex]);',
-                         'DIV(1,ClockDivisor,Out);'])
+                         'CPT(Out,1/ClockDivisor);'])
         with patch.object(e, 'set_wall_clock', side_effect=AssertionError('Unexpected setting')):
             e.step()
             e.memory.write('ReadClock', True)
@@ -161,7 +161,7 @@ class SsvWallClockTests(unittest.TestCase):
 
     def test_late_fault_discards_clock_and_readback_then_retry_has_no_throttle_debt(self):
         e=self.engine(['SSV(WallClockTime,,CurrentValue,ClockTarget);','GSV(WallClockTime,,CurrentValue,ClockMeasured);',
-                       'DIV(1,ClockDivisor,ClockDivisor);'])
+                       'CPT(ClockDivisor,1/ClockDivisor);'])
         e.memory.write('ClockDivisor',0);self.fault(e,'zero');self.assertEqual(e.coordinated_clock.utc.state,ClockAdjustment())
         e.memory.write('ClockDivisor',1);e.step();self.assertEqual(e.memory.read('ClockMeasured'),TARGET)
 

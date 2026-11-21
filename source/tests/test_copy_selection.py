@@ -71,7 +71,7 @@ class CopySelectionTests(unittest.TestCase):
         before=self.snapshot(e)
         with self.assertRaisesRegex(ModelError,'Partial numeric-copy destination'):e.step()
         self.assertEqual(self.snapshot(e),before);e.memory.write('Dst[0]',0x11223344);e.step();self.assertEqual(e.memory.read('Dst'),[0x11030201,None,None])
-        e=self.checked(['COP(Src[0],Dst[0],Lengths[0]);','DIV(1,SpeedSetpoint,SpeedCommand);']);e.memory.write('Lengths[0]',1);e.memory.write('Src[0]',1065353216);e.memory.write('SpeedSetpoint',0);before=self.snapshot(e)
+        e=self.checked(['COP(Src[0],Dst[0],Lengths[0]);','CPT(SpeedCommand,1/SpeedSetpoint);']);e.memory.write('Lengths[0]',1);e.memory.write('Src[0]',1065353216);e.memory.write('SpeedSetpoint',0);before=self.snapshot(e)
         with self.assertRaisesRegex(ModelError,'zero'):e.step()
         self.assertEqual(self.snapshot(e),before);e.memory.write('SpeedSetpoint',1);e.step();self.assertEqual(e.memory.read('Dst'),[1.0,None,None])
 

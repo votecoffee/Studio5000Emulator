@@ -103,7 +103,7 @@ class RealIntegerLiteralTests(unittest.TestCase):
                              ('XPY(-1L,0.5,Results[1]);','finite'),('LN(0UL,Results[1]);','finite'),
                              ('XPY(18446744073709551615UL,3L,Results[1]);','finite')]:
             e=self.checked(['XIC(StartPB)'+call]);e.step();e.memory.write('StartPB',True);self.fault(e,pattern)
-        e=self.checked(['ADD(1L,1U,Results[1]);','DIV(1,Index,SpeedCommand);']);self.fault(e,'zero')
+        e=self.checked(['ADD(1L,1U,Results[1]);','CPT(SpeedCommand,1/Index);']);self.fault(e,'zero')
 
     def test_alias_members_and_overlap_keep_canonical_storage(self):
         def fields(root):

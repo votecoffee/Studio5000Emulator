@@ -4,7 +4,7 @@ import operator
 
 from . import time_values
 from .bit_transfer import operand, unsigned
-from .integer_math import CONTROLLERS, WIDE_TYPES, bit_value, bitwise_immediate_widths, profile, typed_profile, typed_integer, radix_profile, pattern, integer_bounds, dint_radix, read_source, quotient, execute_zero_modulo
+from .integer_math import CONTROLLERS, WIDE_TYPES, bit_value, bitwise_immediate_widths, profile, typed_profile, typed_integer, radix_profile, pattern, integer_bounds, dint_radix, read_source, quotient, execute_zero_divisor
 from .model import INT_BITS, UNSIGNED_BITS, ModelError, coerce, literal
 from .numeric_storage import floating_math_profile, lreal_math_source, typed_literal, write_lreal_math_result
 from .real_math import real
@@ -87,7 +87,7 @@ def execute_lreal(engine,op,scope):
         b=values[1]
         if b == 0:
             if op.name == 'MOD':
-                return execute_zero_modulo(engine, op, scope)
+                return execute_zero_divisor(engine, op, scope, 0)
             if op.name == 'DIV':
                 raise ModelError('DIV LREAL divide by zero')
         result=({'ADD':operator.add,'SUB':operator.sub,'MUL':operator.mul,'DIV':operator.truediv,'MOD':math.fmod}[op.name])(a,b)
@@ -106,7 +106,7 @@ def execute_real(engine,op,scope):
         b=values[1]
         if b == 0:
             if op.name == 'MOD':
-                return execute_zero_modulo(engine, op, scope)
+                return execute_zero_divisor(engine, op, scope, 0)
             if op.name == 'DIV':
                 raise ModelError('DIV REAL divide by zero')
         result=({'ADD':operator.add,'SUB':operator.sub,'MUL':operator.mul,'DIV':operator.truediv,'MOD':math.fmod}[op.name])(a,b)
@@ -330,7 +330,10 @@ def description(project):
                 integer_modulo_zero=dict(result='A true integer MOD writes zero and continues the rung',
                     status='Sets S:MINOR when ReportMinorOverflow is explicitly true',
                     scope='RLL v35 5580 only', native_runtime_parity=False),
-                failures='Reached unknowns, invalid indices, DIV zero divisors, excluded ranges and later faults roll back the advance',
+                integer_divide_zero=dict(result='A true integer DIV writes the dividend and continues the rung',
+                    status='Sets S:MINOR when ReportMinorOverflow is explicitly true',
+                    scope='RLL v35 5580 only', native_runtime_parity=False),
+                failures='Reached unknowns, invalid indices, floating DIV zero divisors, excluded ranges and later faults roll back the advance',
                 native_runtime_parity=False, native_math_status=False,
                 remaining=['Other arithmetic destination conversions/mixed signed-to-unsigned forms, larger/typed arithmetic constants, unsigned bitwise sources for floating destinations, and other wide/unsigned/LREAL remainder mixtures',
                            'Native overflow/status/fault/lifecycle/packed layout and broader controller qualification'])
@@ -383,13 +386,12 @@ def execute_narrowing(engine, op, scope, specification):
     elif op.name=='ABS':result=abs(left)
     else:
         right=values[1]
+        if right == 0 and op.name in ('DIV', 'MOD'):
+            return execute_zero_divisor(engine, op, scope, left if op.name == 'DIV' else 0)
         if op.name=='ADD':result=left+right
         elif op.name=='SUB':result=left-right
         elif op.name=='MUL':result=left*right
         elif op.name=='DIV':result=quotient(left,right)
-        else:
-            if right == 0:
-                return execute_zero_modulo(engine, op, scope)
-            result=left-quotient(left,right)*right
+        else:result=left-quotient(left,right)*right
     engine.memory.write(op.args[-1],coerce(result,dtype),scope)
     return True

@@ -210,7 +210,7 @@
                 <Text>XIC(ShiftRight)BSR(Bits[BitIndex],RightControl,BitIn,?);</Text>
               </Rung>
               <Rung Number="7" Type="N">
-                <Text>DIV(1,FaultDivisor,GuardResult);</Text>
+                <Text>CPT(GuardResult,1/FaultDivisor);</Text>
               </Rung>
             </RLLContent>
           </Routine>

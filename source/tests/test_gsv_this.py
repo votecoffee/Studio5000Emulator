@@ -99,7 +99,7 @@ class GsvThisTests(unittest.TestCase):
         e._executing_task=None;e.step(25);self.assertIsNone(e._executing_task)
 
     def test_later_fault_restores_current_and_named_reads_and_timing_snapshots(self):
-        e=self.checked(['GSV(Task,THIS,Watchdog,Out);','GSV(Program,THIS,LastScanTime,CurrentLast);','DIV(1,Index,NamedLast);'],mutate=self.outputs);self.fault(e,'zero');self.assertIsNone(e._executing_task)
+        e=self.checked(['GSV(Task,THIS,Watchdog,Out);','GSV(Program,THIS,LastScanTime,CurrentLast);','CPT(NamedLast,1/Index);'],mutate=self.outputs);self.fault(e,'zero');self.assertIsNone(e._executing_task)
         e.memory.write('Index',1);e.step(25);self.assertEqual(e.memory.read('Out'),500000);self.assertEqual(e.memory.read('CurrentLast'),0)
 
     def test_context_and_configuration_drift_are_rejected_without_guessing(self):
@@ -159,7 +159,7 @@ class GsvThisTests(unittest.TestCase):
         e=events.EventTaskTests.engine(self, [
             ['EVENT(Task1);','GSV(Routine,THIS,Name,OuterName);'],
             ['GSV(Routine,THIS,Name,InnerName);','GSV(Task,THIS,Instance,EventSlot);',
-             'DIV(1,EventDivisor,Count1);'],
+             'CPT(Count1,1/EventDivisor);'],
         ],mutate=worker)
         self.assertEqual(e.blockers,[])
         with self.assertRaisesRegex(ModelError,'zero'):

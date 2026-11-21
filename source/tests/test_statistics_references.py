@@ -105,7 +105,7 @@ class StatisticsReferenceTests(unittest.TestCase):
             with self.assertRaisesRegex(ModelError,message):e.step()
 
     def test_later_fault_restores_alias_result_control_and_clock(self):
-        e=self.checked(['AVE(WholeView[Index],0,Result,Ctl,?,?);','DIV(1,0,Outgoing);'],length=3,mutate=self.tags);before=self.snapshot(e)
+        e=self.checked(['AVE(WholeView[Index],0,Result,Ctl,?,?);','CPT(Outgoing,1/0);'],length=3,mutate=self.tags);before=self.snapshot(e)
         with self.assertRaises(ModelError):e.step()
         self.assertEqual(self.snapshot(e),before)
 

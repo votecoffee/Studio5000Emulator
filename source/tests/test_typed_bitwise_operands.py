@@ -85,7 +85,7 @@ class TypedBitwiseOperandTests(unittest.TestCase):
     def test_full_unknown_writes_overlap_and_late_faults_are_atomic(self):
         e=self.checked(['OR(18446744073709551615UL,0L,Results[1]);'],dest='ULINT');e.step();self.assertEqual(e.memory.read('Results'),[None,(1<<64)-1,None])
         e=self.checked(['OR(Source,1UL,Source);'],source='ULINT',value=1<<63);e.step();self.assertEqual(e.memory.read('Source'),(1<<63)+1)
-        e=self.checked(['OR(-1L,0UL,Results[1]);','DIV(1,Index,SpeedCommand);']);self.fault(e,'zero');e.memory.write('Index',1);e.step();self.assertEqual(e.memory.read('Results[1]'),-1)
+        e=self.checked(['OR(-1L,0UL,Results[1]);','CPT(SpeedCommand,1/Index);']);self.fault(e,'zero');e.memory.write('Index',1);e.step();self.assertEqual(e.memory.read('Results[1]'),-1)
 
     def test_alias_udt_members_preserve_unwritten_guards(self):
         def fields(root):

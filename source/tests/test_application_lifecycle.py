@@ -42,7 +42,7 @@ def diagnostic_handler_l5x(*, clear_record=False, extra_rung=None, scheduled=Fal
     if clear_record:
         rungs.extend(['CLR(FaultWords[2]);', 'SSV(Program,THIS,MajorFaultRecord,FaultWords[0]);',
                       'MOV(-1,FaultWords[2]);', 'GSV(Program,THIS,MajorFaultRecord,FaultWords[0]);'])
-    rungs.append('DIV(40,HandlerDivisor,HandlerQuotient);')
+    rungs.append('DIV(40.0,HandlerDivisor,HandlerQuotient);')
     if extra_rung:
         rungs.append(extra_rung)
     for index, text in enumerate(rungs):
@@ -3732,7 +3732,7 @@ class ApplicationLifecycleTests(unittest.TestCase):
         from test_scalar_math import ScalarMathTests
         fixture=ScalarMathTests();fixture.setUp()
         try:
-            engine=fixture.checked(['XIC(StartPB)ADD(Inputs[Index],Mask,Results[Index]);','XIC(StartPB)NOT(Inputs[Index],Results[2]);','XIC(StartPB)DIV(Source,Inputs[2],SpeedCommand);']);raw=engine.project.path.read_bytes()
+            engine=fixture.checked(['XIC(StartPB)ADD(Inputs[Index],Mask,Results[Index]);','XIC(StartPB)NOT(Inputs[Index],Results[2]);','XIC(StartPB)CPT(SpeedCommand,Source/Inputs[2]);']);raw=engine.project.path.read_bytes()
         finally:fixture.doCleanups()
         state=self.post('load',{'name':'UnknownScalarMath.L5X','content':base64.b64encode(raw).decode()});self.assertEqual(state['blockers'],[])
         self.post('step',{'dt':10});self.post('write',{'tag':'StartPB','value':True})
@@ -3772,7 +3772,7 @@ class ApplicationLifecycleTests(unittest.TestCase):
         from test_real_remainder import RealRemainderTests
         fixture=RealRemainderTests();fixture.setUp()
         try:
-            engine=fixture.checked(['XIC(StartPB)MOD(Inputs[Index],Mask,Results[Index]);','XIC(StartPB)DIV(Source,Inputs[2],SpeedCommand);']);raw=engine.project.path.read_bytes()
+            engine=fixture.checked(['XIC(StartPB)MOD(Inputs[Index],Mask,Results[Index]);','XIC(StartPB)CPT(SpeedCommand,Source/Inputs[2]);']);raw=engine.project.path.read_bytes()
         finally:fixture.doCleanups()
         state=self.post('load',{'name':'UnknownRealModulo.L5X','content':base64.b64encode(raw).decode()});self.assertEqual(state['blockers'],[])
         self.post('step',{'dt':10});self.post('write',{'tag':'StartPB','value':True})
@@ -3912,7 +3912,7 @@ class ApplicationLifecycleTests(unittest.TestCase):
         from test_scalar_bitwise import ScalarBitwiseTests
         fixture=ScalarBitwiseTests();fixture.setUp()
         try:
-            engine=fixture.checked(['XIC(StartPB)OR(Inputs[Index],Mask,Results[Index]);','XIC(StartPB)NOT(Source,Results[2]);','XIC(StartPB)DIV(1,Inputs[2],SpeedCommand);']);raw=engine.project.path.read_bytes()
+            engine=fixture.checked(['XIC(StartPB)OR(Inputs[Index],Mask,Results[Index]);','XIC(StartPB)NOT(Source,Results[2]);','XIC(StartPB)CPT(SpeedCommand,1/Inputs[2]);']);raw=engine.project.path.read_bytes()
         finally:fixture.doCleanups()
         state=self.post('load',{'name':'UnknownBitwiseWidths.L5X','content':base64.b64encode(raw).decode()});self.assertEqual(state['blockers'],[])
         self.post('step',{'dt':10});self.post('write',{'tag':'StartPB','value':True})
@@ -3956,7 +3956,7 @@ class ApplicationLifecycleTests(unittest.TestCase):
         from test_math_operands import MathOperandTests
         fixture=MathOperandTests();fixture.setUp()
         try:
-            engine=fixture.checked(['XIC(StartPB)SQR(Inputs[Index],Results[Index]);','XIC(StartPB)DIV(1,Inputs[2],SpeedCommand);'],index=None);raw=engine.project.path.read_bytes()
+            engine=fixture.checked(['XIC(StartPB)SQR(Inputs[Index],Results[Index]);','XIC(StartPB)CPT(SpeedCommand,1/Inputs[2]);'],index=None);raw=engine.project.path.read_bytes()
         finally:fixture.doCleanups()
         state=self.post('load',{'name':'UnknownMathIndex.L5X','content':base64.b64encode(raw).decode()});self.assertEqual(state['blockers'],[])
         self.post('step',{'dt':10});self.post('write',{'tag':'StartPB','value':True})
@@ -3995,7 +3995,7 @@ class ApplicationLifecycleTests(unittest.TestCase):
         from test_bit_transfer_operands import BitTransferOperandTests
         fixture=BitTransferOperandTests();fixture.setUp()
         try:
-            engine=fixture.checked(['XIC(StartPB)MVM(Inputs[Index],Masks[Index],Results[Index]);','XIC(StartPB)BTD(Inputs[Index],0,Results[Index],8,8);','XIC(StartPB)DIV(1,Inputs[2],SpeedCommand);'],index=None);raw=engine.project.path.read_bytes()
+            engine=fixture.checked(['XIC(StartPB)MVM(Inputs[Index],Masks[Index],Results[Index]);','XIC(StartPB)BTD(Inputs[Index],0,Results[Index],8,8);','XIC(StartPB)CPT(SpeedCommand,1/Inputs[2]);'],index=None);raw=engine.project.path.read_bytes()
         finally:fixture.doCleanups()
         state=self.post('load',{'name':'UnknownBitTransferOperands.L5X','content':base64.b64encode(raw).decode()});self.assertEqual(state['blockers'],[])
         self.post('step',{'dt':10});self.post('write',{'tag':'StartPB','value':True})
@@ -4039,7 +4039,7 @@ class ApplicationLifecycleTests(unittest.TestCase):
         from test_conversion_operands import ConversionOperandTests
         fixture=ConversionOperandTests();fixture.setUp()
         try:
-            engine=fixture.checked(['XIC(StartPB)TOD(Inputs[Index],Results[Index]);','XIC(StartPB)FRD(Results[Index],Results[2]);','XIC(StartPB)SWPB(Results[Index],WORD,Results[0]);','XIC(StartPB)DIV(1,Inputs[2],SpeedCommand);'],index=None);raw=engine.project.path.read_bytes()
+            engine=fixture.checked(['XIC(StartPB)TOD(Inputs[Index],Results[Index]);','XIC(StartPB)FRD(Results[Index],Results[2]);','XIC(StartPB)SWPB(Results[Index],WORD,Results[0]);','XIC(StartPB)CPT(SpeedCommand,1/Inputs[2]);'],index=None);raw=engine.project.path.read_bytes()
         finally:fixture.doCleanups()
         state=self.post('load',{'name':'UnknownConversionOperands.L5X','content':base64.b64encode(raw).decode()});self.assertEqual(state['blockers'],[])
         self.post('step',{'dt':10});self.post('write',{'tag':'StartPB','value':True})
@@ -4074,7 +4074,7 @@ class ApplicationLifecycleTests(unittest.TestCase):
         from test_mixed_bitwise import MixedBitwiseTests
         fixture=MixedBitwiseTests();fixture.setUp()
         try:
-            engine=fixture.checked(['XIC(StartPB)OR(Inputs[Index],Mask,Results[Index]);','XIC(StartPB)NOT(Source,Results[2]);','XIC(StartPB)DIV(1,LateValues[0],SpeedCommand);']);raw=engine.project.path.read_bytes()
+            engine=fixture.checked(['XIC(StartPB)OR(Inputs[Index],Mask,Results[Index]);','XIC(StartPB)NOT(Source,Results[2]);','XIC(StartPB)CPT(SpeedCommand,1/LateValues[0]);']);raw=engine.project.path.read_bytes()
         finally:fixture.doCleanups()
         state=self.post('load',{'name':'MixedBitwiseUnknowns.L5X','content':base64.b64encode(raw).decode()});self.assertEqual(state['blockers'],[])
         self.post('step',{'dt':10});self.post('write',{'tag':'StartPB','value':True})
@@ -4110,7 +4110,7 @@ class ApplicationLifecycleTests(unittest.TestCase):
         fixture=MixedMeqTests();fixture.setUp()
         try:
             def constant(root):root.find('./Controller/Tags/Tag[@Name="Dest"]').set('Constant','true')
-            engine=fixture.checked(['XIC(StartPB)MEQ(Values[Index],Mask,Dest)OTE(RunLatch);','XIC(StartPB)DIV(1,SpeedCommand,SpeedCommand);'],types=('ULINT','USINT','DINT'),values=(7,0,7),mutate=constant)
+            engine=fixture.checked(['XIC(StartPB)MEQ(Values[Index],Mask,Dest)OTE(RunLatch);','XIC(StartPB)CPT(SpeedCommand,1/SpeedCommand);'],types=('ULINT','USINT','DINT'),values=(7,0,7),mutate=constant)
             raw=engine.project.path.read_bytes()
         finally:fixture.doCleanups()
         state=self.post('load',{'name':'UnknownMixedMEQ.L5X','content':base64.b64encode(raw).decode()});self.assertEqual(state['blockers'],[])
@@ -4151,7 +4151,7 @@ class ApplicationLifecycleTests(unittest.TestCase):
         from test_wide_bcd import WideBCDTests
         f=WideBCDTests();f.setUp()
         try:
-            engine=f.checked(['XIC(StartPB)TOD(Inputs[Index],Results[Index]);','XIC(StartPB)FRD(Results[Index],Decoded[Index]);','XIC(StartPB)DIV(1,SpeedCommand,SpeedCommand);'])
+            engine=f.checked(['XIC(StartPB)TOD(Inputs[Index],Results[Index]);','XIC(StartPB)FRD(Results[Index],Decoded[Index]);','XIC(StartPB)CPT(SpeedCommand,1/SpeedCommand);'])
             raw=engine.project.path.read_bytes()
         finally:f.doCleanups()
         self.assertEqual(self.post('load',{'name':'UnknownWideBCD.L5X','content':base64.b64encode(raw).decode()})['blockers'],[])

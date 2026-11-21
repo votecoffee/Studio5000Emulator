@@ -82,7 +82,7 @@ class LrealUnarySourceTests(unittest.TestCase):
     def test_tag_domains_overflow_and_later_fault_restore_advance_and_timing(self):
         for name,dtype,value in [('LN','USINT',0),('LOG','DINT',-1),('ASN','UINT',2),('ACS','REAL',-2),('DEG','LREAL',1e308)]:
             e=self.checked(['MOV(99,SpeedCommand);',f'{name}(Source,Results[1]);'],source=dtype,value=value);self.fault(e,'finite LREAL')
-        e=self.checked(['SQR(Source,Results[1]);','DIV(1,Index,SpeedCommand);'],value=9)
+        e=self.checked(['SQR(Source,Results[1]);','CPT(SpeedCommand,1/Index);'],value=9)
         self.fault(e,'zero');e.memory.write('Index',1);e.step();self.assertEqual(e.memory.read('Results[1]'),3.0)
 
     def test_alias_udt_unknown_member_and_overlapping_results_preserve_guards(self):

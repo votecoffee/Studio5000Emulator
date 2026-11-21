@@ -77,7 +77,7 @@ class RealNarrowResultTests(unittest.TestCase):
         for call,error in [('DIV(1UL,1e-50,Results[1]);','zero'),('LN(-1.0,Results[1]);','finite'),
                 ('XPY(16#FFFFFFFFFFFFFFFFUL,3.0,Results[1]);','finite')]:
             e=self.checked(['MOV(99,SpeedCommand);',call],dest='DINT');self.fault(e,error)
-        e=self.checked(['ADD(Source,0UL,Results[1]);','DIV(1,Index,SpeedCommand);'],source='REAL',value=2.5,dest='SINT')
+        e=self.checked(['ADD(Source,0UL,Results[1]);','CPT(SpeedCommand,1/Index);'],source='REAL',value=2.5,dest='SINT')
         self.fault(e,'zero');e.memory.write('Index',1);e.step();self.assertEqual(e.memory.read('Results[1]'),2)
 
     def test_guards_permissions_and_targets_are_structural_even_when_false(self):

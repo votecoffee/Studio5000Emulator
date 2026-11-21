@@ -73,7 +73,7 @@ class WideIntegerRootPowerTests(unittest.TestCase):
             else:e.step(); self.assertEqual(e.memory.read('Dest'), 1 << (bits-1))
         e = self.engine(['CPT(Dest,Source**Mask);'], values=(2, -1, 0)); self.fault(e, 'exponent')
         e = self.engine(['CPT(Dest,SQR(Source)**2);'], dtype='USINT', values=(255, 0, 0)); self.fault(e, 'overflow')
-        e = self.engine(['CPT(Dest,SQR(Source));', 'DIV(1,SpeedCommand,SpeedCommand);'])
+        e = self.engine(['CPT(Dest,SQR(Source));', 'CPT(SpeedCommand,1/SpeedCommand);'])
         e.memory.write('SpeedCommand', 0); self.fault(e, 'zero'); e.memory.write('SpeedCommand', 1); e.step()
         self.assertEqual(e.memory.read('Dest'), 3)
 

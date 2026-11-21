@@ -1270,11 +1270,11 @@ class Engine:
             if p:
                 x, y = r(0), r(1)
                 if n in ("DIV", "MOD") and y == 0:
-                    if (n == "MOD" and scalar_math.available(self.project) and type(x) is int and type(y) is int
+                    if (scalar_math.available(self.project) and type(x) is int and type(y) is int
                             and not any(time_values.operand_type(self.memory, ref, scope) for ref in a[:2])):
                         from .model import INT_BITS
                         if self.memory.resolve(a[2], scope)[2] in INT_BITS:
-                            return integer_math.execute_zero_modulo(self, op, scope)
+                            return integer_math.execute_zero_divisor(self, op, scope, x if n == 'DIV' else 0)
                     raise ModelError(f"{n} divide by zero")
                 if n == "MOD":
                     if scalar_math.available(self.project) and (isinstance(x, float) or isinstance(y, float)):

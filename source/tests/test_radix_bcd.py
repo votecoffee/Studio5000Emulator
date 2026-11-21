@@ -80,7 +80,7 @@ class RadixBCDTests(unittest.TestCase):
         e=self.checked(['TOD(Inputs[1],Results[1]);']);self.fault(e,'Unknown')
 
     def test_late_fault_restores_exact_packed_values_and_retry(self):
-        e=self.checked(['TOD(16#0020000000000001UL,Results[1]);','DIV(1,Index,SpeedCommand);'])
+        e=self.checked(['TOD(16#0020000000000001UL,Results[1]);','CPT(SpeedCommand,1/Index);'])
         self.fault(e,'zero');e.memory.write('Index',1);e.step()
         self.assertEqual(e.memory.read('Results'),[None,0x9007199254740993,None])
 

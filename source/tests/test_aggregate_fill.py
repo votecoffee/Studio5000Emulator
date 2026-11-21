@@ -117,7 +117,7 @@ class AggregateFillTests(unittest.TestCase):
         self.assertEqual(self.snapshot(e),before);e.instruction_limit=1000;e.step();self.assert_cell_zero(e.memory.read('Records')[0])
 
     def test_later_fault_restores_full_records_and_flags(self):
-        e=self.checked(['FLL(0,Records[0],2);','DIV(1,SpeedSetpoint,SpeedCommand);']);e.memory.write('SpeedSetpoint',0);before=self.snapshot(e)
+        e=self.checked(['FLL(0,Records[0],2);','CPT(SpeedCommand,1/SpeedSetpoint);']);e.memory.write('SpeedSetpoint',0);before=self.snapshot(e)
         with self.assertRaisesRegex(ModelError,'zero'):e.step()
         self.assertEqual(self.snapshot(e),before);e.memory.write('SpeedSetpoint',1);e.step();self.assert_cell_zero(e.memory.read('Records')[1])
 
@@ -221,7 +221,7 @@ class AggregateFillTests(unittest.TestCase):
         self.assertEqual(self.snapshot(e),before)
 
     def test_all_ones_budget_and_later_faults_restore_complete_records(self):
-        e=self.checked(['FLL(-1,Masks[0],2);','DIV(1,SpeedSetpoint,SpeedCommand);'],self.integral_fields)
+        e=self.checked(['FLL(-1,Masks[0],2);','CPT(SpeedCommand,1/SpeedSetpoint);'],self.integral_fields)
         e.memory.write('SpeedSetpoint',0);before=self.snapshot(e)
         with self.assertRaises(ModelError):e.step()
         self.assertEqual(self.snapshot(e),before)

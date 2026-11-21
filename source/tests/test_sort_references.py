@@ -84,7 +84,7 @@ class SortReferenceTests(unittest.TestCase):
         self.assertTrue(self.engine(['SRT(Selected,0,Ctl,?,?);'],mutate=constant).blockers)
 
     def test_late_fault_restores_selected_array_and_control(self):
-        e=self.checked(['SRT(View[Index],0,Ctl,?,?);','DIV(1,0,Outgoing);']);before=self.snapshot(e)
+        e=self.checked(['SRT(View[Index],0,Ctl,?,?);','CPT(Outgoing,1/0);']);before=self.snapshot(e)
         with self.assertRaises(ModelError):e.step()
         self.assertEqual(self.snapshot(e),before)
 

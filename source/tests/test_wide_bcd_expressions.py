@@ -67,7 +67,7 @@ class WideBcdExpressionTests(unittest.TestCase):
                 e = self.engine(['MOV(77,SpeedCommand);', 'CPT(Dest,TOD(Source));'], dtype=dtype, values=(value, 0, 0))
                 self.fault(e, 'range')
         e = self.engine(['CPT(Dest,FRD(Source+1L));'], values=((1 << 63)-1, 0, 0)); self.fault(e, 'overflow')
-        e = self.engine(['CPT(Dest,TOD(Source));', 'DIV(1,SpeedCommand,SpeedCommand);'])
+        e = self.engine(['CPT(Dest,TOD(Source));', 'CPT(SpeedCommand,1/SpeedCommand);'])
         e.memory.write('SpeedCommand', 0); self.fault(e, 'zero'); e.memory.write('SpeedCommand', 1); e.step()
         self.assertEqual(e.memory.read('Dest'), 7)
 

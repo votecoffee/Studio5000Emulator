@@ -85,10 +85,10 @@ class TypedIntegerOperandTests(unittest.TestCase):
             e=self.engine(['AFI()'+call+'OTE(RunLatch);'])
             self.assertEqual(bool(e.blockers),call!='EQU(-1L,1U)')
 
-    def test_result_overflows_zero_divisors_and_late_failures_are_atomic(self):
-        for call,dtype,pattern in [('ADD(9223372036854775807L,1L,Results[1]);','LINT','overflow'),('ABS(-9223372036854775808L,Results[1]);','LINT','overflow'),('DIV(-9223372036854775808L,-1L,Results[1]);','LINT','overflow'),('SUB(0UL,1UL,Results[1]);','ULINT','overflow'),('MUL(18446744073709551615UL,2UL,Results[1]);','ULINT','overflow'),('DIV(1UL,0UL,Results[1]);','ULINT','zero')]:
+    def test_result_overflows_and_late_failures_are_atomic(self):
+        for call,dtype,pattern in [('ADD(9223372036854775807L,1L,Results[1]);','LINT','overflow'),('ABS(-9223372036854775808L,Results[1]);','LINT','overflow'),('DIV(-9223372036854775808L,-1L,Results[1]);','LINT','overflow'),('SUB(0UL,1UL,Results[1]);','ULINT','overflow'),('MUL(18446744073709551615UL,2UL,Results[1]);','ULINT','overflow')]:
             e=self.checked(['XIC(StartPB)'+call],source=dtype,dest=dtype);e.step();e.memory.write('StartPB',True);self.fault(e,pattern)
-        e=self.checked(['ADD(1L,1L,Results[1]);','DIV(1,Index,SpeedCommand);']);self.fault(e,'zero')
+        e=self.checked(['ADD(1L,1L,Results[1]);','CPT(SpeedCommand,1/Index);']);self.fault(e,'zero')
 
     def test_false_paths_and_unknown_full_writes_keep_existing_contracts(self):
         e=self.checked(['XIC(StartPB)ADD(Inputs[Index],1L,Results[Index]);']);e.memory.write('Index',999);e.step();e.memory.write('StartPB',True);self.fault(e,'outside bounds');e.memory.write('Index',1);self.fault(e,'Unknown');e.memory.write('Inputs[1]',9007199254740993);e.step();self.assertEqual(e.memory.read('Results'),[None,9007199254740994,None])

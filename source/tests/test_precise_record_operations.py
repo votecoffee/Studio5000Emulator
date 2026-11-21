@@ -91,7 +91,7 @@ class PreciseRecordOperationTests(unittest.TestCase):
 
     def test_copy_and_zero_fill_roll_back_on_later_fault_and_retry(self):
         e=self.precise(['XIC(LoadPart)COP(IncomingPart,CopiedPart,1);',
-                        'XIC(UnloadPart)FLL(0,CopiedPart,1);','DIV(1,FaultDivisor,GuardResult);'])
+                        'XIC(UnloadPart)FLL(0,CopiedPart,1);','CPT(GuardResult,1/FaultDivisor);'])
         expected=self.sample(e);e.memory.write('LoadPart',True);e.memory.write('FaultDivisor',0);before=self.snapshot(e)
         with self.assertRaises(ModelError):e.step()
         self.assertEqual(self.snapshot(e),before)

@@ -122,12 +122,14 @@ class IntegerMathTests(unittest.TestCase):
         self.assertEqual(e.blockers, []); e.step()
         self.assertEqual(e.memory.read('WideDest'), 13)
 
-    def test_divide_by_zero_rolls_back_and_does_not_claim_native_minor_fault(self):
-        e = self.engine(['MOV(99,SpeedCommand);', 'DIV(WideA,WideB,WideDest);'], a=7, b=0, dest=13)
-        self.assertEqual(e.blockers, [])
-        with self.assertRaisesRegex(ModelError, 'divide by zero'): e.step()
-        self.assertEqual(e.memory.read('WideDest'), 13)
-        self.assertEqual(e.memory.read('SpeedCommand'), 0)
+    def test_divide_by_zero_copies_the_full_width_dividend(self):
+        for dtype, value in (('LINT', -9007199254740993), ('ULINT', (1 << 64) - 1)):
+            with self.subTest(dtype=dtype):
+                e = self.engine(['DIV(WideA,WideB,WideDest)OTE(Result);'], dtype, a=value, b=0, dest=13)
+                self.assertEqual(e.blockers, [])
+                e.step()
+                self.assertEqual(e.memory.read('WideDest'), value)
+                self.assertTrue(e.memory.read('Result'))
 
     def test_bool_and_invalid_immediates_stay_blocked(self):
         self.assertTrue(self.engine(['ADD(WideA,WideB,WideDest);'],

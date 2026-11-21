@@ -49,7 +49,7 @@ class LrealRadixExpressionTests(unittest.TestCase):
             e = self.engine([f'CPT(Dest,{text});'], dtype=dtype); self.fault(e, 'overflow')
         e = self.engine(['CPT(Dest,16#FFFFFFFFFFFFF800UL+0.0L);'], dtype='ULINT'); e.step()
         self.assertEqual(e.memory.read('Dest'), 18446744073709549568)
-        e = self.engine(['CPT(Dest,16#3L/2#10U);', 'DIV(1,SpeedCommand,SpeedCommand);'], dtype='LREAL')
+        e = self.engine(['CPT(Dest,16#3L/2#10U);', 'CPT(SpeedCommand,1/SpeedCommand);'], dtype='LREAL')
         e.memory.write('SpeedCommand', 0); self.fault(e, 'zero'); e.memory.write('SpeedCommand', 1); e.step()
         self.assertEqual(e.memory.read('Dest'), 1.5)
 

@@ -98,7 +98,7 @@ class ControlOperationTests(unittest.TestCase):
             with self.assertRaises(ModelError) as fault:e.step()
             self.assertIs(type(fault.exception.__cause__), error_type)
             self.assertEqual(e.memory.values,before);self.assertEqual((e.scan_count,e.time_ms),(0,0))
-        e=self.checked(['BSL(Words[0],Ctl,BitIn,?);','DIV(1,0,SpeedCommand);']);before=copy.deepcopy(e.memory.values)
+        e=self.checked(['BSL(Words[0],Ctl,BitIn,?);','CPT(SpeedCommand,1/0);']);before=copy.deepcopy(e.memory.values)
         with self.assertRaises(ModelError):e.step()
         self.assertEqual(e.memory.values,before);self.assertEqual(e.scheduler_description()['tasks'][0]['executions'],0)
 

@@ -101,7 +101,7 @@ class TimeSyncStatusTests(unittest.TestCase):
         e.step();self.assertEqual(e.memory.read('StatusValues'),[0,0,0])
 
     def test_warm_late_fault_restores_outputs_and_task_state_then_retries(self):
-        e=self.checked(['GSV(TimeSynchronize,,Priority1,P1Out);','GSV(TimeSynchronize,,PTPEnable,PtpOut);','DIV(1,Divisor,Out);'])
+        e=self.checked(['GSV(TimeSynchronize,,Priority1,P1Out);','GSV(TimeSynchronize,,PTPEnable,PtpOut);','CPT(Out,1/Divisor);'])
         e.step();e.memory.write('P1Out',37);e.memory.write('PtpOut',77);e.memory.write('Divisor',0)
         self.fault(e,'zero');self.assertEqual((e.memory.read('P1Out'),e.memory.read('PtpOut')),(37,77))
         e.memory.write('Divisor',1);e.step();self.assertEqual((e.memory.read('P1Out'),e.memory.read('PtpOut')),(-128,0))
@@ -121,7 +121,7 @@ class TimeSyncStatusTests(unittest.TestCase):
             tag=E.SubElement(c.find('Tags'),'Tag',Name='Reader',DataType='ReadSyncFlags',TagType='Base')
             obj=E.SubElement(E.SubElement(tag,'Data',Format='Decorated'),'Structure',DataType='ReadSyncFlags')
             for name,dtype in (('EnableIn','BOOL'),('EnableOut','BOOL'),('Priority','SINT'),('Status','DINT')):E.SubElement(obj,'DataValueMember',Name=name,DataType=dtype,Value='0')
-        e=self.checked(['ReadSyncFlags(Reader,PortsOut,P1Out);','DIV(1,Divisor,Out);'],mutate=aoi);e.step()
+        e=self.checked(['ReadSyncFlags(Reader,PortsOut,P1Out);','CPT(Out,1/Divisor);'],mutate=aoi);e.step()
         self.assertEqual((e.memory.read('PortsOut'),e.memory.read('P1Out'),e.memory.read('Reader.Status')),(0,-128,0))
         e.memory.write('P1Out',37);e.memory.write('Divisor',0);self.fault(e,'zero')
         e.memory.write('Divisor',1);e.step();self.assertEqual(e.memory.read('P1Out'),-128)

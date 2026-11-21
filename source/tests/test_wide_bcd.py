@@ -151,7 +151,7 @@ class WideBCDTests(unittest.TestCase):
             with self.assertRaisesRegex(ModelError,'qualified'):e.step()
             self.assertEqual(self.snapshot(e),before)
             e.memory.write('Source',99);e.step();self.assertEqual(e.memory.read('Results[1]'),0x99)
-        e=self.checked(['TOD(Source,Results[1]);','FRD(Results[1],Decoded[1]);','DIV(1,Index,SpeedCommand);'])
+        e=self.checked(['TOD(Source,Results[1]);','FRD(Results[1],Decoded[1]);','CPT(SpeedCommand,1/Index);'])
         before=self.snapshot(e)
         with self.assertRaisesRegex(ModelError,'zero'):e.step()
         self.assertEqual(self.snapshot(e),before)

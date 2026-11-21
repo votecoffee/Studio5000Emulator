@@ -75,7 +75,7 @@ class MixedIntegerRootPowerTests(unittest.TestCase):
         e = self.engine(['CPT(Dest,Source**Mask);'], types=('LINT', 'DINT', 'LINT'), values=(-2, 63, 0))
         e.step(); self.assertEqual(e.memory.read('Dest'), -(1 << 63))
         e.memory.write('Mask', -1); self.fault(e, 'exponent'); e.memory.write('Mask', 2147483647); self.fault(e, 'exponent')
-        e = self.engine(['CPT(Dest,SQR(Source)+Mask);', 'DIV(1,SpeedCommand,SpeedCommand);'], types=('LINT', 'DINT', 'LINT'))
+        e = self.engine(['CPT(Dest,SQR(Source)+Mask);', 'CPT(SpeedCommand,1/SpeedCommand);'], types=('LINT', 'DINT', 'LINT'))
         e.memory.write('SpeedCommand', 0); self.fault(e, 'zero'); e.memory.write('SpeedCommand', 1); e.step(); self.assertEqual(e.memory.read('Dest'), 6)
 
     def test_cmp_eager_boolean_sides_consume_unknown_and_zero_divisor(self):

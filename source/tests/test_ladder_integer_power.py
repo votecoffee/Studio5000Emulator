@@ -39,7 +39,7 @@ class LadderIntegerPowerTests(unittest.TestCase):
         for values,types,pattern in (((2,-1,13),('DINT',)*3,'0..31'),((1,32,13),('DINT',)*3,'0..31'),((2,31,13),('DINT',)*3,'overflow'),((3,5,13),('DINT','DINT','SINT'),'overflow')):
             e=self.engine(values=values,types=types);self.files.fault(e,pattern)
         e=self.engine('(Source**Mask)/2',values=(2,31,13));self.files.fault(e,'overflow')
-        e=self.scalar.engine(['CPT(Dest,Source**Mask);','DIV(1,0,SpeedCommand);'],values=(-3,3,13));self.files.fault(e,'zero')
+        e=self.scalar.engine(['CPT(Dest,Source**Mask);','CPT(SpeedCommand,1/0);'],values=(-3,3,13));self.files.fault(e,'zero')
 
     def test_false_paths_skip_unknowns_and_runtime_exponent_ranges(self):
         e=self.scalar.engine(['AFI()CPT(Dest,Source**Mask);','AFI()CMP(Source**Mask>0)OTE(RunLatch);'],values=(2,-1,13))

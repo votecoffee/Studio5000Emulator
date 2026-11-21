@@ -140,7 +140,7 @@ class GsvWallClockTests(unittest.TestCase):
 
     def test_coordinated_reads_are_lazy_and_roll_back_without_a_valid_sample(self):
         logic=['XIC(ReadClock)GSV(CST,,CurrentValue,ElapsedWords[ClockIndex]);',
-               'XIC(ReadClock)GSV(WallClockTime,,CSTOffset,ClockWords[1]);','DIV(1,ClockDivisor,Out);']
+               'XIC(ReadClock)GSV(WallClockTime,,CSTOffset,ClockWords[1]);','CPT(Out,1/ClockDivisor);']
         e=self.checked(logic,mutate=self.coordinated_destinations)
         e.coordinated_clock=CoordinatedClock(1_000_000)
         with patch(MONOTONIC,side_effect=AssertionError('Unused clock read')):
@@ -248,7 +248,7 @@ class GsvWallClockTests(unittest.TestCase):
             self.assertEqual(e.memory.read('CalendarRecord'),dict(zip(CALENDAR_FIELDS,FIELDS)) | {'Guard':123})
 
     def test_calendar_record_alias_resolves_lazily_and_rolls_back_a_later_fault(self):
-        logic=['XIC(ReadClock)GSV(WallClockTime,,DateTime,CalendarAlias);','DIV(1,ClockDivisor,Out);']
+        logic=['XIC(ReadClock)GSV(WallClockTime,,DateTime,CalendarAlias);','CPT(Out,1/ClockDivisor);']
         with patch('logixlab.wall_clock.time.time_ns',side_effect=AssertionError('Unused clock read')):
             e=self.checked(logic,mutate=self.calendar_records)
             e.step()
@@ -339,7 +339,7 @@ class GsvWallClockTests(unittest.TestCase):
         with patch('logixlab.wall_clock.time.time_ns',side_effect=OSError('clock unavailable')):self.fault(e,'unavailable')
 
     def test_later_fault_restores_all_destinations_scheduler_and_trace(self):
-        e=self.checked(['GSV(WallClockTime,,DateTime,ClockWords[1]);','GSV(WallClockTime,,CurrentValue,ClockWide);','DIV(1,ClockDivisor,Out);'])
+        e=self.checked(['GSV(WallClockTime,,DateTime,ClockWords[1]);','GSV(WallClockTime,,CurrentValue,ClockWide);','CPT(Out,1/ClockDivisor);'])
         e.memory.write('ClockDivisor',0)
         with patch('logixlab.wall_clock.time.time_ns',return_value=MICROSECONDS*1000):self.fault(e,'zero')
         e.memory.write('ClockDivisor',1)

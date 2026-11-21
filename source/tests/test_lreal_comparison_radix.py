@@ -90,7 +90,7 @@ class LrealComparisonRadixTests(unittest.TestCase):
         def fields(root):
             tags = root.find('./Controller/Tags'); E.SubElement(tags, 'Tag', Name='Selected', DataType='LREAL', TagType='Alias', AliasFor='Inputs[Index]')
             root.find('./Controller/Tags/Tag[@Name="Source"]').set('Constant', 'true')
-        e = self.checked(['EQU(Source,16#FFFFFFFF)OTE(RunLatch);', 'EQU(Selected,16#FFFFFFFF)OTE(RunLatch);', 'DIV(1,Mask,SpeedCommand);'], value=-1, mutate=fields)
+        e = self.checked(['EQU(Source,16#FFFFFFFF)OTE(RunLatch);', 'EQU(Selected,16#FFFFFFFF)OTE(RunLatch);', 'CPT(SpeedCommand,1/Mask);'], value=-1, mutate=fields)
         e.memory.write('Inputs[0]', -1); e.memory.write('Mask', 1); e.step(); before = e.memory.read('Source')
         e.memory.write('RunLatch', False); e.memory.write('Mask', 0); self.fault(e, 'zero')
         e.memory.write('Mask', 1); e.step(); self.assertEqual(e.memory.read('Source'), before)

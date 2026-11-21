@@ -119,7 +119,7 @@ class SmallBCDTests(unittest.TestCase):
         self.assertEqual((e.memory.read('DriverA.Stack[0]'),e.memory.read('DriverB.Stack[0]'),e.memory.read('BufferA[1]'),e.memory.read('BufferB[2]'),e.memory.read('DriverA.Stack[3]')),(-103,-120,99,88,77))
 
     def test_later_fault_restores_successful_small_conversions_and_scheduling(self):
-        e=self.checked(['TOD(Source,Results[1]);','DIV(1,Index,SpeedCommand);'],source='DINT',dest='SINT',value=99);before=self.snapshot(e)
+        e=self.checked(['TOD(Source,Results[1]);','CPT(SpeedCommand,1/Index);'],source='DINT',dest='SINT',value=99);before=self.snapshot(e)
         with self.assertRaisesRegex(ModelError,'zero'):e.step()
         self.assertEqual(self.snapshot(e),before);e.memory.write('Index',1);e.step();self.assertEqual(e.memory.read('Results'),[None,-103,None])
 

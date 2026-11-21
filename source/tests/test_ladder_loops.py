@@ -228,7 +228,7 @@ class LadderLoopTests(unittest.TestCase):
         programs=self.root.find('./Controller/Programs')
         p=E.SubElement(programs,'Program',Name='EventProgram',MainRoutineName='MainRoutine',Disabled='false',Class='Standard')
         E.SubElement(p,'Tags');E.SubElement(p,'Routines')
-        self.routine('MainRoutine',['BRK();','FOR(Body,EventIndex,0,1,1);','BRK()ADD(EventTail,1,EventTail);']+(['DIV(1,0,GuardResult);'] if fault else []),program='EventProgram')
+        self.routine('MainRoutine',['BRK();','FOR(Body,EventIndex,0,1,1);','BRK()ADD(EventTail,1,EventTail);']+(['CPT(GuardResult,1/0);'] if fault else []),program='EventProgram')
         self.routine('Body',['ADD(EventCount,1,EventCount);'],program='EventProgram')
         self.routine('Accumulate',['EVENT(EventTask);','ADD(Iterations,1,Iterations)ADD(Total,Index,Total);'])
         task=E.SubElement(self.root.find('./Controller/Tasks'),'Task',Name='EventTask',Type='EVENT',Priority='1',Watchdog='500',Class='Standard',InhibitTask='false')

@@ -123,7 +123,7 @@ class GsvTimingTests(unittest.TestCase):
         e=self.checked([
             'XIC(ReadTiming)SSV(Program,MainProgram,MaxScanTime,UnknownWords[Index]);',
             'XIC(ReadTiming)SSV(Task,THIS,MaxScanTime,ProgramTicks);',
-            'DIV(1,Divisor,ProgramLast);',
+            'CPT(ProgramLast,1/Divisor);',
         ])
         e.enter_run();e.step()
         e.memory.write('ReadTiming',True);self.fault(e,'outside bounds')
@@ -160,7 +160,7 @@ class GsvTimingTests(unittest.TestCase):
         e.memory.write('Index',3);e.step();self.assertEqual(e.memory.values['unknownwords'],[None,0,None,0,None,None])
 
     def test_later_fault_keeps_values_and_measurements_then_recovery_reads_prior_commit(self):
-        e=self.checked(self.reads()+['DIV(1,Divisor,SpeedCommand);']);e.step();prior=e._program_timings['mainprogram'];task=e._task_measurements
+        e=self.checked(self.reads()+['CPT(SpeedCommand,1/Divisor);']);e.step();prior=e._program_timings['mainprogram'];task=e._task_measurements
         e.memory.write('Divisor',0);self.fault(e,'zero');e.memory.write('Divisor',1);e.step()
         self.assertEqual(e.memory.read('ProgramLast'),prior.last_ns//1000);self.assertEqual(e.memory.read('TaskLast'),task.last_ns//1000)
 

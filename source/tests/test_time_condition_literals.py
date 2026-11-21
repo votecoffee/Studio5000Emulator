@@ -96,7 +96,7 @@ class TimeConditionLiteralTests(unittest.TestCase):
     def test_constant_truth_does_not_hide_required_unknowns(self):
         e=self.make(['CMP((LT#1ns>T#0s)||(Word=OtherWord))OTE(RunLatch);']);e.memory.values['word']['DATA'][0]=None;self.fault(e,'unknown active')
         e=self.make(['CMP((LT#1ns<T#0s)&&(Source>Mask))OTE(RunLatch);']);e.memory.values['source']=None;self.fault(e,'Unknown')
-        e=self.make(['CMP(Source>T#1us)OTE(RunLatch);','DIV(1,SpeedCommand,SpeedCommand);'])
+        e=self.make(['CMP(Source>T#1us)OTE(RunLatch);','CPT(SpeedCommand,1/SpeedCommand);'])
         e.memory.write('SpeedCommand',0);self.fault(e,'zero');e.memory.write('SpeedCommand',1);e.step();self.assertTrue(e.memory.read('RunLatch'))
 
     def test_fsc_all_types_modes_and_live_string_resume(self):

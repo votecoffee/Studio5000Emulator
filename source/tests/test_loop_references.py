@@ -126,8 +126,8 @@ class LoopReferenceTests(unittest.TestCase):
         for nested in (True, False):
             body = ['ADD(SelectedIterations,1,SelectedIterations)ADD(SelectedTotal,IndexSlots[LoopSlot],SelectedTotal);']
             rungs = [self.text]
-            if nested:body += ['DIV(1,FaultDivisor,GuardResult);']
-            else:rungs += ['DIV(1,FaultDivisor,GuardResult);']
+            if nested:body += ['CPT(GuardResult,1/FaultDivisor);']
+            else:rungs += ['CPT(GuardResult,1/FaultDivisor);']
             e = self.checked(rungs, body); e.step(); self.configure(e); e.memory.write('FaultDivisor', 0); before = self.snapshot(e)
             with self.assertRaisesRegex(ModelError, 'zero'):e.step()
             self.assertEqual(self.snapshot(e), before); self.assertEqual(e.calls.stack, [])

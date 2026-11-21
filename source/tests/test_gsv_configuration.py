@@ -80,7 +80,7 @@ class GsvConfigurationTests(unittest.TestCase):
         for st in (False, True):
             with self.subTest(st=st):
                 gated = f'IF Flag THEN {setter} END_IF;' if st else 'XIC(Flag)' + setter
-                late = 'Limit := 1 / Limit;' if st else 'DIV(1,Limit,Limit);'
+                late = 'Limit := 1 / Limit;' if st else 'CPT(Limit,1/Limit);'
                 e = self.checked([gated, readback, late], st=st)
                 e.memory.write('Flag', True)
                 e.memory.write('Out', -3)
@@ -781,7 +781,7 @@ class GsvConfigurationTests(unittest.TestCase):
 
         logic = ['XIC(Flag)SSV(Module,RackIO,Mode,PriorityOut);',
                  'GSV(Module,RackIO,Mode,Out);',
-                 'DIV(1,Limit,Limit);']
+                 'CPT(Limit,1/Limit);']
         e = self.checked(logic, mutate=self.add_rack_module)
         e.memory.write('Flag', True)
         e.memory.write('PriorityOut', 4)
@@ -922,7 +922,7 @@ class GsvConfigurationTests(unittest.TestCase):
     def test_device_serial_matches_identity_and_rolls_back_on_fault(self):
         for st in (False, True):
             with self.subTest(st=st):
-                later = 'Index := 1 / Limit;' if st else 'DIV(1,Limit,Index);'
+                later = 'Index := 1 / Limit;' if st else 'CPT(Index,1/Limit);'
                 e = self.checked(['GSV(ControllerDevice,,SerialNumber,Out);', later], st=st)
                 e.memory.write('Limit', 0)
                 with self.assertRaisesRegex(ModelError, 'zero'):
@@ -937,7 +937,7 @@ class GsvConfigurationTests(unittest.TestCase):
     def test_device_status_uses_one_entry_sample_and_rolls_back_on_fault(self):
         for st in (False,True):
             with self.subTest(st=st):
-                later='Out := 1 / Limit;' if st else 'DIV(1,Limit,Out);'
+                later='Out := 1 / Limit;' if st else 'CPT(Out,1/Limit);'
                 e=self.checked(['GSV(ControllerDevice,,Status,PriorityOut);',later],st=st)
                 self.assertEqual(e.memory.read('PriorityOut'),-7)
                 e.step();self.assertEqual(e.memory.read('PriorityOut'),0x3070)
@@ -1076,7 +1076,7 @@ class GsvConfigurationTests(unittest.TestCase):
         e=self.checked(['MOV(77,Out);','GSV(Task,FastTask,Name,Record.Text);'],mutate=small);before=copy.deepcopy(e.memory.values)
         with self.assertRaisesRegex(ModelError,'capacity'):e.step()
         self.assertEqual(e.memory.values,before)
-        e=self.checked(['GSV(Task,FastTask,Rate,Out);','GSV(Task,FastTask,Priority,PriorityOut);','DIV(1,0,Out);']);before=copy.deepcopy(e.memory.values)
+        e=self.checked(['GSV(Task,FastTask,Rate,Out);','GSV(Task,FastTask,Priority,PriorityOut);','CPT(Out,1/0);']);before=copy.deepcopy(e.memory.values)
         with self.assertRaises(ModelError):e.step()
         self.assertEqual(e.memory.values,before);self.assertEqual((e.time_ms,e.scan_count),(0,0))
         self.assertEqual(e.scheduler_description()['tasks'][1]['executions'],0)

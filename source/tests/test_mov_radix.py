@@ -76,7 +76,7 @@ class MovRadixTests(unittest.TestCase):
         e.memory.write('Index',1); e.step(); self.assertEqual(e.memory.read('Results'), [None,-1,None])
 
     def test_late_fault_restores_prior_writes_and_scan_history(self):
-        e = self.checked(['MOV(16#FFFFFFFF,Results[1]);','DIV(1,Index,Dest);'], dest='DINT')
+        e = self.checked(['MOV(16#FFFFFFFF,Results[1]);','CPT(Dest,1/Index);'], dest='DINT')
         self.fault(e,'zero'); e.memory.write('Index',1); e.step()
         self.assertEqual(e.memory.read('Results'), [None,-1,None])
 

@@ -190,7 +190,7 @@
               <Rung Number="5" Type="N"><Text>XIC(IndirectPairCall)JSR(EchoSelectedPair,1,IndexedPairInputs[CallInputIndex],IndexedPairResults[CallOutputIndex]);</Text></Rung>
               <Rung Number="6" Type="N"><Text>XIC(SharedResultCall)JSR(ReturnTwoValues,0,IndexedCallResults[CallInputIndex],IndexedCallResults[CallOutputIndex]);</Text></Rung>
               <Rung Number="7" Type="N"><Text>XIC(TypedCallEnabled)JSR(TypedConstants,4,16#0020000000000001L,8#37777777777U,2#1111111111111111111111111111111111111111111111111111111111111111UL,1.0000000000000002L,TypedSigned,TypedUnsigned,TypedLargest,TypedPrecise);</Text></Rung>
-              <Rung Number="8" Type="N"><Text>XIC(TypedCallEnabled)DIV(1,TypedCallLateDivisor,TypedCallLateGuard);</Text></Rung>
+              <Rung Number="8" Type="N"><Text>XIC(TypedCallEnabled)CPT(TypedCallLateGuard,1/TypedCallLateDivisor);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="Calculate" Type="RLL">

@@ -126,7 +126,7 @@ class PIDQueueTests(unittest.TestCase):
         self.assertEqual(e.last_timer, before);self.assertEqual(e.memory.read('Outgoing.CTL'), 0)
 
     def test_later_fault_restores_pid_records_control_trace_time_and_scheduler(self):
-        e = self.checked(['XIC(StartPB)FFL(Incoming,Queue[0],Ctl,?,?);', 'DIV(1,SpeedSetpoint,SpeedCommand);'])
+        e = self.checked(['XIC(StartPB)FFL(Incoming,Queue[0],Ctl,?,?);', 'CPT(SpeedCommand,1/SpeedSetpoint);'])
         e.step();e.memory.write('StartPB', True);e.memory.write('SpeedSetpoint', 0)
         self.fault(e, 'zero')
         e.memory.write('SpeedSetpoint', 1);e.step()
@@ -150,7 +150,7 @@ class PIDQueueTests(unittest.TestCase):
         for name in ('EnableIn', 'EnableOut'):E.SubElement(obj, 'DataValueMember', Name=name, DataType='BOOL', Value='0')
 
     def test_aoi_inout_pid_array_binding_and_late_fault_rollback(self):
-        e = self.checked(['XIC(StartPB)PIDQueue(Instance,Incoming,Queue,Ctl);', 'DIV(1,SpeedSetpoint,SpeedCommand);'], mutate=self.aoi)
+        e = self.checked(['XIC(StartPB)PIDQueue(Instance,Incoming,Queue,Ctl);', 'CPT(SpeedCommand,1/SpeedSetpoint);'], mutate=self.aoi)
         e.step();e.memory.write('StartPB', True);e.memory.write('SpeedSetpoint', 0);self.fault(e, 'zero')
         e.memory.write('SpeedSetpoint', 1);e.step();self.assertEqual(e.memory.read('Queue[0].DATA[16]'), 27.25)
 

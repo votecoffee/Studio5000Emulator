@@ -83,7 +83,7 @@ class LrealConstantTests(unittest.TestCase):
         for call,value,error in [('DIV(Source,0,Results[1]);',1.0,'zero'),
                                   ('MUL(Source,2147483647,Results[1]);',1e308,'Nonfinite LREAL')]:
             e=self.checked(['MOV(99,SpeedCommand);',call],value=value);self.fault(e,error)
-        e=self.checked(['ADD(Source,1,Results[1]);','GRT(Source,0)OTE(RunLatch);','DIV(1,Index,SpeedCommand);'])
+        e=self.checked(['ADD(Source,1,Results[1]);','GRT(Source,0)OTE(RunLatch);','CPT(SpeedCommand,1/Index);'])
         self.fault(e,'zero');e.memory.write('Index',1);e.step()
         self.assertEqual(e.memory.read('Results[1]'),8.5);self.assertTrue(e.memory.read('RunLatch'))
 

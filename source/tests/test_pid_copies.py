@@ -115,7 +115,7 @@ class PIDCopyTests(unittest.TestCase):
 
     def test_budget_and_later_errors_roll_back_copies_and_solver_state(self):
         for budget in (False, True):
-            e = self.checked(['CPS(Loop,LoopSnapshot,1);', 'DIV(1,FaultDivisor,Quotient);'])
+            e = self.checked(['CPS(Loop,LoopSnapshot,1);', 'CPT(Quotient,1/FaultDivisor);'])
             e.memory.write('Loop.KP', 7)
             if budget:e.instruction_limit = scalar_count(e.project.default('PID'))
             else:e.memory.write('FaultDivisor', 0)
@@ -176,7 +176,7 @@ class PIDCopyTests(unittest.TestCase):
         for name in ('EnableIn', 'EnableOut'):E.SubElement(obj, 'DataValueMember', Name=name, DataType='BOOL', Value='0')
 
     def test_aoi_inout_bindings_copy_records_and_roll_back_on_later_fault(self):
-        e = self.checked(['CopyPID(CopyInstance,Loop,LoopSnapshot);', 'DIV(1,FaultDivisor,Quotient);'], mutate=self.aoi)
+        e = self.checked(['CopyPID(CopyInstance,Loop,LoopSnapshot);', 'CPT(Quotient,1/FaultDivisor);'], mutate=self.aoi)
         e.memory.write('FaultDivisor', 0);self.fault(e, 'zero')
         e.memory.write('FaultDivisor', 1);e.memory.write('Loop.KP', 9);e.step()
         self.assertEqual(e.memory.read('LoopSnapshot.KP'), 9)

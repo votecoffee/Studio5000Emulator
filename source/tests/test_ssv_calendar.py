@@ -101,7 +101,7 @@ class SsvCalendarTests(unittest.TestCase):
             self.assertTrue(self.engine(['AFI()SSV(WallClockTime,,LocalDateTime,Calendar[1]);'],mutate=change,checked=False).blockers)
 
     def test_warm_late_fault_restores_previous_clock_and_update_admission_then_retries(self):
-        e=self.engine(['SSV(WallClockTime,,DateTime,Calendar[1]);','GSV(WallClockTime,,CurrentValue,ClockMeasured);','DIV(1,ClockDivisor,ClockDivisor);'])
+        e=self.engine(['SSV(WallClockTime,,DateTime,Calendar[1]);','GSV(WallClockTime,,CurrentValue,ClockMeasured);','CPT(ClockDivisor,1/ClockDivisor);'])
         e.step();previous=e.coordinated_clock.utc.state;self.clock.now=16_000_000_000
         e.memory.write('Calendar[1]',2036);e.memory.write('ClockDivisor',0);self.fault(e,'zero')
         self.assertEqual(e.coordinated_clock.utc.state,previous)

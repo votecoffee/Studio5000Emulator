@@ -54,8 +54,8 @@ class EventOverlapTests(unittest.TestCase):
         e=self.checked(inhibited=True);e.memory.write('StartPB',True);e.memory.write('SelfTrigger',True);e.step();self.assertEqual(e.memory.read('CallerStatus'),0)
 
     def test_parent_or_child_fault_restores_reset_and_new_counts(self):
-        for bodies in ([['EVENT(Task1);','SSV(Task,Task1,OverlapCount,Command);','DIV(1,Divisor,SpeedCommand);'],['EVENT(Task1);']],
-                       [['EVENT(Task1);'],['EVENT(Task1);','SSV(Task,THIS,OverlapCount,Command);','DIV(1,Divisor,SpeedCommand);']]):
+        for bodies in ([['EVENT(Task1);','SSV(Task,Task1,OverlapCount,Command);','CPT(SpeedCommand,1/Divisor);'],['EVENT(Task1);']],
+                       [['EVENT(Task1);'],['EVENT(Task1);','SSV(Task,THIS,OverlapCount,Command);','CPT(SpeedCommand,1/Divisor);']]):
             e=self.checked(bodies);e._task_scheduler.overlaps[1]=7;e.memory.write('Divisor',0);self.fault(e,'zero');self.assertEqual(e._task_scheduler.overlaps[1],7)
             e.memory.write('Divisor',1);e.step();self.assertEqual(e._task_scheduler.overlaps[1],0)
 

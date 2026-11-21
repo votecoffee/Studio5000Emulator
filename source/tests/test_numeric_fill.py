@@ -103,7 +103,7 @@ class NumericFillTests(unittest.TestCase):
             e=self.checked(count=count);before=self.snapshot(e)
             with self.assertRaises(ModelError):e.step()
             self.assertEqual(self.snapshot(e),before)
-        e=self.checked(['FLL(Source,Fills[1],Mask);','DIV(1,Dest,SpeedCommand);'],value=4660);before=self.snapshot(e)
+        e=self.checked(['FLL(Source,Fills[1],Mask);','CPT(SpeedCommand,1/Dest);'],value=4660);before=self.snapshot(e)
         with self.assertRaises(ModelError):e.step()
         self.assertEqual(self.snapshot(e),before);e.memory.write('Dest',1);e.step();self.assertEqual(e.memory.read('Fills')[1:4],[52]*3)
 

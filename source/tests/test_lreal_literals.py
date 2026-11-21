@@ -107,7 +107,7 @@ class LrealLiteralTests(unittest.TestCase):
                                   ('1.0L/0.0', 'LREAL', 'zero'), ('1.0L**1025.0', 'LREAL', 'exponent')]:
             e = self.checked(['MOV(99,SpeedCommand);', 'CPT(Results[1],' + expr + ');'], dest=dest)
             self.fault(e, match)
-        e = self.checked(['CPT(Results[1],0.1L);', 'DIV(1,0,SpeedCommand);'])
+        e = self.checked(['CPT(Results[1],0.1L);', 'CPT(SpeedCommand,1/0);'])
         self.fault(e, 'zero')
 
     def test_alias_udt_and_function_indices_keep_the_selected_double_value(self):

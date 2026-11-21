@@ -112,7 +112,7 @@ class SequencerReferenceTests(unittest.TestCase):
             self.assertTrue(self.engine(['SQO('+ref+',-1,Outgoing,Ctl,?,?);'],length=2,mutate=self.tags).blockers)
 
     def test_late_fault_restores_relocated_sql_row_and_control(self):
-        e=self.checked(['SQL(Queue[Index],Incoming,Ctl,?,?);','DIV(1,0,Outgoing);'],length=2,queue=(101,0,0,0,999),mutate=self.tags);before=self.snapshot(e)
+        e=self.checked(['SQL(Queue[Index],Incoming,Ctl,?,?);','CPT(Outgoing,1/0);'],length=2,queue=(101,0,0,0,999),mutate=self.tags);before=self.snapshot(e)
         with self.assertRaises(ModelError):e.step()
         self.assertEqual(self.snapshot(e),before)
 

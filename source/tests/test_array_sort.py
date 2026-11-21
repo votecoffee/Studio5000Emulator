@@ -127,7 +127,7 @@ class ArraySortTests(unittest.TestCase):
         self.assertEqual(e.memory.read('Queue[0]'),2);self.assertIsNone(e.memory.values['queue'][4])
 
     def test_late_fault_rolls_back_rll_and_st_sorting(self):
-        e=self.checked(['SRT(Queue[0],0,Ctl,?,?);','DIV(1,0,SpeedCommand);'])
+        e=self.checked(['SRT(Queue[0],0,Ctl,?,?);','CPT(SpeedCommand,1/0);'])
         before=copy.deepcopy(e.memory.values)
         with self.assertRaises(ModelError):e.step()
         self.assertEqual(e.memory.values,before);self.assertEqual(e.scheduler_description()['tasks'][0]['executions'],0)

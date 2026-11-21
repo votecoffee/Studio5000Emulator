@@ -97,7 +97,7 @@ class AggregateCopyTests(unittest.TestCase):
             e.memory.write('Lengths[0]', 1); e.step(); self.assertEqual(e.memory.read('SpeedCommand'), 55)
 
     def test_budget_and_later_fault_restore_records_time_scheduler_and_bindings(self):
-        for tail, expected in [([], 'scalar-member budget'), (['DIV(1,SpeedSetpoint,SpeedCommand);'], 'zero')]:
+        for tail, expected in [([], 'scalar-member budget'), (['CPT(SpeedCommand,1/SpeedSetpoint);'], 'zero')]:
             e = self.checked(['MOV(55,SpeedCommand);', 'CPS(Records[2],CopyRecords[0],1);'] + tail)
             e.memory.write('SpeedSetpoint', 0)
             if not tail:e.instruction_limit = 10

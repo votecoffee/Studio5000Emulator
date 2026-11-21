@@ -47,7 +47,12 @@ class MixedLrealMathTests(unittest.TestCase):
     def test_signed_quotient_remainder_and_required_zero_sources(self):
         for name,expected in [('DIV',-2.5),('MOD',-1.5)]:
             e=self.checked([f'{name}(Source,Mask,Results[1]);'],value=-7.5);e.step();self.assertEqual(e.memory.read('Results[1]'),expected)
-            e.memory.write('Mask',0);self.fault(e,'zero')
+            e.memory.write('Mask',0)
+            if name == 'DIV':
+                self.fault(e,'zero')
+            else:
+                e.step()
+                self.assertEqual(e.memory.read('Results[1]'), 0.0)
         e=self.checked(['MUL(Source,Inputs[0],Results[1]);'],value=0.0);self.fault(e,'Unknown')
         e=self.checked(['MUL(Inputs[0],Mask,Results[1]);'],source='DINT',other='LREAL',value=0);e.memory.write('Mask',0.0);self.fault(e,'Unknown')
 
@@ -59,7 +64,7 @@ class MixedLrealMathTests(unittest.TestCase):
 
     def test_overflow_late_fault_and_recovery_restore_task_timing(self):
         e=self.checked(['MOV(99,SpeedCommand);','MUL(Source,Mask,Results[1]);'],value=1e308);self.fault(e,'Nonfinite LREAL')
-        e=self.checked(['ADD(Source,Mask,Results[1]);','DIV(1,Index,SpeedCommand);']);self.fault(e,'zero');e.memory.write('Index',1);e.step();self.assertEqual(e.memory.read('Results[1]'),10.5)
+        e=self.checked(['ADD(Source,Mask,Results[1]);','CPT(SpeedCommand,1/Index);']);self.fault(e,'zero');e.memory.write('Index',1);e.step();self.assertEqual(e.memory.read('Results[1]'),10.5)
 
     def test_alias_member_and_source_overlap_capture_sources_before_write(self):
         def fields(root):

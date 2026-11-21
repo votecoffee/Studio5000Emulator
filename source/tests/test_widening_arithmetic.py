@@ -82,12 +82,11 @@ class WideningArithmeticTests(unittest.TestCase):
             self.assertEqual(self.snapshot(e), before)
             e.memory.write(write, 3);e.step();self.assertIsNotNone(e.memory.read('Results[1]'))
 
-    def test_div_by_zero_overflow_and_unsigned_underflow_roll_back(self):
+    def test_overflow_and_unsigned_underflow_roll_back(self):
         for name, source, other, dest, value, mask, error in [
                 ('ADD', 'LINT', 'DINT', 'LINT', 9223372036854775807, 1, 'overflow'),
                 ('MUL', 'LINT', 'DINT', 'LINT', 4611686018427387904, 4, 'overflow'),
-                ('SUB', 'USINT', 'UINT', 'UDINT', 0, 1, 'overflow'),
-                ('DIV', 'LINT', 'DINT', 'LINT', 7, 0, 'zero')]:
+                ('SUB', 'USINT', 'UINT', 'UDINT', 0, 1, 'overflow')]:
             e = self.checked(['MOV(99,SpeedCommand);', f'{name}(Source,Mask,Results[1]);'], source=source, other=other, dest=dest, value=value, mask=mask)
             before = self.snapshot(e)
             with self.assertRaisesRegex(ModelError, error):e.step()

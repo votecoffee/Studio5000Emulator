@@ -96,7 +96,7 @@ class FileBcdTests(unittest.TestCase):
     def test_partial_all_work_and_later_faults_restore_arrays_controls_and_time(self):
         for call in ('FAL(Ctl,?,?,ALL,Results[Ctl.POS],TOD(Queue[Ctl.POS]));','FSC(Ctl,?,?,ALL,FRD(TOD(Queue[Ctl.POS]))>999);'):
             e=self.checked(['MOV(99,SpeedCommand);',call],values=(12,21,-1,9,777));self.fault(e,'qualified');e.memory.write('Queue[2]',20);e.step();self.assertTrue(e.memory.read('Ctl.DN'))
-        e=self.checked(['FAL(Ctl,?,?,ALL,Results[Ctl.POS],TOD(Queue[Ctl.POS]));','DIV(1,LateDivisor,SpeedCommand);'],values=(12,21,20,9,777));e.memory.write('LateDivisor',0);self.fault(e,'zero');e.memory.write('LateDivisor',1);e.step();self.assertEqual(e.memory.read('Results'),[18,33,32,9,101])
+        e=self.checked(['FAL(Ctl,?,?,ALL,Results[Ctl.POS],TOD(Queue[Ctl.POS]));','CPT(SpeedCommand,1/LateDivisor);'],values=(12,21,20,9,777));e.memory.write('LateDivisor',0);self.fault(e,'zero');e.memory.write('LateDivisor',1);e.step();self.assertEqual(e.memory.read('Results'),[18,33,32,9,101])
         e=self.checked(['FAL(Ctl,?,?,ALL,Results[Ctl.POS],TOD(Queue[Ctl.POS]));'],values=(99,1,1,1,77),dest_type='SINT');self.fault(e,'overflow')
 
     @staticmethod

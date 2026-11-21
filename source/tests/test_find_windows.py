@@ -170,7 +170,7 @@ class FindWindowTests(unittest.TestCase):
 
     def test_aoi_ladder_st_bindings_and_late_fault_rollback(self):
         for st in (False, True):
-            e = self.checked(['TextFind(Instance,SourceA,Search,Start,Result);', 'DIV(1,Count,SpeedCommand);'],
+            e = self.checked(['TextFind(Instance,SourceA,Search,Start,Result);', 'CPT(SpeedCommand,1/Count);'],
                              mutate=lambda root:self.aoi(root, st))
             e.memory.write('Start', 7)
             self.unknown(e, 0, 6)

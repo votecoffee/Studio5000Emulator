@@ -84,7 +84,7 @@ class MixedRealComparisonTests(unittest.TestCase):
             E.SubElement(obj,'DataValueMember',Name='Value',DataType='REAL',Value='16777216');E.SubElement(obj,'DataValueMember',Name='Guard',DataType='DINT',Value='777')
             E.SubElement(c.find('Tags'),'Tag',Name='Selected',DataType='REAL',TagType='Alias',AliasFor='Packet.Value')
         e=self.checked(['EQU(Selected,Mask)OTE(RunLatch);'],values=(1,16777217,0),mutate=fields);e.step();self.assertTrue(e.memory.read('RunLatch'));self.assertEqual(e.memory.read('Packet.Guard'),777)
-        e=self.checked(['MOV(99,SpeedCommand);','EQU(Source,Mask)OTE(RunLatch);','DIV(1,Index,SpeedCommand);'],values=(16777216,16777217,0));e.memory.write('Index',0);self.fault(e,'zero');e.memory.write('Index',1);e.step();self.assertTrue(e.memory.read('RunLatch'))
+        e=self.checked(['MOV(99,SpeedCommand);','EQU(Source,Mask)OTE(RunLatch);','CPT(SpeedCommand,1/Index);'],values=(16777216,16777217,0));e.memory.write('Index',0);self.fault(e,'zero');e.memory.write('Index',1);e.step();self.assertTrue(e.memory.read('RunLatch'))
 
     def aoi(self):
         helper=advanced.LrealAdvancedTests();helper.setUp();self.addCleanup(helper.doCleanups)

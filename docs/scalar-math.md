@@ -29,7 +29,7 @@ instruction consumes every required source value. Its complete numeric write
 can establish an unknown destination element or member without reading the old
 value. Aliases and existing AOI InOut/local bindings use the same storage rules.
 Unwritten siblings remain unknown. Reached unknowns, invalid indices, zero
-divisors in DIV, excluded ranges and later faults roll back the complete advance,
+divisors in floating DIV, excluded ranges and later faults roll back the complete advance,
 including values, task/time state and existing AOI bindings.
 
 Structural validation and operand selection apply to all eleven operations.
@@ -47,6 +47,16 @@ to succeed. The task can read `S:MINOR` after the write when the controller
 export explicitly enables `ReportMinorOverflow`. The flag starts clear on the
 next task invocation. Native fault-record parity remains unverified.
 [Rockwell MOD reference](https://www.rockwellautomation.com/en-be/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/compute-math-instructions/modulo--mod-.html)
+
+## Integer DIV with a zero divisor
+
+In the v35 5580 ladder profile, an enabled integer DIV with a zero divisor
+copies the dividend to the destination and passes rung power through. Both
+sources must be known, and the destination and any integer conversions must
+be valid. The task can read `S:MINOR` after the write when the controller
+export explicitly enables `ReportMinorOverflow`. The next task invocation
+starts with the flag clear. Native fault-record parity remains unverified.
+[Rockwell DIV reference](https://www.rockwellautomation.com/en-mde/docs/studio-5000-logix-designer/37-02/contents-ditamap/instruction-set/compute-math-instructions/divide--div-.html)
 
 ## Widening integer tag arithmetic
 
@@ -72,9 +82,9 @@ homogeneous rules remain available separately. For example, adding DINT -1 to
 UDINT 4294967295 into LINT produces 4294967294; negating USINT 255 into INT
 produces -255. ABS of DINT -2147483648 into LINT produces 2147483648.
 DIV truncates toward zero; MOD follows the dividend's sign. Results must fit the
-destination even when its type covers all source ranges. Overflow, underflow
-and zero divisors in DIV roll back the advance. For integer MOD, see
-[zero-divisor behavior](#integer-mod-with-a-zero-divisor).
+destination even when its type covers all source ranges. Overflow and
+underflow roll back the advance. See [integer DIV](#integer-div-with-a-zero-divisor)
+and [integer MOD](#integer-mod-with-a-zero-divisor) for zero-divisor behavior.
 
 Structural checks apply even to false rungs. False/prescan skip live values and
 indices; true instructions require each source and may establish an unknown
@@ -112,7 +122,7 @@ False/prescan skip live values and indices, but invalid constant/type/permission
 combinations remain static blockers even on false rungs. Multiplication by zero
 still requires the tag source; unknown data is not folded away. Full writes can
 establish unknown destinations through arrays, UDT members, aliases and AOI
-InOut/local bindings. DIV by zero, overflow/underflow, bad indices, unknowns and
+InOut/local bindings. Overflow, underflow, bad indices, unknowns and
 later faults retain whole-advance rollback, including AOI bindings and siblings.
 
 Enable **ArithmeticConstants** in **Integer lab** for eight examples, including
@@ -347,9 +357,10 @@ convert losslessly to unsigned, including for ABS. Nor does multiplication by
 zero permit an out-of-range source. Use a wider destination for those cases.
 
 Complete writes establish unknown selected destinations. All required inputs
-are consumed. Unknowns, invalid indices, input/result ranges, zero divisors in
-DIV and later faults roll back the advance, including previous writes and AOI
-state. For integer MOD, see [zero-divisor behavior](#integer-mod-with-a-zero-divisor).
+are consumed. Unknowns, invalid indices, input/result ranges and later faults
+roll back the advance, including previous writes and AOI state.
+See [integer DIV](#integer-div-with-a-zero-divisor) and
+[integer MOD](#integer-mod-with-a-zero-divisor) for zero-divisor behavior.
 Existing aliases, UDT members and qualified AOI bindings retain their address
 rules. Floating/time/BOOL/aggregate operands, modular bit-pattern conversions,
 other instructions/languages and native overflow/status/fault equivalence are

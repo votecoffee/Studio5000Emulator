@@ -45,7 +45,7 @@ class ParameterRadixTests(unittest.TestCase):
             e=self.aoi({'Signed':text});self.assertEqual(e.memory.read('TypedInputs.Signed'),want)
 
     def test_aoi_prescan_false_refresh_warm_outputs_and_late_fault_retry(self):
-        e=self.aoi(tail=['DIV(1,TestDivisor,TestGuard);'])
+        e=self.aoi(tail=['CPT(TestGuard,1/TestDivisor);'])
         self.assertEqual(e.memory.read('TypedInputs.Signed'),9007199254740993)
         e.memory.write('TypedInputs.Signed',7);e.memory.write('SignedResult',-9);e.step()
         self.assertEqual((e.memory.read('TypedInputs.Signed'),e.memory.read('SignedResult')),(9007199254740993,-9))
@@ -110,7 +110,7 @@ class ParameterRadixTests(unittest.TestCase):
         self.assertEqual(ret['operand_samples'],[dict(address=None,type='LINT',value=str((1<<63)-1))])
 
     def test_later_fault_rolls_back_warm_radix_transfers_then_retries(self):
-        e=self.call('ULINT',RADIX['Largest'],ret='16#0020000000000001UL',tail=['DIV(1,LiteralDivisor,Result);'])
+        e=self.call('ULINT',RADIX['Largest'],ret='16#0020000000000001UL',tail=['CPT(Result,1/LiteralDivisor);'])
         e.step();e.memory.write('WideResult',77);e.memory.write('WideFormal',79);e.memory.write('LiteralDivisor',0)
         self.fault(e,'zero');e.memory.write('LiteralDivisor',1);e.step()
         self.assertEqual((e.memory.read('WideFormal'),e.memory.read('WideResult')),((1<<64)-1,9007199254740993))

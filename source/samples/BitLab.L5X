@@ -552,7 +552,7 @@
                 <Text>XIC(DetectEnable)DDT(CompareSource[0],LearnReference[0],ChangedBits[0],DetectControl,?,?,DetectResultControl,?,?);</Text>
               </Rung>
               <Rung Number="19" Type="N">
-                <Text>DIV(1,FaultDivisor,GuardResult);</Text>
+                <Text>CPT(GuardResult,1/FaultDivisor);</Text>
               </Rung>
               <Rung Number="20" Type="N">
                 <Text>XIC(BitwiseWidths)AND(LogicByte,LogicDword,AndWidths);</Text>
@@ -596,7 +596,7 @@
               <Rung Number="35" Type="N"><Text>XIC(IndexMathEnabled)MOV(IndexMathValues[(NOT IndexMathBase) AND 7],IndexMathResults[4]);</Text></Rung>
               <Rung Number="36" Type="N"><Text>XIC(IndexMathEnabled)MOV(IndexMathValues[IndexMathWide],IndexMathResults[5]);</Text></Rung>
               <Rung Number="37" Type="N"><Text>XIC(IndexMathEnabled)EQU(IndexMathResults[1],33)EQU(IndexMathResults[2],33)EQU(IndexMathResults[3],55)EQU(IndexMathResults[4],10)EQU(IndexMathResults[5],33)OTE(IndexMathCheck);</Text></Rung>
-              <Rung Number="38" Type="N"><Text>XIC(IndexMathEnabled)DIV(1,IndexMathLateDivisor,IndexMathLateResult);</Text></Rung>
+              <Rung Number="38" Type="N"><Text>XIC(IndexMathEnabled)CPT(IndexMathLateResult,1/IndexMathLateDivisor);</Text></Rung>
               <Rung Number="39" Type="N"><Text>XIC(IndexFuncEnabled)MOV(IndexFuncValues[FRD(IndexFuncPacked)],IndexFuncResults[1]);</Text></Rung>
               <Rung Number="40" Type="N"><Text>XIC(IndexFuncEnabled)MOV(IndexFuncValues[TOD(IndexFuncDecimal)],IndexFuncResults[2]);</Text></Rung>
               <Rung Number="41" Type="N"><Text>XIC(IndexFuncEnabled)MOV(IndexFuncValues[SQR(IndexFuncRoot)],IndexFuncResults[3]);</Text></Rung>
@@ -604,7 +604,7 @@
               <Rung Number="43" Type="N"><Text>XIC(IndexFuncEnabled)MOV(IndexFuncValues[TOD(IndexFuncDecimal) AND 7],IndexFuncResults[5]);</Text></Rung>
               <Rung Number="44" Type="N"><Text>XIC(IndexFuncEnabled)MOV(IndexFuncValues[FRD(IndexFuncPacked)+SQR(IndexFuncRoot)],IndexFuncResults[6]);</Text></Rung>
               <Rung Number="45" Type="N"><Text>XIC(IndexFuncEnabled)EQU(IndexFuncResults[1],221)EQU(IndexFuncResults[2],223)EQU(IndexFuncResults[3],202)EQU(IndexFuncResults[4],217)EQU(IndexFuncResults[5],207)EQU(IndexFuncResults[6],223)OTE(IndexFuncCheck);</Text></Rung>
-              <Rung Number="46" Type="N"><Text>XIC(IndexFuncEnabled)DIV(1,IndexFuncLateDivisor,IndexFuncLateResult);</Text></Rung>
+              <Rung Number="46" Type="N"><Text>XIC(IndexFuncEnabled)CPT(IndexFuncLateResult,1/IndexFuncLateDivisor);</Text></Rung>
               <Rung Number="47" Type="N"><Text>JSR(CptConversions,0);</Text></Rung>
               <Rung Number="48" Type="N"><Text>JSR(BcdComparisons,0);</Text></Rung>
               <Rung Number="49" Type="N"><Text>XIC(RealBitwise)AND(RealBitInput,7,RealBitAnd);</Text></Rung>
@@ -626,7 +626,7 @@
               <Rung Number="65" Type="N"><Text>XIC(WideMaskEnabled)MEQ(WideMaskInput,16#FFFF_FFFFUL,1)OTE(WideMaskMatches);</Text></Rung>
               <Rung Number="66" Type="N"><Text>XIC(WideMaskEnabled)AND(WideMaskInput,16#FFFF_FFFF_FFFF_FFFFL,WideMaskFull);</Text></Rung>
               <Rung Number="67" Type="N"><Text>XIC(WideMaskEnabled)MEQ(WideMaskInput,2#1000000000000000000000000000000000000000000000000000000000000000UL,16#8000000000000000L)OTE(WideMaskTopMatch);</Text></Rung>
-              <Rung Number="68" Type="N"><Text>XIC(WideMaskEnabled)DIV(1,WideMaskDivisor,WideMaskGuard);</Text></Rung>
+              <Rung Number="68" Type="N"><Text>XIC(WideMaskEnabled)CPT(WideMaskGuard,1/WideMaskDivisor);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="CptConversions" Type="RLL"><RLLContent>
@@ -646,7 +646,7 @@
             <Rung Number="3" Type="N"><Text>XIC(CmpBcdEnabled)CMP(((FRD(CmpBcdNarrow) AND 255)=169)&amp;&amp;((TOD(CmpBcdDecimal) AND 255)=66))OTE(CmpBcdMaskMatch);</Text></Rung>
             <Rung Number="4" Type="N"><Text>XIC(CmpBcdEnabled)CMP(CmpBcdGate&amp;&amp;!(TOD(CmpBcdDecimal)/CmpBcdDivisor=0))OTE(CmpBcdGateMatch);</Text></Rung>
             <Rung Number="5" Type="N"><Text>XIC(CmpBcdEnabled)CMP(FRD(CmpBcdRows[CmpBcdIndex])=21)OTE(CmpBcdIndexedMatch);</Text></Rung>
-            <Rung Number="6" Type="N"><Text>XIC(CmpBcdEnabled)DIV(1,CmpBcdLateDivisor,CmpBcdLateResult);</Text></Rung>
+            <Rung Number="6" Type="N"><Text>XIC(CmpBcdEnabled)CPT(CmpBcdLateResult,1/CmpBcdLateDivisor);</Text></Rung>
           </RLLContent></Routine>
         </Routines>
       </Program>

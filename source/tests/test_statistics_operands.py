@@ -100,7 +100,7 @@ class StatisticsOperandTests(unittest.TestCase):
         self.assertEqual(e.memory.read('Results')[1], 4); self.assertEqual(e.memory.read('Queue'), [2, 4, 6, 8, 999])
 
     def test_late_fault_restores_results_control_flags_time_and_scheduler(self):
-        e = self.checked(['XIC(StartPB)AVE(Queue[0],0,Results[ResultIndex],Ctl,?,?);', 'XIC(StartPB)DIV(1,SpeedSetpoint,SpeedCommand);'], length=3)
+        e = self.checked(['XIC(StartPB)AVE(Queue[0],0,Results[ResultIndex],Ctl,?,?);', 'XIC(StartPB)CPT(SpeedCommand,1/SpeedSetpoint);'], length=3)
         e.step(); e.memory.write('ResultIndex', 1); e.memory.write('StartPB', True); e.memory.write('SpeedSetpoint', 0); before = self.snapshot(e)
         with self.assertRaisesRegex(ModelError, 'zero'):e.step()
         self.assertEqual(self.snapshot(e), before); e.memory.write('SpeedSetpoint', 1); e.step()

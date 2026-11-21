@@ -272,7 +272,7 @@
                 <Text>XIC(ExecuteGraph)ADD(CallCount,1,CallCount);</Text>
               </Rung>
               <Rung Number="2" Type="N">
-                <Text>DIV(1,FaultDivisor,GuardResult);</Text>
+                <Text>CPT(GuardResult,1/FaultDivisor);</Text>
               </Rung>
             </RLLContent>
           </Routine>

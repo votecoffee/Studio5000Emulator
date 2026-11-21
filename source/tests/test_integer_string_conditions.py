@@ -69,7 +69,7 @@ class IntegerStringConditionTests(unittest.TestCase):
             e=self.make([f'CMP({expression})OTE(RunLatch);'])
             if 'Source' in expression:e.memory.values['source']=None
             self.fault(e,'zero|Unknown')
-        e=self.make(['CMP((Source>0)&&(Word>OtherWord))OTE(RunLatch);','DIV(1,SpeedCommand,SpeedCommand);'])
+        e=self.make(['CMP((Source>0)&&(Word>OtherWord))OTE(RunLatch);','CPT(SpeedCommand,1/SpeedCommand);'])
         e.memory.write('SpeedCommand',0);self.fault(e,'zero');e.memory.write('SpeedCommand',1);e.step();self.assertTrue(e.memory.read('RunLatch'))
 
     def test_string_math_category_mismatches_and_cpt_fal_remain_blocked(self):

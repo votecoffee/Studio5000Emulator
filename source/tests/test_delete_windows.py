@@ -155,7 +155,7 @@ class DeleteWindowTests(unittest.TestCase):
 
     def test_aoi_ladder_st_bindings_and_late_fault_rollback(self):
         for st in (False, True):
-            e = self.checked(['TextDelete(Instance,SourceA,Dest,4,3);', 'DIV(1,Count,SpeedCommand);'],
+            e = self.checked(['TextDelete(Instance,SourceA,Dest,4,3);', 'CPT(SpeedCommand,1/Count);'],
                              mutate=lambda root: self.aoi(root, st))
             self.unknown(e, 3, 3)
             self.fault(e, 'zero')

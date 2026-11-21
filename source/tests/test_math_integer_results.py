@@ -121,7 +121,7 @@ class MathIntegerResultTests(unittest.TestCase):
         import test_addons as addons
         f=addons.AddOnTests();f.setUp();self.addCleanup(f.doCleanups)
         f.body()[0].find('Text').text='SQR(Step,Count)MOV(Count,Total)SQR(Shared,Shared);'
-        e=f.engine(['LabAccumulator(AccumulatorA,StepA,TotalA,SharedA);','LabAccumulator(AccumulatorB,StepB,TotalB,SharedB);']+(['DIV(1,StepA,TotalA);'] if late else []))
+        e=f.engine(['LabAccumulator(AccumulatorA,StepA,TotalA,SharedA);','LabAccumulator(AccumulatorB,StepB,TotalB,SharedB);']+(['CPT(TotalA,1/StepA);'] if late else []))
         self.assertEqual(e.blockers,[]);return e
 
     def test_aoi_independent_local_output_and_inout_integer_results(self):
@@ -215,7 +215,7 @@ class WideRootPowerTests(unittest.TestCase):
     def test_false_prescan_and_failed_steps_leave_indirect_results_unknown(self):
         engine = self.checked([
             'XIC(StartPB)XPY(Inputs[Index],1,Results[Index]);',
-            'XIC(StartPB)DIV(1,Mask,SpeedCommand);',
+            'XIC(StartPB)CPT(SpeedCommand,1/Mask);',
         ], source='ULINT', dest='ULINT')
         engine.memory.write('Index', 99)
         engine.enter_run()

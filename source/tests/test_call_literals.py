@@ -105,7 +105,7 @@ class CallLiteralTests(unittest.TestCase):
 
     def test_temporal_literal_trace_and_late_fault_keep_exact_timestamp(self):
         value = 'LDT#2020-10-25-11:05:20.123_456_789'
-        e = self.literal('LDT', value, ret=value, callee_st=True, tail=['DIV(1,LiteralDivisor,Result);'])
+        e = self.literal('LDT', value, ret=value, callee_st=True, tail=['CPT(Result,1/LiteralDivisor);'])
         e.memory.write('LiteralDivisor', 0)
         before = self.snapshot(e)
         with self.assertRaisesRegex(ModelError, 'zero'):
@@ -178,7 +178,7 @@ class CallLiteralTests(unittest.TestCase):
         self.assertEqual(e.memory.read('WideResults'),[0,CASES[2][2],0]);self.assertEqual(e.memory.read('CallOutputIndex'),2)
 
     def test_later_fault_restores_formals_results_call_stack_and_schedule(self):
-        e=self.literal('LREAL',CASES[3][1],tail=['DIV(1,LiteralDivisor,Result);'])
+        e=self.literal('LREAL',CASES[3][1],tail=['CPT(Result,1/LiteralDivisor);'])
         e.memory.write('LiteralDivisor',0);before=self.snapshot(e)
         with self.assertRaises(ModelError):e.step()
         self.assertEqual(self.snapshot(e),before)

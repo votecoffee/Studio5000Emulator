@@ -97,7 +97,7 @@ class MixedIntegerFileTests(unittest.TestCase):
             e.memory.write('StartPB', True);self.fault(e, pattern)
             self.assertFalse(e.memory.read('Ctl.ER'))
         e = self.checked(rungs=['XIC(StartPB)FAL(Ctl,?,?,ALL,Queue[Ctl.POS],Queue[Ctl.POS]+Small);',
-                                'XIC(StartPB)DIV(1,0,SpeedCommand);'])
+                                'XIC(StartPB)CPT(SpeedCommand,1/0);'])
         e.step();e.memory.write('StartPB', True);self.fault(e, 'zero')
 
     def test_every_mixed_arithmetic_subtree_requires_the_common_source_type(self):

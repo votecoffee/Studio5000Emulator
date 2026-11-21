@@ -102,7 +102,7 @@ class MovLiteralTests(unittest.TestCase):
             e = self.checked(['MOV(99,SpeedCommand);', 'MOV(' + text + ',Results[1]);'], dest=dest)
             self.fault(e, match)
         self.fault(self.checked(['MOV(18446744073709551615UL,Results[1]);',
-                                 'DIV(1,0,SpeedCommand);'], dest='ULINT'), 'zero')
+                                 'CPT(SpeedCommand,1/0);'], dest='ULINT'), 'zero')
 
     def test_complete_literals_do_not_read_old_destination_or_unrelated_source(self):
         e = self.checked(['MOV(18446744073709551615UL,Results[1]);'], dest='ULINT')

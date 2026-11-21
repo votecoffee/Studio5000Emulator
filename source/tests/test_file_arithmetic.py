@@ -63,7 +63,7 @@ class FileArithmeticTests(unittest.TestCase):
         self.assertEqual(e.memory.read('Queue')[:3],[4,6,12]);self.assertTrue(e.memory.read('Ctl.DN'))
 
     def test_real_overflow_and_prefix_roll_back_on_a_later_fault(self):
-        e=self.overflow(rungs=[real_overflow_logic(),'DIV(1,0,SpeedCommand);'])
+        e=self.overflow(rungs=[real_overflow_logic(),'CPT(SpeedCommand,1/0);'])
         e.memory.write('StartPB',True);before=file_state(e)
         with self.assertRaises(ModelError):e.step()
         self.assertEqual(file_state(e),before)
@@ -360,7 +360,7 @@ class FileArithmeticTests(unittest.TestCase):
         self.assertEqual(e.memory.values,before)
 
     def test_later_instruction_fault_restores_search_writes_and_scheduler(self):
-        e=self.checked(['FAL(Ctl,?,?,ALL,Queue[Ctl.POS],1);','DIV(1,0,SpeedCommand);']);before=copy.deepcopy(e.memory.values)
+        e=self.checked(['FAL(Ctl,?,?,ALL,Queue[Ctl.POS],1);','CPT(SpeedCommand,1/0);']);before=copy.deepcopy(e.memory.values)
         with self.assertRaises(ModelError):e.step()
         self.assertEqual(e.memory.values,before);self.assertEqual(e.scheduler_description()['tasks'][0]['executions'],0)
 

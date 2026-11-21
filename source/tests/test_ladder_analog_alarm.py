@@ -493,7 +493,7 @@ class LadderAnalogAlarmTests(unittest.TestCase):
                               'DataValue', DataType='DINT', Value='1')
             content = controller.find('.//RLLContent')
             ET.SubElement(ET.SubElement(content, 'Rung', Number='3', Type='N'),
-                          'Text').text = 'DIV(1,Divisor,Quotient);'
+                          'Text').text = 'CPT(Quotient,1/Divisor);'
         e = self.engine(configure)
         m = e.memory
         m.write('PressureAlarm.ROCPeriod', 0.01)

@@ -79,9 +79,10 @@ class DintRadixTests(unittest.TestCase):
             else:
                 self.assertEqual(e.blockers,[]);e.step();self.assertFalse(e.memory.read('RunLatch'))
 
-    def test_zero_division_overflow_and_later_faults_restore_warm_values_and_progress(self):
+    def test_zero_divisor_copies_signed_radix_dividend_and_overflow_rolls_back(self):
         e=self.checked(['ADD(Source,16#FFFFFFFF,Results[0]);','DIV(16#FFFFFFF9,Mask,Results[1]);'])
-        e.step();e.memory.write('Source',11);e.memory.write('Mask',0);self.fault(e,'zero')
+        e.step();e.memory.write('Source',11);e.memory.write('Mask',0);e.step()
+        self.assertEqual(e.memory.read('Results'),[10,-7,None])
         e.memory.write('Mask',2);e.step();self.assertEqual(e.memory.read('Results'),[10,-3,None])
         for call in ('ADD(16#80000000,-1,Results[1]);','DIV(16#80000000,16#FFFFFFFF,Results[1]);',
                      'ABS(16#80000000,Results[1]);','NEG(16#80000000,Results[1]);'):

@@ -228,7 +228,7 @@ class PIDDynamicsTests(unittest.TestCase):
             task=E.SubElement(root.find('./Controller/Tasks'),'Task',Name='RegulateTask',Type='EVENT',Priority='1',Watchdog='500',Class='Standard',InhibitTask='false',DisableUpdateOutputs='true')
             E.SubElement(task,'EventInfo',EventTrigger='EVENT Instruction Only',EnableTimeout='false')
             E.SubElement(E.SubElement(task,'ScheduledPrograms'),'ScheduledProgram',Name='Regulator')
-        e=self.derivative(lines=['EVENT(RegulateTask);','DIV(1,FaultDivisor,Quotient);'],mutate=event)
+        e=self.derivative(lines=['EVENT(RegulateTask);','CPT(Quotient,1/FaultDivisor);'],mutate=event)
         self.assertEqual(self.run_step(e),50);e.memory.write('PV',25);e.memory.write('FaultDivisor',0)
         before=self.snapshot(e);schedule=copy.deepcopy(e.scheduler_description())
         with self.assertRaises(ModelError):e.step()

@@ -332,7 +332,7 @@
                 <Text>XIC(EnabledB)LabSequencer(DriverB,Step,Teach,IndexB,ValueB,FeedbackB,PatternsB,LearnedB,SequenceB,TeachB,OutputsB);</Text>
               </Rung>
               <Rung Number="2" Type="N">
-                <Text>DIV(1,FaultDivisor,Quotient);</Text>
+                <Text>CPT(Quotient,1/FaultDivisor);</Text>
               </Rung>
             </RLLContent>
           </Routine>

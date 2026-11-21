@@ -94,7 +94,7 @@
             <RLLContent>
               <Rung Number="0" Type="N"><Text>XIC(Enabled)LabTypedInputs(TypedInputs,16#0020000000000001L,8#37777777777U,2#1111111111111111111111111111111111111111111111111111111111111111UL,1.0000000000000002L,SignedResult,UnsignedResult,LargestResult,PreciseResult);</Text></Rung>
               <Rung Number="1" Type="N"><Text>XIC(RunTimeExample)LabTemporalOffset(TemporalOffset,LDT#2026-01-01-00:00:00.000_000_001,LT#1ns,ElapsedDelay,OffsetStamp);</Text></Rung>
-              <Rung Number="2" Type="N"><Text>[XIC(Enabled),XIC(RunTimeExample)]DIV(1,ParameterLateDivisor,ParameterLateGuard);</Text></Rung>
+              <Rung Number="2" Type="N"><Text>[XIC(Enabled),XIC(RunTimeExample)]CPT(ParameterLateGuard,1/ParameterLateDivisor);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

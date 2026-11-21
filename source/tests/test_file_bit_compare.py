@@ -322,7 +322,7 @@ class FileBitCompareTests(unittest.TestCase):
             self.assertEqual(engine.memory.values, before)
 
     def test_late_fault_rolls_back_both_controls_results_and_reference_then_retry_commits_once(self):
-        e=self.checked([self.instruction('DDT')+';','DIV(1,FaultDivisor,GuardResult);'])
+        e=self.checked([self.instruction('DDT')+';','CPT(GuardResult,1/FaultDivisor);'])
         e.memory.write('FaultDivisor',0);before=copy.deepcopy(e.memory.values);schedule=e.scheduler_description()
         with self.assertRaisesRegex(ModelError,'zero'):e.step()
         self.assertEqual(e.memory.values,before);self.assertEqual(e.scheduler_description(),schedule)

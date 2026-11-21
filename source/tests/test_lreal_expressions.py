@@ -132,7 +132,7 @@ class LrealExpressionTests(unittest.TestCase):
                                           ('Source**Other', 1, 1025, 'exponent'), ('Source*Other', 1e308, 2, 'Nonfinite')]:
             e = self.checked(['MOV(99,SpeedCommand);', 'CPT(Results[1],' + expr + ');'], value=value, rhs=rhs)
             self.fault(e, pattern)
-        e = self.checked(['CPT(Results[1],Source+Other);', 'DIV(1,0,SpeedCommand);'])
+        e = self.checked(['CPT(Results[1],Source+Other);', 'CPT(SpeedCommand,1/0);'])
         self.fault(e, 'zero')
 
     @staticmethod

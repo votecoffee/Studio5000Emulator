@@ -57,7 +57,7 @@ class CmpBcdTests(unittest.TestCase):
         for expression,value,text in [('TOD(Source)=0',-1,'qualified'),('TOD(Source)=0',100000000,'qualified'),('FRD(Source*2)>0',1073741824,'overflow'),
                                       ('TOD(Source+1)=0',2147483647,'overflow'),('TOD(Source/Divisor)>0',42,'zero'),('FRD(2147483648)>0',42,'overflow')]:
             e=self.checked(['MOV(99,SpeedCommand);',f'CMP({expression})OTE(RunLatch);'],value=value,divisor=0);self.fault(e,text)
-        e=self.checked(['CMP(FRD(Source)=30)OTE(RunLatch);','DIV(1,LateDivisor,SpeedCommand);']);e.step();self.assertTrue(e.memory.read('RunLatch'))
+        e=self.checked(['CMP(FRD(Source)=30)OTE(RunLatch);','CPT(SpeedCommand,1/LateDivisor);']);e.step();self.assertTrue(e.memory.read('RunLatch'))
         e.memory.write('Source',33);e.memory.write('LateDivisor',0);self.fault(e,'zero');self.assertTrue(e.memory.read('RunLatch'));e.memory.write('LateDivisor',1);e.step();self.assertFalse(e.memory.read('RunLatch'))
 
     def test_alias_udt_members_nested_indices_and_constant_sources(self):

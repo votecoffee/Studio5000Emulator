@@ -513,7 +513,7 @@
                 <Text>XIC(EnabledB)LabStatsDriver(DriverB,Calculate,IndexB,RowB,ColumnB,SamplesB,GridB,CubeB,MeanB,DeviationB,ColumnBState,RowBState,PlaneB);</Text>
               </Rung>
               <Rung Number="2" Type="N">
-                <Text>DIV(1,FaultDivisor,Quotient);</Text>
+                <Text>CPT(Quotient,1/FaultDivisor);</Text>
               </Rung>
             </RLLContent>
           </Routine>

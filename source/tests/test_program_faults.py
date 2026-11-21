@@ -597,7 +597,7 @@ class ProgramFaultTests(unittest.TestCase):
             self.assertEqual(engine.program_fault_attributes(name,source_sha256=sha),{})
 
     def test_fault_history_stays_unknown_after_later_success_until_new_engine(self):
-        engine=self.engine(['DIV(SpeedCommand,SpeedSetpoint,SpeedCommand);']);digest=engine.project.sha256
+        engine=self.engine(['CPT(SpeedCommand,SpeedCommand/SpeedSetpoint);']);digest=engine.project.sha256
         engine.memory.write('SpeedSetpoint',0)
         with self.assertRaises(ModelError):engine.step()
         self.assertEqual(engine.program_fault_attributes('MainProgram',source_sha256=digest),{})
@@ -698,37 +698,41 @@ class ProgramFaultTests(unittest.TestCase):
                 self.assertFalse(memory.read('MotorRunning'))
                 self.assertIs(engine.last_cleared_program_fault, fault)
 
-    def test_integer_mod_zero_continues_without_dispatching_the_program_handler(self):
-        for reporting in (True, False, None):
-            with self.subTest(reporting=reporting):
-                self.setUp()
+    def test_integer_zero_divisor_continues_without_dispatching_the_program_handler(self):
+        for instruction, at_zero, at_three in (('MOD', 1, 2), ('DIV', 8, 3)):
+            for reporting in (True, False, None):
+                self.check_integer_zero_divisor(instruction, at_zero, at_three, reporting)
 
-                def setup(root):
-                    minor_subscript_status_fixture(root, reporting=reporting)
-                    set_fault_instruction(root, 'MOD(7,LabIndex,SpeedCommand)')
+    def check_integer_zero_divisor(self, instruction, at_zero, at_three, reporting):
+        with self.subTest(instruction=instruction, reporting=reporting):
+            self.setUp()
 
-                engine = self.engine(mutate=setup)
-                self.assertEqual(engine.blockers, [])
-                memory = engine.memory
-                self.assertIs(engine.project.controller_configuration.report_minor_overflow, reporting)
-                memory.write('FaultWitness', False)
-                memory.write('LabIndex', 0)
-                memory.write('SpeedCommand', 50)
-                engine.step()
-                self.assertEqual(memory.read('SpeedCommand'), 50)
-                self.assertFalse(memory.read('MotorRunning'))
+            def setup(root):
+                minor_subscript_status_fixture(root, reporting=reporting)
+                set_fault_instruction(root, f'{instruction}(7,LabIndex,SpeedCommand)')
 
-                memory.write('StartPB', True)
-                engine.step()
-                self.assertEqual(memory.read('SpeedCommand'), 1)
-                self.assertIs(memory.read('MotorRunning'), reporting is True)
-                self.assertFalse(memory.read('FaultWitness'))
-                self.assertIsNone(engine.last_cleared_program_fault)
+            engine = self.engine(mutate=setup)
+            self.assertEqual(engine.blockers, [])
+            memory = engine.memory
+            self.assertIs(engine.project.controller_configuration.report_minor_overflow, reporting)
+            memory.write('FaultWitness', False)
+            memory.write('LabIndex', 0)
+            memory.write('SpeedCommand', 50)
+            engine.step()
+            self.assertEqual(memory.read('SpeedCommand'), 50)
+            self.assertFalse(memory.read('MotorRunning'))
 
-                memory.write('LabIndex', 3)
-                engine.step()
-                self.assertEqual(memory.read('SpeedCommand'), 2)
-                self.assertFalse(memory.read('MotorRunning'))
+            memory.write('StartPB', True)
+            engine.step()
+            self.assertEqual(memory.read('SpeedCommand'), at_zero)
+            self.assertIs(memory.read('MotorRunning'), reporting is True)
+            self.assertFalse(memory.read('FaultWitness'))
+            self.assertIsNone(engine.last_cleared_program_fault)
+
+            memory.write('LabIndex', 3)
+            engine.step()
+            self.assertEqual(memory.read('SpeedCommand'), at_three)
+            self.assertFalse(memory.read('MotorRunning'))
 
     def test_ladder_can_set_test_and_clear_minor_status_without_a_tag(self):
         engine = self.engine([
@@ -2431,7 +2435,7 @@ class ProgramFaultTests(unittest.TestCase):
         cases = (
             ({'clear':False}, 'completed without clearing'),
             ({'handler_tail':'MOV(LabValues[LabIndex],SpeedSetpoint);'}, 'Program fault 4/20'),
-            ({'main_tail':'DIV(1,0,SpeedCommand);'}, 'divide by zero'),
+            ({'main_tail':'CPT(SpeedCommand,1/0);'}, 'divide by zero'),
         )
         for options, expected in cases:
             with self.subTest(options=options):
@@ -2503,9 +2507,9 @@ class ProgramFaultTests(unittest.TestCase):
     def test_controller_fallback_rolls_back_both_handlers_on_failure(self):
         cases = (
             ({'clear_at_controller':False},'Controller Fault Handler completed without clearing'),
-            ({'controller_tail':'DIV(1,0,SpeedSetpoint);'},'Controller Fault Handler: DIV divide by zero'),
+            ({'controller_tail':'DIV(1.0,0,SpeedSetpoint);'},'Controller Fault Handler: DIV REAL divide by zero'),
             ({'program_tail':'MOV(LabValues[LabIndex],SpeedSetpoint);'},'Program fault routine: Array index outside bounds'),
-            ({'main_tail':'DIV(1,0,SpeedCommand);'},'divide by zero'),
+            ({'main_tail':'CPT(SpeedCommand,1/0);'},'divide by zero'),
         )
         for options, expected in cases:
             with self.subTest(options=options):
@@ -2786,7 +2790,7 @@ class ProgramFaultTests(unittest.TestCase):
 
     def test_arithmetic_errors_keep_existing_scan_rollback(self):
         for instruction,message in (
-            ('DIV(12,0,SpeedCommand)','divide by zero'),
+            ('DIV(12.0,0,SpeedCommand)','divide by zero'),
             ('ADD(2147483647,LabValues[LabIndex],SpeedCommand)','DINT overflow'),
             ('CPT(SpeedCommand,LabValues[LabIndex]/0)','divide by zero'),
         ):

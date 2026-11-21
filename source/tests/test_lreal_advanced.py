@@ -75,7 +75,7 @@ class LrealAdvancedTests(unittest.TestCase):
         self.assertEqual((e.memory.read('Source'),e.memory.read('Packet.Value'),e.memory.read('Packet.Guard')),(9.0,3.0,777))
 
     def test_late_fault_keeps_all_outputs_and_recovery_uses_current_source(self):
-        e=self.checked(['SQR(Source,Results[1]);','DIV(1,Index,SpeedCommand);'],value=9)
+        e=self.checked(['SQR(Source,Results[1]);','CPT(SpeedCommand,1/Index);'],value=9)
         self.fault(e,'zero');e.memory.write('Index',1);e.memory.write('Source',16.0);e.step();self.assertEqual(e.memory.read('Results[1]'),4.0)
 
     def test_mixed_types_immediates_aggregates_readonly_and_old_profiles_remain_guarded(self):

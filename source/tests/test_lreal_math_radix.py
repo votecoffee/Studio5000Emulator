@@ -93,7 +93,7 @@ class LrealMathRadixTests(unittest.TestCase):
                 ('ADD(16#FFFFFFFFFFFFFFFFUL,0.0L,Results[1]);', 'ULINT', 'overflow'),
                 ('XPY(16#FFFFFFFFFFFFFFFFUL,2.0L,Results[1]);', 'REAL', 'finite REAL')]:
             e = self.checked([call], dest=dest); self.fault(e, error)
-        e = self.checked(['ADD(Source,16#1U,Results[1]);', 'DIV(1,Mask,Mask);'], source='LREAL')
+        e = self.checked(['ADD(Source,16#1U,Results[1]);', 'CPT(Mask,1/Mask);'], source='LREAL')
         e.memory.write('Mask', 0); self.fault(e, 'zero'); e.memory.write('Mask', 1); e.step()
         self.assertEqual(e.memory.read('Results[1]'), 4.0)
 

@@ -133,7 +133,7 @@ class FileIntegerLiteralTests(unittest.TestCase):
         e = self.checked(['FAL(Ctl,?,?,ALL,Queue[Ctl.POS],Queue[Ctl.POS]+1L);'],
                          queue=(0, (1 << 63)-1, 0, 0, 99))
         self.fault(e, 'overflow')
-        e = self.checked(['FAL(Ctl,?,?,ALL,Queue[Ctl.POS],9007199254740993L);', 'DIV(1,0,SpeedCommand);'])
+        e = self.checked(['FAL(Ctl,?,?,ALL,Queue[Ctl.POS],9007199254740993L);', 'CPT(SpeedCommand,1/0);'])
         self.fault(e, 'zero')
 
     def test_false_done_inhibited_and_error_paths_do_not_read_required_unknowns(self):

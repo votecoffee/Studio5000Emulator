@@ -126,7 +126,7 @@ class SequencerTests(unittest.TestCase):
         before=copy.deepcopy(e.memory.values)
         with self.assertRaisesRegex(ModelError,'SQL position exceeds the selected table boundary'):e.step()
         self.assertEqual(e.memory.values,before)
-        e=self.checked(['SQL(Queue[0],Incoming,Ctl,?,?);','DIV(1,0,SpeedCommand);'],length=3)
+        e=self.checked(['SQL(Queue[0],Incoming,Ctl,?,?);','CPT(SpeedCommand,1/0);'],length=3)
         before=copy.deepcopy(e.memory.values)
         with self.assertRaises(ModelError):e.step()
         self.assertEqual(e.memory.values,before);self.assertEqual((e.scan_count,e.time_ms),(0,0))

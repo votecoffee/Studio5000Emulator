@@ -172,7 +172,7 @@
                 <Text>XIC(ExecuteGraph)ADD(GraphCount,1,GraphCount);</Text>
               </Rung>
               <Rung Number="4" Type="N">
-                <Text>DIV(1,FaultDivisor,GuardResult);</Text>
+                <Text>CPT(GuardResult,1/FaultDivisor);</Text>
               </Rung>
             </RLLContent>
           </Routine>

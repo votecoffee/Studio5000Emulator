@@ -129,7 +129,7 @@ class LadderTimerTests(unittest.TestCase):
 
     def test_late_fault_restores_timer_values_and_elapsed_history_for_all_three(self):
         for op in ('TON','TOF','RTO'):
-            e=self.checked([f'XIC(StartPB){op}(TimerCells[1],?,?);','DIV(1,SpeedSetpoint,SpeedCommand);']);e.memory.write('StartPB',True);e.step()
+            e=self.checked([f'XIC(StartPB){op}(TimerCells[1],?,?);','CPT(SpeedCommand,1/SpeedSetpoint);']);e.memory.write('StartPB',True);e.step()
             if op=='TOF':e.memory.write('StartPB',False);e.step()
             e.memory.write('SpeedSetpoint',0);before=self.snapshot(e)
             with self.assertRaisesRegex(ModelError,'zero'):e.step()
@@ -162,7 +162,7 @@ class LadderTimerTests(unittest.TestCase):
                         self.assertEqual(engine.memory.read('TimerCells')[1], result)
 
     def test_later_fault_rolls_back_saturated_value_and_timer_clock(self):
-        engine = self.checked(['TON(TimerCells[1],?,?);', 'DIV(1,SpeedSetpoint,SpeedCommand);'])
+        engine = self.checked(['TON(TimerCells[1],?,?);', 'CPT(SpeedCommand,1/SpeedSetpoint);'])
         engine.memory.write('TimerCells[1].PRE', 2147483647)
         engine.memory.write('SpeedSetpoint', 1)
         engine.step()

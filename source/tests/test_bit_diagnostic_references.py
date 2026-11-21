@@ -169,7 +169,7 @@ class BitDiagnosticReferenceTests(unittest.TestCase):
         with self.assertRaisesRegex(ModelError,'4096-element'):e.step()
 
     def test_late_failure_restores_learning_results_controls_and_time(self):
-        e=self.checked([self.indirect('DDT')+';','DIV(1,FaultDivisor,GuardResult);']);e.memory.write('FaultDivisor',0);before=self.snapshot(e)
+        e=self.checked([self.indirect('DDT')+';','CPT(GuardResult,1/FaultDivisor);']);e.memory.write('FaultDivisor',0);before=self.snapshot(e)
         with self.assertRaises(ModelError):e.step()
         self.assertEqual(self.snapshot(e),before);e.memory.write('FaultDivisor',1);e.step();self.assertEqual(e.memory.read('Reference')[:2],[-2147483615,129])
 

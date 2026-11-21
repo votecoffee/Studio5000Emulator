@@ -217,7 +217,7 @@
               <Rung Number="3" Type="N"><Text>XIC(DoubleCopy)CPS(DoubleWords[0],DoubleResults[DoubleCopyIndex],DoubleCopyLength);</Text></Rung>
               <Rung Number="4" Type="N"><Text>XIC(DoubleCopy)COP(DoubleLowWord,DoublePartial,1);</Text></Rung>
               <Rung Number="5" Type="N"><Text>XIC(DoubleCopy)XIC(DoubleInject)CPS(DoubleInjectedImage,DoubleRoundtrip,1);</Text></Rung>
-              <Rung Number="6" Type="N"><Text>XIC(DoubleCopy)DIV(1,DoubleDivisor,DoubleLateResult);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(DoubleCopy)CPT(DoubleLateResult,1/DoubleDivisor);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

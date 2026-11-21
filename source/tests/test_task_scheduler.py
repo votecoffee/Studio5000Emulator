@@ -109,7 +109,7 @@ class TaskSchedulerTests(unittest.TestCase):
         self.assertEqual(e.memory.read('StartDelay.ACC'), 30)
 
     def test_failure_rolls_back_values_clock_phase_counts_and_first_scan(self):
-        e = self.mixed(bodies=[['NOP();'], ['ADD(Count1,1,Count1);', 'XIC(S:FS)ADD(First1,1,First1);'], ['DIV(1,0,Count2);']])
+        e = self.mixed(bodies=[['NOP();'], ['ADD(Count1,1,Count1);', 'XIC(S:FS)ADD(First1,1,First1);'], ['CPT(Count2,1/0);']])
         self.assertEqual(e.blockers, [])
         before = copy.deepcopy(e.scheduler_description())
         with self.assertRaisesRegex(ModelError, 'rolled back'): e.step(30)

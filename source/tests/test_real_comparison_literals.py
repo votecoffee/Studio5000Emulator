@@ -85,7 +85,7 @@ class RealComparisonLiteralTests(unittest.TestCase):
             obj=E.SubElement(E.SubElement(E.SubElement(c.find('Tags'),'Tag',Name='Packet1',DataType='Packet',TagType='Base',Constant='true'),'Data',Format='Decorated'),'Structure',DataType='Packet')
             E.SubElement(obj,'DataValueMember',Name='Value',DataType='LINT',Value='9007199254740993');E.SubElement(obj,'DataValueMember',Name='Guard',DataType='LINT',Value='777')
             E.SubElement(c.find('Tags'),'Tag',Name='AliasValue',DataType='LINT',TagType='Alias',AliasFor='Packet1.Value')
-        e=self.checked(['EQU(AliasValue,9007199254740992.0)OTE(RunLatch);','DIV(1,Index,SpeedCommand);'],source='DINT',mutate=fields)
+        e=self.checked(['EQU(AliasValue,9007199254740992.0)OTE(RunLatch);','CPT(SpeedCommand,1/Index);'],source='DINT',mutate=fields)
         before=e.memory.read('Packet1');e.memory.write('Index',0);self.fault(e,'zero');e.memory.write('Index',1);e.step()
         self.assertTrue(e.memory.read('RunLatch'));self.assertEqual(e.memory.read('Packet1'),before)
 

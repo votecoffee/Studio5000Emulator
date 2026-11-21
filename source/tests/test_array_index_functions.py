@@ -68,7 +68,7 @@ class ArrayIndexFunctionTests(unittest.TestCase):
                                 ('FRD(Index)',-1,'outside bounds'),('SQR(Index)',2147483647,'outside bounds')]:
             e=self.checked(['MOV(99,SpeedCommand);',f'MOV(Source,Results[{expr}]);'],index=index);self.fault(e,text)
         e=self.checked(['MOV(Source,Results[FRD(Index) AND 0]);']);e.memory.values['index']=None;self.fault(e,'Unknown')
-        e=self.checked(['MOV(Source,Results[FRD(TOD(Index))]);','DIV(1,LateDivisor,SpeedCommand);']);e.memory.write('LateDivisor',0);self.fault(e,'zero');e.memory.write('LateDivisor',1);e.step();self.assertEqual(e.memory.read('Results'),[None,7,None])
+        e=self.checked(['MOV(Source,Results[FRD(TOD(Index))]);','CPT(SpeedCommand,1/LateDivisor);']);e.memory.write('LateDivisor',0);self.fault(e,'zero');e.memory.write('LateDivisor',1);e.step();self.assertEqual(e.memory.read('Results'),[None,7,None])
 
     def test_existing_st_references_use_functions_without_new_bcd_call_forms(self):
         e=self.checked('IF StartPB THEN Results[FRD(TOD(Index))]:=Inputs[SQR(Index)]; END_IF;',st=True);e.step();e.memory.write('Inputs[1]',88);e.memory.write('StartPB',True);e.step();self.assertEqual(e.memory.read('Results'),[None,88,None])

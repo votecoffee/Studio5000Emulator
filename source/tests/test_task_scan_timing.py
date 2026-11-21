@@ -75,7 +75,7 @@ class TaskScanTimingTests(unittest.TestCase):
         self.assertEqual((e.memory.read('Values[0]'),e.memory.read('Values[3]')),(2,999))
 
     def test_later_fault_rolls_back_all_task_durations_and_release_counts(self):
-        e=self.checked(self.reads()+['DIV(1,Index,Out);'],mutate=self.outputs);e.memory.write('Index',1);e.step(25)
+        e=self.checked(self.reads()+['CPT(Out,1/Index);'],mutate=self.outputs);e.memory.write('Index',1);e.step(25)
         e.memory.write('Index',0);self.fault(e,'zero');e.memory.write('Index',1);prior=e._task_scan_timings['fasttask'];e.step(25)
         self.assertEqual(e.memory.read('FastLast'),prior.last_ns//1000)
 

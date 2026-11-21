@@ -236,7 +236,7 @@ class NumericCopyTests(unittest.TestCase):
         self.assertTrue(any('bounds/step' in b for b in e.blockers))
 
     def test_late_fault_restores_tags_time_and_scheduler_after_raw_copy(self):
-        e=self.checked(['COP(Src[0],Dst[0],3);','DIV(1,SpeedSetpoint,SpeedCommand);']);e.memory.write('SpeedSetpoint',0)
+        e=self.checked(['COP(Src[0],Dst[0],3);','CPT(SpeedCommand,1/SpeedSetpoint);']);e.memory.write('SpeedSetpoint',0)
         before=copy.deepcopy((e.memory.values,e.time_ms,e.scan_count,e.scheduler_description()))
         with self.assertRaisesRegex(ModelError,'zero'):e.step()
         self.assertEqual((e.memory.values,e.time_ms,e.scan_count,e.scheduler_description()),before)

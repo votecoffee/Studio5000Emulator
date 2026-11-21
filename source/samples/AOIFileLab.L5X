@@ -333,7 +333,7 @@
                 <Text>XIC(EnabledB)LabFileDriver(DriverB,Transform,Search,Reset,GainB,BiasB,LimitB,InputB,OutputB,CalcB,FindB);</Text>
               </Rung>
               <Rung Number="3" Type="N">
-                <Text>DIV(1,FaultDivisor,GuardResult);</Text>
+                <Text>CPT(GuardResult,1/FaultDivisor);</Text>
               </Rung>
             </RLLContent>
           </Routine>

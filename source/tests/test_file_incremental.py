@@ -152,7 +152,7 @@ class IncrementalFileTests(unittest.TestCase):
             self.assertEqual(len(e._file_incremental),1)
 
     def test_later_fault_rolls_back_imported_completed_cleanup(self):
-        e=self.checked(['XIC(StartPB)'+self.call('FAL'),'DIV(1,SpeedCommand,Outgoing);'],mutate=self.completed)
+        e=self.checked(['XIC(StartPB)'+self.call('FAL'),'CPT(Outgoing,1/SpeedCommand);'],mutate=self.completed)
         e.memory.write('SpeedCommand',0);before=copy.deepcopy(e.memory.values)
         with self.assertRaises(ModelError):e.step()
         self.assertEqual(e.memory.values,before);self.assertEqual(e._file_incremental,set())
@@ -185,7 +185,7 @@ class IncrementalFileTests(unittest.TestCase):
 
     def test_fault_after_reset_restores_hidden_progress_and_public_state(self):
         for kind in ('FAL','FSC'):
-            e=self.checked(['XIC(StartPB)'+self.call(kind),'XIC(RunLatch)RES(Ctl);','XIC(BitIn)DIV(1,0,SpeedCommand);'])
+            e=self.checked(['XIC(StartPB)'+self.call(kind),'XIC(RunLatch)RES(Ctl);','XIC(BitIn)CPT(SpeedCommand,1/0);'])
             e.memory.write('BitIn',False);e.memory.write('StartPB',True);e.step()
             e.memory.write('StartPB',False);e.memory.write('RunLatch',True);e.memory.write('BitIn',True)
             before=copy.deepcopy(e.memory.values);progress=set(e._file_incremental);schedule=e.scheduler_description()
@@ -203,7 +203,7 @@ class IncrementalFileTests(unittest.TestCase):
 
     def test_later_instruction_fault_rolls_back_new_progress_and_scheduler(self):
         for kind in ('FAL','FSC'):
-            e=self.checked([self.call(kind),'DIV(1,0,SpeedCommand);']);before=copy.deepcopy(e.memory.values);schedule=e.scheduler_description()
+            e=self.checked([self.call(kind),'CPT(SpeedCommand,1/0);']);before=copy.deepcopy(e.memory.values);schedule=e.scheduler_description()
             with self.assertRaises(ModelError):e.step()
             self.assertEqual(e.memory.values,before);self.assertEqual(e._file_incremental,set());self.assertEqual(e.scheduler_description(),schedule)
 
@@ -223,7 +223,7 @@ class IncrementalFileTests(unittest.TestCase):
 
     def test_late_fault_after_successful_real_retry_restores_pending_element_and_edge(self):
         from test_file_arithmetic import real_overflow_logic,file_state
-        e=self.checked([real_overflow_logic('INC'),'DIV(1,SpeedCommand,Outgoing);'],
+        e=self.checked([real_overflow_logic('INC'),'CPT(Outgoing,1/SpeedCommand);'],
                        dtype='REAL',length=3,queue=(2,3e38,6,8,999))
         e.memory.write('SpeedCommand',1);e.memory.write('StartPB',True);e.step()
         e.memory.write('StartPB',False);e.step();e.memory.write('StartPB',True);e.step()
@@ -314,7 +314,7 @@ class IncrementalFileTests(unittest.TestCase):
             task=E.SubElement(root.find('./Controller/Tasks'),'Task',Name='Background',Type='CONTINUOUS',Class='Standard',Priority='10',InhibitTask='false')
             E.SubElement(task,'ScheduledPrograms')
         for kind in ('FAL','FSC'):
-            e=self.checked([self.call(kind),'ADD(SpeedCommand,1,SpeedCommand);','EQU(SpeedCommand,2)DIV(1,0,SpeedSetpoint);'],mutate=tasks)
+            e=self.checked([self.call(kind),'ADD(SpeedCommand,1,SpeedCommand);','EQU(SpeedCommand,2)CPT(SpeedSetpoint,1/0);'],mutate=tasks)
             e.memory.write('SpeedCommand',0);before=copy.deepcopy(e.memory.values);schedule=e.scheduler_description()
             with self.assertRaises(ModelError):e.step(30)
             self.assertEqual(e.memory.values,before);self.assertEqual(e._file_incremental,set());self.assertEqual(e.scheduler_description(),schedule)

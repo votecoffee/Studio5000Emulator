@@ -72,7 +72,7 @@ class McrTests(unittest.TestCase):
         self.assertTrue(body['mcr_forced_false']);self.assertTrue(all(not event['in'] and not event['out'] for event in body['events']))
 
     def test_unknown_body_conditions_and_division_are_not_read_in_disabled_zone(self):
-        e=self.checked(self.zone(['XIC(ZoneInput)OTE(ZoneOutput);','DIV(1,ZoneDivisor,ZoneMath);']))
+        e=self.checked(self.zone(['XIC(ZoneInput)OTE(ZoneOutput);','CPT(ZoneMath,1/ZoneDivisor);']))
         e.memory.write('ZoneEnable',False);e.memory.values['zoneinput']=None;e.memory.values['zonedivisor']=None;e.step()
         self.assertFalse(e.memory.read('ZoneOutput'));self.assertEqual(e.memory.read('AfterZone'),1)
 
@@ -229,7 +229,7 @@ class McrTests(unittest.TestCase):
         e.memory.write('ZoneEnable',False);e.step();self.assertFalse(e.memory.read('LeftControl.EN'));self.assertEqual(e.memory.read('LeftControl.POS'),0)
 
     def test_unconditional_end_restores_arithmetic_after_disabled_zone(self):
-        e=self.checked(['XIC(ZoneEnable)MCR();','DIV(1,ZoneDivisor,ZoneMath);','MCR();','DIV(1,ZoneDivisor,ZoneMath);'])
+        e=self.checked(['XIC(ZoneEnable)MCR();','CPT(ZoneMath,1/ZoneDivisor);','MCR();','CPT(ZoneMath,1/ZoneDivisor);'])
         e.memory.write('ZoneEnable',False);e.memory.write('ZoneDivisor',0);before=copy.deepcopy(e.memory.values)
         with self.assertRaisesRegex(ModelError,'zero'):e.step()
         self.assertEqual(e.memory.values,before);e.memory.write('ZoneDivisor',1);e.step();self.assertEqual(e.memory.read('ZoneMath'),1)

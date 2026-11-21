@@ -76,9 +76,8 @@ class LrealMathTests(unittest.TestCase):
         e=self.checked(['LIM(Source,Mask,Inputs[0])OTE(RunLatch);']);self.fault(e,'Unknown')
 
     def test_zero_divisors_and_nonfinite_results_fault_without_partial_updates(self):
-        for name in ('DIV','MOD'):
-            for zero in (0.0,-0.0):
-                e=self.checked(['MOV(99,SpeedCommand);',fixtures.operation(name)+';']);e.memory.write('Mask',zero);self.fault(e,'zero')
+        for zero in (0.0,-0.0):
+            e=self.checked(['MOV(99,SpeedCommand);',fixtures.operation('DIV')+';']);e.memory.write('Mask',zero);self.fault(e,'zero')
         for name,value,other in [('ADD',1e308,1e308),('SUB',-1e308,1e308),('MUL',1e308,1e308),('DIV',1e308,1e-308)]:
             e=self.checked(['MOV(99,SpeedCommand);',fixtures.operation(name)+';'],value=value);e.memory.write('Mask',other);self.fault(e,'Nonfinite LREAL')
 
@@ -89,7 +88,7 @@ class LrealMathTests(unittest.TestCase):
             obj=E.SubElement(E.SubElement(E.SubElement(c.find('Tags'),'Tag',Name='Pair',DataType='WidePair',TagType='Base'),'Data',Format='Decorated'),'Structure',DataType='WidePair')
             E.SubElement(obj,'DataValueMember',Name='Guard',DataType='DINT',Value='777')
             E.SubElement(c.find('Tags'),'Tag',Name='Selected',DataType='LREAL',TagType='Alias',AliasFor='Pair.Value')
-        e=self.checked(['ADD(Source,Mask,Selected);','MUL(Source,Mask,Source);','DIV(1,Index,SpeedCommand);'],mutate=fields)
+        e=self.checked(['ADD(Source,Mask,Selected);','MUL(Source,Mask,Source);','CPT(SpeedCommand,1/Index);'],mutate=fields)
         self.fault(e,'zero');e.memory.write('Index',1);e.step()
         self.assertEqual((e.memory.read('Pair.Value'),e.memory.read('Pair.Guard'),e.memory.read('Source')),(10.5,777,22.5))
 

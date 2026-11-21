@@ -824,7 +824,7 @@
                 <Text>XIC(ClearCopiedPart)FLL(0,CopiedPart,1);</Text>
               </Rung>
               <Rung Number="9" Type="N">
-                <Text>DIV(1,FaultDivisor,GuardResult);</Text>
+                <Text>CPT(GuardResult,1/FaultDivisor);</Text>
               </Rung>
             </RLLContent>
           </Routine>

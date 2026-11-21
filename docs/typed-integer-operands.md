@@ -29,8 +29,8 @@ REAL/LREAL comparison priority retains its [existing profiles](numeric-compariso
 Calculation stays exact beyond 2^53. DIV of ULINT maximum by 3 returns
 6148914691236517205, and MOD returns zero. Signed division truncates toward zero;
 remainder has the dividend's sign. Results must fit their declared destination.
-Overflow and zero divisors in DIV roll back the modeled advance. Integer MOD
-follows the [zero-divisor ladder policy](scalar-math.md#integer-mod-with-a-zero-divisor).
+Overflow rolls back the modeled advance. See [integer DIV](scalar-math.md#integer-div-with-a-zero-divisor)
+and [integer MOD](scalar-math.md#integer-mod-with-a-zero-divisor) for zero-divisor behavior.
 
 Both binary positions and all three LIM positions support typed constants.
 LIM includes endpoints and accepts values at or outside reversed endpoints.
@@ -72,8 +72,9 @@ Full 64-bit all-ones L is numerically -1; UL is unsigned maximum. Unlike bitwise
 masks, numeric operations preserve those signs and enforce arithmetic ranges.
 
 DIV/MOD stay exact above 2^53, using quotient truncation toward zero and a
-dividend-sign remainder. Zero divisors in DIV and result overflow roll back
-the advance. Integer MOD follows the [zero-divisor ladder policy](scalar-math.md#integer-mod-with-a-zero-divisor).
+dividend-sign remainder. Result overflow rolls back the advance. See
+[integer DIV](scalar-math.md#integer-div-with-a-zero-divisor) and
+[integer MOD](scalar-math.md#integer-mod-with-a-zero-divisor) for zero-divisor behavior.
 Invalid/overwide words block even false rungs. False/prescan
 skip live values/indices; true calls consume required unknowns even under zero
 products or coincident limits. Aliases, AOI bindings and complete writes retain
@@ -119,9 +120,10 @@ Arithmetic destinations must cover complete source-tag type ranges and each
 constant must fit. Ordering uses the existing highest-ranked integer tag/type
 that covers all source ranges; constant-only comparisons use DINT. This adds
 no floating radix mixtures or implicit widening based on a saved tag value.
-DIV truncates toward zero and MOD retains the dividend sign. Zero divisors in
-DIV, overflow, unknown required sources, live bounds and later faults roll back
-the modeled advance. Integer MOD follows the [zero-divisor ladder policy](scalar-math.md#integer-mod-with-a-zero-divisor).
+DIV truncates toward zero and MOD retains the dividend sign. Overflow, unknown
+required sources, live bounds and later faults roll back the modeled advance.
+See [integer DIV](scalar-math.md#integer-div-with-a-zero-divisor) and
+[integer MOD](scalar-math.md#integer-mod-with-a-zero-divisor) for zero-divisor behavior.
 False/prescan skip data; syntax, permissions and static
 range/type errors remain blockers. Aliases, scoped members and AOI bindings
 share the same path. Default literal parsing, CPT/CMP/FAL/FSC, indices, BCD,

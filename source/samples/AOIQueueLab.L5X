@@ -332,7 +332,7 @@
                 <Text>XIC(EnabledB)LabQueueDriver(DriverB,Load,Unload,Push,Pop,Shift,IndexB,ValueB,ItemB,BufferB,StateB);</Text>
               </Rung>
               <Rung Number="3" Type="N">
-                <Text>DIV(1,FaultDivisor,GuardResult);</Text>
+                <Text>DIV(1.0,FaultDivisor,GuardResult);</Text>
               </Rung>
             </RLLContent>
           </Routine>

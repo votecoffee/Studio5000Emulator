@@ -155,7 +155,7 @@ class ArrayStatisticsTests(unittest.TestCase):
         with self.assertRaisesRegex(ModelError,'software limit'):e.step()
 
     def test_late_fault_rolls_back_completed_mean(self):
-        e=self.checked(['AVE(Queue[0],0,Result,Ctl,?,?);','DIV(1,0,SpeedCommand);'])
+        e=self.checked(['AVE(Queue[0],0,Result,Ctl,?,?);','CPT(SpeedCommand,1/0);'])
         before=copy.deepcopy(e.memory.values)
         with self.assertRaises(ModelError):e.step()
         self.assertEqual(e.memory.values,before);self.assertEqual(e.scheduler_description()['tasks'][0]['executions'],0)
@@ -203,7 +203,7 @@ class ArrayStatisticsTests(unittest.TestCase):
         self.assertEqual(e.memory.read('Queue[2]'),999)
 
     def test_std_overflow_latch_rolls_back_with_a_later_fault(self):
-        e = self.checked(['STD(Queue[0],0,Result,Ctl,?,?);','DIV(1,0,SpeedCommand);'],
+        e = self.checked(['STD(Queue[0],0,Result,Ctl,?,?);','CPT(SpeedCommand,1/0);'],
                          dtype='REAL', length=2, queue=(3e38,3e38))
         before = copy.deepcopy(e.memory.values)
         with self.assertRaises(ModelError):e.step()
@@ -264,7 +264,7 @@ class ArrayStatisticsTests(unittest.TestCase):
         self.assertEqual(e.memory.values,before)
 
     def test_std_extent_error_latch_rolls_back_with_a_later_fault(self):
-        e = self.checked(['STD(Queue[3],0,Result,Ctl,?,?);','DIV(1,0,SpeedCommand);'],length=3)
+        e = self.checked(['STD(Queue[3],0,Result,Ctl,?,?);','CPT(SpeedCommand,1/0);'],length=3)
         before = copy.deepcopy(e.memory.values)
         with self.assertRaises(ModelError):e.step()
         self.assertEqual(e.memory.values,before)
@@ -334,7 +334,7 @@ class ArrayStatisticsTests(unittest.TestCase):
 
     def test_ave_error_latches_roll_back_with_a_later_fault(self):
         for start,length,values in ((0,2,(3e38,3e38,6,8,99)),(3,3,(2,4,6,8,99))):
-            e=self.checked([f'AVE(Queue[{start}],0,Result,Ctl,?,?);','DIV(1,0,SpeedCommand);'],
+            e=self.checked([f'AVE(Queue[{start}],0,Result,Ctl,?,?);','CPT(SpeedCommand,1/0);'],
                            dtype='REAL',length=length,queue=values)
             before=copy.deepcopy(e.memory.values)
             with self.assertRaises(ModelError):e.step()

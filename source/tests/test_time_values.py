@@ -111,7 +111,7 @@ class TimeValueTests(unittest.TestCase):
             'XIC(StartPB)MOV(Source,Packet.Ticks[SpeedSetpoint]);',
             'XIC(StartPB)CLR(Packet.Ticks[1]);',
             'XIC(StartPB)EQU(FirstTick,LT#1s_1ns)OTE(RunLatch);',
-            'DIV(1,SpeedCommand,DisplayedPartCount);',
+            'CPT(DisplayedPartCount,1/SpeedCommand);',
         ], mutate=self.array_tags)
         e.memory.write('SpeedSetpoint', 99)
         e.memory.write('SpeedCommand', 1)
@@ -271,7 +271,7 @@ class TimeValueTests(unittest.TestCase):
     def test_lazy_temporal_sources_and_unknown_destination_retry(self):
         e = self.checked([
             'XIC(StartPB)ADD(Packet.Ticks[SpeedSetpoint],LT#1ns,Packet.Ticks[1]);',
-            'DIV(1,SpeedCommand,DisplayedPartCount);',
+            'CPT(DisplayedPartCount,1/SpeedCommand);',
         ], mutate=self.array_tags)
         e.memory.write('SpeedSetpoint', 99)
         e.memory.write('SpeedCommand', 1)

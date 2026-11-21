@@ -54,7 +54,7 @@ class CptBcdTests(unittest.TestCase):
         for expr,value,text in [('FRD(Source*2)',1073741824,'overflow'),('TOD(Source+1)',2147483647,'overflow'),('TOD(Source/Divisor)',42,'zero'),('FRD(2147483648)',42,'overflow')]:
             e=self.checked(['MOV(99,SpeedCommand);',f'CPT(Dest,{expr});'],value=value,divisor=0);self.fault(e,text)
         e=self.checked(['CPT(Dest,FRD(Inputs[Index])*0);']);self.fault(e,'Unknown');e.memory.write('Inputs[1]',33);e.step();self.assertEqual(e.memory.read('Dest'),0)
-        e=self.checked(['CPT(Results[Index],FRD(TOD(Source)));','DIV(1,LateDivisor,SpeedCommand);']);e.memory.write('LateDivisor',0);self.fault(e,'zero')
+        e=self.checked(['CPT(Results[Index],FRD(TOD(Source)));','CPT(SpeedCommand,1/LateDivisor);']);e.memory.write('LateDivisor',0);self.fault(e,'zero')
         e.memory.write('LateDivisor',1);e.step();self.assertEqual(e.memory.read('Results'),[None,42,None])
 
     def test_result_narrowing_requires_a_representable_numeric_value(self):

@@ -685,7 +685,7 @@
                 <Text>GSV(Task,FastTask,InhibitTask,LiveFastInhibit);</Text>
               </Rung>
               <Rung Number="14" Type="N">
-                <Text>XIC(ControlTasks)DIV(1,ControlDivisor,ControlResult);</Text>
+                <Text>XIC(ControlTasks)CPT(ControlResult,1/ControlDivisor);</Text>
               </Rung>
               <Rung Number="15" Type="N"><Text>JSR(ReadClockValues,0);</Text></Rung>
               <Rung Number="16" Type="N"><Text>JSR(ReadCurrentInstances,0)JSR(ReadProgramTimes,0);</Text></Rung>
@@ -722,7 +722,7 @@
               <Rung Number="3" Type="N"><Text>XIC(ReadTaskStarts)GSV(Task,FastTask,MaximumInterval,TaskMaxWords[1]);</Text></Rung>
               <Rung Number="4" Type="N"><Text>XIC(ResetTaskIntervals)SSV(Task,FastTask,MinimumInterval,IntervalResetTime)GSV(Task,FastTask,MinimumInterval,FastMinAfterReset);</Text></Rung>
               <Rung Number="5" Type="N"><Text>XIC(ReadTaskStarts)JSR(ReadTaskStartsST,0);</Text></Rung>
-              <Rung Number="6" Type="N"><Text>XIC(ReadTaskStarts)DIV(1,TaskStartDivisor,TaskStartResult);</Text></Rung>
+              <Rung Number="6" Type="N"><Text>XIC(ReadTaskStarts)CPT(TaskStartResult,1/TaskStartDivisor);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="ReadTaskStartsST" Type="ST">
@@ -763,7 +763,7 @@
               <Rung Number="1" Type="N"><Text>GSV(TimeSynchronize,,IsSynchronized,SyncSynchronized)GSV(TimeSynchronize,,IsSynchronized,SyncStatusWords[SyncStatusIndex]);</Text></Rung>
               <Rung Number="2" Type="N"><Text>GSV(TimeSynchronize,,NumberOfPorts,SyncPortCount);</Text></Rung>
               <Rung Number="3" Type="N"><Text>GSV(TimeSynchronize,,Priority1,SyncPriority1)GSV(TimeSynchronize,,Priority2,SyncPriority2);</Text></Rung>
-              <Rung Number="4" Type="N"><Text>DIV(1,SyncStatusDivisor,SyncStatusGuard);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>CPT(SyncStatusGuard,1/SyncStatusDivisor);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="ReadSyncTime" Type="RLL">
@@ -772,7 +772,7 @@
               <Rung Number="1" Type="N"><Text>GSV(TimeSynchronize,,CurrentTimeNanoseconds,SyncNanos);</Text></Rung>
               <Rung Number="2" Type="N"><Text>GSV(TimeSynchronize,,CurrentTimeNanoseconds,SyncNanoTicks);</Text></Rung>
               <Rung Number="3" Type="N"><Text>GSV(TimeSynchronize,,CurrentTimeMicroseconds,SyncWords[SyncIndex]);</Text></Rung>
-              <Rung Number="4" Type="N"><Text>DIV(1,SyncDivisor,SyncGuard);</Text></Rung>
+              <Rung Number="4" Type="N"><Text>CPT(SyncGuard,1/SyncDivisor);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="ReadClockValues" Type="RLL">
@@ -785,9 +785,9 @@
               <Rung Number="5" Type="N"><Text>XIC(ReadClock)GSV(CST,,CurrentValue,ClockCst);</Text></Rung>
               <Rung Number="6" Type="N"><Text>XIC(ReadClock)GSV(CST,,CurrentValue,ClockCstWords[1]);</Text></Rung>
               <Rung Number="7" Type="N"><Text>XIC(ReadClock)GSV(WallClockTime,,CSTOffset,ClockCstOffset[0]);</Text></Rung>
-              <Rung Number="8" Type="N"><Text>XIC(SetClock)SSV(WallClockTime,,CurrentValue,ClockSetpoint)GSV(WallClockTime,,CurrentValue,ClockSetReadback)DIV(1,ClockSetDivisor,ClockSetGuard)OTU(SetClock);</Text></Rung>
-              <Rung Number="9" Type="N"><Text>XIC(SetClockDateTime)SSV(WallClockTime,,DateTime,ClockCalendarSetpoint[ClockCalendarIndex])GSV(WallClockTime,,CurrentValue,ClockCalendarReadback)DIV(1,ClockSetDivisor,ClockSetGuard)OTU(SetClockDateTime);</Text></Rung>
-              <Rung Number="10" Type="N"><Text>XIC(SetClockLocalTime)SSV(WallClockTime,,LocalDateTime,ClockCalendarSetpoint[ClockCalendarIndex])GSV(WallClockTime,,CurrentValue,ClockCalendarReadback)DIV(1,ClockSetDivisor,ClockSetGuard)OTU(SetClockLocalTime);</Text></Rung>
+              <Rung Number="8" Type="N"><Text>XIC(SetClock)SSV(WallClockTime,,CurrentValue,ClockSetpoint)GSV(WallClockTime,,CurrentValue,ClockSetReadback)CPT(ClockSetGuard,1/ClockSetDivisor)OTU(SetClock);</Text></Rung>
+              <Rung Number="9" Type="N"><Text>XIC(SetClockDateTime)SSV(WallClockTime,,DateTime,ClockCalendarSetpoint[ClockCalendarIndex])GSV(WallClockTime,,CurrentValue,ClockCalendarReadback)CPT(ClockSetGuard,1/ClockSetDivisor)OTU(SetClockDateTime);</Text></Rung>
+              <Rung Number="10" Type="N"><Text>XIC(SetClockLocalTime)SSV(WallClockTime,,LocalDateTime,ClockCalendarSetpoint[ClockCalendarIndex])GSV(WallClockTime,,CurrentValue,ClockCalendarReadback)CPT(ClockSetGuard,1/ClockSetDivisor)OTU(SetClockLocalTime);</Text></Rung>
               <Rung Number="11" Type="N"><Text>XIC(ReadClock)GSV(WallClockTime,,ApplyDST,ClockApplyDst)GSV(WallClockTime,,DSTAdjustment,ClockDstAdjustment);</Text></Rung>
             </RLLContent>
           </Routine>

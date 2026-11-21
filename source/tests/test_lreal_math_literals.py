@@ -111,7 +111,7 @@ class LrealMathLiteralTests(unittest.TestCase):
         self.assertEqual(e.memory.read('Results'),[None,2.5,None])
 
     def test_late_failures_restore_values_timing_traces_and_scheduler(self):
-        e=self.checked(['ADD(0.1L,0.0L,Results[1]);','DIV(1,Index,SpeedCommand);'])
+        e=self.checked(['ADD(0.1L,0.0L,Results[1]);','CPT(SpeedCommand,1/Index);'])
         self.fault(e,'zero');e.memory.write('Index',1);e.step();self.assertEqual(e.memory.read('Results[1]'),.1)
 
     def test_alias_members_and_indirect_destinations_preserve_guards(self):
@@ -203,7 +203,7 @@ class LrealMathLiteralTests(unittest.TestCase):
     def test_indirect_sources_and_destinations_skip_false_and_rollback_late_faults(self):
         engine = self.checked([
             'XIC(StartPB)SUB(Inputs[Index],16777216,Results[Index]);',
-            'XIC(StartPB)DIV(1,Mask,SpeedCommand);',
+            'XIC(StartPB)CPT(SpeedCommand,1/Mask);',
         ], source='LREAL', dest='LINT')
         engine.memory.write('Index', 99)
         engine.enter_run()

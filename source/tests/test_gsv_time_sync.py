@@ -111,7 +111,7 @@ class GsvTimeSyncTests(unittest.TestCase):
     def test_pending_clock_setting_is_shared_with_reads_and_committed_cip_then_rolls_back(self):
         h=setters.SsvWallClockTests();h.setUp();self.addCleanup(h.doCleanups);h.ns=NS
         e=h.engine(['SSV(WallClockTime,,CurrentValue,ClockTarget);',f'GSV({MICRO},SyncDate);',
-                    f'GSV({NANO},SyncNano);','DIV(1,ClockDivisor,Out);'],mutate=self.destinations)
+                    f'GSV({NANO},SyncNano);','CPT(Out,1/ClockDivisor);'],mutate=self.destinations)
         e.memory.write('ClockDivisor',0);h.fault(e,'zero')
         e.memory.write('ClockDivisor',1);e.step()
         self.assertEqual(e.memory.read('SyncDate',allow_time=True),setters.TARGET)
@@ -140,7 +140,7 @@ class GsvTimeSyncTests(unittest.TestCase):
             tag=E.SubElement(c.find('Tags'),'Tag',Name='Reader',DataType='ReadNanoClock',TagType='Base')
             obj=E.SubElement(E.SubElement(tag,'Data',Format='Decorated'),'Structure',DataType='ReadNanoClock')
             for name,dtype in (('EnableIn','BOOL'),('EnableOut','BOOL'),('LocalNanos','LDT')):E.SubElement(obj,'DataValueMember',Name=name,DataType=dtype,Value='0')
-        e=self.checked(['ReadNanoClock(Reader,SyncNano);','DIV(1,ClockDivisor,Out);'],mutate=aoi)
+        e=self.checked(['ReadNanoClock(Reader,SyncNano);','CPT(Out,1/ClockDivisor);'],mutate=aoi)
         with patch(CLOCK,return_value=NS):e.step()
         e.memory.write('ClockDivisor',0)
         with patch(CLOCK,return_value=NS+17):self.fault(e,'zero')

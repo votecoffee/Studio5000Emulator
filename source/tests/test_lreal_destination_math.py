@@ -90,7 +90,7 @@ class LrealDestinationMathTests(unittest.TestCase):
             e=self.checked(['MOV(99,SpeedCommand);',call],**options)
             if options:e.memory.write('Mask',0.5)
             self.fault(e,'zero|finite LREAL')
-        e=self.checked(['ADD(Source,2,Results[1]);','XPY(Source,2,Results[2]);','DIV(1,Index,SpeedCommand);'])
+        e=self.checked(['ADD(Source,2,Results[1]);','XPY(Source,2,Results[2]);','CPT(SpeedCommand,1/Index);'])
         self.fault(e,'zero');e.memory.write('Index',1);e.step();self.assertEqual(e.memory.read('Results'),[None,5.0,9.0])
 
     def test_alias_udt_unknown_writes_and_overlapping_results_preserve_guards(self):

@@ -137,7 +137,7 @@ class CallTests(unittest.TestCase):
         self.assertEqual(e.memory.values,before);self.assertEqual(e.calls.stack,[]);self.assertEqual(e.time_ms,0)
 
     def test_fault_in_nested_routine_rolls_back_all_copies(self):
-        self.body('DoubleValue')[1].find('Text').text='MOV(77,NestedOutput)DIV(1,0,NestedOutput);'
+        self.body('DoubleValue')[1].find('Text').text='MOV(77,NestedOutput)CPT(NestedOutput,1/0);'
         e=self.engine();before=copy.deepcopy(e.memory.values)
         with self.assertRaisesRegex(ModelError,'divide'):e.step()
         self.assertEqual(e.memory.values,before);self.assertEqual(e.calls.stack,[]);self.assertEqual(e.trace,[])

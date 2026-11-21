@@ -151,7 +151,7 @@ class FileSearchTests(unittest.TestCase):
             before=copy.deepcopy(e.memory.values)
             with self.assertRaises(ModelError):e.step()
             self.assertEqual(e.memory.values,before);self.assertFalse(e.memory.structural)
-        e=self.checked(['FSC(Ctl,?,?,ALL,Queue[Ctl.POS]>=Incoming);','DIV(1,0,SpeedCommand);'])
+        e=self.checked(['FSC(Ctl,?,?,ALL,Queue[Ctl.POS]>=Incoming);','CPT(SpeedCommand,1/0);'])
         e.memory.write('Incoming',5);before=copy.deepcopy(e.memory.values)
         with self.assertRaises(ModelError):e.step()
         self.assertEqual(e.memory.values,before);self.assertEqual(e.scheduler_description()['tasks'][0]['executions'],0)

@@ -315,7 +315,7 @@ class DataTransitionTests(unittest.TestCase):
         self.assertEqual(e.memory.values,before)
 
     def test_late_scan_fault_rolls_back_reference_and_recovers_pulse_once(self):
-        e=self.checked(['DTR(Source,-1,Dest)OTE(RunLatch);','DIV(1,Mask,DisplayedPartCount);'],values=(0,1,0))
+        e=self.checked(['DTR(Source,-1,Dest)OTE(RunLatch);','CPT(DisplayedPartCount,1/Mask);'],values=(0,1,0))
         e.memory.write('Source',12);e.memory.write('Mask',0);before=copy.deepcopy(e.memory.values)
         with self.assertRaisesRegex(ModelError,'divide by zero'):e.step()
         self.assertEqual(e.memory.values,before);self.assertEqual((e.scan_count,e.time_ms),(0,0))

@@ -69,7 +69,7 @@ class EventInhibitTests(unittest.TestCase):
     def test_later_fault_restores_inhibition_status_first_scans_and_queued_work(self):
         for priority in ('1','14'):
             def periodic(root):root.find('./Controller/Tasks/Task').attrib.update(Type='PERIODIC',Priority='5',Rate='10')
-            e=self.checked([['EVENT(Task1);','SSV(Task,Task1,InhibitTask,SelfCommand);','DIV(1,Divisor,SpeedCommand);'],['ADD(Count1,1,Count1);']],priority=priority,mutate=periodic)
+            e=self.checked([['EVENT(Task1);','SSV(Task,Task1,InhibitTask,SelfCommand);','CPT(SpeedCommand,1/Divisor);'],['ADD(Count1,1,Count1);']],priority=priority,mutate=periodic)
             e.memory.write('Divisor',0);self.fault(e,'zero');self.assertFalse(e._task_scheduler.inhibitions[1]);self.assertEqual(e._task_event_status['task1'],0)
             e.memory.write('Divisor',1);e.step();self.assertTrue(e._task_scheduler.inhibitions[1])
 
@@ -175,7 +175,7 @@ class EventInhibitTests(unittest.TestCase):
             from test_event_tasks import EventTaskTests
             EventTaskTests.timeout(root,'5')
         e=self.checked([['SSV(Task,Task1,Rate,Command);','SSV(Task,Task1,EnableTimeOut,SelfCommand);',
-                         'GSV(Task,Task1,Rate,CallerStatus);','DIV(1,Divisor,SpeedCommand);'],
+                         'GSV(Task,Task1,Rate,CallerStatus);','CPT(SpeedCommand,1/Divisor);'],
                         ['ADD(Count1,1,Count1);']],mutate=configured)
         e.memory.write('Command',15001);self.fault(e,'whole milliseconds')
         e.memory.write('Command',15000);e.memory.write('SelfCommand',0);e.memory.write('Divisor',0)

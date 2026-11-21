@@ -63,7 +63,7 @@ class MixedLrealPowerTests(unittest.TestCase):
         for value,other,exponent in [(-2,'REAL',0.5),(0,'DINT',-1),(1e308,'DINT',2)]:
             e=self.checked(['MOV(99,SpeedCommand);','XPY(Source,Mask,Results[1]);'],value=value,other=other)
             e.memory.write('Mask',exponent);self.fault(e,'finite LREAL')
-        e=self.checked(['XPY(Source,3,Results[1]);','DIV(1,Index,SpeedCommand);'])
+        e=self.checked(['XPY(Source,3,Results[1]);','CPT(SpeedCommand,1/Index);'])
         self.fault(e,'zero');e.memory.write('Index',1);e.step();self.assertEqual(e.memory.read('Results[1]'),8.0)
 
     def test_false_prescan_skip_indices_then_require_selected_sources(self):

@@ -131,7 +131,7 @@ class ImmediateOutputTests(unittest.TestCase):
             ET.SubElement(program, 'Tags')
             routine = ET.SubElement(ET.SubElement(program, 'Routines'), 'Routine', Name='Main', Type='RLL')
             rung = ET.SubElement(ET.SubElement(routine, 'RLLContent'), 'Rung', Number='0', Type='N')
-            ET.SubElement(rung, 'Text').text = 'XIC(ReadModule)DIV(1,0,OutputCommand);'
+            ET.SubElement(rung, 'Text').text = 'XIC(ReadModule)CPT(OutputCommand,1/0);'
             output = root.find('.//Program[@Name="MainProgram"]//Rung[@Number="16"]/Text')
             output.text = output.text.replace('MOV(29,Local:2:O)', 'ADD(OutputCommand,12,Local:2:O)')
 
@@ -273,7 +273,7 @@ class ImmediateOutputTests(unittest.TestCase):
         def add_fault(root):
             routine = root.find('.//Routine[@Name="Main"]/RLLContent')
             rung = ET.SubElement(routine,'Rung',Number='18',Type='N')
-            ET.SubElement(rung,'Text').text = 'XIC(ReadModule)DIV(1,0,OutputCommand);'
+            ET.SubElement(rung,'Text').text = 'XIC(ReadModule)CPT(OutputCommand,1/0);'
 
         self.assertEqual(self.load(add_fault)['blockers'],[])
         self.open_output()

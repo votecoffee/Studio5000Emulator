@@ -491,7 +491,7 @@
                 <Text>XIC(EnabledB)LabBitDiagnostics(DriverB,CompareEnable,DetectEnable,SourceIndexB,ReferenceIndexB,ResultIndexB,SourceB,ReferenceB,LearnedB,CompareResultsB,DetectResultsB,CompareB,CompareListB,DetectB,DetectListB);</Text>
               </Rung>
               <Rung Number="2" Type="N">
-                <Text>DIV(1,FaultDivisor,Quotient);</Text>
+                <Text>CPT(Quotient,1/FaultDivisor);</Text>
               </Rung>
             </RLLContent>
           </Routine>

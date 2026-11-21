@@ -125,7 +125,7 @@ class SequencerOperandTests(unittest.TestCase):
         self.assertEqual(e.memory.read('Queue[1]'), 73); self.assertTrue(e.memory.read('RunLatch'))
 
     def test_later_fault_restores_output_table_flags_and_scheduler(self):
-        e = self.checked(['XIC(StartPB)SQO(Queue[0],-1,Outputs[OutputIndex],Ctl,?,?);', 'XIC(StartPB)SQL(Queue[0],Samples[PayloadIndex],Ctl,?,?);', 'XIC(StartPB)DIV(1,SpeedSetpoint,SpeedCommand);'], length=2, queue=(10, 20, 30, 999))
+        e = self.checked(['XIC(StartPB)SQO(Queue[0],-1,Outputs[OutputIndex],Ctl,?,?);', 'XIC(StartPB)SQL(Queue[0],Samples[PayloadIndex],Ctl,?,?);', 'XIC(StartPB)CPT(SpeedCommand,1/SpeedSetpoint);'], length=2, queue=(10, 20, 30, 999))
         e.step(); e.memory.write('OutputIndex', 1); e.memory.write('PayloadIndex', 1); e.memory.write('Samples[1]', 77); e.memory.write('SpeedSetpoint', 0); e.memory.write('StartPB', True); before = self.snapshot(e)
         with self.assertRaisesRegex(ModelError, 'zero'):e.step()
         self.assertEqual(self.snapshot(e), before); e.memory.write('SpeedSetpoint', 1); e.step()

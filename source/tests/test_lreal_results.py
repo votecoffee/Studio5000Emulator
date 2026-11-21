@@ -86,7 +86,7 @@ class LrealResultTests(unittest.TestCase):
                                        ('Source**Other', -2, .5, 'Complex'), ('Source**Other', 1, 1025, 'exponent')]:
             e = self.checked(['CPT(Results[1],' + expr + ');'], value=value, rhs=rhs, dest='DINT')
             self.fault(e, match)
-        e = self.checked(['CPT(Results[1],Source);', 'DIV(1,0,SpeedCommand);'], value=3.5, dest='DINT')
+        e = self.checked(['CPT(Results[1],Source);', 'CPT(SpeedCommand,1/0);'], value=3.5, dest='DINT')
         self.fault(e, 'zero')
 
     def test_unknown_destinations_and_dormant_bad_indices_remain_lazy(self):

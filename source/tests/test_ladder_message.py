@@ -279,7 +279,7 @@ class MessageTests(unittest.TestCase):
     def test_message_timeout_ssv_and_readback_roll_back_with_later_fault(self):
         def configure(root):
             rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='32', Type='N')
-            ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
+            ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)CPT(ReadValue,1/0);'
 
         engine = self.engine(configure)
         engine.memory.write('ApplyReadTimeout', True)
@@ -1164,7 +1164,7 @@ class MessageTests(unittest.TestCase):
     def test_generic_identity_all_rolls_back_response_and_queue_after_later_fault(self):
         def configure(root):
             rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='32', Type='N')
-            ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
+            ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)CPT(ReadValue,1/0);'
 
         engine = self.engine(configure)
         engine.memory.write('SendIdentityAll', True)
@@ -1540,7 +1540,7 @@ class MessageTests(unittest.TestCase):
         def configure(root):
             content = root.find('.//RLLContent')
             rung = ET.SubElement(content, 'Rung', Number='32', Type='N')
-            ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
+            ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)CPT(ReadValue,1/0);'
 
         for timeout in (30_000_000, 10_000):
             with self.subTest(timeout=timeout):
@@ -2143,7 +2143,7 @@ class MessageTests(unittest.TestCase):
         def configure(root):
             content = root.find('.//RLLContent')
             rung = ET.SubElement(content, 'Rung', Number='32', Type='N')
-            ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
+            ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)CPT(ReadValue,1/0);'
 
         engine = self.engine(configure)
         memory = engine.memory
@@ -2363,7 +2363,7 @@ class MessageTests(unittest.TestCase):
     def test_connectionpath_bad_count_unknown_active_data_and_late_fault_roll_back(self):
         def configure(root):
             rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='32', Type='N')
-            ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
+            ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)CPT(ReadValue,1/0);'
 
         for tag, value, error in (
             ('MessagePathBuffer[1]', 1, 'length exceeds 80 bytes'),
@@ -2482,7 +2482,7 @@ class MessageTests(unittest.TestCase):
         def configure(root):
             content = root.find('.//RLLContent')
             rung = ET.SubElement(content, 'Rung', Number='32', Type='N')
-            ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
+            ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)CPT(ReadValue,1/0);'
 
         cases = (
             ('ConnectedRateUs', 0, 'ConnectionRate requires a known positive value'),
@@ -2535,7 +2535,7 @@ class MessageTests(unittest.TestCase):
     def test_connected_completion_and_cache_roll_back_with_later_rung_fault(self):
         def configure(root):
             rung = ET.SubElement(root.find('.//RLLContent'), 'Rung', Number='32', Type='N')
-            ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)DIV(1,0,ReadValue);'
+            ET.SubElement(rung, 'Text').text = 'XIC(CancelRead)CPT(ReadValue,1/0);'
 
         engine = self.engine(configure)
         memory = engine.memory

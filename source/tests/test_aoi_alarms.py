@@ -141,7 +141,7 @@ class AOIAlarmTests(unittest.TestCase):
                               'DataValue', DataType='DINT', Value='1')
             content = controller.find('Programs/Program/Routines/Routine/RLLContent')
             rung = ET.SubElement(content, 'Rung', Number='1', Type='N')
-            ET.SubElement(rung, 'Text').text = 'DIV(1,Divisor,Quotient);'
+            ET.SubElement(rung, 'Text').text = 'CPT(Quotient,1/Divisor);'
 
         engine = self.engine(configure)
         self.enable(engine)

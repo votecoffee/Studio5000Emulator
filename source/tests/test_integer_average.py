@@ -108,7 +108,7 @@ class IntegerAverageTests(unittest.TestCase):
         e=self.checked();e.memory.values['queue'][1]=None;before=self.snapshot(e)
         with self.assertRaises(ModelError):e.step()
         self.assertEqual(self.snapshot(e),before)
-        e=self.checked(['AVE(Queue[0],0,Result,Ctl,?,?);','DIV(1,Incoming,SpeedCommand);']);e.memory.write('Incoming',0);before=self.snapshot(e)
+        e=self.checked(['AVE(Queue[0],0,Result,Ctl,?,?);','CPT(SpeedCommand,1/Incoming);']);e.memory.write('Incoming',0);before=self.snapshot(e)
         with self.assertRaises(ModelError):e.step()
         self.assertEqual(self.snapshot(e),before);e.memory.write('Incoming',1);e.step();self.assertEqual(e.memory.read('Result'),5)
 

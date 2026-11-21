@@ -181,9 +181,9 @@ class CallReferenceTests(unittest.TestCase):
     def test_nested_and_later_faults_restore_transfers_call_stack_and_scheduler(self):
         for inner in (False, True):
             def fault(root):
-                if inner:self.routine('DoubleValue', ['SBR(NestedInput);', 'MOV(77,NestedOutput)DIV(1,WorkValue,NestedOutput);', 'RET(NestedOutput);'])
+                if inner:self.routine('DoubleValue', ['SBR(NestedInput);', 'MOV(77,NestedOutput)CPT(NestedOutput,1/WorkValue);', 'RET(NestedOutput);'])
             rungs = ['XIC(IndirectEnabled)JSR(DoubleValue,1,Inputs[InputIndex],Outputs[OutputIndex]);']
-            if not inner:rungs += ['XIC(IndirectEnabled)DIV(1,WorkValue,Result);']
+            if not inner:rungs += ['XIC(IndirectEnabled)CPT(Result,1/WorkValue);']
             e = self.checked(rungs, fault); e.step()
             for ref, value in [('InputIndex', 1), ('OutputIndex', 1), ('Inputs[1]', 7), ('IndirectEnabled', True), ('WorkValue', 0)]:e.memory.write(ref, value)
             before = self.snapshot(e)
@@ -473,7 +473,7 @@ class CallReferenceTests(unittest.TestCase):
 
         e = self.checked([
             'XIC(IndirectEnabled)JSR(TimeWorker,1,TimeSource[InputIndex],TimeResults[OutputIndex]);',
-            'XIC(EarlyReturn)DIV(1,0,WorkValue);',
+            'XIC(EarlyReturn)CPT(WorkValue,1/0);',
         ], setup)
         e.step()
         self.assertEqual(e.memory.read('TimeResults', allow_time=True), [None, None, None])

@@ -58,7 +58,7 @@ class LadderIntegerRootTests(unittest.TestCase):
         e.memory.values['source']=None;self.files.fault(e,'Unknown')
 
     def test_argument_intermediate_destination_and_late_faults_roll_back(self):
-        for rungs,values,types,pattern in [(['CPT(Dest,SQR(Source**2));'],(50000,0,13),('DINT',)*3,'overflow'),(['CPT(Dest,SQR(Source+Mask));'],(2147483647,1,13),('DINT',)*3,'overflow'),(['CPT(Dest,SQR(Source));'],(32768,0,13),('DINT','DINT','SINT'),'overflow'),(['CPT(Dest,SQR(Source)+SQR(Source));','DIV(1,0,SpeedCommand);'],(3,0,13),('DINT',)*3,'zero')]:
+        for rungs,values,types,pattern in [(['CPT(Dest,SQR(Source**2));'],(50000,0,13),('DINT',)*3,'overflow'),(['CPT(Dest,SQR(Source+Mask));'],(2147483647,1,13),('DINT',)*3,'overflow'),(['CPT(Dest,SQR(Source));'],(32768,0,13),('DINT','DINT','SINT'),'overflow'),(['CPT(Dest,SQR(Source)+SQR(Source));','CPT(SpeedCommand,1/0);'],(3,0,13),('DINT',)*3,'zero')]:
             e=self.scalar.checked(rungs,values=values,types=types);self.files.fault(e,pattern)
 
     def test_alias_udt_indices_and_unknown_selected_destinations(self):

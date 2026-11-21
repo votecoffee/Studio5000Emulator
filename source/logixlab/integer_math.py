@@ -1,7 +1,7 @@
 """Exact, homogeneous wide-integer ladder operations for the v35 5580 model.
 
-Overflow remains a modeled scan fault. Mixed-type promotion and controller math
-status/minor-fault behavior are deliberately separate from this numeric profile.
+Overflow remains a modeled scan fault. Qualified DIV and MOD by zero complete
+with a task-scoped minor status when the controller export enables reporting.
 """
 import operator
 
@@ -110,14 +110,14 @@ def quotient(a, b):
     return abs(a) // abs(b) * (-1 if (a < 0) != (b < 0) else 1)
 
 
-def execute_zero_modulo(engine, op, scope):
-    """Complete a qualified ladder MOD with a converted zero divisor."""
+def execute_zero_divisor(engine, op, scope, result):
+    """Write the result of a qualified ladder DIV or MOD with a zero divisor."""
     project = engine.project
     routine = engine._executing_routine
     if (project.version != '35' or project.processor.upper() not in CONTROLLERS
             or routine is None or routine.kind != 'RLL' or engine.addons.prescanning):
-        raise ModelError('MOD divide by zero')
-    engine.memory.write(op.args[-1], 0, scope)
+        raise ModelError(f'{op.name} divide by zero')
+    engine.memory.write(op.args[-1], result, scope)
     if project.controller_configuration.report_minor_overflow is True:
         engine.memory.minor_fault = True
     return True
@@ -298,11 +298,11 @@ def execute(engine, op, scope, dtype, *, radix=False):
         result = bit_value(~a, dtype)
     else:
         b = values[1]
+        if b == 0 and name in ('DIV', 'MOD'):
+            return execute_zero_divisor(engine, op, scope, a if name == 'DIV' else 0)
         if name == 'DIV':
             result = quotient(a, b)
         elif name == 'MOD':
-            if b == 0:
-                return execute_zero_modulo(engine, op, scope)
             result = a - quotient(a, b) * b
         elif name in ('AND', 'OR', 'XOR'):
             result = bit_value({'AND': operator.and_, 'OR': operator.or_, 'XOR': operator.xor}[name](a, b), dtype)

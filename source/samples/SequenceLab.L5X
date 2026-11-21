@@ -225,7 +225,7 @@
               <Rung Number="5" Type="N"><Text>XIC(NarrowEnabled)SQI(NarrowPatterns[0],16#FFFF FFFF,8#37 777 777 777,NarrowPatternControl,?,?)OTE(NarrowPatternMatch);</Text></Rung>
               <Rung Number="6" Type="N"><Text>XIC(NarrowEnabled)SQO(NarrowByteTable[0],NarrowByteMask,NarrowByteOutput,NarrowByteControl,?,?);</Text></Rung>
               <Rung Number="7" Type="N"><Text>XIC(NarrowEnabled)SQO(NarrowWordTable[0],NarrowWordMask,NarrowWordOutput,NarrowWordControl,?,?);</Text></Rung>
-              <Rung Number="8" Type="N"><Text>XIC(NarrowEnabled)DIV(1,NarrowLateDivisor,NarrowLateResult);</Text></Rung>
+              <Rung Number="8" Type="N"><Text>XIC(NarrowEnabled)CPT(NarrowLateResult,1/NarrowLateDivisor);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

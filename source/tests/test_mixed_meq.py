@@ -139,7 +139,7 @@ class MixedMeqTests(unittest.TestCase):
         self.assertTrue(e.memory.read('RunLatch'));self.assertEqual(e.memory.read('Values'),[None,None,9007199254741247])
 
     def test_later_failure_rolls_back_comparison_coils_prior_writes_and_time(self):
-        e=self.checked(['MOV(99,SpeedCommand);','MEQ(Source,Mask,Dest)OTE(RunLatch);','DIV(1,Index,SpeedCommand);'],
+        e=self.checked(['MOV(99,SpeedCommand);','MEQ(Source,Mask,Dest)OTE(RunLatch);','CPT(SpeedCommand,1/Index);'],
                        types=('ULINT','USINT','DINT'),values=(7,15,7))
         e.memory.write('Index',0);before=self.snapshot(e)
         with self.assertRaisesRegex(ModelError,'zero'):e.step()

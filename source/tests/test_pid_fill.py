@@ -79,7 +79,7 @@ class PIDFillTests(unittest.TestCase):
 
     def test_budget_and_later_faults_restore_fills_time_and_scheduler(self):
         for budget in (True, False):
-            e = self.checked(['FLL(0,SourceBundle,1);', 'DIV(1,FaultDivisor,Quotient);'])
+            e = self.checked(['FLL(0,SourceBundle,1);', 'CPT(Quotient,1/FaultDivisor);'])
             if budget:e.instruction_limit = scalar_count(e.project.default('PID'))
             else:e.memory.write('FaultDivisor', 0)
             self.fault(e, 'budget' if budget else 'zero')
@@ -104,7 +104,7 @@ class PIDFillTests(unittest.TestCase):
         root.find('./Controller/AddOnInstructionDefinitions/AddOnInstructionDefinition/Routines/Routine/RLLContent/Rung/Text').text = 'FLL(0,Dest,1);'
 
     def test_aoi_inout_pid_clear_and_bindings_roll_back_after_later_fault(self):
-        e = self.checked(['CopyPID(CopyInstance,Loop,LoopSnapshot);', 'DIV(1,FaultDivisor,Quotient);'], mutate=self.aoi)
+        e = self.checked(['CopyPID(CopyInstance,Loop,LoopSnapshot);', 'CPT(Quotient,1/FaultDivisor);'], mutate=self.aoi)
         e.memory.write('FaultDivisor', 0);self.fault(e, 'zero')
         e.memory.write('FaultDivisor', 1);e.step();self.assert_zero(e, 'LoopSnapshot')
         self.assertEqual(e.memory.read('Loop.KP'), 1)

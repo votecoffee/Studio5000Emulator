@@ -124,7 +124,7 @@ class SystemValueTests(unittest.TestCase):
         self.assertFalse(e.change_detection.description()['audit_value_available'])
 
     def test_later_fault_rolls_back_gsv_results_and_invalidates_unclassified_history(self):
-        e=self.engine('GSV(Controller,,AuditValue,GsvWide)DIV(SpeedSetpoint,0,SpeedCommand);')
+        e=self.engine('GSV(Controller,,AuditValue,GsvWide)CPT(SpeedCommand,SpeedSetpoint/0);')
         self.assertFalse(e.blockers);before=copy.deepcopy(e.memory.values)
         with self.assertRaises(ModelError):e.step()
         self.assertEqual(e.memory.values,before);self.assertFalse(e.change_detection.description()['audit_value_available'])

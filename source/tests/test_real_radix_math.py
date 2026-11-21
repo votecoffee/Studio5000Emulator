@@ -78,7 +78,7 @@ class RealRadixMathTests(unittest.TestCase):
         for call, error in [('DIV(16#1L,16#0U,Results[1]);','zero'), ('LN(16#FFFFFFFFFFFFFFFFL,Results[1]);','finite'),
                 ('XPY(16#FFFFFFFFFFFFFFFFUL,3UL,Results[1]);','finite')]:
             e = self.checked(['XIC(StartPB)'+call]); e.step(); e.memory.write('StartPB',True); self.fault(e,error)
-        e = self.checked(['ADD(16#1U,Source,Results[1]);','DIV(1,Index,SpeedCommand);'],source='REAL')
+        e = self.checked(['ADD(16#1U,Source,Results[1]);','CPT(SpeedCommand,1/Index);'],source='REAL')
         self.fault(e,'zero'); e.memory.write('Index',1); e.step(); self.assertEqual(e.memory.read('Results[1]'),4.0)
 
     def test_structural_guards_profiles_permissions_and_default_helpers_stay_scoped(self):

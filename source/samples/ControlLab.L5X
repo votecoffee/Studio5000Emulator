@@ -478,7 +478,7 @@
                 <Text>ADD(ZoneScans,1,ZoneScans);</Text>
               </Rung>
               <Rung Number="11" Type="N">
-                <Text>DIV(1,ZoneDivisor,ZoneMath);</Text>
+                <Text>CPT(ZoneMath,1/ZoneDivisor);</Text>
               </Rung>
               <Rung Number="12" Type="N">
                 <Text>MCR();</Text>
@@ -517,7 +517,7 @@
             <Rung Number="4" Type="N"><Text>XIC(BcdFileNumeric)FSC(BcdNumericFind,?,?,2,FRD(TOD(BcdDecimal[BcdNumericFind.POS]))=BcdFindValue);</Text></Rung>
             <Rung Number="5" Type="N"><Text>XIC(BcdFileIncrement)FAL(BcdIncCalc,?,?,INC,BcdIncremented[BcdIncCalc.POS],FRD(TOD(BcdDecimal[BcdIncCalc.POS]))+1);</Text></Rung>
             <Rung Number="6" Type="N"><Text>XIC(BcdFileIncrement)FSC(BcdIncFind,?,?,INC,FRD(BcdPacked[BcdIncFind.POS])=BcdFindValue);</Text></Rung>
-            <Rung Number="7" Type="N"><Text>DIV(1,BcdFileLateDivisor,BcdFileLateResult);</Text></Rung>
+            <Rung Number="7" Type="N"><Text>CPT(BcdFileLateResult,1/BcdFileLateDivisor);</Text></Rung>
           </RLLContent></Routine>
           <Routine Name="IntegerPower" Type="RLL">
             <RLLContent>
@@ -526,7 +526,7 @@
               <Rung Number="2" Type="N"><Text>XIC(PowerEnabled)CMP(PowerBase**PowerExponent=PowerResult)OTE(PowerMatches);</Text></Rung>
               <Rung Number="3" Type="N"><Text>XIC(PowerEnabled)FAL(PowerCalc,?,?,ALL,PowerResults[PowerCalc.POS],PowerInputs[PowerCalc.POS]**2);</Text></Rung>
               <Rung Number="4" Type="N"><Text>XIC(PowerEnabled)FSC(PowerFind,?,?,ALL,PowerInputs[PowerFind.POS]**2&gt;=PowerThreshold);</Text></Rung>
-              <Rung Number="5" Type="N"><Text>XIC(PowerEnabled)DIV(1,PowerLateDivisor,PowerLateResult);</Text></Rung>
+              <Rung Number="5" Type="N"><Text>XIC(PowerEnabled)CPT(PowerLateResult,1/PowerLateDivisor);</Text></Rung>
             </RLLContent>
           </Routine>
           <Routine Name="IntegerRoots" Type="RLL">
@@ -538,7 +538,7 @@
               <Rung Number="4" Type="N"><Text>XIC(RootEnabled)FAL(RootCalc,?,?,ALL,RootResults[RootCalc.POS],SQR(RootInputs[RootCalc.POS]) AND 16#FF);</Text></Rung>
               <Rung Number="5" Type="N"><Text>XIC(RootEnabled)FSC(RootFind,?,?,ALL,SQR(RootInputs[RootFind.POS])&gt;=RootThreshold);</Text></Rung>
               <Rung Number="6" Type="N"><Text>XIC(RootEnabled)XIC(RootRangeFault)CPT(RootRangeResult,SQR(RootInput+RootRangeOffset));</Text></Rung>
-              <Rung Number="7" Type="N"><Text>XIC(RootEnabled)DIV(1,RootLateDivisor,RootLateResult);</Text></Rung>
+              <Rung Number="7" Type="N"><Text>XIC(RootEnabled)CPT(RootLateResult,1/RootLateDivisor);</Text></Rung>
             </RLLContent>
           </Routine>
         </Routines>

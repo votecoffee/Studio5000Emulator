@@ -135,7 +135,7 @@ class FloatingStringConditionTests(unittest.TestCase):
         e.memory.write('Codes[1].DATA[0]',66);e.step();self.assertEqual(e.memory.read('Ctl.POS'),1);self.assertTrue(e.memory.read('Ctl.FD'))
 
     def test_late_fault_and_unused_string_bytes_remain_transactional(self):
-        e=self.make(['CMP((Source+0.0>0)&&(Word>OtherWord))OTE(RunLatch);','DIV(1,SpeedCommand,SpeedCommand);'])
+        e=self.make(['CMP((Source+0.0>0)&&(Word>OtherWord))OTE(RunLatch);','CPT(SpeedCommand,1/SpeedCommand);'])
         e.memory.write('SpeedCommand',0);self.fault(e,'zero');e.memory.write('SpeedCommand',1);e.step();self.assertTrue(e.memory.read('RunLatch'))
         self.assertIsNone(e.memory.values['word']['DATA'][2]);e.memory.write('Word.LEN',0);e.step();self.assertFalse(e.memory.read('RunLatch'))
 
