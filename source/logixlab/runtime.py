@@ -43,14 +43,14 @@ ARRAY_FAULT_RECOVERY_OPS = (
 AOI_ARRAY_FAULT_RECOVERY_OPS = (
     frozenset(('MOV', 'CLR', 'COP', 'CPS', 'FLL', 'CPT', 'CMP',
                'TON', 'TOF', 'RTO', 'CTU', 'CTD', 'RES', 'DTR', 'SIZE', 'TRN',
-               'CONCAT', 'MID', 'DTOS', 'STOD', 'GSV', 'SSV'))
+               'CONCAT', 'MID', 'DTOS', 'STOD', 'GSV', 'SSV', 'ALMD', 'ALMA'))
     | scalar_math.INSTRUCTIONS | bit_logic.INSTRUCTIONS | bit_transfer.INSTRUCTIONS
     | comparisons.INSTRUCTIONS | numeric_conversions.INSTRUCTIONS | real_math.INSTRUCTIONS
     | string_operations.INSTRUCTIONS | string_conversions.INSTRUCTIONS
     | array_statistics.INSTRUCTIONS | array_sort.INSTRUCTIONS
     | file_arithmetic.INSTRUCTIONS | file_search.INSTRUCTIONS
     | control_operations.INSTRUCTIONS | sequencer_operations.INSTRUCTIONS
-    | file_bit_compare.INSTRUCTIONS
+    | file_bit_compare.INSTRUCTIONS | ladder_pid.INSTRUCTIONS
 )
 _CONTROL_PRESCAN = {
     instruction: family.prescan

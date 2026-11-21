@@ -106,6 +106,7 @@ outermost enabled AOI instruction with the incoming rung power.
 - Bit shifts include BSL and BSR. Sequencers include SQI, SQO and SQL.
 - Bit diagnostics include FBC and DDT.
 - System values include the supported GSV and SSV forms.
+- Process and alarm instructions include PID, ALMD and ALMA.
 
 The faulting instruction and the remaining statements in each interrupted AOI
 are skipped. Interrupted invocations also skip their output copies. The
@@ -186,6 +187,12 @@ before changing a system value. An out-of-bounds subscript inside AOI Logic
 therefore leaves the destination or setting intact before the handler. The
 next enabled call resolves the operand again. A short window at a valid
 starting index still rolls back the scan.
+
+PID retains its control output and solver history when an indexed operand
+faults. ALMD and ALMA retain their alarm records, pending commands and
+qualification history. This includes an ALMD command operand reached on
+a false rung inside an enabled AOI. After the handler clears the fault,
+the next reached call uses the retained state.
 
 AOI argument, output-transfer, Structured Text and prescan faults remain
 outside this profile. Native v35 behavior remains unverified.

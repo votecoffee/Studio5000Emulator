@@ -161,13 +161,17 @@ def add_fault_record_array(root, dtype, name='LabRecords', **initial):
             ET.SubElement(obj,'DataValueMember',Name=member,DataType=data_type,Value=str(int(value)))
 
 
-def bind_nested_aoi_inout_arrays(root, *bindings):
+def bind_nested_aoi_inouts(root, *arrays, scalars=()):
     controller = root.find('Controller')
+    bindings = (*arrays, *scalars)
+    array_names = {formal for formal, _, _ in arrays}
     for definition in controller.findall('./AddOnInstructionDefinitions/AddOnInstructionDefinition'):
         for formal, dtype, _ in bindings:
-            ET.SubElement(definition.find('Parameters'), 'Parameter', Name=formal,
-                          TagType='Base', DataType=dtype, Dimensions='2',
-                          Usage='InOut', Required='true', Visible='true')
+            parameter = ET.SubElement(definition.find('Parameters'), 'Parameter', Name=formal,
+                                      TagType='Base', DataType=dtype, Usage='InOut',
+                                      Required='true', Visible='true')
+            if formal in array_names:
+                parameter.set('Dimensions', '2')
     wrapper = controller.find('./AddOnInstructionDefinitions/AddOnInstructionDefinition[@Name="LabWrapper"]')
     logic = wrapper.find('./Routines/Routine[@Name="Logic"]/RLLContent/Rung/Text')
     formals = ','.join(formal for formal, _, _ in bindings)
@@ -179,7 +183,7 @@ def bind_nested_aoi_inout_arrays(root, *bindings):
 def nested_aoi_record_fault_fixture(root, dtype, work, **initial):
     nested_aoi_array_fault_fixture(root, work=work)
     add_fault_record_array(root, dtype, **initial)
-    bind_nested_aoi_inout_arrays(root, ('RecordData', dtype, 'LabRecords'))
+    bind_nested_aoi_inouts(root, ('RecordData', dtype, 'LabRecords'))
 
 
 def add_bit_diagnostic_tags(root, *, single=False):
@@ -194,9 +198,9 @@ def add_bit_diagnostic_tags(root, *, single=False):
 def nested_aoi_bit_diagnostic_fault_fixture(root, work):
     nested_aoi_array_fault_fixture(root, work=work)
     add_bit_diagnostic_tags(root)
-    bind_nested_aoi_inout_arrays(root, ('ReferenceData', 'DINT', 'LabQueue'),
-                                 ('ResultData', 'DINT', 'LabResults'),
-                                 ('RecordData', 'CONTROL', 'LabRecords'))
+    bind_nested_aoi_inouts(root, ('ReferenceData', 'DINT', 'LabQueue'),
+                           ('ResultData', 'DINT', 'LabResults'),
+                           ('RecordData', 'CONTROL', 'LabRecords'))
 
 
 def bit_result_slot_fault_fixture(root, name, *, position=0):
@@ -248,9 +252,9 @@ def add_array_calculation_tags(root):
 def nested_aoi_array_calculation_fixture(root, work):
     nested_aoi_array_fault_fixture(root, work=work)
     add_array_calculation_tags(root)
-    bind_nested_aoi_inout_arrays(root, ('RecordData', 'CONTROL', 'LabRecords'),
-                                 ('Window', 'DINT', 'LabQueue'),
-                                 ('StatsResult', 'REAL', 'LabStats'))
+    bind_nested_aoi_inouts(root, ('RecordData', 'CONTROL', 'LabRecords'),
+                           ('Window', 'DINT', 'LabQueue'),
+                           ('StatsResult', 'REAL', 'LabStats'))
 
 
 def nested_aoi_queue_unload_fault_fixture(root, work):
@@ -302,10 +306,10 @@ def add_string_recovery_tags(root):
 def nested_aoi_string_fault_fixture(root, work):
     nested_aoi_array_fault_fixture(root, work=work)
     add_string_recovery_tags(root)
-    bind_nested_aoi_inout_arrays(root, ('TextSource', 'STRING', 'LabText'),
-                                 ('TextResult', 'STRING', 'LabTextResults'),
-                                 ('Positions', 'DINT', 'LabPositions'),
-                                 ('RealValues', 'REAL', 'LabReals'))
+    bind_nested_aoi_inouts(root, ('TextSource', 'STRING', 'LabText'),
+                           ('TextResult', 'STRING', 'LabTextResults'),
+                           ('Positions', 'DINT', 'LabPositions'),
+                           ('RealValues', 'REAL', 'LabReals'))
 
 
 def add_system_value_recovery_tags(root):
@@ -317,7 +321,7 @@ def add_system_value_recovery_tags(root):
 def nested_aoi_clock_fault_fixture(root, work, words):
     nested_aoi_array_fault_fixture(root, work=work)
     add_fault_dint_array(root.find('./Controller/Tags'), 'LabClockWords', words)
-    bind_nested_aoi_inout_arrays(root, ('ClockData', 'DINT', 'LabClockWords'))
+    bind_nested_aoi_inouts(root, ('ClockData', 'DINT', 'LabClockWords'))
 
 
 def add_stateful_recovery_tags(root, mnemonic):
@@ -329,9 +333,18 @@ def add_stateful_recovery_tags(root, mnemonic):
         'ALMA':(ALARM_SAMPLE,'PressureAlarm'),
     }[mnemonic]
     tags = root.find('./Controller/Tags')
-    tags.append(ET.parse(sample).find(f'./Controller/Tags/Tag[@Name="{name}"]'))
+    record = ET.parse(sample).find(f'./Controller/Tags/Tag[@Name="{name}"]')
+    tags.append(record)
     if mnemonic == 'PID':
         add_fault_dint_array(tags,'LabOutputs',[77,88])
+    return record
+
+
+def nested_aoi_stateful_fault_fixture(root, mnemonic, work):
+    nested_aoi_array_fault_fixture(root, work=work)
+    record = add_stateful_recovery_tags(root, mnemonic)
+    arrays = (('Outputs', 'DINT', 'LabOutputs'),) if mnemonic == 'PID' else ()
+    bind_nested_aoi_inouts(root, *arrays, scalars=(('RecordData', record.get('DataType'), record.get('Name')),))
 
 
 def add_fault_pid_array(root):
@@ -1511,6 +1524,75 @@ class ProgramFaultTests(unittest.TestCase):
                 self.assertEqual(memory.values, before)
                 self.assertEqual(engine.wall_clock_state, previous)
                 self.assertIsNone(engine.last_cleared_program_fault)
+
+    def test_nested_aoi_pid_array_fault_preserves_output_and_solver_history(self):
+        work = 'PID(RecordData,Samples[1],0,Outputs[Index],0,0,0)MOV(13,Scaled)'
+        engine = self.engine(mutate=lambda root: nested_aoi_stateful_fault_fixture(root, 'PID', work))
+        self.assertEqual(engine.blockers, [])
+        memory = engine.memory
+        memory.write('LabValues[1]', 12)
+        memory.write('StartPB', True)
+        engine.step()
+        self.assertEqual(memory.read('LabOutputs'), [57, 88])
+        self.assertEqual(memory.read('Loop.DATA[0]'), 19)
+        before = copy.deepcopy((memory.read('Loop'), engine.last_timer))
+        memory.write('LabIndex', 2)
+        memory.write('SpeedCommand', 50)
+        engine.step()
+        fault = engine.last_cleared_program_fault
+        self.assertEqual((fault['type'], fault['code'], fault['instruction']), (4, 20, 'LABWRAPPER'))
+        self.assertIn('AOI:LabScale/Logic, PID: Array index outside bounds', fault['detail'])
+        self.assertEqual((memory.read('Loop'), engine.last_timer), before)
+        self.assertEqual(memory.read('LabOutputs'), [57, 88])
+        self.assertEqual(memory.read('SpeedCommand'), 51)
+        engine.step()
+        self.assertEqual(memory.read('LabOutputs'), [76, 88])
+        self.assertEqual(memory.read('Loop.DATA[0]'), 38)
+        self.assertEqual(memory.read('SpeedCommand'), 125)
+
+    def test_nested_aoi_digital_alarm_command_fault_defers_operator_ack(self):
+        work = 'LES(Index,2)ALMD(RecordData,Samples[Index].0,0,0,0)'
+        engine = self.engine(mutate=lambda root: nested_aoi_stateful_fault_fixture(root, 'ALMD', work))
+        self.assertEqual(engine.blockers, [])
+        memory = engine.memory
+        memory.write('StartPB', True)
+        for _ in range(3):
+            engine.step()
+        self.assertTrue(memory.read('MotorAlarm.InAlarmUnack'))
+        memory.write('MotorAlarm.OperAck', True)
+        memory.write('LabIndex', 2)
+        before = copy.deepcopy((memory.read('MotorAlarm'), engine.last_timer))
+        engine.step()
+        fault = engine.last_cleared_program_fault
+        self.assertEqual((fault['type'], fault['code'], fault['instruction']), (4, 20, 'LABWRAPPER'))
+        self.assertIn('AOI:LabScale/Logic, ALMD: Array index outside bounds', fault['detail'])
+        self.assertEqual((memory.read('MotorAlarm'), engine.last_timer), before)
+        self.assertTrue(memory.read('MotorAlarm.OperAck'))
+        engine.step()
+        self.assertTrue(memory.read('MotorAlarm.Acked'))
+        self.assertFalse(memory.read('MotorAlarm.OperAck'))
+        self.assertEqual(memory.read('MotorAlarm.AlarmCount'), 1)
+
+    def test_nested_aoi_analog_alarm_array_fault_preserves_qualification(self):
+        work = 'ALMA(RecordData,Samples[Index+1],0,0,0)'
+        engine = self.engine(mutate=lambda root: nested_aoi_stateful_fault_fixture(root, 'ALMA', work))
+        self.assertEqual(engine.blockers, [])
+        memory = engine.memory
+        memory.write('StartPB', True)
+        memory.write('LabValues[1]', 90)
+        engine.step()
+        self.assertFalse(memory.read('PressureAlarm.HInAlarm'))
+        before = copy.deepcopy((memory.read('PressureAlarm'), engine.last_timer))
+        memory.write('LabIndex', 2)
+        engine.step()
+        fault = engine.last_cleared_program_fault
+        self.assertEqual((fault['type'], fault['code'], fault['instruction']), (4, 20, 'LABWRAPPER'))
+        self.assertIn('AOI:LabScale/Logic, ALMA: Array index outside bounds', fault['detail'])
+        self.assertEqual((memory.read('PressureAlarm'), engine.last_timer), before)
+        engine.step()
+        self.assertTrue(memory.read('PressureAlarm.HInAlarm'))
+        self.assertTrue(memory.read('PressureAlarm.HHInAlarm'))
+        self.assertEqual(memory.read('PressureAlarm.HAlarmCount'), 1)
 
     def test_nested_aoi_queue_position_past_len_keeps_scan_rollback(self):
         work = 'FFU(Window[0],Samples[1],RecordData[0],?,?)'

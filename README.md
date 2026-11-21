@@ -205,7 +205,7 @@ the handler can clear faults from common ladder instructions and resume after
 the outermost AOI. This includes output coils, one-shots, timers, counters,
 data transition, array sizing, numeric conversions, standalone math, strings,
 array statistics, sorting, file arithmetic, file search, FIFO/LIFO queues,
-bit shifts, sequencers, bit diagnostics and supported GSV/SSV forms.
+bit shifts, sequencers, bit diagnostics, supported GSV/SSV forms, PID and alarms.
 [Time and date AOI parameters](docs/aoi-constants.md#time-and-date-parameters)
 support exact-type scalar Inputs and Outputs in ladder and Structured Text.
 Enable `RunTimeExample` in **AOI Constants Lab** to step through an exact
