@@ -77,16 +77,44 @@ class ArithmeticConstantTests(unittest.TestCase):
 
     def test_zero_divisors_overflow_underflow_and_late_faults_roll_back(self):
         cases=[('DIV(Source,0,Results[1]);','DINT','LINT',7,'zero'),
-               ('MOD(Source,0,Results[1]);','DINT','LINT',7,'zero'),
                ('MUL(Source,65538,Results[1]);','UINT','UDINT',65535,'overflow'),
                ('SUB(0,Source,Results[1]);','UINT','UDINT',7,'overflow')]
         for text,source,dest,value,error in cases:
             e=self.checked(['MOV(99,SpeedCommand);',text],source=source,dest=dest,value=value);before=self.snapshot(e)
             with self.assertRaisesRegex(ModelError,error):e.step()
             self.assertEqual(self.snapshot(e),before)
-        e=self.checked(['ADD(Source,1,Results[0]);','MUL(Source,2,Results[1]);','DIV(Source,0,Results[2]);'],source='DINT');before=self.snapshot(e)
+        e=self.checked(['ADD(Source,1,Results[0]);','MOD(Source,0,Results[1]);','DIV(Source,0,Results[2]);'],source='DINT');before=self.snapshot(e)
         with self.assertRaisesRegex(ModelError,'zero'):e.step()
         self.assertEqual(self.snapshot(e),before)
+
+    def test_integer_mod_zero_establishes_only_the_selected_result(self):
+        for source, dest, divisor in (
+            ('DINT', 'LINT', '0'),
+            ('LINT', 'DINT', '0'),
+            ('LINT', 'LINT', '2#0L'),
+            ('ULINT', 'ULINT', '0UL'),
+        ):
+            with self.subTest(source=source, dest=dest, divisor=divisor):
+                e = self.checked([f'MOD(Source,{divisor},Results[1])OTE(RunLatch);'],
+                                 source=source, dest=dest)
+                e.step()
+                self.assertEqual(e.memory.read('Results'), [None, 0, None])
+                self.assertTrue(e.memory.read('RunLatch'))
+
+    def test_mod_zero_still_requires_valid_inputs_and_output(self):
+        cases = [
+            ('MOD(Inputs[0],0,Results[1]);', 'Unknown', 7),
+            ('MOD(Source,0,Results[Index]);', 'outside bounds', 7),
+            ('MOD(Source,0,Results[1]);', 'overflow', 2**31),
+        ]
+        for rung, error, value in cases:
+            with self.subTest(rung=rung, error=error):
+                e = self.checked(['MOV(77,SpeedCommand);', rung], source='LINT', dest='DINT', value=value)
+                e.memory.write('Index', 999)
+                before = self.snapshot(e)
+                with self.assertRaisesRegex(ModelError, error):
+                    e.step()
+                self.assertEqual(self.snapshot(e), before)
 
     def test_udt_alias_full_write_and_sibling_guards(self):
         def fields(root):

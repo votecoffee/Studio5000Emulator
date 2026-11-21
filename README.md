@@ -755,7 +755,10 @@ for mixed tag/constant examples: signed DINT literals must fit the destination,
 while the destination covers every source tag type's full range.
 Ladder `MOD` also supports finite REAL sources mixed with SINT/INT/DINT and
 representable narrow integer results. Enable `RealModulo` for fractional
-remainders and rounded results; zero divisors retain the model's rollback policy.
+remainders and rounded results. Floating MOD with a zero divisor rolls back the scan.
+[Integer MOD with a zero divisor](docs/scalar-math.md#integer-mod-with-a-zero-divisor)
+writes zero and continues the rung on the v35 5580 ladder profile. Reporting must be
+enabled in the controller export to set the task's modeled `S:MINOR` bit.
 
 [Numeric move and clear](docs/numeric-storage.md) support signed/unsigned integer
 and REAL scalar MOV conversions, typed CLR zeros and full writes to unknown

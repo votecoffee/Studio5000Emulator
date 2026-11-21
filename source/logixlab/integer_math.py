@@ -110,6 +110,19 @@ def quotient(a, b):
     return abs(a) // abs(b) * (-1 if (a < 0) != (b < 0) else 1)
 
 
+def execute_zero_modulo(engine, op, scope):
+    """Complete a qualified ladder integer MOD with a zero divisor."""
+    project = engine.project
+    routine = engine._executing_routine
+    if (project.version != '35' or project.processor.upper() not in CONTROLLERS
+            or routine is None or routine.kind != 'RLL' or engine.addons.prescanning):
+        raise ModelError('MOD divide by zero')
+    engine.memory.write(op.args[-1], 0, scope)
+    if project.controller_configuration.report_minor_overflow is True:
+        engine.memory.minor_fault = True
+    return True
+
+
 def profile(engine, op, scope):
     """Return the one declared wide type, or None for the existing narrow path."""
     types = []
@@ -288,6 +301,8 @@ def execute(engine, op, scope, dtype, *, radix=False):
         if name == 'DIV':
             result = quotient(a, b)
         elif name == 'MOD':
+            if b == 0:
+                return execute_zero_modulo(engine, op, scope)
             result = a - quotient(a, b) * b
         elif name in ('AND', 'OR', 'XOR'):
             result = bit_value({'AND': operator.and_, 'OR': operator.or_, 'XOR': operator.xor}[name](a, b), dtype)

@@ -29,7 +29,7 @@ instruction consumes every required source value. Its complete numeric write
 can establish an unknown destination element or member without reading the old
 value. Aliases and existing AOI InOut/local bindings use the same storage rules.
 Unwritten siblings remain unknown. Reached unknowns, invalid indices, zero
-divisors, excluded ranges and later faults roll back the complete advance,
+divisors in DIV or floating MOD, excluded ranges and later faults roll back the complete advance,
 including values, task/time state and existing AOI bindings.
 
 Structural validation and operand selection apply to all eleven operations.
@@ -37,6 +37,16 @@ Integer division into integer destinations truncates toward zero; integer remain
 dividend's sign. Wide homogeneous and qualified widening-tag arithmetic stay exact. Arithmetic overflow
 still stops and rolls back the model rather than reproducing native status and
 partial effects.
+
+## Integer MOD with a zero divisor
+
+In the v35 5580 ladder profile, an enabled integer MOD with a zero divisor
+writes zero and passes rung power through. The instruction still requires both
+sources to be known, a valid destination and all applicable integer conversions
+to succeed. The task can read `S:MINOR` after the write when the controller
+export explicitly enables `ReportMinorOverflow`. The flag starts clear on the
+next task invocation. Native fault-record parity remains unverified.
+[Rockwell MOD reference](https://www.rockwellautomation.com/en-be/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/compute-math-instructions/modulo--mod-.html)
 
 ## Widening integer tag arithmetic
 
@@ -62,9 +72,9 @@ homogeneous rules remain available separately. For example, adding DINT -1 to
 UDINT 4294967295 into LINT produces 4294967294; negating USINT 255 into INT
 produces -255. ABS of DINT -2147483648 into LINT produces 2147483648.
 DIV truncates toward zero; MOD follows the dividend's sign. Results must fit the
-destination even when its type covers all source ranges: overflow/underflow and
-zero divisors stop and roll back the entire advance under the model policy.
-Native overflow bits, minor faults and partial destination effects are not modeled.
+destination even when its type covers all source ranges. Overflow, underflow
+and zero divisors in DIV roll back the advance. For integer MOD, see
+[zero-divisor behavior](#integer-mod-with-a-zero-divisor).
 
 Structural checks apply even to false rungs. False/prescan skip live values and
 indices; true instructions require each source and may establish an unknown
@@ -332,8 +342,9 @@ convert losslessly to unsigned, including for ABS. Nor does multiplication by
 zero permit an out-of-range source. Use a wider destination for those cases.
 
 Complete writes establish unknown selected destinations. All required inputs
-are consumed; unknowns, invalid indices, input/result ranges, zero divisors and
-later faults roll back the advance, including previous writes and AOI state.
+are consumed. Unknowns, invalid indices, input/result ranges, zero divisors in
+DIV and later faults roll back the advance, including previous writes and AOI
+state. For integer MOD, see [zero-divisor behavior](#integer-mod-with-a-zero-divisor).
 Existing aliases, UDT members and qualified AOI bindings retain their address
 rules. Floating/time/BOOL/aggregate operands, modular bit-pattern conversions,
 other instructions/languages and native overflow/status/fault equivalence are

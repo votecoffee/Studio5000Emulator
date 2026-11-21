@@ -4,7 +4,7 @@ import operator
 
 from . import time_values
 from .bit_transfer import operand, unsigned
-from .integer_math import CONTROLLERS, WIDE_TYPES, bit_value, bitwise_immediate_widths, profile, typed_profile, typed_integer, radix_profile, pattern, integer_bounds, dint_radix, read_source, quotient
+from .integer_math import CONTROLLERS, WIDE_TYPES, bit_value, bitwise_immediate_widths, profile, typed_profile, typed_integer, radix_profile, pattern, integer_bounds, dint_radix, read_source, quotient, execute_zero_modulo
 from .model import INT_BITS, UNSIGNED_BITS, ModelError, coerce, literal
 from .numeric_storage import floating_math_profile, lreal_math_source, typed_literal, write_lreal_math_result
 from .real_math import real
@@ -318,7 +318,10 @@ def description(project):
                     scope='RLL v35 5580 only; unsigned inputs to floating destinations, BOOL, MVM/BTD/other consumers and native status/fault/lifecycle parity remain separate',
                     native_runtime_parity=False),
                 bindings='Aliases, selected elements/members and existing AOI InOut/local bindings',
-                failures='Reached unknowns, invalid indices, zero divisors, excluded ranges and later faults roll back the advance',
+                integer_modulo_zero=dict(result='A true integer MOD writes zero and continues the rung',
+                    status='Sets S:MINOR when ReportMinorOverflow is explicitly true',
+                    scope='RLL v35 5580 only', native_runtime_parity=False),
+                failures='Reached unknowns, invalid indices, DIV and floating MOD zero divisors, excluded ranges and later faults roll back the advance',
                 native_runtime_parity=False, native_math_status=False,
                 remaining=['Other arithmetic destination conversions/mixed signed-to-unsigned forms, larger/typed arithmetic constants, unsigned bitwise sources for floating destinations, and other wide/unsigned/LREAL remainder mixtures',
                            'Native overflow/status/fault/lifecycle/packed layout and broader controller qualification'])
@@ -375,6 +378,9 @@ def execute_narrowing(engine, op, scope, specification):
         elif op.name=='SUB':result=left-right
         elif op.name=='MUL':result=left*right
         elif op.name=='DIV':result=quotient(left,right)
-        else:result=left-quotient(left,right)*right
+        else:
+            if right == 0:
+                return execute_zero_modulo(engine, op, scope)
+            result=left-quotient(left,right)*right
     engine.memory.write(op.args[-1],coerce(result,dtype),scope)
     return True

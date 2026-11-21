@@ -100,8 +100,7 @@ class RadixIntegerOperandTests(unittest.TestCase):
                                   ('ABS(16#8000000000000000L,Results[1]);','LINT','overflow'),
                                   ('NEG(16#8000000000000000L,Results[1]);','LINT','overflow'),
                                   ('DIV(16#8000000000000000L,-1L,Results[1]);','LINT','overflow'),
-                                  ('DIV(1L,16#0L,Results[1]);','LINT','zero'),
-                                  ('MOD(1L,2#0L,Results[1]);','LINT','zero')]:
+                                  ('DIV(1L,16#0L,Results[1]);','LINT','zero')]:
             e=self.checked(['MOV(77,SpeedCommand);',call],dest=dest);self.fault(e,pattern)
 
     def test_alias_members_and_overlapping_sources_preserve_exact_values_and_neighbors(self):

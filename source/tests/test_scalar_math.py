@@ -36,6 +36,16 @@ class ScalarMathTests(unittest.TestCase):
             e = self.checked([operation(name) + ';']);self.assertEqual(e.memory.read('Results'), [None] * 3)
             e.step();self.assertEqual(e.memory.read('Results'), [None, expected, None]);self.assertEqual(e.memory.read('Source'), 7)
 
+    def test_integer_mod_zero_retains_the_old_fault_policy_outside_v35_5580(self):
+        def target(root):
+            root.find('Controller').set('ProcessorType', '1756-L75')
+
+        e = self.checked(['MOD(Source,0,SpeedCommand);'], mutate=target)
+        before = self.snapshot(e)
+        with self.assertRaisesRegex(ModelError, 'MOD divide by zero'):
+            e.step()
+        self.assertEqual(self.snapshot(e), before)
+
     def test_false_rungs_skip_unknown_values_and_invalid_indices_for_every_instruction(self):
         for name in EXPECTED:
             text = operation(name, source='Inputs[Index]', dest='Results[Index]')
@@ -86,12 +96,17 @@ class ScalarMathTests(unittest.TestCase):
         self.assertTrue(self.engine(['ADD(Source,2147483648,Results[0]);'], dtype='LINT').blockers)
         self.assertTrue(self.engine(['ADD(Source,-1,Results[0]);'], dtype='ULINT').blockers)
 
-    def test_zero_divisors_are_skipped_false_and_rollback_when_true(self):
+    def test_false_rungs_skip_zero_divisors_and_true_div_rolls_back(self):
         for name in ('DIV', 'MOD'):
             e = self.checked(['MOV(99,SpeedCommand);', 'XIC(StartPB)' + operation(name) + ';']);e.memory.write('Mask', 0);e.step()
+            self.assertEqual(e.memory.read('Results'), [None, None, None])
             e.memory.write('StartPB', True);before = self.snapshot(e)
-            with self.assertRaisesRegex(ModelError, 'zero'):e.step()
-            self.assertEqual(self.snapshot(e), before)
+            if name == 'DIV':
+                with self.assertRaisesRegex(ModelError, 'zero'):e.step()
+                self.assertEqual(self.snapshot(e), before)
+            else:
+                e.step()
+                self.assertEqual(e.memory.read('Results[1]'), 0)
             e.memory.write('Mask', 3);e.step();self.assertEqual(e.memory.read('Results[1]'), EXPECTED[name])
 
     def test_integer_division_and_remainder_sign_and_real_destination_rounding_remain(self):

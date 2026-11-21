@@ -698,6 +698,38 @@ class ProgramFaultTests(unittest.TestCase):
                 self.assertFalse(memory.read('MotorRunning'))
                 self.assertIs(engine.last_cleared_program_fault, fault)
 
+    def test_integer_mod_zero_continues_without_dispatching_the_program_handler(self):
+        for reporting in (True, False, None):
+            with self.subTest(reporting=reporting):
+                self.setUp()
+
+                def setup(root):
+                    minor_subscript_status_fixture(root, reporting=reporting)
+                    set_fault_instruction(root, 'MOD(7,LabIndex,SpeedCommand)')
+
+                engine = self.engine(mutate=setup)
+                self.assertEqual(engine.blockers, [])
+                memory = engine.memory
+                self.assertIs(engine.project.controller_configuration.report_minor_overflow, reporting)
+                memory.write('FaultWitness', False)
+                memory.write('LabIndex', 0)
+                memory.write('SpeedCommand', 50)
+                engine.step()
+                self.assertEqual(memory.read('SpeedCommand'), 50)
+                self.assertFalse(memory.read('MotorRunning'))
+
+                memory.write('StartPB', True)
+                engine.step()
+                self.assertEqual(memory.read('SpeedCommand'), 1)
+                self.assertIs(memory.read('MotorRunning'), reporting is True)
+                self.assertFalse(memory.read('FaultWitness'))
+                self.assertIsNone(engine.last_cleared_program_fault)
+
+                memory.write('LabIndex', 3)
+                engine.step()
+                self.assertEqual(memory.read('SpeedCommand'), 2)
+                self.assertFalse(memory.read('MotorRunning'))
+
     def test_ladder_can_set_test_and_clear_minor_status_without_a_tag(self):
         engine = self.engine([
             'XIC(StartPB)OTL(S:MINOR);',
