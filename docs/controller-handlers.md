@@ -202,11 +202,18 @@ binding leaves the callee untouched and retains writes its caller completed
 before reaching the call. If the handler clears the fault, the next enabled
 scan attempts the call again with fresh operands.
 
-False-call binding faults, faults during parameter transfer after binding,
-Structured Text and prescan still use their existing rollback behavior.
-The entry-binding rule is a software-model extension. Native v35 behavior
-remains unverified. See the [Rockwell AOI parameter reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm010_-en-p.pdf)
-for parameter passing and scan modes.
+An enabled ladder AOI also qualifies when an Output destination subscript
+faults during copy-out. Outputs resolve in definition order, so a copied
+value can affect a later destination index. The emulator reverses the
+faulting call's earlier Output copies before invoking the handler. AOI
+instance and InOut writes from the completed body are retained if the
+handler clears the fault.
+
+False-call binding and transfer faults, faults during the Input copy,
+Structured Text and prescan still use scan rollback. The entry-binding
+and Output transfer rules are software-model extensions. Native v35
+behavior remains unverified.
+[Rockwell AOI parameter and scan mode reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm010_-en-p.pdf)
 [Rockwell AOI fault recovery reference](https://www.rockwellautomation.com/en-ua/docs/studio-5000-logix-designer/37-01/contents-ditamap/studio-5000-logix-designer/add-on-instructions/major-fault-state-and-add-on-instructions.html)
 
 ## Recover a ladder arithmetic array fault

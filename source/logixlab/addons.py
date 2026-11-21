@@ -3,7 +3,7 @@
 Local values absent from the export remain unknown. Definition DefaultData is
 not evidence of the saved state of an existing instance.
 """
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 
 from . import time_values
 from .calls import CallOperandBoundsError
@@ -157,12 +157,14 @@ class AddOns:
         if depth>32:raise ModelError('AOI nesting limit exceeded')
         definition = self.engine.project.aois[op.name]
         copy_outputs = prescan or power or definition.modes['EnableInFalse']
+        qualified = numeric_available(self.engine.project)
+        recover_operands = qualified and power and not prescan and not self.prescanning
         # In v35, a false ladder call without EnableInFalse only copies Inputs.
-        resolve_outputs_and_inouts = copy_outputs or not numeric_available(self.engine.project)
+        resolve_outputs_and_inouts = copy_outputs or not qualified
         try:
             definition,frame,address=self.bind(op,scope,resolve_outputs_and_inouts=resolve_outputs_and_inouts)
         except ArrayBoundsError as error:
-            if power and not prescan and not self.prescanning and numeric_available(self.engine.project):
+            if recover_operands:
                 raise CallOperandBoundsError(op, f'AOI call binding: {error}') from error
             raise
         self.memory.write(address+'.EnableIn',bool(power) if not prescan else False)
@@ -191,14 +193,24 @@ class AddOns:
                     self.engine._execute_routine(definition.routines['logic'],frame,depth+1,address)
                 else:
                     self.engine._execute_routine(definition.routines['enableinfalse'],frame,depth+1,address)
-            for parameter,argument in zip(definition.required,op.args[1:]):
-                if parameter.get('Usage')=='Output':
-                    temporal = parameter.get('DataType', '').upper() in time_values.TYPES
-                    value = self.memory.read(parameter.get('Name'), frame, allow_time=temporal)
-                    self.memory.write(argument, value, scope)
+            self._copy_outputs(definition, op, scope, frame, recover_operands)
         # An EnableInFalse routine cannot energize rung-out.
         if not power or prescan:self.memory.write('EnableOut',False,frame)
         return bool(power and self.memory.read('EnableOut',frame))
+
+    def _copy_outputs(self, definition, op, scope, frame, recover_operands):
+        stores = self.memory.atomic_stores() if recover_operands else nullcontext()
+        try:
+            with stores:
+                for parameter, argument in zip(definition.required, op.args[1:]):
+                    if parameter.get('Usage') == 'Output':
+                        temporal = parameter.get('DataType', '').upper() in time_values.TYPES
+                        value = self.memory.read(parameter.get('Name'), frame, allow_time=temporal)
+                        self.memory.write(argument, value, scope)
+        except ArrayBoundsError as error:
+            if recover_operands:
+                raise CallOperandBoundsError(op, f'AOI output transfer: {error}') from error
+            raise
 
     def report(self):
         project=self.engine.project

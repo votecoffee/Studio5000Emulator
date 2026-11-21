@@ -1019,6 +1019,7 @@ class Memory:
         self.values = copy.deepcopy(project.initial if starting_values is None else starting_values)
         self.value_order = {key: index for index, key in enumerate(self.values)}
         self._before = None
+        self._store_undo = None
         self.message_cache = {}
         self.first_scan = True
         self._resolved = {}
@@ -1044,6 +1045,21 @@ class Memory:
     def _remember(self, key):
         if self._before is not None and key not in self._before:
             self._before[key] = copy.deepcopy(self.values[key])
+
+    @contextmanager
+    def atomic_stores(self):
+        """Undo a short sequence of stores without undoing preceding scan work."""
+        if self._store_undo is not None:
+            raise ModelError('Atomic stores are already active')
+        self._store_undo = []
+        try:
+            yield
+        except Exception:
+            for container, slot, value in reversed(self._store_undo):
+                container[slot] = value
+            raise
+        finally:
+            self._store_undo = None
 
     def index(self,expr,scope):
         from .expressions import Expression
@@ -1405,17 +1421,20 @@ class Memory:
     def store(self,key,parts,value):
         if self.project.tags[key].constant:raise ModelError('Constant destination')
         self._remember(key)
-        if not parts:self.values[key]=copy.deepcopy(value);return
-        parent=self.at(key,parts[:-1])
+        parent, slot = (self.at(key, parts[:-1]), parts[-1]) if parts else (self.values, key)
         if len(parts) == 1 and parts[0] == 'FLAGS' and key in self.project.message_configs:
             from .ladder_message import CACHE_MASK, TO_MASK
             writable = TO_MASK
             if self.project.message_configs[key].connected:
                 writable |= CACHE_MASK
             value = (parent['FLAGS'] & ~writable) | (coerce(value, 'INT') & writable)
-            if not value & CACHE_MASK:
-                self.message_cache.pop(key, None)
-        parent[parts[-1]]=copy.deepcopy(value)
+            if not value & CACHE_MASK and key in self.message_cache:
+                if self._store_undo is not None:
+                    self._store_undo.append((self.message_cache, key, self.message_cache[key]))
+                del self.message_cache[key]
+        if self._store_undo is not None:
+            self._store_undo.append((parent, slot, parent[slot]))
+        parent[slot] = copy.deepcopy(value)
 
     def region(self,ref,count,scope=''):
         if isinstance(count,bool) or not isinstance(count,int) or not 0<=count<=100000:

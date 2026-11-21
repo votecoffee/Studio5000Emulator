@@ -145,6 +145,28 @@ def nested_aoi_array_fault_fixture(root, *, clear=True, bad_call_operand=False,
     set_fault_instruction(root,f'LabWrapper(NestedScale,{raw},SpeedCommand,LabIndex,LabValues)')
 
 
+def aoi_output_index_fault_fixture(root, *, clear=True):
+    nested_aoi_array_fault_fixture(root, clear=clear, work='MOV(13,Scaled)')
+    tags = root.find('./Controller/Tags')
+    tags.find('Tag[@Name="LabValues"]/Data/Array/Element[@Index="[0]"]').set('Value', '0')
+    instance = tags.find('Tag[@Name="NestedScale"]/Data/Structure')
+    wrapper = root.find('.//AddOnInstructionDefinition[@Name="LabWrapper"]')
+    parameters = wrapper.find('Parameters')
+    output_position = list(parameters).index(parameters.find('Parameter[@Name="Result"]'))
+    for name, dtype in (('EarlyBit', 'BOOL'), ('EarlyIndex', 'DINT')):
+        parameters.insert(output_position, ET.Element('Parameter', Name=name, TagType='Base',
+                          DataType=dtype, Usage='Output', Required='true', Visible='true'))
+        ET.SubElement(instance, 'DataValueMember', Name=name, DataType=dtype, Value='0')
+        output_position += 1
+    logic = wrapper.find('./Routines/Routine[@Name="Logic"]/RLLContent/Rung/Text')
+    logic.text = logic.text.replace(');', ')OTU(EarlyBit)MOV(Index,EarlyIndex);')
+    set_fault_instruction(root, 'LabWrapper(NestedScale,2.5,LabValues[1].0,LabValues[0],'
+                               'LabValues[LabValues[0]],LabIndex,LabValues)')
+    handler = root.find('.//Routine[@Name="RecoverMove"]/RLLContent')
+    handler.find('Rung/Text').text = 'EQU(LabValues[0],88)EQU(LabValues[1],13)OTE(FaultWitness);'
+    handler.find('Rung[last()]/Text').text = 'MOV(1,LabIndex)MOV(0,LabValues[0]);'
+
+
 def add_fault_record_array(root, dtype, name='LabRecords', **initial):
     members = {
         'TIMER':dict(PRE=100,ACC=4,EN=False,TT=False,DN=False),
@@ -1882,19 +1904,38 @@ class ProgramFaultTests(unittest.TestCase):
         self.assertEqual(engine.scan_count, 0)
         self.assertIsNone(engine.last_cleared_program_fault)
 
-    def test_aoi_output_index_fault_after_body_keeps_scan_rollback(self):
-        def configure(root):
-            nested_aoi_array_fault_fixture(root, work='MOV(13,Scaled)')
-            tag = root.find('./Controller/Tags/Tag[@Name="LabValues"]/Data/Array')
-            tag.find('Element[@Index="[0]"]').set('Value', '0')
-            set_fault_instruction(root, 'LabWrapper(NestedScale,2.5,LabValues[LabValues[0]],LabIndex,LabValues)')
+    def test_aoi_output_fault_restores_post_body_values_before_handler(self):
+        engine = self.engine(mutate=aoi_output_index_fault_fixture)
+        self.assertEqual(engine.blockers, [])
+        memory = engine.memory
+        memory.write('LabValues[0]', 0)
+        memory.write('LabValues[1]', 13)
+        memory.write('LabIndex', 2)
+        memory.write('StartPB', True)
+        memory.write('SpeedCommand', 50)
+        engine.step()
+        fault = engine.last_cleared_program_fault
+        self.assertEqual((fault['type'], fault['code'], fault['instruction']), (4, 20, 'LABWRAPPER'))
+        self.assertIn('AOI output transfer: Array index outside bounds', fault['detail'])
+        self.assertTrue(memory.read('FaultWitness'))
+        self.assertEqual(memory.read('NestedScale.Result'), 124)
+        self.assertTrue(memory.read('NestedScale.EnableIn'))
+        self.assertEqual(memory.read('SpeedCommand'), 51)
+        self.assertEqual(memory.read('LabValues'), [0, 13])
+        engine.step()
+        self.assertEqual(memory.read('LabValues'), [1, 124])
+        self.assertEqual(memory.read('SpeedCommand'), 52)
+        self.assertIs(engine.last_cleared_program_fault, fault)
 
-        engine = self.engine(mutate=configure)
+    def test_uncleared_aoi_output_index_fault_rolls_back_the_whole_scan(self):
+        engine = self.engine(mutate=lambda root: aoi_output_index_fault_fixture(root, clear=False))
         self.assertEqual(engine.blockers, [])
         engine.memory.write('LabValues[0]', 0)
+        engine.memory.write('LabValues[1]', 13)
+        engine.memory.write('LabIndex', 2)
         engine.memory.write('StartPB', True)
         before = copy.deepcopy(engine.memory.values)
-        with self.assertRaisesRegex(ModelError, r'Array index outside bounds: LabValues\[LabValues\[0\]\]'):
+        with self.assertRaisesRegex(ModelError, 'completed without clearing'):
             engine.step()
         self.assertEqual(engine.memory.values, before)
         self.assertEqual(engine.scan_count, 0)
