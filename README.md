@@ -207,8 +207,9 @@ data transition, array sizing, numeric conversions, standalone math, strings,
 array statistics, sorting, file arithmetic, file search, FIFO/LIFO queues,
 bit shifts, sequencers, bit diagnostics, supported GSV/SSV forms, PID and alarms.
 An out-of-range argument at an enabled ladder AOI call can also invoke the
-handler before the callee starts. If an Output index faults after the body
-runs, the emulator reverses that call's Output copies before recovery.
+handler before the callee starts. An Input copy fault restores earlier
+copies and the prior bindings. An Output copy fault reverses that call's
+Output copies after the body runs.
 [Time and date AOI parameters](docs/aoi-constants.md#time-and-date-parameters)
 support exact-type scalar Inputs and Outputs in ladder and Structured Text.
 Enable `RunTimeExample` in **AOI Constants Lab** to step through an exact

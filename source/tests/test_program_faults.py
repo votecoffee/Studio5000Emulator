@@ -145,6 +145,25 @@ def nested_aoi_array_fault_fixture(root, *, clear=True, bad_call_operand=False,
     set_fault_instruction(root,f'LabWrapper(NestedScale,{raw},SpeedCommand,LabIndex,LabValues)')
 
 
+def aoi_input_index_fault_fixture(root, *, clear=True):
+    nested_aoi_array_fault_fixture(root, clear=clear, work='MOV(13,Scaled)')
+    tags = root.find('./Controller/Tags')
+    selector = ET.SubElement(tags, 'Tag', Name='LabSelect', TagType='Base', DataType='DINT')
+    ET.SubElement(ET.SubElement(selector, 'Data', Format='Decorated'),
+                  'DataValue', DataType='DINT', Value='0')
+    instance = tags.find('Tag[@Name="NestedScale"]/Data/Structure')
+    ET.SubElement(instance, 'DataValueMember', Name='Index', DataType='DINT', Value='0')
+    ET.SubElement(instance, 'DataValueMember', Name='Readback', DataType='DINT', Value='55')
+    wrapper = root.find('.//AddOnInstructionDefinition[@Name="LabWrapper"]')
+    for name, usage in (('Selected', 'InOut'), ('Readback', 'Input')):
+        ET.SubElement(wrapper.find('Parameters'), 'Parameter', Name=name, TagType='Base',
+                      DataType='DINT', Usage=usage, Required='true', Visible='true')
+    logic = wrapper.find('./Routines/Routine[@Name="Logic"]/RLLContent/Rung/Text')
+    logic.text = logic.text.rstrip(';') + 'MOV(Readback,Selected);'
+    set_fault_instruction(root, 'LabWrapper(NestedScale,2.5,SpeedCommand,LabIndex,LabValues,'
+                               'LabValues[LabSelect],LabValues[NestedScale.Index])')
+
+
 def aoi_output_index_fault_fixture(root, *, clear=True):
     nested_aoi_array_fault_fixture(root, clear=clear, work='MOV(13,Scaled)')
     tags = root.find('./Controller/Tags')
@@ -1903,6 +1922,50 @@ class ProgramFaultTests(unittest.TestCase):
         self.assertEqual(engine.memory.values, before)
         self.assertEqual(engine.scan_count, 0)
         self.assertIsNone(engine.last_cleared_program_fault)
+
+    def test_aoi_input_transfer_fault_restores_instance_and_previous_inout_binding(self):
+        engine = self.engine(mutate=aoi_input_index_fault_fixture)
+        self.assertEqual(engine.blockers, [])
+        memory = engine.memory
+        instance = copy.deepcopy(memory.read('NestedScale'))
+        prior_binding = memory.frames['@AOI:nestedscale']['selected']
+        memory.write('LabSelect', 1)
+        memory.write('LabIndex', 2)
+        memory.write('SpeedCommand', 50)
+        memory.write('StartPB', True)
+        engine.step()
+        fault = engine.last_cleared_program_fault
+        self.assertEqual((fault['type'], fault['code'], fault['instruction']), (4, 20, 'LABWRAPPER'))
+        self.assertIn('AOI input transfer: Array index outside bounds', fault['detail'])
+        self.assertEqual(memory.read('NestedScale'), instance)
+        self.assertEqual(memory.frames['@AOI:nestedscale']['selected'], prior_binding)
+        self.assertEqual(memory.read('LabValues'), [12, 13])
+        self.assertEqual(memory.read('SpeedCommand'), 51)
+        self.assertEqual(memory.read('LabIndex'), 0)
+        engine.step()
+        self.assertEqual(memory.frames['@AOI:nestedscale']['selected'], ('LabValues[1]', ''))
+        self.assertEqual(memory.read('LabValues'), [88, 12])
+        self.assertEqual(memory.read('SpeedCommand'), 125)
+
+    def test_false_or_uncleared_aoi_input_transfer_fault_rolls_back_scan(self):
+        for enabled, clear, diagnostic in (
+            (False, True, 'Array index outside bounds'),
+            (True, False, 'completed without clearing'),
+        ):
+            with self.subTest(enabled=enabled, clear=clear):
+                self.setUp()
+                engine = self.engine(mutate=lambda root: aoi_input_index_fault_fixture(root, clear=clear))
+                self.assertEqual(engine.blockers, [])
+                memory = engine.memory
+                memory.write('LabSelect', 1)
+                memory.write('LabIndex', 2)
+                memory.write('StartPB', enabled)
+                before = copy.deepcopy((memory.values, memory.frames))
+                with self.assertRaisesRegex(ModelError, diagnostic):
+                    engine.step()
+                self.assertEqual((memory.values, memory.frames), before)
+                self.assertEqual(engine.scan_count, 0)
+                self.assertIsNone(engine.last_cleared_program_fault)
 
     def test_aoi_output_fault_restores_post_body_values_before_handler(self):
         engine = self.engine(mutate=aoi_output_index_fault_fixture)

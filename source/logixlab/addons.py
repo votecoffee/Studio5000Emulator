@@ -51,7 +51,7 @@ class AddOns:
         finally:
             self.caller_program, self.prescanning = previous
 
-    def bind(self,op,scope,*,resolve_outputs_and_inouts=True):
+    def _prepare_binding(self,op,scope,*,resolve_outputs_and_inouts=True):
         definition=self.engine.project.aois[op.name]
         if definition.problems:raise ModelError('; '.join(definition.problems))
         if len(op.args)!=len(definition.required)+1:
@@ -115,14 +115,20 @@ class AddOns:
                 if expected!='BOOL' and source_type=='BOOL':raise ModelError('Numeric Input does not accept BOOL')
                 if source_type not in ('BOOL','SINT','INT','DINT','REAL') and source_type!=expected:
                     raise ModelError('Unsupported Input conversion')
-        self.memory.frames[frame]=bindings
+        return definition,frame,address,bindings
+
+    def _set_frame(self, frame, bindings):
+        if bindings is None:
+            self.memory.frames.pop(frame, None)
+        else:
+            self.memory.frames[frame] = bindings
         # InOut arguments can differ between calls using the same instance.
         self.memory._resolved={k:v for k,v in self.memory._resolved.items() if k[1]!=frame.lower()}
-        self.instances[address]={'definition':definition.name,'scope':frame}
-        return definition,frame,address
 
     def validate(self,op,scope,stack=()):
-        definition,frame,address=self.bind(op,scope)
+        definition,frame,address,bindings=self._prepare_binding(op,scope)
+        self._set_frame(frame, bindings)
+        self.instances[address]={'definition':definition.name,'scope':frame}
         if definition.name.upper() in stack:raise ModelError('Recursive AOI call: '+definition.name)
         with self.program_context(scope):
             identity=(definition.name.upper(),frame,tuple(op.args[1:]),scope,self.caller_program)
@@ -162,27 +168,25 @@ class AddOns:
         # In v35, a false ladder call without EnableInFalse only copies Inputs.
         resolve_outputs_and_inouts = copy_outputs or not qualified
         try:
-            definition,frame,address=self.bind(op,scope,resolve_outputs_and_inouts=resolve_outputs_and_inouts)
+            definition, frame, address, bindings = self._prepare_binding(
+                op, scope, resolve_outputs_and_inouts=resolve_outputs_and_inouts
+            )
         except ArrayBoundsError as error:
             if recover_operands:
                 raise CallOperandBoundsError(op, f'AOI call binding: {error}') from error
             raise
-        self.memory.write(address+'.EnableIn',bool(power) if not prescan else False)
-        self.memory.write('EnableOut',bool(power) if not prescan else False,frame)
-        for parameter,argument in zip(definition.required,op.args[1:]):
-            if parameter.get('Usage')=='Input':
-                immediate=input_immediate(self.engine.project,argument)
-                if immediate is not None:
-                    value=immediate[1]
-                else:
-                    temporal = parameter.get('DataType', '').upper() in time_values.TYPES
-                    value=self.memory.read(argument,scope,allow_time=temporal)
-                    if isinstance(value,float):
-                        try:literal(argument)
-                        except ValueError:source_type=self.memory.resolve(argument,scope)[2]
-                        else:source_type='REAL'
-                        value=coerce(value,source_type)
-                self.memory.write(parameter.get('Name'),value,frame)
+        previous = self.memory.frames.get(frame)
+        self._set_frame(frame, bindings)
+        enabled = bool(power and not prescan)
+        try:
+            with self._transfer(op, 'input', recover_operands):
+                self.memory.write(address+'.EnableIn', enabled)
+                self.memory.write('EnableOut', enabled, frame)
+                self._copy_inputs(definition, op, scope, frame)
+        except CallOperandBoundsError:
+            self._set_frame(frame, previous)
+            raise
+        self.instances[address]={'definition':definition.name,'scope':frame}
         if copy_outputs:
             with self.program_context(scope, prescan=prescan):
                 if prescan:
@@ -193,24 +197,49 @@ class AddOns:
                     self.engine._execute_routine(definition.routines['logic'],frame,depth+1,address)
                 else:
                     self.engine._execute_routine(definition.routines['enableinfalse'],frame,depth+1,address)
-            self._copy_outputs(definition, op, scope, frame, recover_operands)
+            with self._transfer(op, 'output', recover_operands):
+                self._copy_outputs(definition, op, scope, frame)
         # An EnableInFalse routine cannot energize rung-out.
         if not power or prescan:self.memory.write('EnableOut',False,frame)
         return bool(power and self.memory.read('EnableOut',frame))
 
-    def _copy_outputs(self, definition, op, scope, frame, recover_operands):
+    @contextmanager
+    def _transfer(self, op, stage, recover_operands):
         stores = self.memory.atomic_stores() if recover_operands else nullcontext()
         try:
             with stores:
-                for parameter, argument in zip(definition.required, op.args[1:]):
-                    if parameter.get('Usage') == 'Output':
-                        temporal = parameter.get('DataType', '').upper() in time_values.TYPES
-                        value = self.memory.read(parameter.get('Name'), frame, allow_time=temporal)
-                        self.memory.write(argument, value, scope)
+                yield
         except ArrayBoundsError as error:
             if recover_operands:
-                raise CallOperandBoundsError(op, f'AOI output transfer: {error}') from error
+                raise CallOperandBoundsError(op, f'AOI {stage} transfer: {error}') from error
             raise
+
+    def _copy_inputs(self, definition, op, scope, frame):
+        for parameter, argument in zip(definition.required, op.args[1:]):
+            if parameter.get('Usage') != 'Input':
+                continue
+            immediate = input_immediate(self.engine.project, argument)
+            if immediate is not None:
+                value = immediate[1]
+            else:
+                temporal = parameter.get('DataType', '').upper() in time_values.TYPES
+                value = self.memory.read(argument, scope, allow_time=temporal)
+                if isinstance(value, float):
+                    try:
+                        literal(argument)
+                    except ValueError:
+                        source_type = self.memory.resolve(argument, scope)[2]
+                    else:
+                        source_type = 'REAL'
+                    value = coerce(value, source_type)
+            self.memory.write(parameter.get('Name'), value, frame)
+
+    def _copy_outputs(self, definition, op, scope, frame):
+        for parameter, argument in zip(definition.required, op.args[1:]):
+            if parameter.get('Usage') == 'Output':
+                temporal = parameter.get('DataType', '').upper() in time_values.TYPES
+                value = self.memory.read(parameter.get('Name'), frame, allow_time=temporal)
+                self.memory.write(argument, value, scope)
 
     def report(self):
         project=self.engine.project
