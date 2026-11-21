@@ -79,13 +79,20 @@ def time_arithmetic(engine, op, scope, *, execute=False):
 
 
 def execute_floating_divide_by_zero(engine, op, scope, dividend, divisor, precision):
-    if engine.memory.resolve(op.args[-1], scope)[2] not in ('REAL', 'LREAL'):
-        raise ModelError(f'DIV {precision} divide by zero')
+    dtype = engine.memory.resolve(op.args[-1], scope)[2]
     if dividend == 0:
         result = math.nan
     else:
         sign = math.copysign(1.0, dividend) * math.copysign(1.0, divisor)
         result = math.copysign(math.inf, sign)
+    if dtype in INT_BITS and dtype not in UNSIGNED_BITS:
+        if math.isnan(result):
+            result = 0
+        else:
+            low, high = integer_bounds(dtype)
+            result = low if result < 0 else high
+    elif dtype not in ('REAL', 'LREAL'):
+        raise ModelError(f'DIV {precision} divide by zero')
     return execute_zero_divisor(engine, op, scope, result)
 
 
@@ -291,7 +298,7 @@ def description(project):
                     radix_sources=dict(bases=[2,8,16],types=['DINT','LINT','UDINT','ULINT'],selection='Explicit binary64 math only; default conversion helpers and other consumers remain separate',native_runtime_parity=False),
                     source_types=sorted({*INT_BITS,'REAL','LREAL'}),
                     promotion='Convert every required source to binary64 before calculation; signed/unsigned values retain their numeric sign, REAL retains its stored precision',
-                    calculation='Finite host binary64. Nonzero-divisor MOD uses fmod with dividend sign. DIV can produce NaN or infinity at a zero divisor with a floating destination.',
+                    calculation='Finite host binary64. Nonzero-divisor MOD uses fmod with dividend sign. DIV by zero produces a documented exceptional result in floating and signed integer destinations.',
                     modulo_zero='Writes zero and continues the rung. Sets S:MINOR when ReportMinorOverflow is explicitly true.',
                     selection='Structural/lazy operands, complete unknown writes and existing alias/member/AOI references',
                     native_runtime_parity=False),
@@ -345,10 +352,10 @@ def description(project):
                     status='Sets S:MINOR when ReportMinorOverflow is explicitly true',
                     scope='RLL v35 5580 only', native_runtime_parity=False),
                 floating_divide_zero=dict(result='NaN for zero divided by zero. Signed infinity for a nonzero dividend.',
-                    destination='REAL or LREAL only. Rung continues after a successful write.',
+                    destination='REAL or LREAL retain the exceptional value. SINT, INT, DINT and LINT store zero for NaN, the signed maximum for positive infinity and the signed minimum for negative infinity.',
                     status='Sets S:MINOR when ReportMinorOverflow is explicitly true',
-                    scope='RLL v35 5580 only', native_runtime_parity=False),
-                failures='Reached unknowns, invalid indices, floating DIV by zero into an integer, excluded ranges and later faults roll back the advance',
+                    scope='RLL v35 5580 only. Rung continues after a successful write.', native_runtime_parity=False),
+                failures='Reached unknowns, invalid indices, floating DIV by zero into an unsigned integer, excluded ranges and later faults roll back the advance',
                 native_runtime_parity=False, native_math_status=False,
                 remaining=['Other arithmetic destination conversions/mixed signed-to-unsigned forms, larger/typed arithmetic constants, unsigned bitwise sources for floating destinations, and other wide/unsigned/LREAL remainder mixtures',
                            'Native overflow/status/fault/lifecycle/packed layout and broader controller qualification'])

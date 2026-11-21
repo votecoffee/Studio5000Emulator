@@ -29,7 +29,8 @@ instruction consumes every required source value. Its complete numeric write
 can establish an unknown destination element or member without reading the old
 value. Aliases and existing AOI InOut/local bindings use the same storage rules.
 Unwritten siblings remain unknown. Reached unknowns, invalid indices, zero
-divisors in floating DIV into an integer, excluded ranges and later faults roll back the complete advance,
+divisors in floating DIV into an unsigned integer, excluded ranges and later
+faults roll back the complete advance,
 including values, task/time state and existing AOI bindings.
 
 Structural validation and operand selection apply to all eleven operations.
@@ -63,17 +64,19 @@ starts with the flag clear. Native fault-record parity remains unverified.
 On a v35 5580 ladder rung, floating DIV with a zero divisor writes NaN when
 both converted operands are zero. For a nonzero dividend, the software writes
 signed infinity using the signs of the operands. This includes divisors that
-round to signed zero in the selected precision. A successful write to REAL or
-LREAL continues the rung and sets the current task's `S:MINOR` bit if the
+round to signed zero in the selected precision. REAL and LREAL store the
+exceptional value. SINT, INT, DINT and LINT store zero for NaN, their maximum
+for positive infinity and their minimum for negative infinity. A successful
+write continues the rung and sets the current task's `S:MINOR` bit if the
 controller export explicitly enables `ReportMinorOverflow`.
 
 The web monitor and change history display these values as `NaN`, `Infinity`
 or `-Infinity`. A device snapshot reports a scalar exceptional value with bad
 quality. A later instruction that requires finite operands can still roll back
-the scan. Conversion of these results into integer destinations and native
-fault-record parity remain unverified.
+the scan. Unsigned conversions, native math overflow flags and fault-record
+parity remain unverified.
 [Rockwell DIV reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/compute-math-instructions/divide--div-.html)
-[Rockwell controller replacement guide, page 152](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm100_-en-p.pdf#page=152)
+[Rockwell controller replacement guide, pages 152 and 171–172](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm100_-en-p.pdf)
 
 ## Widening integer tag arithmetic
 

@@ -1908,7 +1908,7 @@ class ProgramFaultTests(unittest.TestCase):
 
     def test_nested_aoi_scalar_errors_roll_back_without_handler(self):
         for work,index,cause in (
-            ('DIV(Samples[0],Index,Scaled)', 0, 'divide by zero'),
+            ('DIV(Samples[0],Index,Scaled)', 0, 'Nonfinite REAL'),
             ('ADD(2147483647,1,Samples[1])', 0, 'DINT overflow'),
             ('CPT(Scaled,Samples[1]/Index)', 0, 'divide by zero'),
             ('TOD(-1,Samples[0])', 0, 'TOD source outside'),
@@ -2507,7 +2507,7 @@ class ProgramFaultTests(unittest.TestCase):
     def test_controller_fallback_rolls_back_both_handlers_on_failure(self):
         cases = (
             ({'clear_at_controller':False},'Controller Fault Handler completed without clearing'),
-            ({'controller_tail':'DIV(1.0,0,SpeedSetpoint);'},'Controller Fault Handler: DIV REAL divide by zero'),
+            ({'controller_tail':'ADD(2147483647,1,SpeedSetpoint);'},'Controller Fault Handler: DINT overflow'),
             ({'program_tail':'MOV(LabValues[LabIndex],SpeedSetpoint);'},'Program fault routine: Array index outside bounds'),
             ({'main_tail':'CPT(SpeedCommand,1/0);'},'divide by zero'),
         )
@@ -2790,7 +2790,7 @@ class ProgramFaultTests(unittest.TestCase):
 
     def test_arithmetic_errors_keep_existing_scan_rollback(self):
         for instruction,message in (
-            ('DIV(12.0,0,SpeedCommand)','divide by zero'),
+            ('DIV(-2147483648,-1,SpeedCommand)','DINT overflow'),
             ('ADD(2147483647,LabValues[LabIndex],SpeedCommand)','DINT overflow'),
             ('CPT(SpeedCommand,LabValues[LabIndex]/0)','divide by zero'),
         ):

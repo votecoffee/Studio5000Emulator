@@ -176,8 +176,9 @@ backlog, not a source of invented schemas or automatically enabled behavior.
   conversions. Qualified ladder [integer DIV](scalar-math.md#integer-div-with-a-zero-divisor)
   and [MOD](scalar-math.md#integer-mod-with-a-zero-divisor) continue with a zero
   divisor. [Floating DIV](scalar-math.md#floating-div-with-a-zero-divisor)
-  can produce NaN or signed infinity in REAL/LREAL. General propagation and
-  integer conversion of nonfinite values remain open.
+  can produce NaN or signed infinity in REAL/LREAL and convert those results
+  to zero or the destination limit in signed integers. General propagation
+  and unsigned conversion of nonfinite values remain open.
 - [ ] **D03 — Time types:** extend [DT, LDT, TIME32, TIME and LTIME storage](time-date-storage.md);
   typed literals, display radix, units, epoch/zone rules, comparisons, arithmetic,
   conversions and transfer encoding. The installed help lists these names, but

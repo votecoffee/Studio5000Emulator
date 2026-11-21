@@ -42,7 +42,8 @@ def diagnostic_handler_l5x(*, clear_record=False, extra_rung=None, scheduled=Fal
     if clear_record:
         rungs.extend(['CLR(FaultWords[2]);', 'SSV(Program,THIS,MajorFaultRecord,FaultWords[0]);',
                       'MOV(-1,FaultWords[2]);', 'GSV(Program,THIS,MajorFaultRecord,FaultWords[0]);'])
-    rungs.append('DIV(40.0,HandlerDivisor,HandlerQuotient);')
+    rungs.extend(['EQU(HandlerDivisor,0)ADD(2147483647,1,HandlerQuotient);',
+                  'DIV(40,HandlerDivisor,HandlerQuotient);'])
     if extra_rung:
         rungs.append(extra_rung)
     for index, text in enumerate(rungs):
@@ -630,7 +631,7 @@ class ApplicationLifecycleTests(unittest.TestCase):
         fault = faulted['controller']['module_major_fault']
         self.assertEqual((fault['type'], fault['code']), (3, 23))
         self.assertEqual(fault['handler']['status'], 'rolled_back')
-        self.assertIn('zero', fault['handler']['error'].lower())
+        self.assertIn('overflow', fault['handler']['error'].lower())
         for key in ('tags', 'trace', 'changes', 'scan', 'ms', 'task_schedule'):
             self.assertEqual(faulted[key], before[key], key)
         self.assertEqual(faulted['controller']['prescan_count'], before['controller']['prescan_count'])
@@ -3799,6 +3800,42 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.post('write', {'tag': 'StartPB', 'value': False})
         state = self.post('write', {'tag': 'Results[0]', 'value': 3.5})
         self.assertEqual(next(row['value'] for row in state['tags'] if row['name'] == 'Results[0]'), 3.5)
+
+    def test_floating_div_signed_integer_limits_and_minor_status_through_http(self):
+        import base64
+        from test_real_remainder import RealRemainderTests
+
+        def enable_reporting(root):
+            root.find('Controller').set('ReportMinorOverflow', 'true')
+
+        fixture = RealRemainderTests()
+        fixture.setUp()
+        try:
+            engine = fixture.checked([
+                'XIC(StartPB)DIV(0.0L,0.0,Results[0]);',
+                'XIC(StartPB)DIV(Source,-0.0L,Results[1]);',
+                'XIC(StartPB)DIV(Source,0.0,Results[2]);',
+                'XIC(StartPB)DIV(1.0,0.0,SpeedCommand)OTE(RunLatch);',
+                'XIC(S:MINOR)OTE(MotorRunning);',
+            ], dest='LINT', mutate=enable_reporting)
+            content = base64.b64encode(engine.project.path.read_bytes()).decode()
+        finally:
+            fixture.doCleanups()
+        loaded = self.post('load', {'name': 'FloatingDivSignedResults.L5X', 'content': content})
+        self.assertEqual(loaded['blockers'], [])
+        self.post('write', {'tag': 'StartPB', 'value': True})
+        state = self.post('step', {'dt': 10})
+        values = {row['name']: row['value'] for row in state['tags']}
+        self.assertEqual([values[f'Results[{i}]'] for i in range(3)],
+                         ['0', '9223372036854775807', '-9223372036854775808'])
+        self.assertEqual(values['SpeedCommand'], 2147483647)
+        self.assertTrue(values['RunLatch'])
+        self.assertTrue(values['MotorRunning'])
+        self.post('write', {'tag': 'StartPB', 'value': False})
+        state = self.post('step', {'dt': 10})
+        values = {row['name']: row['value'] for row in state['tags']}
+        self.assertEqual(values['Results[2]'], '-9223372036854775808')
+        self.assertFalse(values['MotorRunning'])
 
     def test_imported_unknown_real_modulo_and_late_failure_are_atomic_through_http(self):
         import base64

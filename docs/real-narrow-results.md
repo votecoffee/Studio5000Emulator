@@ -37,9 +37,11 @@ Existing decimal and declared-width radix source rules apply. Structural
 preflight checks references, types, shapes, literals and permissions without
 reading saved values or live indices. False rungs and prescan retain numeric
 outputs and skip live operands. Full writes can establish unknown results.
-Reached unknowns, invalid indices, DIV by zero, domain errors, nonfinite results,
-out-of-range destinations and later failures restore the advance, including
-earlier writes, timing and supported AOI bindings.
+Reached unknowns, invalid indices, DIV by zero into unsigned integers, domain
+errors, unrepresentable results and later failures restore the advance,
+including earlier writes, timing and supported AOI bindings.
+[Floating DIV by zero](scalar-math.md#floating-div-with-a-zero-divisor) can
+also convert to a signed integer destination.
 
 Aliases, selected members, overlapping results and supported AOI copied
 Inputs, local tags and InOut arrays retain their existing semantics. The viewer

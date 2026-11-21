@@ -174,7 +174,6 @@ class RealDestinationMathTests(unittest.TestCase):
 
     def test_float32_domain_rounding_and_destination_overflow_are_atomic(self):
         cases = (
-            ('DIV(1,1e-50,Results[1]);', 'LINT', 'zero'),
             ('LN(-1.0,Results[1]);', 'UINT', 'finite REAL'),
             ('ADD(255.5,0,Results[1]);', 'USINT', 'overflow'),
             ('NEG(1.5,Results[1]);', 'UINT', 'overflow'),

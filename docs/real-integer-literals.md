@@ -44,7 +44,7 @@ values; downstream OTEs clear normally. Reached calls consume all required
 sources, including zero products and zero-width limits. Full math writes can
 establish unknown elements, while comparisons leave sources unchanged. Aliases,
 member arrays and existing copied AOI inputs, InOuts and locals keep canonical
-storage. Domain/range errors, DIV by zero into integers, unknowns, invalid indices and later
+storage. Domain/range errors, DIV by zero into unsigned integers, unknowns, invalid indices and later
 faults roll back the full advance, including task timing, traces and AOI bindings.
 
 Load **Wide expression lab**, enable RealIntEnabled and step to run

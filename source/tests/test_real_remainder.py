@@ -143,6 +143,29 @@ class RealRemainderTests(unittest.TestCase):
         self.assertTrue(math.isnan(changes[0]['before']))
         self.assertEqual(e.memory.read('Results[1]'), 0.0)
 
+    def test_floating_div_zero_converts_exceptions_to_signed_integer_limits(self):
+        for dtype, bits in (('SINT', 8), ('INT', 16), ('DINT', 32), ('LINT', 64)):
+            for dividend, divisor, expected in (
+                ('0.0L', '-0.0', 0),
+                ('1UL', '1e-50', (1 << (bits - 1)) - 1),
+                ('7.5L', '-0.0', -(1 << (bits - 1))),
+                ('-7.5L', '-0.0', (1 << (bits - 1)) - 1),
+            ):
+                with self.subTest(dtype=dtype, dividend=dividend, divisor=divisor):
+                    e = self.checked([f'DIV({dividend},{divisor},Results[1])OTE(RunLatch);'], dest=dtype)
+                    e.step()
+                    self.assertEqual(e.memory.read('Results'), [None, expected, None])
+                    self.assertTrue(e.memory.read('RunLatch'))
+
+    def test_unqualified_unsigned_floating_div_zero_still_rolls_back(self):
+        for dtype in ('USINT', 'UINT', 'UDINT', 'ULINT'):
+            with self.subTest(dtype=dtype):
+                e = self.checked(['MOV(99,SpeedCommand);', 'DIV(Source,0.0,Results[1]);'], dest=dtype)
+                before = self.snapshot(e)
+                with self.assertRaisesRegex(ModelError, 'divide by zero'):
+                    e.step()
+                self.assertEqual(self.snapshot(e), before)
+
     def test_a_later_finite_operation_rolls_back_a_floating_div_exception(self):
         e = self.checked(['DIV(Source,0.0,Results[1]);', 'ADD(Results[1],1,Results[2]);'])
         before = self.snapshot(e)
@@ -151,16 +174,18 @@ class RealRemainderTests(unittest.TestCase):
         self.assertEqual(self.snapshot(e), before)
 
     def test_floating_zero_divisors_set_minor_only_when_reporting_and_clear_next_scan(self):
-        for dtype in ('REAL', 'LREAL'):
-            for instruction, at_zero, at_two in (('MOD', 0.0, -1.5), ('DIV', -math.inf, -3.75)):
+        for source, dest in (('REAL', 'REAL'), ('LREAL', 'LREAL'), ('LREAL', 'DINT')):
+            integral = dest == 'DINT'
+            for instruction, at_zero, at_two in (('MOD', 0, -2 if integral else -1.5),
+                                                ('DIV', -(1 << 31) if integral else -math.inf, -4 if integral else -3.75)):
                 for reporting in ('true', 'false'):
-                    with self.subTest(dtype=dtype, instruction=instruction, reporting=reporting):
+                    with self.subTest(dest=dest, instruction=instruction, reporting=reporting):
                         def configuration(root):
                             root.find('Controller').set('ReportMinorOverflow', reporting)
 
                         e = self.checked([f'XIC(StartPB){instruction}(Source,Mask,Results[1]);',
                                           'XIC(S:MINOR)OTE(MotorRunning);'],
-                                         source=dtype, dest=dtype, divisor=0, mutate=configuration)
+                                         source=source, dest=dest, divisor=0, mutate=configuration)
                         e.step()
                         self.assertEqual(e.memory.read('Results'), [None, None, None])
                         self.assertFalse(e.memory.read('MotorRunning'))

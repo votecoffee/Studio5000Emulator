@@ -73,8 +73,8 @@ class RealNarrowResultTests(unittest.TestCase):
         for call in ('MUL(0.0,Inputs[1],Results[1]);','XPY(1.0,Inputs[1],Results[1]);'):
             e=self.checked([call],source='REAL',dest='DINT');self.fault(e,'Unknown')
 
-    def test_domain_underflow_division_and_nonfinite_faults_restore_state(self):
-        for call,error in [('DIV(1UL,1e-50,Results[1]);','zero'),('LN(-1.0,Results[1]);','finite'),
+    def test_domain_and_nonfinite_faults_restore_state(self):
+        for call,error in [('LN(-1.0,Results[1]);','finite'),
                 ('XPY(16#FFFFFFFFFFFFFFFFUL,3.0,Results[1]);','finite')]:
             e=self.checked(['MOV(99,SpeedCommand);',call],dest='DINT');self.fault(e,error)
         e=self.checked(['ADD(Source,0UL,Results[1]);','CPT(SpeedCommand,1/Index);'],source='REAL',value=2.5,dest='SINT')
