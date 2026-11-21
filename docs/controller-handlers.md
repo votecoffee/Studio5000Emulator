@@ -103,6 +103,7 @@ outermost enabled AOI instruction with the incoming rung power.
 - Array statistics and sorting include AVE, STD and SRT. File arithmetic
   and search include FAL and FSC.
 - FIFO and LIFO operations include FFL, FFU, LFL and LFU.
+- Bit shifts include BSL and BSR. Sequencers include SQI, SQO and SQL.
 
 The faulting instruction and the remaining statements in each interrupted AOI
 are skipped. Interrupted invocations also skip their output copies. The
@@ -164,6 +165,13 @@ unload still evaluates that index after moving the queue and undoes the
 move on an address fault. A modeled LFU length overrun retains CONTROL.ER
 for the handler. A queue position greater than LEN still rolls back the
 scan.
+
+BSL and BSR preserve the array words and restore their CONTROL record before
+the handler runs. A qualified shift length overrun still sets CONTROL.ER. A
+cleared fault leaves the triggering edge available for the next attempt. SQI,
+SQO and SQL restore CONTROL on a reached array fault, including an SQL row
+overrun. SQO and SQL keep their current row when the enable was already set.
+SQI and SQO table row overruns retain their instruction-level ER behavior.
 
 AOI argument, output-transfer, Structured Text and prescan faults remain
 outside this profile. Native v35 behavior remains unverified.

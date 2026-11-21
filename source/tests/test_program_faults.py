@@ -1215,6 +1215,135 @@ class ProgramFaultTests(unittest.TestCase):
                 self.assertEqual(engine.memory.read('LabRecords[0].POS'), 1)
                 self.assertIs(engine.last_cleared_program_fault, fault)
 
+    def test_nested_aoi_bit_shifts_restore_control_and_retry_the_same_edge(self):
+        for opcode, table, source, index, shifted in (
+            ('BSL', 'Window[1]', 'Samples[Index+1].0', 2, 13),
+            ('BSR', 'Window[Index+1]', 'Samples[1].0', 4, 11),
+        ):
+            with self.subTest(opcode=opcode):
+                self.setUp()
+                work = f'{opcode}({table},RecordData[0],{source},?)MOV(13,Scaled)'
+                engine = self.engine(mutate=lambda root: nested_aoi_array_calculation_fixture(root, work))
+                self.assertEqual(engine.blockers, [])
+                engine.enter_run()
+                memory = engine.memory
+                memory.write('LabRecords[0].LEN', 4)
+                memory.write('LabIndex', index)
+                memory.write('StartPB', True)
+                before = copy.deepcopy(memory.read('LabRecords'))
+                engine.step()
+                fault = engine.last_cleared_program_fault
+                self.assertEqual((fault['type'], fault['code'], fault['instruction']), (4, 20, 'LABWRAPPER'))
+                self.assertIn(f'AOI:LabScale/Logic, {opcode}:', fault['detail'])
+                self.assertEqual(memory.read('LabRecords'), before)
+                self.assertEqual(memory.read('LabQueue'), [99, 6, 2, 4, 77])
+                self.assertEqual(memory.read('LabIndex'), 0)
+                engine.step()
+                self.assertEqual(memory.read('LabQueue'), [99, shifted, 2, 4, 77])
+                self.assertEqual(memory.read('LabRecords[0].POS'), 4)
+                self.assertEqual(memory.read('SpeedCommand'), 125)
+                engine.step()
+                self.assertEqual(memory.read('LabQueue'), [99, shifted, 2, 4, 77])
+                self.assertIs(engine.last_cleared_program_fault, fault)
+
+    def test_nested_aoi_shift_extent_sets_control_error_before_handler(self):
+        for opcode, shifted in (('BSL', 75), ('BSR', 78)):
+            with self.subTest(opcode=opcode):
+                self.setUp()
+
+                def configure(root):
+                    work = f'{opcode}(Window[Index+1],RecordData[0],Samples[1].0,?)'
+                    nested_aoi_array_calculation_fixture(root, work)
+                    handler = root.find('.//Routine[@Name="RecoverMove"]/RLLContent')
+                    handler.find('Rung/Text').text = 'XIC(LabRecords[0].ER)OTE(FaultWitness);'
+                    handler.find('Rung[last()]/Text').text = 'MOV(4,LabRecords[0].LEN);'
+
+                engine = self.engine(mutate=configure)
+                self.assertEqual(engine.blockers, [])
+                engine.enter_run()
+                memory = engine.memory
+                memory.write('LabRecords[0].LEN', 33)
+                memory.write('LabIndex', 3)
+                memory.write('StartPB', True)
+                before = copy.deepcopy(memory.read('LabRecords'))
+                engine.step()
+                fault = engine.last_cleared_program_fault
+                self.assertEqual((fault['type'], fault['code'], fault['instruction']), (4, 20, 'LABWRAPPER'))
+                self.assertIn('LEN exceeds the remaining array bits', fault['detail'])
+                self.assertTrue(memory.read('FaultWitness'))
+                self.assertEqual(memory.read('LabRecords'), [before[0] | dict(LEN=4, ER=True), before[1]])
+                self.assertEqual(memory.read('LabQueue'), [99, 6, 2, 4, 77])
+                engine.step()
+                self.assertEqual(memory.read('LabQueue'), [99, 6, 2, 4, shifted])
+                self.assertFalse(memory.read('LabRecords[0].ER'))
+                self.assertIs(engine.last_cleared_program_fault, fault)
+
+    def test_nested_aoi_sequencers_restore_position_then_retry_the_selected_row(self):
+        cases = (
+            ('SQI(Window[0],255,Samples[Index+1],RecordData[0],?,?)', [99, 13, 2, 4, 77], 13, 1),
+            ('SQO(Window[0],255,Samples[Index+1],RecordData[0],?,?)', [99, 13, 2, 4, 77], 2, 2),
+            ('SQL(Window[Index+1],Samples[1],RecordData[0],?,?)', [99, 13, 2, 13, 77], 13, 2),
+        )
+        for instruction, expected_table, expected_value, expected_position in cases:
+            opcode = instruction[:3]
+            with self.subTest(opcode=opcode):
+                self.setUp()
+                work = instruction + 'MOV(13,Scaled)'
+                engine = self.engine(mutate=lambda root: nested_aoi_array_calculation_fixture(root, work))
+                self.assertEqual(engine.blockers, [])
+                engine.enter_run()
+                memory = engine.memory
+                memory.write('LabRecords[0].POS', 1)
+                memory.write('LabRecords[0].EN', False)
+                memory.write('LabRecords[0].ER', True)
+                memory.write('LabQueue[1]', 13)
+                memory.write('LabIndex', 2)
+                memory.write('StartPB', True)
+                before = copy.deepcopy(memory.read('LabRecords'))
+                engine.step()
+                fault = engine.last_cleared_program_fault
+                self.assertEqual((fault['type'], fault['code'], fault['instruction']), (4, 20, 'LABWRAPPER'))
+                self.assertIn(f'AOI:LabScale/Logic, {opcode}:', fault['detail'])
+                if opcode == 'SQL':
+                    self.assertIn('position exceeds the selected table boundary', fault['detail'])
+                self.assertEqual(memory.read('LabRecords'), before)
+                self.assertEqual(memory.read('LabQueue'), [99, 13, 2, 4, 77])
+                self.assertEqual(memory.read('LabValues[1]'), 13)
+                engine.step()
+                self.assertEqual(memory.read('LabQueue'), expected_table)
+                self.assertEqual(memory.read('LabValues[1]'), expected_value)
+                self.assertEqual(memory.read('LabRecords[0].POS'), expected_position)
+                self.assertFalse(memory.read('LabRecords[0].ER'))
+                self.assertEqual(memory.read('SpeedCommand'), 125)
+                engine.step()
+                self.assertEqual(memory.read('LabRecords[0].POS'), expected_position)
+                self.assertIs(engine.last_cleared_program_fault, fault)
+
+    def test_nested_aoi_held_sqo_keeps_position_through_an_output_fault(self):
+        work = 'SQO(Window[0],255,Samples[Index+1],RecordData[0],?,?)'
+        engine = self.engine(mutate=lambda root: nested_aoi_array_calculation_fixture(root, work))
+        self.assertEqual(engine.blockers, [])
+        engine.enter_run()
+        memory = engine.memory
+        memory.write('LabRecords[0].EN', False)
+        memory.write('StartPB', True)
+        engine.step()
+        self.assertEqual(memory.read('LabRecords[0].POS'), 1)
+        self.assertEqual(memory.read('LabValues[1]'), 6)
+        before = copy.deepcopy(memory.read('LabRecords'))
+        memory.write('LabQueue[1]', 17)
+        memory.write('LabIndex', 2)
+        engine.step()
+        fault = engine.last_cleared_program_fault
+        self.assertEqual((fault['type'], fault['code'], fault['instruction']), (4, 20, 'LABWRAPPER'))
+        self.assertIn('AOI:LabScale/Logic, SQO:', fault['detail'])
+        self.assertEqual(memory.read('LabRecords'), before)
+        self.assertEqual(memory.read('LabValues[1]'), 6)
+        engine.step()
+        self.assertEqual(memory.read('LabValues[1]'), 17)
+        self.assertEqual(memory.read('LabRecords'), before)
+        self.assertIs(engine.last_cleared_program_fault, fault)
+
     def test_nested_aoi_queue_position_past_len_keeps_scan_rollback(self):
         work = 'FFU(Window[0],Samples[1],RecordData[0],?,?)'
         engine = self.engine(mutate=lambda root:nested_aoi_queue_unload_fault_fixture(root, work))
