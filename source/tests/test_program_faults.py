@@ -314,6 +314,12 @@ def add_system_value_recovery_tags(root):
     add_fault_dint_array(tags,'LabSetpoints',[600000,650000])
 
 
+def nested_aoi_clock_fault_fixture(root, work, words):
+    nested_aoi_array_fault_fixture(root, work=work)
+    add_fault_dint_array(root.find('./Controller/Tags'), 'LabClockWords', words)
+    bind_nested_aoi_inout_arrays(root, ('ClockData', 'DINT', 'LabClockWords'))
+
+
 def add_stateful_recovery_tags(root, mnemonic):
     from test_ladder_alarm import SAMPLE as ALARM_SAMPLE
     from test_ladder_pid import SAMPLE as PID_SAMPLE
@@ -1433,6 +1439,78 @@ class ProgramFaultTests(unittest.TestCase):
                 self.assertEqual(memory.read('LabRecords[0].POS'), 32)
                 self.assertFalse(memory.read('LabRecords[0].ER'))
                 self.assertIs(engine.last_cleared_program_fault, fault)
+
+    def test_nested_aoi_gsv_array_fault_preserves_entire_clock_destination(self):
+        from test_gsv_wall_clock import FIELDS, MICROSECONDS
+
+        work = 'GSV(WallClockTime,,DateTime,ClockData[Index])MOV(13,Scaled)'
+        engine = self.engine(mutate=lambda root: nested_aoi_clock_fault_fixture(root, work, [77] * 9))
+        self.assertEqual(engine.blockers, [])
+        memory = engine.memory
+        memory.write('LabIndex', 9)
+        engine.step()
+        self.assertIsNone(engine.last_cleared_program_fault)
+        self.assertEqual(memory.read('LabIndex'), 9)
+        memory.write('StartPB', True)
+        memory.write('SpeedCommand', 50)
+        with patch('logixlab.wall_clock.time.time_ns', return_value=MICROSECONDS * 1000):
+            engine.step()
+            fault = engine.last_cleared_program_fault
+            self.assertEqual((fault['type'], fault['code'], fault['instruction']), (4, 20, 'LABWRAPPER'))
+            self.assertIn('AOI:LabScale/Logic, GSV: Array index outside bounds', fault['detail'])
+            self.assertEqual(memory.read('LabClockWords'), [77] * 9)
+            self.assertEqual(memory.read('LabIndex'), 0)
+            self.assertEqual(memory.read('SpeedCommand'), 51)
+            engine.step()
+        self.assertEqual(memory.read('LabClockWords'), [*FIELDS, 77, 77])
+        self.assertEqual(memory.read('SpeedCommand'), 125)
+        self.assertIs(engine.last_cleared_program_fault, fault)
+
+    def test_nested_aoi_ssv_array_fault_leaves_wall_clock_until_a_valid_retry(self):
+        from test_gsv_wall_clock import FIELDS, MICROSECONDS
+
+        work = 'SSV(WallClockTime,,DateTime,ClockData[Index])MOV(13,Scaled)'
+        words = [*FIELDS, 77, 77]
+        engine = self.engine(mutate=lambda root: nested_aoi_clock_fault_fixture(root, work, words))
+        self.assertEqual(engine.blockers, [])
+        memory = engine.memory
+        previous = engine.wall_clock_state
+        memory.write('LabIndex', 9)
+        memory.write('StartPB', True)
+        memory.write('SpeedCommand', 50)
+        raw = MICROSECONDS + 1_000_000
+        with patch('logixlab.wall_clock.time.time_ns', return_value=raw * 1000):
+            engine.step()
+            fault = engine.last_cleared_program_fault
+            self.assertEqual((fault['type'], fault['code'], fault['instruction']), (4, 20, 'LABWRAPPER'))
+            self.assertIn('AOI:LabScale/Logic, SSV: Array index outside bounds', fault['detail'])
+            self.assertEqual(engine.wall_clock_state, previous)
+            self.assertEqual(memory.read('LabClockWords'), words)
+            self.assertEqual(memory.read('LabIndex'), 0)
+            self.assertEqual(memory.read('SpeedCommand'), 51)
+            engine.step()
+            self.assertEqual(engine.wall_time(), MICROSECONDS)
+        self.assertEqual(memory.read('LabClockWords'), words)
+        self.assertEqual(memory.read('SpeedCommand'), 125)
+        self.assertIs(engine.last_cleared_program_fault, fault)
+
+    def test_nested_aoi_clock_short_window_keeps_scan_rollback(self):
+        for opcode in ('GSV', 'SSV'):
+            with self.subTest(opcode=opcode):
+                self.setUp()
+                work = f'{opcode}(WallClockTime,,DateTime,ClockData[Index])'
+                engine = self.engine(mutate=lambda root: nested_aoi_clock_fault_fixture(root, work, [77] * 9))
+                self.assertEqual(engine.blockers, [])
+                memory = engine.memory
+                memory.write('LabIndex', 8)
+                memory.write('StartPB', True)
+                before = copy.deepcopy(memory.values)
+                previous = engine.wall_clock_state
+                with self.assertRaisesRegex(ModelError, 'modeled array/member boundary'):
+                    engine.step()
+                self.assertEqual(memory.values, before)
+                self.assertEqual(engine.wall_clock_state, previous)
+                self.assertIsNone(engine.last_cleared_program_fault)
 
     def test_nested_aoi_queue_position_past_len_keeps_scan_rollback(self):
         work = 'FFU(Window[0],Samples[1],RecordData[0],?,?)'

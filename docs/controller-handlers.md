@@ -105,6 +105,7 @@ outermost enabled AOI instruction with the incoming rung power.
 - FIFO and LIFO operations include FFL, FFU, LFL and LFU.
 - Bit shifts include BSL and BSR. Sequencers include SQI, SQO and SQL.
 - Bit diagnostics include FBC and DDT.
+- System values include the supported GSV and SSV forms.
 
 The faulting instruction and the remaining statements in each interrupted AOI
 are skipped. Interrupted invocations also skip their output copies. The
@@ -179,6 +180,12 @@ the faulting call. DDT also restores reference bits changed by that call.
 A reached source or reference overrun then sets the compare CONTROL.ER for
 the handler. A cleared fault allows the next enabled call to retry from the
 restored compare and result positions.
+
+GSV resolves the full destination before writing, and SSV reads its source
+before changing a system value. An out-of-bounds subscript inside AOI Logic
+therefore leaves the destination or setting intact before the handler. The
+next enabled call resolves the operand again. A short window at a valid
+starting index still rolls back the scan.
 
 AOI argument, output-transfer, Structured Text and prescan faults remain
 outside this profile. Native v35 behavior remains unverified.
