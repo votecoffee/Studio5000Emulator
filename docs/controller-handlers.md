@@ -159,9 +159,12 @@ elements and the result address is valid.
 FAL and FSC recover reached array faults in ALL, numeric and INC modes.
 Recovery restores the faulting call's CONTROL record and any partial FAL
 writes before the handler runs. Earlier completed chunks and pending INC
-edges remain available when execution reaches the instruction again. Nested
-SRT, STD, FAL and FSC faults from negative CONTROL LEN or POS still roll
-back the scan.
+edges remain available when execution reaches the instruction again.
+Negative CONTROL.LEN or CONTROL.POS in nested ladder SRT, STD, FAL and FSC
+can now reach the handler as Type 4 Code 21. A clear resumes after the
+outermost AOI and skips the interrupted Output copies. SRT retains
+CONTROL.ER until logic clears it. STD, FAL and FSC preserve their cursor
+state and any earlier completed work until the handler repairs the field.
 
 FIFO and LIFO recovery restores the queue and its CONTROL latch before the
 handler runs. If the destination index depends on the moved queue, the

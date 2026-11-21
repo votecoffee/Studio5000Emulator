@@ -73,6 +73,14 @@ class AddOnBodyFault(ModelError):
         self.code = code
 
 
+def _ladder_value_fault_code(opcode, error):
+    if isinstance(error, control_operations.NegativeFileCursorError) and opcode in ('FAL', 'FSC', 'SRT', 'STD'):
+        return 21
+    if isinstance(error, NegativeTimerValueError) and opcode in ('TON', 'TOF', 'RTO'):
+        return 34
+    return None
+
+
 class ReturnRoutine(Exception):
     pass
 
@@ -967,14 +975,10 @@ class Engine:
                 code = error.code
             elif not (isinstance(error, CallOperandBoundsError) and error.call is op):
                 return None
-        elif isinstance(error, control_operations.NegativeFileCursorError):
-            if op.name not in ('FAL', 'FSC', 'SRT', 'STD'):
+        elif isinstance(error, (control_operations.NegativeFileCursorError, NegativeTimerValueError)):
+            code = _ladder_value_fault_code(op.name, error)
+            if code is None:
                 return None
-            code = 21
-        elif isinstance(error, NegativeTimerValueError):
-            if op.name not in ('TON', 'TOF', 'RTO'):
-                return None
-            code = 34
         elif isinstance(error, CallOperandBoundsError):
             if op.name not in ('JSR', 'FOR') or error.call is not op:
                 return None
@@ -1134,9 +1138,10 @@ class Engine:
                     if scope in self.memory.frames and aoi_body:
                         if isinstance(error, ArrayBoundsError) and (node.name in AOI_ARRAY_FAULT_RECOVERY_OPS or operand_fault):
                             raise AddOnBodyFault(20, f'{routine.key}, {node.name}: {error}') from error
-                        if (not self.addons.prescanning and isinstance(error, NegativeTimerValueError)
-                                and node.name in ('TON', 'TOF', 'RTO')):
-                            raise AddOnBodyFault(34, f'{routine.key}, {error}') from error
+                        if not self.addons.prescanning:
+                            value_code = _ladder_value_fault_code(node.name, error)
+                            if value_code is not None:
+                                raise AddOnBodyFault(value_code, f'{routine.key}, {error}') from error
                     code = self._recover_ladder_fault(node, scope, error)
                     if code is None:
                         raise

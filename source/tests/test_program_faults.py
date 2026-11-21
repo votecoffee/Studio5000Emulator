@@ -346,12 +346,20 @@ def add_array_calculation_tags(root):
         ET.SubElement(array,'Element',Index=f'[{index}]',Value=value)
 
 
-def nested_aoi_array_calculation_fixture(root, work):
-    nested_aoi_array_fault_fixture(root, work=work)
+def nested_aoi_array_calculation_fixture(root, work, **fault_options):
+    nested_aoi_array_fault_fixture(root, work=work, **fault_options)
     add_array_calculation_tags(root)
     bind_nested_aoi_inouts(root, ('RecordData', 'CONTROL', 'LabRecords'),
                            ('Window', 'DINT', 'LabQueue'),
                            ('StatsResult', 'REAL', 'LabStats'))
+
+
+def nested_aoi_file_cursor_fault_fixture(root, work, member, *, fault_code=21):
+    correction = 3 if member == 'LEN' else 0
+    repair = f'MOV(LabRecords[0].{member},FaultWords[3])MOV({correction},LabRecords[0].{member});'
+    nested_aoi_array_calculation_fixture(root, work, fault_code=fault_code, handler_tail=repair)
+    handler = root.find('.//Routine[@Name="RecoverMove"]/RLLContent/Rung/Text')
+    handler.text = 'XIC(LabRecords[0].ER)OTE(FaultWitness);'
 
 
 def nested_aoi_queue_unload_fault_fixture(root, work):
@@ -1706,20 +1714,92 @@ class ProgramFaultTests(unittest.TestCase):
         self.assertEqual(engine.scan_count, 0)
         self.assertIsNone(engine.last_cleared_program_fault)
 
-    def test_nested_aoi_negative_array_cursors_keep_scan_rollback(self):
-        for work, member in (('SRT(Window[1],0,RecordData[0],?,?)', 'POS'),
-                             ('STD(Window[1],0,StatsResult[0],RecordData[0],?,?)', 'LEN'),
-                             ('FAL(RecordData[0],?,?,ALL,Window[0],99)', 'POS'),
-                             ('FSC(RecordData[0],?,?,ALL,Window[0]=99)', 'LEN')):
+    def test_nested_aoi_negative_file_cursors_recover_with_instruction_specific_state(self):
+        cases = (
+            ('SRT(Window[1],0,RecordData[0],?,?)', 'POS', [99, 2, 4, 6, 77], 11.0, 0),
+            ('STD(Window[1],0,StatsResult[0],RecordData[0],?,?)', 'LEN', [99, 6, 2, 4, 77], 2.0, 3),
+            ('FAL(RecordData[0],?,?,ALL,Window[RecordData[0].POS+1],30)', 'LEN', [99, 30, 30, 30, 77], 11.0, 2),
+            ('FSC(RecordData[0],?,?,ALL,Window[RecordData[0].POS+1]=2)', 'POS', [99, 6, 2, 4, 77], 11.0, 1),
+        )
+        for work, member, queue, statistic, position in cases:
             with self.subTest(instruction=work):
                 self.setUp()
-                engine = self.engine(mutate=lambda root:nested_aoi_array_calculation_fixture(root, work))
+                opcode = work[:3]
+                engine = self.engine(mutate=lambda root: nested_aoi_file_cursor_fault_fixture(root, work, member))
                 self.assertEqual(engine.blockers, [])
                 engine.enter_run()
-                engine.memory.write(f'LabRecords[0].{member}', -1)
+                memory = engine.memory
+                before = copy.deepcopy(memory.read('LabRecords'))
+                memory.write(f'LabRecords[0].{member}', -1)
+                memory.write('StartPB', True)
+                memory.write('SpeedCommand', 50)
+                engine.step()
+                fault = engine.last_cleared_program_fault
+                self.assertEqual((fault['type'], fault['code'], fault['instruction']), (4, 21, 'LABWRAPPER'))
+                self.assertIn(f'AOI:LabScale/Logic, {opcode} requires nonnegative LEN/POS', fault['detail'])
+                self.assertEqual(memory.read('CapturedFault'), 1376260)
+                self.assertEqual(memory.read('FaultWords[3]'), -1)
+                self.assertEqual(memory.read('LabQueue'), [99, 6, 2, 4, 77])
+                self.assertEqual(memory.read('LabStats'), [11.0, 22.0])
+                self.assertEqual(memory.read('SpeedCommand'), 51)
+                self.assertEqual(memory.read('LabRecords'), [before[0] | dict(ER=opcode == 'SRT'), before[1]])
+                self.assertIs(memory.read('FaultWitness'), opcode == 'SRT')
+                if opcode == 'SRT':
+                    engine.step()
+                    self.assertEqual(memory.read('LabQueue'), [99, 6, 2, 4, 77])
+                    memory.write('LabRecords[0].ER', False)
+                engine.step()
+                self.assertEqual(memory.read('LabQueue'), queue)
+                self.assertEqual(memory.read('LabStats'), [statistic, 22.0])
+                self.assertEqual(memory.read('LabRecords[0].POS'), position)
+                self.assertIs(memory.read('LabRecords[0].FD'), opcode == 'FSC')
+
+    def test_nested_aoi_negative_inc_length_preserves_pending_edge_and_progress(self):
+        for opcode, operands, first, second in (
+            ('FAL', 'Window[RecordData[0].POS+1],Window[RecordData[0].POS+1]+1',
+             [99, 7, 2, 4, 77], [99, 7, 3, 4, 77]),
+            ('FSC', 'Window[RecordData[0].POS+1]=2', [99, 6, 2, 4, 77], [99, 6, 2, 4, 77]),
+        ):
+            with self.subTest(opcode=opcode):
+                self.setUp()
+                work = f'[XIC(Samples[1].0){opcode}(RecordData[0],?,?,INC,{operands}),NOP()]'
+                engine = self.engine(mutate=lambda root: nested_aoi_file_cursor_fault_fixture(root, work, 'LEN'))
+                self.assertEqual(engine.blockers, [])
+                memory = engine.memory
+                memory.write('StartPB', True)
+                engine.step()
+                self.assertEqual(memory.read('LabRecords[0].POS'), 0)
+                self.assertEqual(memory.read('LabQueue'), first)
+                memory.write('LabValues[1]', 12)
+                engine.step()
+                self.assertFalse(memory.read('LabRecords[0].EN'))
+                progress = engine._file_incremental.copy()
+                self.assertEqual(progress, {('labrecords', (0,))})
+                memory.write('LabRecords[0].LEN', -1)
+                memory.write('LabValues[1]', 13)
+                engine.step()
+                fault = engine.last_cleared_program_fault
+                self.assertEqual((fault['type'], fault['code'], fault['instruction']), (4, 21, 'LABWRAPPER'))
+                self.assertEqual(engine._file_incremental, progress)
+                self.assertEqual(memory.read('LabQueue'), first)
+                self.assertEqual(memory.read('LabRecords[0].POS'), 0)
+                self.assertFalse(memory.read('LabRecords[0].EN'))
+                engine.step()
+                self.assertEqual(memory.read('LabQueue'), second)
+                self.assertEqual(memory.read('LabRecords[0].POS'), 1)
+                self.assertIs(memory.read('LabRecords[0].FD'), opcode == 'FSC')
+
+    def test_uncleared_nested_aoi_negative_file_cursor_rolls_back(self):
+        for work in ('SRT(Window[1],0,RecordData[0],?,?)', 'FAL(RecordData[0],?,?,ALL,Window[0],99)'):
+            with self.subTest(instruction=work):
+                self.setUp()
+                engine = self.engine(mutate=lambda root: nested_aoi_file_cursor_fault_fixture(
+                    root, work, 'POS', fault_code=20))
+                self.assertEqual(engine.blockers, [])
+                engine.memory.write('LabRecords[0].POS', -1)
                 engine.memory.write('StartPB', True)
                 before = copy.deepcopy(engine.memory.values)
-                with self.assertRaisesRegex(ModelError, 'Type 4 Code 21'):
+                with self.assertRaisesRegex(ModelError, 'Program fault 4/21.*without clearing'):
                     engine.step()
                 self.assertEqual(engine.memory.values, before)
                 self.assertEqual(engine.scan_count, 0)
