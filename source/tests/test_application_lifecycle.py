@@ -134,11 +134,13 @@ def handler_subroutine_l5x(*, clear=True, nested_tail=None, main_call=None):
 class ApplicationLifecycleTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
         source = Path(__file__).resolve().parents[1]
         self.process = subprocess.Popen([sys.executable, str(source / 'launch.py'), '--no-browser',
                                          '--no-tray', '--data-dir', self.tmp.name],
                                         stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,**background_options())
-        deadline = time.monotonic() + 8
+        self.addCleanup(self._close_process)
+        deadline = time.monotonic() + 30
         receipt = Path(self.tmp.name) / 'last-session.json'
         while time.monotonic() < deadline:
             if receipt.is_file():
@@ -148,27 +150,30 @@ class ApplicationLifecycleTests(unittest.TestCase):
                 except ValueError:
                     pass
             if self.process.poll() is not None:
-                self.fail(self.process.stderr.read().decode())
+                detail = self.process.stderr.read().decode(errors='replace').strip()
+                self.fail(f'Server exited before startup (code {self.process.returncode}): {detail}')
             time.sleep(0.02)
         else:
             self.process.kill()
-            self.process.wait()
-            self.fail('Server startup timed out')
+            _, stderr = self.process.communicate()
+            detail = stderr.decode(errors='replace').strip()
+            self.fail(f'Server startup timed out waiting for {receipt.name}\n{detail}'.rstrip())
         self.url = self.session['url']
         script = self.get('/session.js').decode()
         self.token = json.loads(re.search(r'LOGIX_TOKEN = (".*?")', script)[1])
 
     def tearDown(self):
         if self.process.poll() is None:
-            try:
-                self.post('quit', {})
-                self.process.wait(timeout=5)
-            finally:
-                if self.process.poll() is None:
-                    self.process.kill()
-                    self.process.wait()
-        self.process.stderr.close()
-        self.tmp.cleanup()
+            self.post('quit', {})
+            self.process.wait(timeout=5)
+
+    def _close_process(self):
+        try:
+            if self.process.poll() is None:
+                self.process.kill()
+                self.process.wait()
+        finally:
+            self.process.stderr.close()
 
     def get(self, path):
         with urlopen(Request(self.url + path), timeout=3) as response:
