@@ -38,18 +38,20 @@ class AddOns:
         self.validated=set();self.active=set();self.instances={}
         self.caller_program = None
         self.prescanning = False
+        self.prescan_recovery = False
 
     @contextmanager
-    def program_context(self, scope, *, prescan=False):
+    def program_context(self, scope, *, prescan=False, recover_prescan=False):
         """Keep the outer Program and prescan state across nested AOI calls."""
-        previous = self.caller_program, self.prescanning
+        previous = self.caller_program, self.prescanning, self.prescan_recovery
         if scope not in self.memory.frames:
             self.caller_program = scope
         self.prescanning = self.prescanning or prescan
+        self.prescan_recovery = self.prescan_recovery or recover_prescan
         try:
             yield
         finally:
-            self.caller_program, self.prescanning = previous
+            self.caller_program, self.prescanning, self.prescan_recovery = previous
 
     def _prepare_binding(self,op,scope,*,resolve_outputs_and_inouts=True):
         definition=self.engine.project.aois[op.name]
@@ -164,7 +166,10 @@ class AddOns:
         definition = self.engine.project.aois[op.name]
         copy_outputs = prescan or power or definition.modes['EnableInFalse']
         qualified = numeric_available(self.engine.project)
-        recover_operands = qualified and (recover_prescan if prescan else not self.prescanning)
+        if prescan:
+            recover_operands = qualified and recover_prescan
+        else:
+            recover_operands = qualified and (not self.prescanning or self.prescan_recovery)
         # In v35, a false ladder call without EnableInFalse only copies Inputs.
         resolve_outputs_and_inouts = copy_outputs or not qualified
         try:
@@ -189,7 +194,7 @@ class AddOns:
         self.instances[address]={'definition':definition.name,'scope':frame}
         if copy_outputs:
             try:
-                with self.program_context(scope, prescan=prescan):
+                with self.program_context(scope, prescan=prescan, recover_prescan=prescan and recover_operands):
                     if prescan:
                         self.engine._prescan_routine(definition.routines['logic'],frame,depth+1)
                         if definition.modes['Prescan']:

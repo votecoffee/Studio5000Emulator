@@ -737,7 +737,7 @@ class Engine:
                     try:
                         self.addons.call(op, False, scope, depth+1, prescan=True,
                                          recover_prescan=recover_prescan)
-                    except CallOperandBoundsError:
+                    except (CallOperandBoundsError, AddOnBodyArrayError):
                         # Unwind to the outermost AOI and skip it without a user fault handler.
                         if not recover_prescan or scope in self.memory.frames:
                             raise
@@ -1121,10 +1121,13 @@ class Engine:
                     routine = self._executing_routine
                     operand_fault = (isinstance(error, CallOperandBoundsError) and error.call is node
                                      and node.name in self.project.aois)
+                    name = routine.name.casefold()
+                    aoi_body = name in ('logic', 'enableinfalse')
+                    if self.addons.prescanning:
+                        aoi_body = self.addons.prescan_recovery and (aoi_body or name == 'prescan')
                     if (isinstance(error, ArrayBoundsError)
                             and (node.name in AOI_ARRAY_FAULT_RECOVERY_OPS or operand_fault)
-                            and scope in self.memory.frames and routine.name.casefold() in ('logic', 'enableinfalse')
-                            and not self.addons.prescanning):
+                            and scope in self.memory.frames and aoi_body):
                         raise AddOnBodyArrayError(f'{routine.key}, {node.name}: {error}') from error
                     code = self._recover_ladder_fault(node, scope, error)
                     if code is None:

@@ -214,7 +214,12 @@ def aoi_prescan_operand_fault_fixture(root, stage):
         aoi_output_index_fault_fixture(root)
     else:
         nested_aoi_array_fault_fixture(root, bad_call_operand=stage == 'binding')
-    if stage in ('nested', 'authored'):
+    authored = {
+        'authored': 'MOV(89,Samples[0])MOV(Samples[Index+1],Result)MOV(61,Result);',
+        'authored_nested': 'MOV(89,Samples[0])LabScale(Core,Raw,2.0,Result,Index,Samples)MOV(61,Result);',
+        'authored_division': 'MOV(89,Samples[0])DIV(1,Samples[Index],Result);',
+    }
+    if stage == 'nested' or stage in authored:
         wrapper = root.find('.//AddOnInstructionDefinition[@Name="LabWrapper"]')
         routines = wrapper.find('Routines')
         wrapper.set('ExecutePrescan', 'true')
@@ -223,7 +228,7 @@ def aoi_prescan_operand_fault_fixture(root, stage):
             logic.text = logic.text.replace('LabScale(Core,Raw,', 'LabScale(Core,Samples[Index+1],')
         prescan = ET.SubElement(routines, 'Routine', Name='Prescan', Type='RLL')
         rung = ET.SubElement(ET.SubElement(prescan, 'RLLContent'), 'Rung', Number='0', Type='N')
-        ET.SubElement(rung, 'Text').text = 'MOV(61,Result);' if stage == 'nested' else 'MOV(Samples[Index+1],Result);'
+        ET.SubElement(rung, 'Text').text = authored.get(stage, 'MOV(61,Result);')
     main = root.find('./Controller/Programs/Program/Routines/Routine/RLLContent')
     ET.SubElement(ET.SubElement(main, 'Rung', Number='2', Type='N'), 'Text').text = 'OTE(FaultWitness);'
 
@@ -2035,17 +2040,47 @@ class ProgramFaultTests(unittest.TestCase):
                     engine.enter_run()
                     self.assertEqual(memory.read('SpeedCommand'), 61)
 
-    def test_fault_in_authored_aoi_prescan_logic_still_rolls_back_startup(self):
-        engine = self.engine(mutate=lambda root: aoi_prescan_operand_fault_fixture(root, 'authored'))
+    def test_authored_aoi_prescan_array_fault_skips_outputs_and_retains_prior_writes(self):
+        for stage, retained in (('authored', 89), ('authored_nested', 88)):
+            with self.subTest(stage=stage):
+                self.setUp()
+                engine = self.engine(mutate=lambda root: aoi_prescan_operand_fault_fixture(root, stage))
+                self.assertEqual(engine.blockers, [])
+                memory = engine.memory
+                memory.write('LabIndex', 2)
+                memory.write('SpeedCommand', 50)
+                memory.write('NestedScale.Result', 77)
+                memory.write('FaultWitness', True)
+                count = engine.prescan_count
+                engine.enter_run()
+                self.assertEqual(engine.prescan_count, count + 1)
+                self.assertEqual(engine.scan_count, 0)
+                self.assertEqual(memory.read('LabValues'), [retained, 13])
+                # Logic prescan already copied the inner AOI's initial output.
+                self.assertEqual(memory.read('NestedScale.Result'), 0)
+                self.assertEqual(memory.read('SpeedCommand'), 50)
+                self.assertFalse(memory.read('FaultWitness'))
+                self.assertFalse(memory.read('NestedScale.EnableOut'))
+                self.assertEqual(memory.read('CapturedFault'), 0)
+                self.assertIsNone(engine.last_cleared_program_fault)
+                self.assertFalse(engine.addons.prescan_recovery)
+                memory.write('LabIndex', 0)
+                engine.enter_run()
+                self.assertEqual(memory.read('SpeedCommand'), 61)
+
+    def test_non_array_fault_in_authored_aoi_prescan_still_rolls_back_startup(self):
+        engine = self.engine(mutate=lambda root: aoi_prescan_operand_fault_fixture(root, 'authored_division'))
         self.assertEqual(engine.blockers, [])
-        engine.memory.write('LabIndex', 2)
+        engine.memory.write('LabIndex', 1)
+        engine.memory.write('LabValues[1]', 0)
         engine.memory.write('FaultWitness', True)
         before = copy.deepcopy((engine.memory.values, engine.memory.frames))
         count = engine.prescan_count
-        with self.assertRaisesRegex(ModelError, 'Prescan rolled back: Array index outside bounds'):
+        with self.assertRaisesRegex(ModelError, r'Prescan rolled back:.*(?:[Dd]ivision|divide) by zero'):
             engine.enter_run()
         self.assertEqual((engine.memory.values, engine.memory.frames), before)
         self.assertEqual(engine.prescan_count, count)
+        self.assertFalse(engine.addons.prescan_recovery)
 
     def test_aoi_false_body_fault_skips_output_copy_and_keeps_enableout_false(self):
         for nested, changed, output, origin in (
