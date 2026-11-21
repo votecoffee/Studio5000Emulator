@@ -191,6 +191,14 @@ def add_bit_diagnostic_tags(root, *, single=False):
     add_fault_dint_array(tags,'LabResults',[-1,-1,88])
 
 
+def nested_aoi_bit_diagnostic_fault_fixture(root, work):
+    nested_aoi_array_fault_fixture(root, work=work)
+    add_bit_diagnostic_tags(root)
+    bind_nested_aoi_inout_arrays(root, ('ReferenceData', 'DINT', 'LabQueue'),
+                                 ('ResultData', 'DINT', 'LabResults'),
+                                 ('RecordData', 'CONTROL', 'LabRecords'))
+
+
 def bit_result_slot_fault_fixture(root, name, *, position=0):
     start, repaired_start = (1, 0) if position else (2, 1)
     ladder_fault_fixture(root, handler_tail=f'MOV({repaired_start},LabIndex);')
@@ -1343,6 +1351,88 @@ class ProgramFaultTests(unittest.TestCase):
         self.assertEqual(memory.read('LabValues[1]'), 17)
         self.assertEqual(memory.read('LabRecords'), before)
         self.assertIs(engine.last_cleared_program_fault, fault)
+
+    def test_nested_aoi_bit_diagnostic_restores_partial_result_and_reference_writes(self):
+        for opcode in ('FBC', 'DDT'):
+            with self.subTest(opcode=opcode):
+                self.setUp()
+
+                def configure(root):
+                    work = (f'{opcode}(Samples[0],ReferenceData[0],ResultData[Index],'
+                            'RecordData[0],?,?,RecordData[1],?,?)MOV(13,Scaled)')
+                    nested_aoi_bit_diagnostic_fault_fixture(root, work)
+                    handler = root.find('.//Routine[@Name="RecoverMove"]/RLLContent')
+                    handler.find('Rung/Text').text = (
+                        'EQU(LabResults[2],88)EQU(LabQueue[0],0)EQU(LabRecords[1].POS,0)OTE(FaultWitness);')
+
+                engine = self.engine(mutate=configure)
+                self.assertEqual(engine.blockers, [])
+                engine.enter_run()
+                memory = engine.memory
+                memory.write('LabRecords[0].LEN', 8)
+                memory.write('LabRecords[1].LEN', 3)
+                memory.write('LabIndex', 2)
+                memory.write('StartPB', True)
+                before = copy.deepcopy(memory.read('LabRecords'))
+                engine.step()
+                fault = engine.last_cleared_program_fault
+                self.assertEqual((fault['type'], fault['code'], fault['instruction']), (4, 20, 'LABWRAPPER'))
+                self.assertIn(f'AOI:LabScale/Logic, {opcode}:', fault['detail'])
+                self.assertIn('result position exceeds the selected array boundary', fault['detail'])
+                self.assertTrue(memory.read('FaultWitness'))
+                self.assertEqual(memory.read('LabRecords'), before)
+                self.assertEqual(memory.read('LabResults'), [-1, -1, 88])
+                self.assertEqual(memory.read('LabQueue'), [0, 0, 99])
+                self.assertEqual(memory.read('LabIndex'), 0)
+
+                engine.step()
+                self.assertEqual(memory.read('LabResults'), [3, 4, 6])
+                self.assertEqual(memory.read('LabQueue'), [88 if opcode == 'DDT' else 0, 0, 99])
+                self.assertEqual(memory.read('LabRecords[0].POS'), 8)
+                self.assertEqual(memory.read('LabRecords[1].POS'), 3)
+                self.assertEqual(memory.read('SpeedCommand'), 125)
+                engine.step()
+                self.assertEqual(memory.read('LabResults'), [3, 4, 6])
+                self.assertIs(engine.last_cleared_program_fault, fault)
+
+    def test_nested_aoi_bit_diagnostic_input_extent_sets_compare_error_before_handler(self):
+        for opcode in ('FBC', 'DDT'):
+            with self.subTest(opcode=opcode):
+                self.setUp()
+
+                def configure(root):
+                    work = (f'{opcode}(Samples[1],ReferenceData[0],ResultData[0],'
+                            'RecordData[0],?,?,RecordData[1],?,?)')
+                    nested_aoi_bit_diagnostic_fault_fixture(root, work)
+                    handler = root.find('.//Routine[@Name="RecoverMove"]/RLLContent')
+                    handler.find('Rung/Text').text = (
+                        'XIC(LabRecords[0].ER)EQU(LabQueue[0],0)EQU(LabResults[0],-1)OTE(FaultWitness);')
+                    handler.find('Rung[last()]/Text').text = 'MOV(32,LabRecords[0].LEN);'
+
+                engine = self.engine(mutate=configure)
+                self.assertEqual(engine.blockers, [])
+                engine.enter_run()
+                memory = engine.memory
+                memory.write('LabRecords[0].LEN', 33)
+                memory.write('LabRecords[0].ER', False)
+                memory.write('LabRecords[1].LEN', 3)
+                memory.write('StartPB', True)
+                before = copy.deepcopy(memory.read('LabRecords'))
+                engine.step()
+                fault = engine.last_cleared_program_fault
+                self.assertEqual((fault['type'], fault['code'], fault['instruction']), (4, 20, 'LABWRAPPER'))
+                self.assertIn('source bit exceeds the selected array boundary', fault['detail'])
+                self.assertTrue(memory.read('FaultWitness'))
+                self.assertEqual(memory.read('LabRecords'), [before[0] | dict(LEN=32, ER=True), before[1]])
+                self.assertEqual(memory.read('LabResults'), [-1, -1, 88])
+                self.assertEqual(memory.read('LabQueue'), [0, 0, 99])
+
+                engine.step()
+                self.assertEqual(memory.read('LabResults'), [0, 2, 3])
+                self.assertEqual(memory.read('LabQueue'), [13 if opcode == 'DDT' else 0, 0, 99])
+                self.assertEqual(memory.read('LabRecords[0].POS'), 32)
+                self.assertFalse(memory.read('LabRecords[0].ER'))
+                self.assertIs(engine.last_cleared_program_fault, fault)
 
     def test_nested_aoi_queue_position_past_len_keeps_scan_rollback(self):
         work = 'FFU(Window[0],Samples[1],RecordData[0],?,?)'

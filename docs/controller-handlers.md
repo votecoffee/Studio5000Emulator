@@ -104,6 +104,7 @@ outermost enabled AOI instruction with the incoming rung power.
   and search include FAL and FSC.
 - FIFO and LIFO operations include FFL, FFU, LFL and LFU.
 - Bit shifts include BSL and BSR. Sequencers include SQI, SQO and SQL.
+- Bit diagnostics include FBC and DDT.
 
 The faulting instruction and the remaining statements in each interrupted AOI
 are skipped. Interrupted invocations also skip their output copies. The
@@ -172,6 +173,12 @@ cleared fault leaves the triggering edge available for the next attempt. SQI,
 SQO and SQL restore CONTROL on a reached array fault, including an SQL row
 overrun. SQO and SQL keep their current row when the enable was already set.
 SQI and SQO table row overruns retain their instruction-level ER behavior.
+
+FBC and DDT restore both CONTROL records and any result offsets written by
+the faulting call. DDT also restores reference bits changed by that call.
+A reached source or reference overrun then sets the compare CONTROL.ER for
+the handler. A cleared fault allows the next enabled call to retry from the
+restored compare and result positions.
 
 AOI argument, output-transfer, Structured Text and prescan faults remain
 outside this profile. Native v35 behavior remains unverified.
