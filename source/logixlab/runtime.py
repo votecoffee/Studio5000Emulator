@@ -952,7 +952,7 @@ class Engine:
         code = 20
         if op.name in self.project.aois:
             operand_fault = isinstance(error, CallOperandBoundsError) and error.call is op
-            if not incoming or not (isinstance(error, AddOnLogicArrayError) or operand_fault):
+            if not (operand_fault or (incoming and isinstance(error, AddOnLogicArrayError))):
                 return None
         elif isinstance(error, control_operations.NegativeFileCursorError):
             if op.name not in ('FAL', 'FSC', 'SRT', 'STD'):
@@ -1112,7 +1112,7 @@ class Engine:
                 except (ArrayBoundsError, control_operations.NegativeFileCursorError, NegativeTimerValueError) as error:
                     routine = self._executing_routine
                     operand_fault = (isinstance(error, CallOperandBoundsError) and error.call is node
-                                     and incoming and node.name in self.project.aois)
+                                     and node.name in self.project.aois)
                     if (isinstance(error, ArrayBoundsError)
                             and (node.name in AOI_ARRAY_FAULT_RECOVERY_OPS or operand_fault)
                             and scope in self.memory.frames and routine.name.casefold() == 'logic'

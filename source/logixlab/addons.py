@@ -164,7 +164,7 @@ class AddOns:
         definition = self.engine.project.aois[op.name]
         copy_outputs = prescan or power or definition.modes['EnableInFalse']
         qualified = numeric_available(self.engine.project)
-        recover_operands = qualified and power and not prescan and not self.prescanning
+        recover_operands = qualified and not prescan and not self.prescanning
         # In v35, a false ladder call without EnableInFalse only copies Inputs.
         resolve_outputs_and_inouts = copy_outputs or not qualified
         try:
@@ -197,10 +197,12 @@ class AddOns:
                     self.engine._execute_routine(definition.routines['logic'],frame,depth+1,address)
                 else:
                     self.engine._execute_routine(definition.routines['enableinfalse'],frame,depth+1,address)
-            with self._transfer(op, 'output', recover_operands):
-                self._copy_outputs(definition, op, scope, frame)
-        # An EnableInFalse routine cannot energize rung-out.
-        if not power or prescan:self.memory.write('EnableOut',False,frame)
+            try:
+                with self._transfer(op, 'output', recover_operands):
+                    self._copy_outputs(definition, op, scope, frame)
+            finally:
+                if not enabled:
+                    self.memory.write('EnableOut', False, frame)
         return bool(power and self.memory.read('EnableOut',frame))
 
     @contextmanager
