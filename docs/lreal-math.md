@@ -42,11 +42,11 @@ representable subnormals are retained. NEG reverses the sign of zero; ABS produc
 positive zero. LIM includes its endpoints; when Low exceeds High, values at or
 outside those endpoints pass, matching the existing scalar limit policy.
 
-Zero DIV/MOD divisors, required unknown values and nonfinite results fault and
-roll back the whole advance. The model does not emulate native minor-fault
-continuation, overflow result bits, math flags, hardware rounding modes or timing.
-Host results, especially subnormal and remainder details, are not a native
-controller conformance claim.
+Required unknown values and unrepresentable results roll back the advance.
+See [floating DIV](scalar-math.md#floating-div-with-a-zero-divisor) and
+[MOD](scalar-math.md#finite-real-remainder) for zero-divisor behavior. Overflow
+result bits, general math flags, hardware rounding modes and exact subnormal
+and remainder behavior remain unqualified.
 
 ## Selection, aliases and AOIs
 

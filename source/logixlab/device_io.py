@@ -16,6 +16,7 @@ from datetime import datetime, timezone
 
 from . import __version__
 from .model import ModelError
+from .runtime_json import json_values
 
 MAX_REQUEST_BYTES = 65536
 MAX_WRITES = 128
@@ -113,11 +114,12 @@ class DeviceIO:
         with self.encoding_lock:
             if self.encoded_frame is not frame:
                 metadata, rows = frame
+                metadata = json_values(metadata)
                 value = {**metadata, 'tags': [dict(name=n, type=t, value=v, quality=q, problem=p) for n,t,v,q,p in rows]}
                 raw = json.dumps(value, allow_nan=False, separators=(',', ':')).encode('utf-8')
                 if len(raw) > MAX_SNAPSHOT_BYTES:
-                    raw = json.dumps({**metadata, 'tags': [], 'truncated': True,
-                                      'error': 'Snapshot exceeds telemetry byte limit'}, separators=(',', ':')).encode()
+                    limit = {**metadata, 'tags': [], 'truncated': True, 'error': 'Snapshot exceeds telemetry byte limit'}
+                    raw = json.dumps(limit, allow_nan=False, separators=(',', ':')).encode('utf-8')
                 self.encoded = raw; self.encoded_frame = frame
             return f'"{self.instance_id}:{frame[0]["sequence"]}"', self.encoded
 

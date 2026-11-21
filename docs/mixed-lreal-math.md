@@ -36,8 +36,9 @@ rules, not a claim of native bit-for-bit precision or overflow/status behavior.
 
 DIV uses the host floating quotient. MOD uses host fmod to preserve the dividend's
 sign for a nonzero divisor. A [zero MOD divisor](scalar-math.md#finite-real-remainder)
-writes zero and continues the rung. DIV by zero and nonfinite results roll back
-the advance. Both operands remain required even if one is
+writes zero and continues the rung. A [zero DIV divisor](scalar-math.md#floating-div-with-a-zero-divisor)
+can write NaN or infinity to floating destinations. Unrepresentable results
+roll back the advance. Both operands remain required even if one is
 zero or the operation could be algebraically simplified. Native signed-zero,
 subnormal, rounding, fault-continuation, status and lifecycle parity remain
 unverified. No controller execution-time prediction is made.

@@ -47,7 +47,7 @@ live indirect indices. False rungs and prescan skip those values and calculation
 Domain checks occur when reached; unit powers and zero products still consume
 all required sources. Full writes establish unknown selected destinations and
 retain neighboring values. Aliases, member arrays and existing copied AOI outputs,
-InOuts and local storage keep their contracts. Domain/range errors, DIV by zero,
+InOuts and local storage keep their contracts. Domain/range errors, DIV by zero into integers,
 unknown sources, invalid indices and later faults roll back the entire advance,
 including task timing, traces and AOI bindings.
 
@@ -125,7 +125,9 @@ previous rules. Earlier scalar integer arithmetic radix forms remain available.
 `16#FFFFFFFF` promotes as -1.0; `16#FFFFFFFFL` is positive 4294967295.0;
 `16#FFFFFFFFFFFFFFFFUL` rounds to 2^64. Every required source is consumed before
 calculation, followed by one checked result conversion. Range, unknown, bounds,
-domain, zero-divisor, nonfinite and later faults roll back the advance. False/
+domain, unrepresentable results and later faults roll back the advance.
+[Floating DIV by zero](scalar-math.md#floating-div-with-a-zero-divisor) can
+write NaN or signed infinity to REAL or LREAL. False/
 prescan lazy selection and existing alias, UDT, AOI and unknown-write rules remain.
 No literal expression syntax or additional languages are added. Native numerical,
 status, fault, partial-effect and import parity remain unverified.

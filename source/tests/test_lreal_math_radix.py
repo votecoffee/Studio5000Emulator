@@ -87,8 +87,7 @@ class LrealMathRadixTests(unittest.TestCase):
         self.assertEqual(e.memory.read('Results'), [None, 4.0, None])
 
     def test_zero_domain_conversion_overflow_and_later_fault_restore_warm_state(self):
-        for call, dest, error in [('DIV(16#1L,16#0U,Results[1]);', 'LREAL', 'zero'),
-                ('LN(16#FFFFFFFFFFFFFFFFL,Results[1]);', 'LREAL', 'finite'),
+        for call, dest, error in [('LN(16#FFFFFFFFFFFFFFFFL,Results[1]);', 'LREAL', 'finite'),
                 ('XPY(16#2U,1025L,Results[1]);', 'LREAL', 'finite'),
                 ('ADD(16#FFFFFFFFFFFFFFFFUL,0.0L,Results[1]);', 'ULINT', 'overflow'),
                 ('XPY(16#FFFFFFFFFFFFFFFFUL,2.0L,Results[1]);', 'REAL', 'finite REAL')]:

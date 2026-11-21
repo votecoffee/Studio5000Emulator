@@ -71,7 +71,8 @@ class LrealConstantTests(unittest.TestCase):
                         'XIC(StartPB)LIM(0,Inputs[Index],10)OTE(RunLatch);'])
         e.memory.write('Index',99);e.enter_run();e.step();self.assertFalse(e.memory.read('RunLatch'))
         e.memory.write('StartPB',True);self.fault(e,'outside bounds')
-        e.memory.write('Index',1);self.fault(e,'Unknown');e.memory.write('Inputs[1]',2);self.fault(e,'zero')
+        e.memory.write('Index',1);self.fault(e,'Unknown');e.memory.write('Inputs[1]',2);e.step()
+        self.assertEqual(e.memory.read('Results[1]'), float('inf'))
 
     def test_true_zero_products_and_limits_still_consume_unknown_tags(self):
         for text in ('MUL(0,Inputs[0],Results[1]);','MUL(Inputs[0],0,Results[1]);',
@@ -79,10 +80,9 @@ class LrealConstantTests(unittest.TestCase):
                      'LIM(Source,0,Inputs[0]);','EQU(Inputs[0],0);'):
             e=self.checked([text]);self.fault(e,'Unknown')
 
-    def test_zero_divisor_overflow_and_late_fault_restore_values_and_timing(self):
-        for call,value,error in [('DIV(Source,0,Results[1]);',1.0,'zero'),
-                                  ('MUL(Source,2147483647,Results[1]);',1e308,'Nonfinite LREAL')]:
-            e=self.checked(['MOV(99,SpeedCommand);',call],value=value);self.fault(e,error)
+    def test_overflow_and_late_fault_restore_values_and_timing(self):
+        e=self.checked(['MOV(99,SpeedCommand);','MUL(Source,2147483647,Results[1]);'],value=1e308)
+        self.fault(e,'Nonfinite LREAL')
         e=self.checked(['ADD(Source,1,Results[1]);','GRT(Source,0)OTE(RunLatch);','CPT(SpeedCommand,1/Index);'])
         self.fault(e,'zero');e.memory.write('Index',1);e.step()
         self.assertEqual(e.memory.read('Results[1]'),8.5);self.assertTrue(e.memory.read('RunLatch'))

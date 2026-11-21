@@ -106,27 +106,72 @@ class RealRemainderTests(unittest.TestCase):
                 self.assertIs(type(result), int if dest == 'DINT' else float)
                 self.assertTrue(e.memory.read('RunLatch'))
 
-    def test_floating_mod_sets_minor_only_with_reporting_and_clears_next_scan(self):
-        for dtype in ('REAL', 'LREAL'):
-            for reporting in ('true', 'false'):
-                with self.subTest(dtype=dtype, reporting=reporting):
-                    def configuration(root):
-                        root.find('Controller').set('ReportMinorOverflow', reporting)
+    def test_floating_div_zero_uses_the_selected_result_type_and_divisor_sign(self):
+        cases = (
+            ('0.0', '0.0', 'REAL', math.nan),
+            ('0.0L', '-0.0L', 'LREAL', math.nan),
+            ('7.5', '-0.0', 'REAL', -math.inf),
+            ('-7.5L', '-0.0', 'REAL', math.inf),
+            ('-7.5', '1e-50', 'REAL', -math.inf),
+            ('7.5L', '1e-400L', 'LREAL', math.inf),
+            ('3', '0', 'LREAL', math.inf),
+            ('1', '1e-50', 'REAL', math.inf),
+            ('16#1L', '16#0U', 'LREAL', math.inf),
+            ('16#1L', '16#0U', 'REAL', math.inf),
+        )
+        for dividend, divisor, dest, expected in cases:
+            with self.subTest(dividend=dividend, divisor=divisor, dest=dest):
+                e = self.checked([f'DIV({dividend},{divisor},Results[1])OTE(RunLatch);'], dest=dest)
+                e.step()
+                result = e.memory.read('Results[1]')
+                if math.isnan(expected):
+                    self.assertTrue(math.isnan(result))
+                else:
+                    self.assertEqual(result, expected)
+                self.assertEqual(e.memory.read('Results')[::2], [None, None])
+                self.assertTrue(e.memory.read('RunLatch'))
 
-                    e = self.checked(['XIC(StartPB)MOD(Source,Mask,Results[1]);',
-                                      'XIC(S:MINOR)OTE(MotorRunning);'],
-                                     source=dtype, dest=dtype, divisor=0, mutate=configuration)
-                    e.step()
-                    self.assertEqual(e.memory.read('Results'), [None, None, None])
-                    self.assertFalse(e.memory.read('MotorRunning'))
-                    e.memory.write('StartPB', True)
-                    e.step()
-                    self.assertEqual(e.memory.read('Results')[1], 0.0)
-                    self.assertIs(e.memory.read('MotorRunning'), reporting == 'true')
-                    e.memory.write('Mask', 2)
-                    e.step()
-                    self.assertEqual(e.memory.read('Results')[1], -1.5)
-                    self.assertFalse(e.memory.read('MotorRunning'))
+    def test_floating_div_records_one_nan_transition_and_can_clear_the_result(self):
+        e = self.checked(['DIV(Source,Mask,Results[1]);'], value=0, divisor=0)
+        changes = e.step()
+        self.assertEqual([row['tag'] for row in changes], ['Results[1]'])
+        self.assertTrue(math.isnan(changes[0]['after']))
+        self.assertEqual(e.step(), [])
+        e.memory.write('Mask', 1)
+        changes = e.step()
+        self.assertEqual([row['tag'] for row in changes], ['Results[1]'])
+        self.assertTrue(math.isnan(changes[0]['before']))
+        self.assertEqual(e.memory.read('Results[1]'), 0.0)
+
+    def test_a_later_finite_operation_rolls_back_a_floating_div_exception(self):
+        e = self.checked(['DIV(Source,0.0,Results[1]);', 'ADD(Results[1],1,Results[2]);'])
+        before = self.snapshot(e)
+        with self.assertRaisesRegex(ModelError, 'Nonfinite REAL'):
+            e.step()
+        self.assertEqual(self.snapshot(e), before)
+
+    def test_floating_zero_divisors_set_minor_only_when_reporting_and_clear_next_scan(self):
+        for dtype in ('REAL', 'LREAL'):
+            for instruction, at_zero, at_two in (('MOD', 0.0, -1.5), ('DIV', -math.inf, -3.75)):
+                for reporting in ('true', 'false'):
+                    with self.subTest(dtype=dtype, instruction=instruction, reporting=reporting):
+                        def configuration(root):
+                            root.find('Controller').set('ReportMinorOverflow', reporting)
+
+                        e = self.checked([f'XIC(StartPB){instruction}(Source,Mask,Results[1]);',
+                                          'XIC(S:MINOR)OTE(MotorRunning);'],
+                                         source=dtype, dest=dtype, divisor=0, mutate=configuration)
+                        e.step()
+                        self.assertEqual(e.memory.read('Results'), [None, None, None])
+                        self.assertFalse(e.memory.read('MotorRunning'))
+                        e.memory.write('StartPB', True)
+                        e.step()
+                        self.assertEqual(e.memory.read('Results')[1], at_zero)
+                        self.assertIs(e.memory.read('MotorRunning'), reporting == 'true')
+                        e.memory.write('Mask', 2)
+                        e.step()
+                        self.assertEqual(e.memory.read('Results')[1], at_two)
+                        self.assertFalse(e.memory.read('MotorRunning'))
 
     def test_unrepresentable_integer_result_rolls_back_all_writes_and_retries(self):
         e=self.checked(['MOV(99,SpeedCommand);','MOD(Source,Mask,Results[1]);'],dest='SINT',value=127.5,divisor=1000)

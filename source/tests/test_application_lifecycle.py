@@ -1195,12 +1195,14 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual(v['DoubleNegated'],-1.0000000000000002);self.assertEqual(v['DoubleAbsolute'],1.0000000000000002)
         self.assertEqual([v[n] for n in ('DoubleEq','DoubleNe','DoubleLt','DoubleLe','DoubleGt','DoubleGe','DoubleInLimits')],[False,True,False,False,True,True,True])
         self.assertEqual((v['DoubleMathResults[0]'],v['DoubleMathResults[2]']),(101.125,999.5))
-        for tag in ('DoubleB','DoubleMathDivisor'):
-            write(tag,0);before=state_now()
-            with self.assertRaises(HTTPError) as caught:step()
-            self.assertEqual(caught.exception.code,400);caught.exception.close();after=state_now()
-            for key in ('tags','scan','ms','task_schedule','routines'):self.assertEqual(after[key],before[key])
-            write(tag,1);step()
+        write('DoubleB',0);v=values(step())
+        self.assertEqual((v['DoubleQuotient'],v['DoubleRemainder']),('Infinity',0.0))
+        write('DoubleB',1);step()
+        write('DoubleMathDivisor',0);before=state_now()
+        with self.assertRaises(HTTPError) as caught:step()
+        self.assertEqual(caught.exception.code,400);caught.exception.close();after=state_now()
+        for key in ('tags','scan','ms','task_schedule','routines'):self.assertEqual(after[key],before[key])
+        write('DoubleMathDivisor',1);step()
         write('EnableDoubleMath',False);write('DoubleMathIndex',99);step()
 
     def test_math_lab_lreal_advanced_precision_domains_and_atomic_recovery(self):
@@ -1277,7 +1279,10 @@ class ApplicationLifecycleTests(unittest.TestCase):
         expected=dict(MixedDoubleAdd=16777218.0,MixedDoubleSubtract=2**-52,MixedDoubleMultiply=16777217.000000004,MixedDoubleDivide=.5000000000000001,MixedDoubleRemainder=1.0000000000000002,MixedDoubleWide=0.0,MixedDoubleUnsigned=float(2**64))
         for name,value in expected.items():self.assertEqual(v[name],value)
         self.assertEqual((v['MixedDoubleResults[0]'],v['MixedDoubleResults[2]']),(101.125,999.5))
-        for tag,bad,good in [('MixedDoubleIndex',99,1),('MixedDoubleDivisor',0,2),('MixedDoubleLateDivisor',0,1)]:
+        write('MixedDoubleDivisor',0);v=values(step())
+        self.assertEqual((v['MixedDoubleDivide'],v['MixedDoubleRemainder']),('Infinity',0.0))
+        write('MixedDoubleDivisor',2);step()
+        for tag,bad,good in [('MixedDoubleIndex',99,1),('MixedDoubleLateDivisor',0,1)]:
             write(tag,bad);before=state_now()
             with self.assertRaises(HTTPError) as caught:step()
             self.assertEqual(caught.exception.code,400);caught.exception.close();after=state_now()
@@ -3753,19 +3758,47 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual(self.post('demo',{'sample':'MathLab'})['blockers'],[])
         def step():return {row['name']:row['value'] for row in self.post('step',{'dt':10})['tags']}
         def write(tag,value):return self.post('write',{'tag':tag,'value':value})
-        def current():
-            with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:return json.load(response)
         self.assertEqual(step()['ModuloResult'],0.0);write('RealModulo',True);row=step()
         self.assertEqual((row['ModuloResult'],row['ModuloRounded']),(-1.5,-2))
         write('ModuloA',7.5);write('ModuloB',-2);row=step()
         self.assertEqual((row['ModuloResult'],row['ModuloRounded']),(1.5,2))
         write('RealModulo',False);write('ModuloB',0);self.assertEqual(step()['ModuloResult'],1.5)
-        before=write('RealModulo',True)
-        with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
-        self.assertEqual(error.exception.code,400);error.exception.close();after=current()
-        for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
+        write('RealModulo',True);row=step()
+        self.assertEqual((row['ModuloResult'],row['ModuloRounded']),(0.0,0))
         write('ModuloB',4);row=step();self.assertEqual((row['ModuloResult'],row['ModuloRounded']),(3.5,4))
         report=self.post('report',{})['scalar_math']['real_remainder'];self.assertFalse(report['native_precision'])
+
+    def test_floating_div_exceptions_are_visible_and_recoverable_through_http(self):
+        import base64
+        from test_real_remainder import RealRemainderTests
+
+        fixture = RealRemainderTests()
+        fixture.setUp()
+        try:
+            e = fixture.checked([
+                'XIC(StartPB)DIV(0.0,0.0,Results[0]);',
+                'XIC(StartPB)DIV(Source,-0.0L,Results[1]);',
+                'XIC(StartPB)DIV(Source,0.0,Results[2]);',
+            ])
+            content = base64.b64encode(e.project.path.read_bytes()).decode()
+        finally:
+            fixture.doCleanups()
+        loaded = self.post('load', {'name': 'FloatingDivExceptions.L5X', 'content': content})
+        self.assertEqual(loaded['blockers'], [])
+        self.post('write', {'tag': 'StartPB', 'value': True})
+        state = self.post('step', {'dt': 10})
+        expected = {'Results[0]': 'NaN', 'Results[1]': 'Infinity', 'Results[2]': '-Infinity'}
+        self.assertEqual({row['name']: row['value'] for row in state['tags'] if row['name'] in expected}, expected)
+        self.assertEqual({row['tag']: row['after'] for row in state['changes'] if row['tag'] in expected}, expected)
+        device = json.loads(self.get('/api/device-io/session'))
+        request = Request(self.url+'/api/device-io/snapshot', headers={'X-Logix-Device-Token': device['read_token']})
+        with urlopen(request, timeout=3) as response:
+            telemetry = json.load(response)
+        self.assertEqual({row['name']: (row['value'], row['quality']) for row in telemetry['tags']
+                          if row['name'] in expected}, dict.fromkeys(expected, (None, 'bad')))
+        self.post('write', {'tag': 'StartPB', 'value': False})
+        state = self.post('write', {'tag': 'Results[0]', 'value': 3.5})
+        self.assertEqual(next(row['value'] for row in state['tags'] if row['name'] == 'Results[0]'), 3.5)
 
     def test_imported_unknown_real_modulo_and_late_failure_are_atomic_through_http(self):
         import base64
@@ -4848,7 +4881,9 @@ class ApplicationLifecycleTests(unittest.TestCase):
         expected=dict(Eq=False,Ne=True,Lt=False,Le=False,Gt=True,Ge=True,NormalLimit=True,ReverseLimit=False,ConstantTest=True,PrecisionGreater=True)
         for name,want in expected.items():self.assertIs(row['DoubleConstants'+name],want)
         self.assertEqual(tuple(row['DoubleConstantsValues['+str(i)+']'] for i in range(3)),(101.125,7.5,999.5))
-        write('DoubleConstantsZeroFault',True);fault('zero');write('DoubleConstantsZeroFault',False)
+        write('DoubleConstantsZeroFault',True)
+        self.assertEqual(values(step())['DoubleConstantsFaultResult'],'Infinity')
+        write('DoubleConstantsZeroFault',False)
         write('DoubleConstantsLateDivisor',0);fault('zero');write('DoubleConstantsLateDivisor',1);step()
         write('EnableDoubleConstants',False);write('DoubleConstantsIndex',99);row=values(step())
         for name in expected:self.assertFalse(row['DoubleConstants'+name])
@@ -4931,8 +4966,11 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual(tuple(row['DoubleResults'+n] for n in ('Sub','Mul','Div','Mod','Power','Neg','Abs','LiteralDivide','LiteralPower','Precision','WideRemainder')),(1.0,6.0,1.5,1.0,9.0,-3.0,3.0,1.5,8.0,16777218.0,1.0))
         self.assertEqual(row['DoubleResultsWideNeg'],-float(2**64));self.assertEqual(row['DoubleResultsWide'],'18446744073709551615')
         self.assertEqual(tuple(row['DoubleResultsValues['+str(i)+']'] for i in range(3)),(101.125,5.0,999.5))
-        for name in ('DomainFault','ZeroFault','OverflowFault'):
-            write('DoubleResults'+name,True);fault('zero' if name=='ZeroFault' else 'finite LREAL');write('DoubleResults'+name,False)
+        write('DoubleResultsZeroFault',True)
+        self.assertEqual(values(step())['DoubleResultsZeroResult'],'Infinity')
+        write('DoubleResultsZeroFault',False)
+        for name in ('DomainFault','OverflowFault'):
+            write('DoubleResults'+name,True);fault('finite LREAL');write('DoubleResults'+name,False)
         write('DoubleResultsLateDivisor',0);fault('zero');write('DoubleResultsLateDivisor',1)
         write('DoubleResultsInputs[1]',4);row=values(step());self.assertEqual(row['DoubleResultsValues[1]'],6.0)
         write('DoubleResultsEnabled',False);write('DoubleResultsIndex',99);row=values(step());self.assertEqual(row['DoubleResultsValues[1]'],6.0)
@@ -4981,8 +5019,11 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual(tuple(row['RealResults'+n] for n in ('Sub','Mul','Div','Mod','Power','Neg','Abs','Sqrt','Ln','Log','Precision','WideRemainder')),(1.0,6.0,1.5,1.0,9.0,-3.0,3.0,4294967296.0,0.0,2.0,16777216.0,1.0))
         self.assertEqual(row['RealResultsWideNeg'],-float(2**64));self.assertEqual(row['RealResultsWide'],'18446744073709551615');self.assertEqual(row['RealResultsPrecisionInput'],16777217)
         self.assertEqual(tuple(row['RealResultsValues['+str(i)+']'] for i in range(3)),(101.125,5.0,999.5))
-        for name in ('DomainFault','ZeroFault','OverflowFault'):
-            write('RealResults'+name,True);fault('zero' if name=='ZeroFault' else 'REAL');write('RealResults'+name,False)
+        write('RealResultsZeroFault',True)
+        self.assertEqual(values(step())['RealResultsSub'],'Infinity')
+        write('RealResultsZeroFault',False)
+        for name in ('DomainFault','OverflowFault'):
+            write('RealResults'+name,True);fault('REAL');write('RealResults'+name,False)
         write('RealResultsLateDivisor',0);fault('zero');write('RealResultsLateDivisor',1);write('RealResultsOther',4);row=values(step());self.assertEqual(row['RealResultsValues[1]'],7.0);self.assertEqual(row['RealResultsPower'],81.0)
         write('RealResultsEnabled',False);write('RealResultsIndex',99);self.assertEqual(values(step())['RealResultsValues[1]'],7.0)
         report=self.post('report',{});self.assertEqual(len(report['scalar_math']['real_arithmetic']['source_types']),9);self.assertEqual(len(report['real_math']['real_destination']['instructions']),12)

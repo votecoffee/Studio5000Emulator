@@ -78,6 +78,17 @@ def time_arithmetic(engine, op, scope, *, execute=False):
     return True
 
 
+def execute_floating_divide_by_zero(engine, op, scope, dividend, divisor, precision):
+    if engine.memory.resolve(op.args[-1], scope)[2] not in ('REAL', 'LREAL'):
+        raise ModelError(f'DIV {precision} divide by zero')
+    if dividend == 0:
+        result = math.nan
+    else:
+        sign = math.copysign(1.0, dividend) * math.copysign(1.0, divisor)
+        result = math.copysign(math.inf, sign)
+    return execute_zero_divisor(engine, op, scope, result)
+
+
 def execute_lreal(engine,op,scope):
     memory=engine.memory
     values=[lreal_math_source(memory,ref,scope,execute=True,radix=True) for ref in op.args[:-1]]
@@ -89,7 +100,7 @@ def execute_lreal(engine,op,scope):
             if op.name == 'MOD':
                 return execute_zero_divisor(engine, op, scope, 0)
             if op.name == 'DIV':
-                raise ModelError('DIV LREAL divide by zero')
+                return execute_floating_divide_by_zero(engine, op, scope, a, b, 'LREAL')
         result=({'ADD':operator.add,'SUB':operator.sub,'MUL':operator.mul,'DIV':operator.truediv,'MOD':math.fmod}[op.name])(a,b)
     write_lreal_math_result(memory, op.args[-1], result, scope)
     return True
@@ -108,7 +119,7 @@ def execute_real(engine,op,scope):
             if op.name == 'MOD':
                 return execute_zero_divisor(engine, op, scope, 0)
             if op.name == 'DIV':
-                raise ModelError('DIV REAL divide by zero')
+                return execute_floating_divide_by_zero(engine, op, scope, a, b, 'REAL')
         result=({'ADD':operator.add,'SUB':operator.sub,'MUL':operator.mul,'DIV':operator.truediv,'MOD':math.fmod}[op.name])(a,b)
     memory.write(op.args[-1],real(result),scope)
     return True
@@ -280,7 +291,7 @@ def description(project):
                     radix_sources=dict(bases=[2,8,16],types=['DINT','LINT','UDINT','ULINT'],selection='Explicit binary64 math only; default conversion helpers and other consumers remain separate',native_runtime_parity=False),
                     source_types=sorted({*INT_BITS,'REAL','LREAL'}),
                     promotion='Convert every required source to binary64 before calculation; signed/unsigned values retain their numeric sign, REAL retains its stored precision',
-                    calculation='Finite host binary64. Nonzero-divisor MOD uses fmod with dividend sign. DIV by zero and nonfinite results fault atomically.',
+                    calculation='Finite host binary64. Nonzero-divisor MOD uses fmod with dividend sign. DIV can produce NaN or infinity at a zero divisor with a floating destination.',
                     modulo_zero='Writes zero and continues the rung. Sets S:MINOR when ReportMinorOverflow is explicitly true.',
                     selection='Structural/lazy operands, complete unknown writes and existing alias/member/AOI references',
                     native_runtime_parity=False),
@@ -333,7 +344,11 @@ def description(project):
                 integer_divide_zero=dict(result='A true integer DIV writes the dividend and continues the rung',
                     status='Sets S:MINOR when ReportMinorOverflow is explicitly true',
                     scope='RLL v35 5580 only', native_runtime_parity=False),
-                failures='Reached unknowns, invalid indices, floating DIV zero divisors, excluded ranges and later faults roll back the advance',
+                floating_divide_zero=dict(result='NaN for zero divided by zero. Signed infinity for a nonzero dividend.',
+                    destination='REAL or LREAL only. Rung continues after a successful write.',
+                    status='Sets S:MINOR when ReportMinorOverflow is explicitly true',
+                    scope='RLL v35 5580 only', native_runtime_parity=False),
+                failures='Reached unknowns, invalid indices, floating DIV by zero into an integer, excluded ranges and later faults roll back the advance',
                 native_runtime_parity=False, native_math_status=False,
                 remaining=['Other arithmetic destination conversions/mixed signed-to-unsigned forms, larger/typed arithmetic constants, unsigned bitwise sources for floating destinations, and other wide/unsigned/LREAL remainder mixtures',
                            'Native overflow/status/fault/lifecycle/packed layout and broader controller qualification'])

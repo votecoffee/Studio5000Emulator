@@ -1075,7 +1075,7 @@ class Engine:
                 for i in range(len(new)):
                     indexed=(path[:-1]+f',{i}]') if path.endswith(']') else f'{path}[{i}]'
                     compare(indexed, old[i], new[i])
-            elif old != new:
+            elif old is not new and old != new:
                 changes.append({"scan": self.scan_count, "ms": self.time_ms, "tag": path, "before": old, "after": new})
         for key in sorted(before, key=self.memory.value_order.__getitem__):
             compare(self.project.tags[key].key, before[key], self.memory.values[key])

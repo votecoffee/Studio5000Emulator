@@ -75,9 +75,7 @@ class LrealMathTests(unittest.TestCase):
             e=self.checked([f'{name}(Source,Inputs[0])OTE(RunLatch);']);self.fault(e,'Unknown')
         e=self.checked(['LIM(Source,Mask,Inputs[0])OTE(RunLatch);']);self.fault(e,'Unknown')
 
-    def test_zero_divisors_and_nonfinite_results_fault_without_partial_updates(self):
-        for zero in (0.0,-0.0):
-            e=self.checked(['MOV(99,SpeedCommand);',fixtures.operation('DIV')+';']);e.memory.write('Mask',zero);self.fault(e,'zero')
+    def test_nonfinite_arithmetic_overflow_faults_without_partial_updates(self):
         for name,value,other in [('ADD',1e308,1e308),('SUB',-1e308,1e308),('MUL',1e308,1e308),('DIV',1e308,1e-308)]:
             e=self.checked(['MOV(99,SpeedCommand);',fixtures.operation(name)+';'],value=value);e.memory.write('Mask',other);self.fault(e,'Nonfinite LREAL')
 

@@ -75,7 +75,7 @@ class RealRadixMathTests(unittest.TestCase):
         e = self.comparison(['LIM(16#1U,Source,16#0UL)OTE(RunLatch);']); e.memory.values['source']=None; self.fault(e,'Unknown')
 
     def test_domains_nonfinite_results_and_later_fault_restore_warm_state(self):
-        for call, error in [('DIV(16#1L,16#0U,Results[1]);','zero'), ('LN(16#FFFFFFFFFFFFFFFFL,Results[1]);','finite'),
+        for call, error in [('LN(16#FFFFFFFFFFFFFFFFL,Results[1]);','finite'),
                 ('XPY(16#FFFFFFFFFFFFFFFFUL,3UL,Results[1]);','finite')]:
             e = self.checked(['XIC(StartPB)'+call]); e.step(); e.memory.write('StartPB',True); self.fault(e,error)
         e = self.checked(['ADD(16#1U,Source,Results[1]);','CPT(SpeedCommand,1/Index);'],source='REAL')

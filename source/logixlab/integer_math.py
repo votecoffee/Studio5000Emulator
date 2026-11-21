@@ -3,6 +3,7 @@
 Overflow remains a modeled scan fault. Qualified DIV and MOD by zero complete
 with a task-scoped minor status when the controller export enables reporting.
 """
+import math
 import operator
 
 from .model import INT_BITS, UNSIGNED_BITS, ModelError, coerce, literal
@@ -117,7 +118,10 @@ def execute_zero_divisor(engine, op, scope, result):
     if (project.version != '35' or project.processor.upper() not in CONTROLLERS
             or routine is None or routine.kind != 'RLL' or engine.addons.prescanning):
         raise ModelError(f'{op.name} divide by zero')
-    engine.memory.write(op.args[-1], result, scope)
+    if type(result) is float and not math.isfinite(result):
+        engine.memory.write_floating_exception(op.args[-1], result, scope)
+    else:
+        engine.memory.write(op.args[-1], result, scope)
     if project.controller_configuration.report_minor_overflow is True:
         engine.memory.minor_fault = True
     return True

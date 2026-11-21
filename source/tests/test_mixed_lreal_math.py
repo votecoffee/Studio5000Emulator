@@ -48,11 +48,8 @@ class MixedLrealMathTests(unittest.TestCase):
         for name,expected in [('DIV',-2.5),('MOD',-1.5)]:
             e=self.checked([f'{name}(Source,Mask,Results[1]);'],value=-7.5);e.step();self.assertEqual(e.memory.read('Results[1]'),expected)
             e.memory.write('Mask',0)
-            if name == 'DIV':
-                self.fault(e,'zero')
-            else:
-                e.step()
-                self.assertEqual(e.memory.read('Results[1]'), 0.0)
+            e.step()
+            self.assertEqual(e.memory.read('Results[1]'), -math.inf if name == 'DIV' else 0.0)
         e=self.checked(['MUL(Source,Inputs[0],Results[1]);'],value=0.0);self.fault(e,'Unknown')
         e=self.checked(['MUL(Inputs[0],Mask,Results[1]);'],source='DINT',other='LREAL',value=0);e.memory.write('Mask',0.0);self.fault(e,'Unknown')
 

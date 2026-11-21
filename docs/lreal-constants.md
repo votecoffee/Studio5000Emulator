@@ -50,9 +50,10 @@ true, then Step. DoubleConstants demonstrates:
 - Precision=0 for the integer constant 16777217 and PrecisionGreater true.
 
 The section starts disabled with index 99 to demonstrate dormant references.
-DoubleConstantsZeroFault=true triggers a zero-divisor fault after earlier work;
-restore it to false. DoubleConstantsLateDivisor=0 triggers a later fault; restore
-it to 1. Disable the section before returning its index to 99. Unselected values
+DoubleConstantsZeroFault=true runs a zero-divisor DIV and displays `Infinity`
+in DoubleConstantsFaultResult. DoubleConstantsLateDivisor=0 triggers a later
+expression fault. Restore it to 1 and disable the section before returning its
+index to 99. Unselected values
 and neighboring lab sections remain available.
 
 Advanced math, CPT/CMP/ST expressions, narrowing arithmetic destinations,

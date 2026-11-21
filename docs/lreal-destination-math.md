@@ -38,8 +38,10 @@ beyond binary64 precision. Integer-only comparisons keep their existing exact
 rules; binary64 ordering still requires an actual LREAL input.
 
 The existing finite solvers, dividend-sign remainder, power domains, signed zero,
-subnormals and unknown/full-write rules remain. DIV by zero, complex-domain
-powers, nonfinite results and later failures stop and roll back the advance.
+subnormals and unknown/full-write rules remain. Complex-domain powers,
+unrepresentable results and later failures roll back the advance.
+[Floating DIV by zero](scalar-math.md#floating-div-with-a-zero-divisor) can
+write NaN or signed infinity to LREAL.
 Native numerical precision, math flags, overflow/minor-fault continuation and
 lifecycle equivalence remain unverified.
 

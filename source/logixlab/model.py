@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import math
 import re
 import struct
 import xml.etree.ElementTree as ET
@@ -1393,6 +1394,14 @@ class Memory:
             width = bit[2]
             value = word & ((1 << width) - 1)
             if bit[3] and value >= 1 << (width - 1): value -= 1 << width
+        self.store(key, parts, value)
+
+    def write_floating_exception(self, ref, value, scope=""):
+        """Store an instruction-generated NaN or infinity in a floating scalar."""
+        key, parts, dtype = self.check_writable(ref, scope)
+        if (dtype not in ('REAL', 'LREAL') or isinstance(self.at(key, parts), (dict, list))
+                or type(value) is not float or math.isfinite(value)):
+            raise ModelError('A floating exception requires one writable REAL or LREAL scalar')
         self.store(key, parts, value)
 
     def check_writable(self,ref,scope=''):

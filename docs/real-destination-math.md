@@ -36,8 +36,10 @@ by 3 is 1. Integer-only profiles retain their exact arithmetic rules.
 
 Floating literals also convert before evaluation. A tiny literal can underflow
 to zero, including a divisor. NEG(0,realResult) retains negative zero. Existing
-finite-result checks apply. Unknown required sources, DIV by zero, invalid
-power/log/inverse-trig domains and nonfinite results roll back the advance,
+finite-result checks apply to ordinary arithmetic.
+[Floating DIV by zero](scalar-math.md#floating-div-with-a-zero-divisor) can
+write NaN or signed infinity to REAL. Unknown required sources, invalid
+power/log/inverse-trig domains and unrepresentable results roll back the advance,
 including task progress, timing and AOI state. A whole-project ladder handler
 can clear reached array subscript faults in
 [arithmetic](controller-handlers.md#recover-a-ladder-arithmetic-array-fault) and

@@ -82,7 +82,8 @@ class RealDestinationMathTests(unittest.TestCase):
             self.assertEqual(struct.pack('<f',e.memory.read('Results[1]')),struct.pack('<f',-0.0))
         e=self.checked(['ADD(Source,1e-50,Results[1]);'],source='REAL',value=1.401298464324817e-45);e.step()
         self.assertEqual(e.memory.read('Results[1]'),e.memory.read('Source'))
-        e=self.checked(['DIV(1,1e-50,Results[1]);']);self.fault(e,'zero')
+        e=self.checked(['DIV(1,1e-50,Results[1]);']);e.step()
+        self.assertEqual(e.memory.read('Results[1]'), math.inf)
 
     def test_all_nineteen_forms_skip_false_prescan_and_require_live_sources(self):
         for name in (*EXPECTED,'NEG','ABS',*CASES):
@@ -94,7 +95,7 @@ class RealDestinationMathTests(unittest.TestCase):
             e=self.checked([call]);self.fault(e,'Unknown')
 
     def test_zero_domains_overflow_and_late_faults_restore_advance(self):
-        for call in ('DIV(1,0,Results[1]);','XPY(0,-1,Results[1]);',
+        for call in ('XPY(0,-1,Results[1]);',
                      'LN(0,Results[1]);','LOG(-1,Results[1]);','ASN(2,Results[1]);',
                      'ACS(-2,Results[1]);','XPY(2147483647,2147483647,Results[1]);',
                      'MUL(3.4e38,2,Results[1]);'):

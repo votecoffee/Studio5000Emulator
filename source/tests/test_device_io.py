@@ -149,10 +149,14 @@ class DeviceIOTests(unittest.TestCase):
         tags=[{'name':'Huge','type':'LINT','value':'9223372036854775807'},
               {'name':'Unknown','type':'SINT','value':None},
               {'name':'Nonfinite','type':'REAL','value':float('inf')}]
+        self.app.engine.task_outputs = {'output': {'task': 'MainTask', 'values': (float('nan'), -float('inf'))}}
         self.io.capture(self.app.engine,self.app.generation,tags)
-        rows=self.snapshot()['tags']
+        snapshot = self.snapshot()
+        rows=snapshot['tags']
         self.assertEqual(rows[0]['value'],'9223372036854775807')
         self.assertEqual([r['quality'] for r in rows],['good','unknown','bad'])
+        self.assertIsNone(rows[2]['value'])
+        self.assertEqual(snapshot['task_outputs'][0]['values'], ['NaN', '-Infinity'])
 
 
 if __name__=='__main__':unittest.main()

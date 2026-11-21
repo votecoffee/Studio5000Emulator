@@ -17,6 +17,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 from .importers import convert_acd, default_converter
+from .runtime_json import json_values
 from .native_project import NativeProjectIdentity
 from .native_symbols import NativeSymbols
 from .native_types import NativeTypes
@@ -743,12 +744,8 @@ def serve(port=0, open_browser=True, data_dir=None, eip_port=None, eip_writes=Fa
         def log_message(self, *args): pass
 
         def send(self, code, content, mime="application/json", headers=None):
-            def safe(value):
-                if isinstance(value,int) and abs(value)>9007199254740991:return str(value)
-                if isinstance(value,dict):return {k:safe(v) for k,v in value.items()}
-                if isinstance(value,list):return [safe(v) for v in value]
-                return value
-            if not isinstance(content, bytes): content = json.dumps(safe(content), allow_nan=False).encode()
+            if not isinstance(content, bytes):
+                content = json.dumps(json_values(content, exact_integers=True), allow_nan=False).encode()
             self.send_response(code)
             self.send_header("Content-Type", mime)
             self.send_header("Content-Length", str(len(content)))

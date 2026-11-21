@@ -83,9 +83,8 @@ class LrealDestinationMathTests(unittest.TestCase):
         for call in ('MUL(0,Inputs[0],Results[1]);','XPY(1,Inputs[0],Results[1]);','XPY(Inputs[0],0,Results[1]);','NEG(Inputs[0],Results[1]);'):
             e=self.checked([call]);self.fault(e,'Unknown')
 
-    def test_zero_divisors_power_domains_and_late_fault_restore_advance(self):
-        for call,options in [('DIV(3,0,Results[1]);',{}),
-                              ('XPY(0,-1,Results[1]);',{}),('XPY(Source,Mask,Results[1]);',{'value':-2,'other':'REAL'}),
+    def test_power_domains_and_late_fault_restore_advance(self):
+        for call,options in [('XPY(0,-1,Results[1]);',{}),('XPY(Source,Mask,Results[1]);',{'value':-2,'other':'REAL'}),
                               ('XPY(2147483647,2147483647,Results[1]);',{})]:
             e=self.checked(['MOV(99,SpeedCommand);',call],**options)
             if options:e.memory.write('Mask',0.5)
