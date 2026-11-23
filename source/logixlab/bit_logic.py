@@ -10,7 +10,12 @@ STATUS_COILS = frozenset(('OTE', 'OTL', 'OTU'))
 STATUS_BIT_OPS = STATUS_COILS | {'XIC', 'XIO'}
 CARRY_FLAG = 's:c'
 OVERFLOW_FLAG = 's:v'
-MATH_FLAGS = frozenset((CARRY_FLAG, OVERFLOW_FLAG, 's:n', 's:z'))
+MATH_FLAGS = {
+    CARRY_FLAG: 'rung_carry',
+    OVERFLOW_FLAG: 'rung_overflow',
+    's:n': 'rung_negative',
+    's:z': 'rung_zero',
+}
 
 
 def available(project):
@@ -24,13 +29,11 @@ def validate(engine, op, scope, *, kind='RLL'):
         if kind != 'RLL' or op.name not in STATUS_BIT_OPS or scope in memory.frames:
             raise ModelError('S:MINOR requires a ladder contact or coil outside AOI bodies')
         return True
-    if any(ref.casefold() == OVERFLOW_FLAG for ref in op.args):
-        if kind != 'RLL' or op.name not in STATUS_BIT_OPS:
-            raise ModelError('S:V requires a ladder contact or coil')
-        return True
     if any(ref.casefold() in MATH_FLAGS for ref in op.args):
-        if kind != 'RLL' or op.name not in ('XIC', 'XIO'):
-            raise ModelError('S:C, S:N and S:Z require ladder contacts')
+        if kind != 'RLL' or op.name not in STATUS_BIT_OPS:
+            raise ModelError('Math status flags require a ladder contact or coil')
+        if op.name == 'OTU' and op.args[0].casefold() == CARRY_FLAG:
+            raise ModelError('S:C requires a ladder contact, OTE or OTL')
         return True
     previous = memory.structural
     memory.structural = True
@@ -61,7 +64,8 @@ def write_pulse(memory, args, storage, pulse, scope):
 
 def prescan(memory, op, scope):
     name, args = op.name, op.args
-    if name == 'OTE' and args[0].casefold() in (MINOR_FLAG, OVERFLOW_FLAG):
+    ref = args[0].casefold()
+    if name == 'OTE' and (ref == MINOR_FLAG or ref in MATH_FLAGS):
         return
     try:
         if name in ('OSR', 'OSF'):
@@ -76,23 +80,17 @@ def prescan(memory, op, scope):
 def execute(memory, op, power, scope):
     name, args = op.name, op.args
     ref = args[0].casefold()
-    if ref == OVERFLOW_FLAG and name in STATUS_COILS:
-        if name == 'OTE' or power:
-            memory.record_overflow(power and name != 'OTU')
-        return power
     if ref in MATH_FLAGS:
-        if not power:
-            return False
-        result = memory.rung_math_result
-        if ref == CARRY_FLAG:
-            flag = bool(memory.rung_carry)
-        elif ref == OVERFLOW_FLAG:
-            flag = memory.rung_overflow
-        elif ref == 's:n':
-            flag = result is not None and result < 0
-        else:
-            flag = result == 0
-        return flag == (name == 'XIC')
+        attribute = MATH_FLAGS[ref]
+        if name in STATUS_COILS:
+            if name == 'OTE' or power:
+                value = power and name != 'OTU'
+                if ref == OVERFLOW_FLAG:
+                    memory.record_overflow(value)
+                else:
+                    setattr(memory, attribute, value)
+            return power
+        return power and (bool(getattr(memory, attribute)) == (name == 'XIC'))
     if ref == MINOR_FLAG:
         if name in ('XIC', 'XIO'):
             return power and (memory.minor_fault == (name == 'XIC'))
@@ -132,8 +130,8 @@ def description(project):
                 array_recovery='Whole-project handlers can clear Type 4 Code 20 and skip the faulting instruction or its outer ladder AOI call',
                 pulse_recovery='OSR/OSF restore the original storage value before handling an out-of-bounds output index',
                 minor_status='S:MINOR contacts and coils outside AOI bodies; task-local scan flag for reported DINT subscript overflow',
-                carry_status='S:C contacts read the last successful integer ADD/SUB on the same ladder rung. Each rung starts clear, and nested routines keep independent state.',
-                numeric_status='S:N and S:Z contacts test the latest modeled numeric instruction result stored in the same rung, after destination conversion.',
+                carry_status='S:C contacts, OTE and OTL share the rung flag set by integer ADD/SUB. Each rung starts clear and nested routines keep independent state.',
+                numeric_status='S:N and S:Z contacts, OTE, OTL and OTU share independent rung flags. A modeled stored numeric result replaces both flags after destination conversion.',
                 overflow_status='S:V contacts and OTE/OTL/OTU use a rung-local flag. A powered OTU clears it and preserves the task minor flag. Signed narrow arithmetic, narrowing MOV, divide/modulo by zero and infinity-to-signed-integer results can set it.',
                 failures='Reached unknowns, unrecovered array faults and later errors roll back the advance and existing AOI state',
                 native_runtime_parity=False,

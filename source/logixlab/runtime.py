@@ -1090,25 +1090,22 @@ class Engine:
     def _execute_routine(self,routine,scope,depth,context=''):
         if depth>32:raise ModelError('Routine/AOI nesting limit exceeded')
         previous = self._executing_routine
-        previous_carry = self.memory.rung_carry
-        previous_math_result = self.memory.rung_math_result
-        previous_overflow = self.memory.rung_overflow
+        memory = self.memory
+        previous_flags = (memory.rung_carry, memory.rung_negative, memory.rung_zero, memory.rung_overflow)
         self._executing_routine = routine
-        self.memory.rung_carry = None
-        self.memory.rung_math_result = None
-        self.memory.rung_overflow = False
+        memory.rung_carry = None
+        memory.rung_negative = memory.rung_zero = memory.rung_overflow = False
         try:
             if routine.kind=='FBD':self.function_blocks.execute(routine,scope,context);return
             if routine.kind=='ST':self.structured.execute(routine,scope,depth,context);return
             pc=0;enabled=True;plan=self._mcr_plans.get(routine.key.lower(),{})
-            model_carry = bit_logic.available(self.project)
+            model_math_flags = bit_logic.available(self.project)
             while pc<len(routine.rungs):
                 rung_index=pc
                 rung=routine.rungs[pc];events=[];power=False;control='';breaking=False
                 role=plan.get(pc);forced=role in ('body','close') and not enabled
-                self.memory.rung_carry = False if model_carry else None
-                self.memory.rung_math_result = None
-                self.memory.rung_overflow = False
+                memory.rung_carry = False if model_math_flags else None
+                memory.rung_negative = memory.rung_zero = memory.rung_overflow = False
                 try:
                     power = self._sequence(rung["nodes"], True, scope, depth, events,force_false=forced)
                     if role=='open':enabled=power
@@ -1131,9 +1128,7 @@ class Engine:
                 if len(self.trace)>5000:self.trace=self.trace[-5000:]
                 if breaking:raise BreakLoop()
         finally:
-            self.memory.rung_carry = previous_carry
-            self.memory.rung_math_result = previous_math_result
-            self.memory.rung_overflow = previous_overflow
+            memory.rung_carry, memory.rung_negative, memory.rung_zero, memory.rung_overflow = previous_flags
             self._executing_routine = previous
 
 

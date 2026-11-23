@@ -84,11 +84,11 @@ class ScalarMathTests(unittest.TestCase):
         self.assertTrue(e.memory.read('RunLatch'))
         self.assertIsNone(e.memory.rung_carry)
 
-    def test_carry_participates_in_scan_rollback_and_requires_contacts(self):
+    def test_carry_participates_in_scan_rollback_and_rejects_unlatch(self):
         def older_controller(root):
             root.find('Controller').set('ProcessorType', '1756-L75')
 
-        self.assertTrue(self.engine(['OTE(S:C);']).blockers)
+        self.assertTrue(self.engine(['OTU(S:C);']).blockers)
         self.assertTrue(self.engine(['ONS(S:C);']).blockers)
         self.assertTrue(self.engine(['XIC(S:C)OTE(RunLatch);'], mutate=older_controller).blockers)
         e = self.checked(['ADD(-1,1,Results[0])XIC(S:C)OTE(RunLatch);', 'CPT(SpeedCommand,1/Index);'])
@@ -138,10 +138,11 @@ class ScalarMathTests(unittest.TestCase):
         self.assertTrue(e.memory.read('RunLatch'))
         self.assertFalse(e.memory.read('StartPB'))
         self.assertTrue(e.memory.read('MotorRunning'))
-        self.assertIsNone(e.memory.rung_math_result)
+        self.assertFalse(e.memory.rung_negative)
+        self.assertFalse(e.memory.rung_zero)
 
-    def test_zero_and_negative_flag_consumers_skip_false_and_require_contacts(self):
-        self.assertTrue(self.engine(['OTE(S:N);']).blockers)
+    def test_zero_and_negative_flag_contacts_skip_false_and_one_shots_are_rejected(self):
+        self.assertTrue(self.engine(['OSR(S:N,StartPB);']).blockers)
         self.assertTrue(self.engine(['ONS(S:Z);']).blockers)
         e = self.checked([
             '[CLR(Dest),AFI()SUB(1,2,Results[1])]XIC(S:Z)OTE(RunLatch);',
@@ -153,6 +154,44 @@ class ScalarMathTests(unittest.TestCase):
         self.assertFalse(e.memory.read('StartPB'))
         self.assertFalse(e.memory.read('MotorRunning'))
         self.assertFalse(e.memory.read('StopPB'))
+
+    def test_carry_coils_can_seed_a_multiword_add_and_clear_on_false_ote(self):
+        e = self.checked([
+            '[XIC(StartPB)OTL(s:c),AFI()OTL(S:C),XIO(S:C)]'
+            '[XIC(S:C)MOV(1,Mask),XIO(S:C)MOV(0,Mask)]ADD(1,Mask,Results[0]);',
+            '[OTL(S:C),AFI()OTE(S:C)]XIO(S:C)OTE(StopPB);',
+            'XIC(S:C)OTE(RunLatch);',
+        ])
+        e.enter_run()
+        for start, expected in ((True, 2), (False, 1)):
+            e.memory.write('StartPB', start)
+            e.step()
+            self.assertEqual(e.memory.read('Results[0]'), expected)
+            self.assertTrue(e.memory.read('StopPB'))
+            self.assertFalse(e.memory.read('RunLatch'))
+
+    def test_zero_and_negative_coils_are_independent_and_preserve_the_caller(self):
+        def add_worker(root):
+            routines = root.find('./Controller/Programs/Program/Routines')
+            body = E.SubElement(E.SubElement(routines, 'Routine', Name='Worker', Type='RLL'), 'RLLContent')
+            E.SubElement(E.SubElement(body, 'Rung', Number='0', Type='N'), 'Text').text = (
+                'XIO(S:N)XIO(S:Z)OTE(MotorRunning)OTL(S:Z)OTU(S:N);'
+            )
+
+        e = self.checked([
+            'OTE(S:N)OTL(s:z)[AFI()OTL(S:Z),AFI()OTU(S:N),XIC(StartPB)OTU(S:Z),XIC(S:N)]'
+            'JSR(Worker,0)[XIC(S:N)OTE(RunLatch),XIC(S:Z)OTE(StopPB)];',
+            'OTL(S:N)OTL(S:Z)MOV(-1,Dest)[AFI()OTE(S:N),XIO(S:N)]XIO(S:Z)OTE(StartPB);',
+        ], mutate=add_worker)
+        e.enter_run()
+        for clear in (False, True):
+            e.memory.write('StartPB', clear)
+            e.step()
+            self.assertTrue(e.memory.read('RunLatch'))
+            self.assertIs(e.memory.read('StopPB'), not clear)
+            self.assertTrue(e.memory.read('MotorRunning'))
+            self.assertTrue(e.memory.read('StartPB'))
+            self.assertEqual(e.memory.read('Dest'), -1)
 
     def test_overflow_contacts_coils_and_task_reporting(self):
         self.assertTrue(self.engine(['ONS(S:V);']).blockers)

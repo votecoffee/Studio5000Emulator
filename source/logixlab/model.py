@@ -1029,7 +1029,8 @@ class Memory:
         self.first_scan = True
         self.minor_fault = False
         self.rung_carry = None
-        self.rung_math_result = None
+        self.rung_negative = False
+        self.rung_zero = False
         self.rung_overflow = False
         self._resolved = {}
         self.frames = {}
@@ -1414,7 +1415,8 @@ class Memory:
     def record_math_result(self, value, *, overflow=False):
         """Expose a completed numeric store to the current ladder rung."""
         if self.rung_carry is not None:
-            self.rung_math_result = value
+            self.rung_negative = value is not None and value < 0
+            self.rung_zero = value == 0
             self.record_overflow(overflow)
 
     def record_overflow(self, overflow):

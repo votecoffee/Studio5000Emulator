@@ -774,13 +774,14 @@ get zero, the maximum or the minimum, according to the result.
 can consume these values in ADD, SUB, MUL, DIV, NEG and ABS.
 [Floating MOD](docs/scalar-math.md#nan-and-infinity-in-mod) also handles NaN and
 infinity and retains the v35 zero-divisor rule.
-[Ladder S:C contacts](docs/scalar-math.md#carry-after-integer-add-and-sub) read carry
-or borrow from the last executed integer ADD or SUB on the same rung.
+[Ladder S:C](docs/scalar-math.md#carry-after-integer-add-and-sub) reads carry or
+borrow from integer ADD or SUB. OTE and OTL can also write the rung's carry flag.
 [Ladder S:N and S:Z](docs/scalar-math.md#zero-and-negative-results) test the
-stored result of supported scalar math and moves on the same rung.
+stored result of supported scalar math and moves. OTE, OTL and OTU can write
+these flags independently on the same rung.
 [Ladder S:V](docs/scalar-math.md#overflow-status) reports modeled overflow from
 narrowing moves, clipped strings and supported zero-divisor results on the
-same rung. Ladder contacts and OTE/OTL can read or set this flag.
+same rung. Contacts read it and OTE, OTL and OTU can write it.
 [Integer ADD and SUB](docs/scalar-math.md#signed-add-and-sub-overflow) also set
 `S:V` when a SINT, INT or DINT result wraps.
 [Integer ABS and NEG](docs/scalar-math.md#absolute-value-and-negation-at-the-signed-minimum)
