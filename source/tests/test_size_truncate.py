@@ -148,14 +148,41 @@ class SizeTruncateTests(unittest.TestCase):
         e = self.checked(['TRN(Source,Source);'], value=16777217);e.step()
         self.assertEqual(e.memory.read('Source'), 16777216.0)
         e = self.checked(['TRN(-2.9,Dest);']);e.step();self.assertEqual(e.memory.read('Dest'), -2)
+        e = self.checked(['TRN(127.999999,Dest)XIC(S:V)OTE(RunLatch);'], dest='SINT')
+        e.step()
+        self.assertEqual(e.memory.read('Dest'), -128)
+        self.assertTrue(e.memory.read('RunLatch'))
 
     def test_trn_wide_results_and_boundaries(self):
         for dest, value in (('LINT', 2**62), ('ULINT', 2**63), ('UDINT', 2**31)):
             e = self.checked(dest=dest, value=value);e.step();self.assertEqual(e.memory.read('Dest'), value)
-        for dest, value in (('SINT', 128.0), ('USINT', -1.0), ('LINT', 2**63), ('ULINT', 2**64)):
+        for dest, value in (('SINT', 2**31), ('INT', -(2**31)-256), ('USINT', -1.0), ('LINT', 2**63), ('ULINT', 2**64)):
             e = self.checked(dest=dest, value=value);before = self.snapshot(e)
             with self.assertRaisesRegex(ModelError, 'overflow'):e.step()
             self.assertEqual(self.snapshot(e), before)
+
+    def test_real_trn_into_sint_or_int_discards_fraction_before_narrowing(self):
+        for dest, limit in (('SINT', 128), ('INT', 32768)):
+            with self.subTest(dest=dest):
+                e = self.checked([
+                    'XIC(StartPB)ADD(-1,1,SpeedCommand)TRN(Source,Dest)'
+                    '[XIC(S:V)XIC(S:C)OTE(RunLatch),XIC(S:N)OTE(MotorRunning),XIC(S:Z)OTE(StopPB)];',
+                ], dest=dest)
+                e.step()
+                self.assertEqual(e.memory.read('Dest'), 0)
+                e.memory.write('StartPB', True)
+                for source, stored, overflow in (
+                        (limit - 0.25, limit - 1, False),
+                        (-(limit + 0.75), -limit, False),
+                        (limit + 0.75, -limit, True),
+                        (-(limit + 1.75), limit - 1, True),
+                        (2 * limit + 0.75, 0, True)):
+                    e.memory.write('Source', source)
+                    e.step()
+                    self.assertEqual(e.memory.read('Dest'), stored)
+                    self.assertEqual(e.memory.read('RunLatch'), overflow)
+                    self.assertEqual(e.memory.read('MotorRunning'), stored < 0)
+                    self.assertEqual(e.memory.read('StopPB'), stored == 0)
 
     def test_trn_unknown_source_and_destination_indices_are_lazy(self):
         e = self.checked(['XIC(StartPB)TRN(Reals[Mask],Results[Mask]);'], dimension=999);e.step()

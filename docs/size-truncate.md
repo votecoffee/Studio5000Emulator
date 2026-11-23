@@ -37,14 +37,28 @@ The ladder monitor shows the decoded dimension. The existing emulator
 extension accepting a SINT/INT/DINT dimension tag remains available, with rank and
 range checked when executed. This extension is not claimed as native syntax.
 
-TRN truncates toward zero at the stored REAL or LREAL precision. It writes
-representable results to SINT, INT, DINT, LINT, USINT, UINT, UDINT, ULINT, REAL
-and LREAL. Floating results preserve signed zero. NaN and infinity in source
+## Ladder TRN
+
+TRN truncates toward zero at the stored REAL or LREAL precision. It can write
+SINT, INT, DINT, LINT, USINT, UINT, UDINT, ULINT, REAL and LREAL.
+Floating results preserve signed zero. NaN and infinity in source
 tags are supported for floating and signed integer results. Bounded DINT
 and finite REAL immediates use float32. A finite floating L/l constant uses
 binary64. See [LREAL truncation](lreal-truncate.md) for destination examples.
-ST continues to use its separate TRUNC expression;
-this change does not add a TRN ST call or expand FBD.
+ST uses the TRUNC expression separately.
+
+### REAL TRN into SINT or INT
+
+For a REAL operand, TRN discards the fractional part before it converts the
+whole result. If that result fits DINT, SINT and INT store its low bits. For
+example, TRN of 127.9 to SINT stores 127 with `S:V` clear. TRN of 128.9 to
+the same destination stores -128, sets `S:V`, and continues the rung.
+`S:N` and `S:Z` reflect the stored value. If `ReportMinorOverflow` is
+enabled, narrowing also sets the task's `S:MINOR` flag.
+
+LREAL sources, results outside DINT range, and other destination types use
+their existing checked conversion.
+[Rockwell truncation reference](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/math-conversion-instructions/truncate--trn-.html)
 
 Preflight checks types, shape and permissions without consuming saved scalar
 values or live indices. False rungs and ordinary prescan retain outputs. Executed

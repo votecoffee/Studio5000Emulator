@@ -1,7 +1,7 @@
 """Structural SIZE and REAL/LREAL truncation for the v35 5580 profile."""
 import math
 
-from .integer_math import CONTROLLERS, dint_radix
+from .integer_math import CONTROLLERS, bit_value, can_narrow_dint_result, dint_radix
 from .model import INT_BITS, ModelError, coerce, literal
 from .numeric_storage import typed_literal, write_exceptional_result
 from .real_math import real
@@ -89,6 +89,7 @@ def handle(engine, op, scope, *, execute=False):
         memory.structural = previous
     if not execute:return True
 
+    overflow = False
     if op.name == 'SIZE':
         dimensions = shape(memory, op.args[0], scope)
         if dimension is None:
@@ -106,12 +107,17 @@ def handle(engine, op, scope, *, execute=False):
         source_value = coerce(value, 'LREAL') if source_type == 'LREAL' else real(value)
         result = math.trunc(source_value)
         key, parts, dtype = scalar(memory, op.args[1], scope, TRN_DESTINATIONS, destination=True)
-        if result == 0 and dtype in ('REAL', 'LREAL'):
-            result = math.copysign(0.0, source_value)
-        result = coerce(result, dtype)
+        if source_type == 'REAL' and can_narrow_dint_result(dtype, result):
+            stored = bit_value(result, dtype)
+            overflow = stored != result
+            result = stored
+        else:
+            if result == 0 and dtype in ('REAL', 'LREAL'):
+                result = math.copysign(0.0, source_value)
+            result = coerce(result, dtype)
     memory.store(key, parts, result)
     if op.name == 'TRN':
-        memory.record_math_result(result)
+        memory.record_math_result(result, overflow=overflow)
     return True
 
 
@@ -120,7 +126,10 @@ def description(project):
                 profile='v35-5580-SIZE-TRN', size_languages=['RLL', 'ST'], trn_languages=['RLL'],
                 size='Whole arrays or selected elements, closest logical member array, or capacity of scalar strings; no leaf-value reads',
                 size_destinations=sorted(NARROW), trn_source='REAL/LREAL tag, bounded DINT/finite REAL immediate or finite floating L/l LREAL immediate',
-                trn_destinations=sorted(TRN_DESTINATIONS), truncation='Preserve tagged REAL float32 or LREAL binary64 source precision; truncate toward zero, then representable destination conversion',
+                trn_destinations=sorted(TRN_DESTINATIONS), truncation='Preserve tagged REAL float32 or LREAL binary64 source precision; truncate toward zero before destination conversion',
+                real_to_narrow_signed=dict(destinations=['SINT', 'INT'],
+                    result='A truncated DINT-range REAL value stores its low destination bits and sets S:V if narrowed',
+                    native_runtime_parity=False),
                 floating_truncation=dict(
                     zero='Floating results preserve the sign when a source truncates to zero',
                     exceptional='REAL/LREAL retain NaN or signed infinity; signed integers store zero or the signed limit; unsigned integers reject nonfinite results',

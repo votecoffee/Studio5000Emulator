@@ -91,8 +91,10 @@ when it returns.
 
 Integer MOV sets the flag when the stored value differs from its integer
 source. [REAL MOV into SINT or INT](numeric-storage.md#real-moves-into-sint-or-int)
-sets it when the stored value differs from the rounded integer. String MOV
-sets it when the source exceeds destination capacity.
+sets it when the stored value differs from the rounded integer.
+[REAL TRN](size-truncate.md#real-trn-into-sint-or-int) sets it when the low-bit
+store changes the truncated integer. String MOV sets it when the source
+exceeds destination capacity.
 Modeled DIV and MOD with a zero divisor also set it, as does an infinity result
 converted to a signed integer limit. A normal modeled numeric result or
 unclipped string MOV clears the flag. If the controller export explicitly

@@ -3742,6 +3742,39 @@ class ApplicationLifecycleTests(unittest.TestCase):
         ])
         self.assertFalse(report['native_math_status'])
 
+    def test_ladder_real_trn_discards_fraction_before_narrowing_through_http(self):
+        from test_numeric_storage import NumericStorageTests
+
+        fixture = NumericStorageTests()
+        fixture.setUp()
+        try:
+            def configure(root):
+                root.find('Controller').set('ReportMinorOverflow', 'true')
+
+            engine = fixture.checked([
+                'TRN(Source,Results[0])[XIC(S:V)OTE(RunLatch),XIC(S:Z)OTE(StopPB)];',
+                'XIC(S:V)OTE(StartPB);',
+                'XIC(S:MINOR)OTE(MotorRunning);',
+            ], source='REAL', dest='SINT', value=127.9, mutate=configure)
+            content = base64.b64encode(engine.project.path.read_bytes()).decode()
+        finally:
+            fixture.doCleanups()
+        self.assertEqual(self.post('load', {'name': 'NarrowRealTRN.L5X', 'content': content})['blockers'], [])
+
+        def readings():
+            state = self.post('step', {'dt': 10})
+            values = {row['name']: row['value'] for row in state['tags']}
+            names = ('Results[0]', 'RunLatch', 'StopPB', 'StartPB', 'MotorRunning')
+            return tuple(values[name] for name in names)
+
+        self.assertEqual(readings(), (127, False, False, False, False))
+        self.post('write', {'tag': 'Source', 'value': 128.9})
+        self.assertEqual(readings(), (-128, True, False, False, True))
+        self.post('write', {'tag': 'Source', 'value': 256.25})
+        self.assertEqual(readings(), (0, True, True, False, True))
+        self.post('write', {'tag': 'Source', 'value': -3.9})
+        self.assertEqual(readings(), (-3, False, False, False, False))
+
     def test_ladder_real_move_rounds_then_narrows_through_http(self):
         from test_numeric_storage import NumericStorageTests
 
