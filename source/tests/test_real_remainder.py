@@ -1,4 +1,4 @@
-"""Finite ladder REAL remainder with lazy references and atomic recovery."""
+"""Ladder floating remainder with lazy references and atomic recovery."""
 import math
 import unittest
 from unittest.mock import patch
@@ -167,11 +167,64 @@ class RealRemainderTests(unittest.TestCase):
                 self.assertEqual(self.snapshot(e), before)
 
     def test_a_later_finite_operation_rolls_back_a_floating_div_exception(self):
-        e = self.checked(['DIV(Source,0.0,Results[1]);', 'MOD(Results[1],1,Results[2]);'])
+        e = self.checked(['DIV(Source,0.0,Results[1]);', 'LN(Results[1],Results[2]);'])
         before = self.snapshot(e)
         with self.assertRaisesRegex(ModelError, 'Nonfinite REAL'):
             e.step()
         self.assertEqual(self.snapshot(e), before)
+
+    def test_floating_remainder_nan_infinity_and_zero_divisor_precedence(self):
+        def enable_reporting(root):
+            root.find('Controller').set('ReportMinorOverflow', 'true')
+
+        cases = (
+            (math.nan, 2.0, math.nan, False),
+            (2.0, math.nan, math.nan, False),
+            (math.inf, 2.0, math.nan, False),
+            (-math.inf, math.inf, math.nan, False),
+            (-7.5, math.inf, -7.5, False),
+            (4.0, -math.inf, 4.0, False),
+            (-0.0, math.inf, -0.0, False),
+            (math.nan, -0.0, 0.0, True),
+            (-math.inf, 0.0, 0.0, True),
+        )
+        for dtype in ('REAL', 'LREAL'):
+            e = self.checked(['MOD(Source,Mask,Results[1])OTE(RunLatch);', 'XIC(S:MINOR)OTE(MotorRunning);'],
+                             source=dtype, other=dtype, dest=dtype, mutate=enable_reporting)
+            for dividend, divisor, expected, minor in cases:
+                with self.subTest(dtype=dtype, dividend=dividend, divisor=divisor):
+                    for ref, value in (('Source', dividend), ('Mask', divisor)):
+                        if math.isfinite(value):
+                            e.memory.write(ref, value)
+                        else:
+                            e.memory.write_floating_exception(ref, value)
+                    e.step()
+                    result = e.memory.read('Results[1]')
+                    if math.isnan(expected):
+                        self.assertTrue(math.isnan(result))
+                    else:
+                        self.assertEqual(result, expected)
+                        self.assertEqual(math.copysign(1, result), math.copysign(1, expected))
+                    self.assertIs(e.memory.read('MotorRunning'), minor)
+                    self.assertTrue(e.memory.read('RunLatch'))
+                    self.assertEqual(e.memory.read('Results')[::2], [None, None])
+
+    def test_floating_remainder_exceptional_operands_with_integer_destinations(self):
+        e = self.checked(['MOD(Source,Mask,Results[1]);'], source='LREAL', dest='LINT')
+        e.memory.write_floating_exception('Source', math.inf)
+        e.step()
+        self.assertEqual(e.memory.read('Results[1]'), 0)
+
+        e = self.checked(['MOV(99,SpeedCommand);', 'MOD(Source,Mask,Results[1]);'],
+                         dest='ULINT', value=1.5)
+        e.memory.write_floating_exception('Mask', math.nan)
+        before = self.snapshot(e)
+        with self.assertRaisesRegex(ModelError, 'MOD nonfinite result'):
+            e.step()
+        self.assertEqual(self.snapshot(e), before)
+        e.memory.write_floating_exception('Mask', -math.inf)
+        e.step()
+        self.assertEqual(e.memory.read('Results[1]'), 2)
 
     def test_floating_arithmetic_consumes_exceptional_sources(self):
         cases = (

@@ -3948,6 +3948,38 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.post('write', {'tag': 'Mask', 'value': 2})
         self.assertEqual(readings(), (-64, 16, -64, True))
 
+    def test_floating_mod_consumes_div_results_through_http(self):
+        import base64
+        import math
+        from test_real_remainder import RealRemainderTests
+
+        fixture = RealRemainderTests()
+        fixture.setUp()
+        try:
+            engine = fixture.checked([
+                'XIC(StartPB)DIV(Source,Mask,Results[0]);',
+                'XIC(StartPB)MOD(Results[0],2,Results[1]);',
+                'XIC(StartPB)MOD(Source,Results[0],Results[2]);',
+                'XIC(StartPB)MOD(Results[0],2,SpeedCommand)OTE(RunLatch);',
+            ], source='LREAL', dest='LREAL', value=-7.5, divisor=0)
+            content = base64.b64encode(engine.project.path.read_bytes()).decode()
+        finally:
+            fixture.doCleanups()
+        loaded = self.post('load', {'name': 'ExceptionalRemainder.L5X', 'content': content})
+        self.assertEqual(loaded['blockers'], [])
+        self.post('write', {'tag': 'StartPB', 'value': True})
+
+        def readings():
+            state = self.post('step', {'dt': 10})
+            values = {row['name']: row['value'] for row in state['tags']}
+            return tuple(values[name] for name in ('Results[1]', 'Results[2]', 'SpeedCommand', 'RunLatch'))
+
+        self.assertEqual(readings(), ('NaN', -7.5, 0, True))
+        self.post('write', {'tag': 'Mask', 'value': 2})
+        result = readings()
+        self.assertEqual(result, (-1.75, 0.0, -2, True))
+        self.assertEqual(math.copysign(1, result[1]), -1)
+
     def test_floating_div_signed_integer_limits_and_minor_status_through_http(self):
         import base64
         from test_real_remainder import RealRemainderTests

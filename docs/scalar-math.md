@@ -93,9 +93,9 @@ converted to a signed integer sets the task's modeled `S:MINOR` bit when
 when the divisor is zero, including when the dividend is already NaN.
 
 Unsigned destinations reject nonfinite results. Reached operands are still
-required and faults roll back the advance. Finite-input overflow, MOD and
-arithmetic inside expressions retain their existing checks. Native NaN payloads,
-math flags and fault records remain unverified.
+required and faults roll back the advance. Finite-input overflow and arithmetic
+inside expressions retain their existing checks. Native NaN payloads, math
+flags and fault records remain unverified.
 [Rockwell floating-point reference](https://www.rockwellautomation.com/en-in/docs/studio-5000-logix-designer/38-00/contents-ditamap/instruction-set/floating-point-values.html)
 
 ## Widening integer tag arithmetic
@@ -254,16 +254,26 @@ can establish unknown destination elements/members through aliases and AOI
 bindings, retaining unwritten siblings. A late fault also restores earlier
 remainder writes and existing AOI bindings.
 
-Sources and results must be finite. When the divisor converts to zero at the
-selected precision, REAL and LREAL MOD write zero and continue the rung. This
+When the divisor converts to zero at the selected precision, REAL and LREAL MOD
+write zero and continue the rung, even when the dividend is NaN or infinity. This
 includes negative zero and literals that underflow during conversion. The
 current task can read `S:MINOR` after the write when the controller export
 explicitly enables `ReportMinorOverflow`. The flag starts clear on the next
 task invocation. Native fault-record parity remains unverified.
 
-For nonzero divisors, the host remainder avoids forming a quotient. This
-supports very small nonzero divisors without quotient overflow or cancellation.
-Native intermediate rounding and bit-for-bit results remain unqualified.
+For nonzero finite divisors, the host remainder avoids forming a quotient.
+This supports very small divisors without quotient overflow or cancellation.
+
+### NaN and infinity in MOD
+
+With an infinite divisor, the model returns a finite dividend unchanged,
+including signed zero. An infinite dividend or a NaN operand yields NaN for
+a nonzero divisor. Floating destinations retain NaN, signed integer
+destinations receive zero, and unsigned destinations reject NaN and roll back
+the advance. Native exceptional results, intermediate rounding and fault
+records remain unqualified.
+[Rockwell MOD reference](https://www.rockwellautomation.com/en-be/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/compute-math-instructions/modulo--mod-.html)
+[Host remainder rules](https://docs.python.org/3.13/library/math.html#math.fmod)
 
 Two integer sources retain the existing exact quotient/remainder calculation,
 including when the destination is REAL. Homogeneous wide-integer and widening integer-tag operations

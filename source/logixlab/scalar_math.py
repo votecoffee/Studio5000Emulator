@@ -1,4 +1,4 @@
-"""Lazy scalar ladder arithmetic/bitwise rules and finite REAL remainder."""
+"""Lazy scalar ladder arithmetic, bitwise rules and floating remainder."""
 import math
 import operator
 
@@ -16,7 +16,7 @@ BITWISE_FLOATS = {'REAL': 'DINT', 'LREAL': 'LINT'}
 ARITHMETIC = frozenset(('ADD', 'SUB', 'MUL', 'DIV', 'MOD', 'NEG', 'ABS'))
 INSTRUCTIONS = BITWISE | ARITHMETIC
 FLOAT_BINARY = {'ADD': operator.add, 'SUB': operator.sub, 'MUL': operator.mul,
-                'DIV': operator.truediv, 'MOD': math.fmod}
+                'DIV': operator.truediv}
 
 
 def available(project):
@@ -96,12 +96,21 @@ def execute_floating_divide_by_zero(engine, op, scope, dividend, divisor, precis
     return execute_zero_divisor(engine, op, scope, result)
 
 
+def floating_remainder(dividend, divisor):
+    """Evaluate the floating remainder for a nonzero divisor."""
+    if not math.isfinite(dividend) or math.isnan(divisor):
+        return math.nan
+    if math.isinf(divisor):
+        return dividend
+    return math.fmod(dividend, divisor)
+
+
 def execute_floating(engine, op, scope, precision):
     """Use the selected precision and limit exceptional propagation to ladder arithmetic."""
     memory = engine.memory
     read_source = lreal_math_source if precision == 'LREAL' else real_math_source
     name = op.name
-    values = [read_source(memory, ref, scope, execute=True, radix=True, allow_nonfinite_tag=name != 'MOD')
+    values = [read_source(memory, ref, scope, execute=True, radix=True, allow_nonfinite_tag=True)
               for ref in op.args[:-1]]
     a = values[0]
     if name in ('NEG', 'ABS'):
@@ -113,7 +122,7 @@ def execute_floating(engine, op, scope, precision):
                 return execute_zero_divisor(engine, op, scope, 0)
             if name == 'DIV':
                 return execute_floating_divide_by_zero(engine, op, scope, a, b, precision)
-        result = FLOAT_BINARY[name](a, b)
+        result = floating_remainder(a, b) if name == 'MOD' else FLOAT_BINARY[name](a, b)
     if not math.isfinite(result) and any(not math.isfinite(value) for value in values):
         write_exceptional_result(memory, op.args[-1], result, scope, instruction=name)
     elif precision == 'LREAL':
@@ -289,7 +298,7 @@ def description(project):
                     radix_sources=dict(bases=[2,8,16],types=['DINT','LINT','UDINT','ULINT'],selection='Explicit binary64 math only; default conversion helpers and other consumers remain separate',native_runtime_parity=False),
                     source_types=sorted({*INT_BITS,'REAL','LREAL'}),
                     promotion='Convert every required source to binary64 before calculation; signed/unsigned values retain their numeric sign, REAL retains its stored precision',
-                    calculation='Host binary64. Nonzero-divisor MOD uses finite fmod with dividend sign. DIV by zero produces a documented exceptional result in floating and signed integer destinations.',
+                    calculation='Host binary64. Finite nonzero-divisor MOD uses fmod with dividend sign. DIV by zero produces a documented exceptional result in floating and signed integer destinations.',
                     modulo_zero='Writes zero and continues the rung. Sets S:MINOR when ReportMinorOverflow is explicitly true.',
                     selection='Structural/lazy operands, complete unknown writes and existing alias/member/AOI references',
                     native_runtime_parity=False),
@@ -308,6 +317,11 @@ def description(project):
                                     conversion='Integer results round nearest, ties to even; out-of-range results roll back',
                                     zero='Zero after float32 conversion writes zero and continues the rung. Sets S:MINOR when ReportMinorOverflow is explicitly true.',
                                     native_precision=False),
+                exceptional_remainder=dict(instruction='MOD',
+                    operands='Both operands are required. REAL/LREAL tags may supply NaN or infinity.',
+                    result='Zero divisor yields zero. Otherwise NaN operands or an infinite dividend yield NaN; an infinite divisor returns a finite dividend unchanged.',
+                    conversion='Floating destinations retain NaN, signed integers store zero, and unsigned integers reject NaN.',
+                    native_runtime_parity=False),
                 bitwise=dict(types=list(INT_BITS), instructions=sorted(BITWISE),
                              promotion='Zero-extend declared source patterns; NOT inverts after promotion; keep destination low bits',
                              immediates='Unsuffixed DINT/32-bit radix patterns retain their compatibility rules; typed decimal and radix L/U/UL sources use declared widths',
@@ -346,11 +360,11 @@ def description(project):
                     destination='REAL or LREAL retain the exceptional value. SINT, INT, DINT and LINT store zero for NaN, the signed maximum for positive infinity and the signed minimum for negative infinity.',
                     status='Sets S:MINOR when ReportMinorOverflow is explicitly true',
                     scope='RLL v35 5580 only. Rung continues after a successful write.', native_runtime_parity=False),
-                exceptional_arithmetic=dict(instructions=sorted(ARITHMETIC - {'MOD'}),
+                exceptional_arithmetic=dict(instructions=sorted(ARITHMETIC),
                     operands='REAL/LREAL tags containing NaN or infinity; existing finite operands still use the selected precision',
                     result='IEEE floating-point arithmetic; floating destinations retain exceptional results, signed integers store zero or a signed limit, unsigned integers reject them',
                     minor_status='Infinity converted to a signed integer sets modeled S:MINOR with explicit ReportMinorOverflow; existing divide-by-zero reporting applies',
-                    boundaries='Finite-source overflow remains checked; MOD and expression consumers retain their finite requirements',
+                    boundaries='Finite-source overflow and expression consumers retain their existing checks',
                     native_runtime_parity=False),
                 failures='Reached unknowns, invalid indices, floating DIV by zero into an unsigned integer, excluded ranges and later faults roll back the advance',
                 native_runtime_parity=False, native_math_status=False,
