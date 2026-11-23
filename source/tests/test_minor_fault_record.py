@@ -299,9 +299,11 @@ class NamedMinorFaultRecordTests(unittest.TestCase):
 
 
 SHORT_GSV = 'XIC(ResetCount)GSV(Program,FastProgram,MinorFaultRecord,FaultSample[Index]);'
+SHORT_SSV = 'XIC(ResetCount)SSV(Program,FastProgram,MinorFaultRecord,ClearWords[Index]);'
 READ_CALLER = 'GSV(Program,THIS,MinorFaultRecord,CallerRecord[0]);'
 READ_MINOR = 'XIC(S:MINOR)OTE(MinorSeen);'
 SHORT_TYPE_CODE = (7 << 16) | 4
+SHORT_SOURCE_TYPE_CODE = (6 << 16) | 4
 
 
 def add_capacity_fixture(root):
@@ -380,6 +382,72 @@ class MinorFaultCapacityTests(unittest.TestCase):
         memory.write('ResetCount', True)
         engine.step(10)
         self.assertEqual(memory.read('CallerRecord[2]'), SHORT_TYPE_CODE)
+        self.assertEqual(memory.read('LogCount'), 2)
+
+    def test_short_ssv_source_records_fault_in_caller_and_leaves_peer_unchanged(self):
+        engine = self.checked([
+            SHORT_SSV.removesuffix(';') + READ_MINOR, READ_CALLER, READ_PEER, READ_BITS, READ_COUNT,
+        ], mutate=add_capacity_fixture)
+        memory = engine.memory
+        memory.write('Index', 1)
+        memory.write('PeerOverflow', True)
+        memory.write('ClearWords[3]', 73)
+        initial_source = memory.read('ClearWords').copy()
+        with patch.object(engine, 'wall_time', return_value=TIMESTAMP):
+            engine.step(10)
+        self.assertEqual(memory.read('CallerRecord'), [0] * 11)
+        self.assertEqual(memory.read('PeerRecord'), record(TIMESTAMP))
+        self.assertEqual(memory.read('LogCount'), 1)
+
+        memory.write('PeerOverflow', False)
+        memory.write('ResetCount', True)
+        with patch.object(engine, 'wall_time', return_value=TIMESTAMP + 10):
+            engine.step(10)
+        expected = record(TIMESTAMP + 10)
+        expected[2] = SHORT_SOURCE_TYPE_CODE
+        self.assertEqual(memory.read('CallerRecord'), expected)
+        self.assertEqual(memory.read('PeerRecord'), record(TIMESTAMP))
+        self.assertEqual(memory.read('ClearWords'), initial_source)
+        self.assertTrue(memory.read('MinorSeen'))
+        self.assertEqual((memory.read('LogBits'), memory.read('LogCount')), (INSTRUCTION_BIT, 2))
+
+        memory.write('Index', 0)
+        engine.step(10)
+        self.assertEqual(memory.read('CallerRecord'), expected)
+        self.assertEqual(memory.read('PeerRecord'), [0] * 11)
+        self.assertEqual(memory.read('LogCount'), 2)
+        self.assertFalse(memory.read('MinorSeen'))
+
+    def test_short_ssv_this_source_rolls_back_with_a_later_scan_failure(self):
+        engine = self.checked([
+            OVERFLOW, SHORT_SSV.replace('FastProgram', 'THIS'), READ_CALLER,
+            READ_COUNT, 'CPT(Out,1/Limit);',
+        ], mutate=add_capacity_fixture)
+        memory = engine.memory
+        memory.write('Flag', True)
+        memory.write('Index', 1)
+        with patch.object(engine, 'wall_time', return_value=TIMESTAMP):
+            engine.step(10)
+        memory.write('Flag', False)
+        memory.write('ResetCount', True)
+        memory.write('Limit', 0)
+        with self.assertRaisesRegex(ModelError, 'zero'):
+            engine.step(10)
+        self.assertEqual(memory.read('CallerRecord'), record(TIMESTAMP))
+        self.assertEqual(memory.read('LogCount'), 1)
+
+        memory.write('ResetCount', False)
+        memory.write('Limit', 2)
+        engine.step(10)
+        self.assertEqual(memory.read('CallerRecord'), record(TIMESTAMP))
+        self.assertEqual(memory.read('LogCount'), 1)
+        memory.write('ResetCount', True)
+        engine.step(10)
+        self.assertEqual(memory.read('CallerRecord[2]'), SHORT_SOURCE_TYPE_CODE)
+        self.assertEqual(memory.read('LogCount'), 2)
+        memory.write('Index', 0)
+        engine.step(10)
+        self.assertEqual(memory.read('CallerRecord'), [0] * 11)
         self.assertEqual(memory.read('LogCount'), 2)
 
     def test_short_device_name_and_module_path_windows_record_minor_faults(self):

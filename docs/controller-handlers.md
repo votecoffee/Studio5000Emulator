@@ -453,7 +453,15 @@ same scan. Other Programs' records, the controller's FaultLog bits and event
 count, and the current scan's `S:MINOR` flag retain their values. A later
 minor fault in the cleared Program creates a new record.
 
-A fault later in the advance rolls back the clear and any destination writes.
+If a live source index starts within a base DINT array but leaves fewer than
+11 elements, the clear is skipped and the executing Program records Type 4,
+Code 6. A different target Program keeps its existing record. With `THIS`,
+the caller's record shows the new minor fault. The remainder of the rung runs,
+`S:MINOR` is set, and the controller FaultLog counts the event. Statically
+undersized sources still fail preflight. Out-of-bounds indices and full
+sources whose Type or Code is unknown or nonzero follow the existing errors.
+
+A fault later in the advance rolls back the clear, minor fault and tag writes.
 A reset or reload establishes a new history. Arbitrary record writes and native
 fault-record parity remain unverified for this ladder profile.
 [Rockwell Major, Minor, and I/O Faults](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm014_-en-p.pdf#page=23)

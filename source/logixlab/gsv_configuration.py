@@ -18,6 +18,7 @@ DEVICE_NAME_SIZE = 33
 MAJOR_FAULT_RECORD = 'major-fault-record'
 MINOR_FAULT_RECORD = 'minor-fault-record'
 FAULT_RECORD_WORDS = 11
+SSV_SOURCE_TOO_SMALL = 6
 GSV_DESTINATION_TOO_SMALL = 7
 FAULT_RECORD_LINT = 'fault-record-lint'
 FAULT_RECORD_SPLIT = 'fault-record-split'
@@ -547,7 +548,7 @@ def _structured_fault_record(memory, key, parts, attribute):
     return key, paths, layout
 
 
-class ArrayDestinationTooSmall(ModelError):
+class ArrayWindowTooSmall(ModelError):
     """The selected primitive array tail cannot hold the complete value."""
 
 
@@ -556,7 +557,7 @@ def _check_window_capacity(paths, size, message):
         return
     # Embedded arrays may have following members in native storage.
     if paths and paths[0] and all(isinstance(part, int) for part in paths[0]):
-        raise ArrayDestinationTooSmall(message)
+        raise ArrayWindowTooSmall(message)
     raise ModelError(message)
 
 
@@ -602,7 +603,12 @@ def write_major_fault_record(engine, op, scope, *, executing):
 def write_minor_fault_record(engine, op, scope, *, executing):
     _configuration_source(engine)
     program = _minor_fault_program(engine, op.args[1], scope, executing=executing)
-    _validate_fault_clear(engine.memory, op.args[3], scope, 'MinorFaultRecord', executing=executing)
+    try:
+        _validate_fault_clear(engine.memory, op.args[3], scope, 'MinorFaultRecord', executing=executing)
+    except ArrayWindowTooSmall:
+        if not executing or not engine._record_instruction_minor_fault(SSV_SOURCE_TOO_SMALL):
+            raise
+        return
     if executing:
         records = engine._program_advance.minor_faults
         record = records.get(program)
@@ -764,7 +770,7 @@ def destination(memory, ref, scope, dtype, value, *, allow_dint=False):
             raise ModelError(error)
         if len(cells) - start < size:
             if not base:
-                raise ArrayDestinationTooSmall(error)
+                raise ArrayWindowTooSmall(error)
             raise ModelError(error)
         return key, [base + [i] for i in range(start, start + size)], kind
     if dtype=='STRING':
@@ -804,7 +810,7 @@ def execute(engine, op, scope):
     dtype,value=source(engine,op,scope,executing=True);memory=engine.memory
     try:
         key,paths,kind=destination(memory,op.args[3],scope,dtype,value,allow_dint=dtype=='INT' and op.args[0].casefold()=='module')
-    except ArrayDestinationTooSmall:
+    except ArrayWindowTooSmall:
         routine = engine._executing_routine
         if (dtype not in (MINOR_FAULT_RECORD, 'SINT[33]', MODULE_PATH) or routine is None
                 or routine.kind != 'RLL' or scope in memory.frames
@@ -851,7 +857,8 @@ def description():
                     attributes={name: dtype for name, (dtype, _) in AOI_DEFINITION_FIELDS.items()}),
                 module=['ForceStatus','LEDStatus','Mode','EntryStatus','FaultCode','FaultInfo','Path'],
                 module_path='Counted CIP route for a local slot, an explicit IPv4 device, or a slot under a qualified remote EN2T/EN2TR.',
-                short_array_destination='Ladder DeviceName, Module Path and MinorFaultRecord record Type 4 Code 7 for an in-bounds root array start with insufficient capacity.',
+                short_array_destination='Ladder GSV DeviceName, Module Path and MinorFaultRecord record Type 4 Code 7 for an in-bounds root array start with insufficient capacity.',
+                short_array_source='Ladder SSV MinorFaultRecord records Type 4 Code 6 for an in-bounds root DINT array start with insufficient capacity.',
                 named_module_settings='Explicit local and qualified routed source settings with live Mode overrides. EntryStatus models Inhibited, Waiting, and explicit simulated Running or Faulted states.',
                 module_mode_ssv={'source':'Exact scalar INT with bits 0 and 2 only',
                                  'visibility':'Immediate within an advance; rolled back on fault',
