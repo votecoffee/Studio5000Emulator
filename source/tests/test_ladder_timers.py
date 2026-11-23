@@ -56,11 +56,11 @@ class LadderTimerTests(unittest.TestCase):
             with self.assertRaisesRegex(ModelError,'TIMER.DN.*unknown'):e.step()
             self.assertEqual(self.snapshot(e),before);e.memory.write('TimerCells[1].DN',False);e.step();self.assertIs(type(e.memory.read('TimerCells[1].TT')),bool)
 
-    def test_tof_false_requires_enable_then_done_and_delays_after_fall(self):
+    def test_tof_false_checks_done_then_enable_and_delays_after_fall(self):
         e=self.checked(['XIC(StartPB)TOF(TimerCells[1],?,?);']);e.memory.values['timercells'][1].update(EN=None,DN=None);before=self.snapshot(e)
-        with self.assertRaisesRegex(ModelError,'TIMER.EN.*unknown'):e.step()
-        self.assertEqual(self.snapshot(e),before);e.memory.write('TimerCells[1].EN',False);before=self.snapshot(e)
         with self.assertRaisesRegex(ModelError,'TIMER.DN.*unknown'):e.step()
+        self.assertEqual(self.snapshot(e),before);e.memory.write('TimerCells[1].DN',True);before=self.snapshot(e)
+        with self.assertRaisesRegex(ModelError,'TIMER.EN.*unknown'):e.step()
         self.assertEqual(self.snapshot(e),before)
         e.memory.write('StartPB',True);e.step();e.memory.write('StartPB',False);e.step();self.assertEqual(e.memory.read('TimerCells[1].ACC'),0);e.step();self.assertEqual(e.memory.read('TimerCells[1].ACC'),10);e.step();self.assertEqual(e.memory.read('TimerCells[1].ACC'),20);self.assertFalse(e.memory.read('TimerCells[1].DN'));self.assertFalse(e.memory.read('TimerCells[1].TT'))
 
@@ -113,14 +113,63 @@ class LadderTimerTests(unittest.TestCase):
             engine.step()
         self.assertEqual(self.snapshot(engine), before)
 
-    def test_all_paths_require_known_nonnegative_dint_preset_and_accumulator(self):
-        for op in ('TON','TOF','RTO'):
-            for power in (False,True):
-                e=self.checked([f'XIC(StartPB){op}(TimerCells[1],?,?);']);e.memory.write('StartPB',power)
-                for name,value in [('PRE',None),('ACC',None),('PRE',-1),('ACC',-1),('PRE',True),('ACC',2147483648)]:
-                    obj=e.memory.values['timercells'][1];saved=dict(obj);obj[name]=value;before=self.snapshot(e)
-                    with self.assertRaisesRegex(ModelError,'TIMER.'+name):e.step()
-                    self.assertEqual(self.snapshot(e),before);e.memory.values['timercells'][1]=saved
+    def test_timing_paths_require_known_nonnegative_dint_preset_and_accumulator(self):
+        for op in ('TON', 'TOF', 'RTO'):
+            e = self.checked([f'XIC(StartPB){op}(TimerCells[1],?,?);'])
+            e.memory.write('StartPB', op != 'TOF')
+            for name, value in (('PRE', None), ('ACC', None), ('PRE', -1),
+                                ('ACC', -1), ('PRE', True), ('ACC', 2147483648)):
+                with self.subTest(instruction=op, member=name, value=value):
+                    obj = e.memory.values['timercells'][1]
+                    saved = dict(obj)
+                    obj[name] = value
+                    before = self.snapshot(e)
+                    with self.assertRaisesRegex(ModelError, 'TIMER.' + name):
+                        e.step()
+                    self.assertEqual(self.snapshot(e), before)
+                    e.memory.values['timercells'][1] = saved
+
+    def test_inactive_paths_establish_outputs_or_retain_unread_timer_fields(self):
+        for op in ('TON', 'TOF', 'RTO'):
+            inactive_power = op == 'TOF'
+            for unread in (None, -1):
+                with self.subTest(instruction=op, unread=unread):
+                    e = self.checked([f'XIC(StartPB){op}(TimerCells[1],?,?);'])
+                    e.memory.values['timercells'][1].update(PRE=unread, ACC=unread, EN=None, TT=None, DN=None)
+                    e.memory.write('StartPB', inactive_power)
+                    e.step()
+                    expected = dict(PRE=unread, ACC=unread if op == 'RTO' else 0,
+                                    EN=inactive_power, TT=False, DN=None if op == 'RTO' else inactive_power)
+                    self.assertEqual(e.memory.read('TimerCells')[1], expected)
+                    self.assertEqual(e.last_timer[('timercells', (1,))], e.time_ms)
+
+    def test_first_timing_scan_starts_clock_at_zero_preset_or_retained_accumulator(self):
+        for op, preset, acc in (('TON', 0, 0), ('TOF', 0, 0), ('RTO', 0, 0), ('RTO', 5, 10)):
+            with self.subTest(instruction=op, preset=preset, accumulator=acc):
+                e = self.checked([f'XIC(StartPB){op}(TimerCells[1],?,?);'])
+                timing_power = op != 'TOF'
+                e.memory.write('TimerCells[1].PRE', preset)
+                e.memory.write('StartPB', not timing_power)
+                e.step()
+                e.memory.write('TimerCells[1].ACC', acc)
+                e.memory.write('StartPB', timing_power)
+                e.step()
+                self.assertEqual(e.memory.read('TimerCells')[1],
+                                 dict(PRE=preset, ACC=acc, EN=timing_power, DN=not timing_power, TT=True))
+                e.step()
+                self.assertEqual(e.memory.read('TimerCells')[1],
+                                 dict(PRE=preset, ACC=acc + 10, EN=timing_power, DN=timing_power, TT=False))
+
+    def test_done_or_paused_timing_paths_skip_unknown_enable_history(self):
+        for op in ('TON', 'TOF', 'RTO'):
+            with self.subTest(instruction=op):
+                e = self.checked([f'XIC(StartPB){op}(TimerCells[1],?,?);'])
+                timing_power = op != 'TOF'
+                e.memory.values['timercells'][1].update(PRE=20, ACC=7, EN=None, TT=True, DN=timing_power)
+                e.memory.write('StartPB', timing_power)
+                e.step()
+                self.assertEqual(e.memory.read('TimerCells')[1],
+                                 dict(PRE=20, ACC=7, EN=timing_power, DN=timing_power, TT=False))
 
     def test_retained_done_pause_resume_and_false_retention_keep_elapsed_rules(self):
         e=self.checked(['XIC(StartPB)RTO(TimerCells[1],?,?);']);e.memory.write('StartPB',True);e.step();e.step();self.assertEqual(e.memory.read('TimerCells[1].ACC'),10)

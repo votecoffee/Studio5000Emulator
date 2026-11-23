@@ -580,9 +580,10 @@ for integral/Boolean records, with exact unsigned fields and existing clipping/r
 CONTROL, strings and explicit UDTs with declared member types. **Data lab** adds
 guarded record, timer, counter and string fill examples.
 
-[Ladder timers](docs/ladder-timers.md) check the saved values and history each
-TON/TOF/RTO path consumes. **Timer lab** adds ladder delay, retention and pause
-examples with clock-history rollback and
+[Ladder timers](docs/ladder-timers.md) validate PRE/ACC in timing states.
+The first timing scan starts the clock, and the next scan checks completion.
+**Timer lab** shows ladder delay, retention and pause with clock-history
+rollback and
 [DINT accumulator saturation](docs/ladder-timers.md#existing-clock-policy).
 [TOF prescan](docs/ladder-timers.md#consumed-values) copies the current
 preset to the accumulator and clears the status bits.

@@ -45,20 +45,20 @@ and its [pseudo-operand initialization reference](https://www.rockwellautomation
 
 ## Consumed values
 
-Every reached call requires known nonnegative DINT PRE and ACC. True TON/RTO
-and false TOF raise [Type 4 Code 34](controller-handlers.md#recover-negative-timing-values)
-for negative DINT values during whole-project ladder execution. Other rung
-states still reject negative values through scan rollback. Unknown and
-out-of-range values remain errors even when the instruction would overwrite
-a field. Old TT is not consumed.
+True TON/RTO and false TOF require known nonnegative DINT PRE and ACC.
+Negative DINT values in those states raise
+[Type 4 Code 34](controller-handlers.md#recover-negative-timing-values)
+during whole-project ladder execution. False TON/RTO and true TOF update their
+specified fields without reading PRE or ACC, so a partially exported record
+can initialize before it attempts timing. Old TT is unused in every state.
 
 | Instruction and input power | Saved EN/DN selection |
 | --- | --- |
-| True TON/RTO | Both EN and DN must be known BOOLs: EN determines startup elapsed time and DN determines whether accumulation is paused. |
+| True TON/RTO | DN selects the paused or completed path. When DN is false, EN distinguishes the first timing call from a continuing interval. |
 | False TON | Establishes EN/TT/DN false and ACC zero without reading old EN/DN. |
 | False RTO | Establishes EN/TT false; retains ACC/DN, including unknown DN. |
 | True TOF | Establishes EN/DN true, TT false and ACC zero without reading old EN/DN. |
-| False TOF | Both EN and DN must be known BOOLs to select falling-edge timing and continued off-delay accumulation. |
+| False TOF | DN selects the paused or completed path. When DN is true, EN distinguishes the first false call from a continuing off-delay interval. |
 
 Unknown history cannot be treated as false to infer a timing decision. For
 example, a partially exported RTO can retain known ACC and unknown DN through
@@ -79,11 +79,16 @@ initialization. Normal execution requires a valid timer address.
 ## Existing clock policy
 
 State validation retains the existing deterministic millisecond recurrence.
-The first enabled TON/RTO call accumulates zero elapsed time; later calls add
-time since the timer record's last execution. DN true pauses accumulation and
-clears TT. False TON clears its accumulated state; false RTO retains it.
-TOF true establishes its enabled state, and the first false call starts its
-off-delay at zero elapsed time. Later false calls accumulate until PRE.
+The first true TON/RTO call starts the clock without accumulating time or
+comparing ACC with PRE. The first false TOF call after a true call does the
+same. For example, a zero preset sets TT on the first timing call. The next
+timing call updates ACC, compares it with PRE and completes the interval.
+Later timing calls add the elapsed time since the last execution. When DN
+pauses the timer, TT clears and ACC is retained. These steps follow the
+installed v35 execution tables and timing flowcharts.
+[Rockwell TON](https://www.rockwellautomation.com/en-mde/docs/studio-5000-logix-designer/37-02/contents-ditamap/instruction-set/timer-and-counter-instructions/timer-on-delay--ton-.html)
+[Rockwell TOF](https://www.rockwellautomation.com/en-fi/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/timer-and-counter-instructions/timer-off-delay--tof-.html)
+[Rockwell RTO](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/37-02/contents-ditamap/instruction-set/timer-and-counter-instructions/retentive-timer-on--rto-.html)
 
 If adding elapsed milliseconds would exceed `2,147,483,647`, the
 v35 5580 ladder profile stores that DINT limit in ACC and completes

@@ -406,10 +406,9 @@ The next valid call uses the elapsed time since its last successful
 execution. For a timer in ladder AOI Logic or EnableInFalse, the fault
 unwinds to the outermost AOI and skips the interrupted Output copies.
 The fault detail identifies the timer's routine and opcode. An uncleared
-fault rolls back the scan. The other rung states
-still require known nonnegative PRE/ACC under the existing software
-validation rules. Native timing, fault and controller behavior remain
-unverified.
+fault rolls back the scan. False TON/RTO and true TOF follow their specified
+output updates without checking PRE or ACC. Native timing, fault and controller
+behavior remain unverified.
 
 [Rockwell general instructions reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm003_-en-p.pdf)
 [Rockwell timer and counter instruction reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-01/contents-ditamap/instruction-set/timer-and-counter-instructions.html)

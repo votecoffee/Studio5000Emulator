@@ -3214,7 +3214,7 @@ class ProgramFaultTests(unittest.TestCase):
 
     def test_uncleared_timer_fault_and_other_invalid_timer_values_roll_back(self):
         cases = ((True, -1, 'Program fault 4/34.*without clearing'),
-                 (False, -1, 'outside nonnegative DINT$'),
+                 (True, 2147483648, 'outside nonnegative DINT$'),
                  (True, None, 'outside nonnegative DINT$'))
         for power, value, detail in cases:
             with self.subTest(power=power, value=value):

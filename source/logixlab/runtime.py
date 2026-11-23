@@ -612,40 +612,37 @@ class Engine:
         obj=self._counter_record(op.args[0],scope,'TIMER');timer=dict(obj)
         timing = not power if op.name == 'TOF' else power
         accumulator_limit = 2147483647
-        for member in ('PRE', 'ACC'):
-            value = timer[member]
-            if type(value) is int:
-                if 0 <= value <= accumulator_limit:
-                    continue
-                if timing and -2147483648 <= value < 0:
+        if timing:
+            for member in ('PRE', 'ACC'):
+                value = timer[member]
+                if type(value) is not int or not -2147483648 <= value <= accumulator_limit:
+                    raise ModelError(f'{op.name}: TIMER.{member} is unknown or outside nonnegative DINT')
+                if value < 0:
                     raise NegativeTimerValueError(f'{op.name}: TIMER.{member} is negative (Type 4 Code 34)')
-            raise ModelError(f'{op.name}: TIMER.{member} is unknown or outside nonnegative DINT')
+
         def flag(member):
             if type(timer[member]) is not bool:raise ModelError('TIMER.'+member+' is unknown or not BOOL')
             return timer[member]
         key,parts,_=self.memory.resolve(op.args[0],scope);identity=(key,tuple(parts))
         elapsed=self.time_ms-self.last_timer.get(identity,self.time_ms)
-        # Retain the existing deterministic timer recurrence and clock identity.
-        # Only a branch that consumes saved EN/DN requires that BOOL to be known.
-        if op.name=='TOF':
-            if power:timer.update(EN=True,TT=False,DN=True,ACC=0)
+        # A timing edge starts the clock. Only a subsequent timing call compares ACC to PRE.
+        if op.name == 'TOF':
+            if power:
+                timer.update(EN=True, TT=False, DN=True, ACC=0)
             else:
-                if flag('EN'):elapsed=0
-                timer['EN']=False
-                if flag('DN'):
+                if flag('DN') and not flag('EN'):
                     timer['ACC'] = min(timer['ACC'] + elapsed, accumulator_limit)
                     timer['DN'] = timer['ACC'] < timer['PRE']
-                timer['TT']=timer['DN']
+                timer.update(EN=False, TT=timer['DN'])
         elif not power:
-            timer.update(EN=False,TT=False)
-            if op.name=='TON':timer.update(ACC=0,DN=False)
+            timer.update(EN=False, TT=False)
+            if op.name == 'TON':
+                timer.update(ACC=0, DN=False)
         else:
-            if not flag('EN'):elapsed=0
-            timer['EN']=True
-            if not flag('DN'):
+            if not flag('DN') and flag('EN'):
                 timer['ACC'] = min(timer['ACC'] + elapsed, accumulator_limit)
                 timer['DN'] = timer['ACC'] >= timer['PRE']
-            timer['TT']=not timer['DN']
+            timer.update(EN=True, TT=not timer['DN'])
         obj.update(timer);self.last_timer[identity]=self.time_ms
         return power
 
@@ -1421,9 +1418,9 @@ class Engine:
                 'scalar_math':scalar_math.description(self.project),
                 'numeric_copy':numeric_copy.description(self.project),
                 'ladder_timers':dict(available=bit_logic.available(self.project),language='RLL',instructions=['TON','TOF','RTO'],
-                    operands='Scalar writable TIMER; known nonnegative DINT PRE/ACC; structural shape/type/permission preflight',
-                    selection='True TON/RTO and false TOF consume known EN/DN; other paths establish outputs or retain unread fields',
-                    clock='Deterministic millisecond elapsed-time recurrence, canonical record identity and first-enable behavior',
+                    operands='Scalar writable TIMER; structural shape/type/permission preflight',
+                    selection='True TON/RTO and false TOF check nonnegative DINT PRE/ACC and known DN; EN is consumed only on an active timing interval. Other paths establish or retain fields without reading PRE/ACC.',
+                    clock='Deterministic millisecond elapsed-time recurrence and canonical record identity; the first timing call starts the clock without comparing ACC to PRE',
                     overflow='Elapsed accumulation saturates ACC at the positive DINT limit and completes the timing interval',
                     lifecycle='Prescan skips out-of-bounds selections; TON clears ACC/DN, TOF copies PRE to ACC and clears DN, RTO retains ACC/DN',
                     array_recovery='A cleared Type 4 Code 20 skips a whole-project timer call and preserves its last execution time',
