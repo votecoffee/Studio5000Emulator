@@ -10,6 +10,7 @@ from unittest.mock import patch
 from xml.etree import ElementTree as ET
 
 from logixlab.model import ModelError, Project
+from test_program_faults import add_fault_dint_array
 from logixlab.network_objects import InterfaceSnapshot, NetworkBinding, cip_string
 from logixlab.runtime import Engine
 from logixlab.software_clock import clock_identity
@@ -2389,10 +2390,22 @@ class MessageTests(unittest.TestCase):
                 data = ET.SubElement(ET.SubElement(tag, 'Data', Format='Decorated'), 'Array', DataType='SINT', Dimensions='84')
                 for index, value in ((0, 99), (1, 2), (2, 0), (3, 1), (4, 0), (83, 99)):
                     ET.SubElement(data, 'Element', Index=f'[{index}]', Value=str(value))
+            for name, kind, initial in (('PathReadIndex', 'DINT', '1'), ('PathFaultCount', 'INT', '0')):
+                tag = ET.SubElement(tags, 'Tag', Name=name, TagType='Base', DataType=kind)
+                ET.SubElement(ET.SubElement(tag, 'Data', Format='Decorated'), 'DataValue',
+                              DataType=kind, Value=initial)
+            add_fault_dint_array(tags, 'PathFaultRecord', [0] * 11)
             root.find('.//Tag[@Name="ReadLocalIndex"]/Data/DataValue').set('Value', '100')
             root.find('.//Rung[@Number="26"]/Text').text = (
                 'XIC(ApplyPathBuffer)SSV(Message,ReadControl,ConnectionPath,WindowSource[ReadLocalIndex])'
-                'GSV(Message,ReadControl,ConnectionPath,WindowDest[ReadLocalIndex]);')
+                'GSV(Message,ReadControl,ConnectionPath,WindowDest[PathReadIndex]);')
+            content = root.find('.//RLLContent')
+            for number, text in enumerate((
+                'GSV(Program,THIS,MinorFaultRecord,PathFaultRecord[0]);',
+                'GSV(FaultLog,,MinorEvents,PathFaultCount);',
+                'XIC(CancelRead)CPT(ReadValue,1/0);',
+            ), start=100):
+                ET.SubElement(ET.SubElement(content, 'Rung', Number=str(number), Type='N'), 'Text').text = text
 
         engine = self.engine(configure)
         memory = engine.memory
@@ -2401,11 +2414,35 @@ class MessageTests(unittest.TestCase):
         memory.write('ReadLocalIndex', 1)
         memory.write('ApplyPathBuffer', True)
         engine.step()
-        self.assertEqual(memory.read('WindowDest'), [99, 2, 0, 1, 0] + [0] * 78 + [99])
+        destination = [99, 2, 0, 1, 0] + [0] * 78 + [99]
+        self.assertEqual(memory.read('WindowDest'), destination)
+        self.assertEqual(memory.read('PathFaultCount'), 0)
         memory.write('ReadLocalIndex', 3)
-        with self.assertRaisesRegex(ModelError, 'requires 82 contiguous SINT elements'):
+        engine.step()
+        self.assertEqual(memory.read('ReadControl.Path.DATA[1]'), 0)
+        self.assertEqual(memory.read('WindowDest'), destination)
+        self.assertEqual(memory.read('PathFaultRecord[2]'), (6 << 16) | 4)
+        self.assertEqual(memory.read('PathFaultCount'), 1)
+
+        memory.write('ReadLocalIndex', 1)
+        memory.write('PathReadIndex', 3)
+        memory.write('WindowSource[4]', -1)
+        memory.write('CancelRead', True)
+        with self.assertRaisesRegex(ModelError, 'zero'):
             engine.step()
-        self.assertEqual(memory.read('ReadControl.Path.LEN'), 2)
+        self.assertEqual(memory.read('ReadControl.Path.DATA[1]'), 0)
+        self.assertEqual(memory.read('PathFaultRecord[2]'), (6 << 16) | 4)
+        memory.write('CancelRead', False)
+        engine.step()
+        self.assertEqual(memory.read('ReadControl.Path.DATA[1]'), -1)
+        self.assertEqual(memory.read('WindowDest'), destination)
+        self.assertEqual(memory.read('PathFaultRecord[2]'), (7 << 16) | 4)
+        self.assertEqual(memory.read('PathFaultCount'), 2)
+
+        memory.write('PathReadIndex', 2)
+        engine.step()
+        self.assertEqual(memory.read('WindowDest'), [99, 2, 2, 0, 1, -1] + [0] * 78)
+        self.assertEqual(memory.read('PathFaultCount'), 2)
 
     def test_connectionpath_buffer_blocks_wrong_operand_shapes(self):
         for operand in ('IdentityReply', 'ReadValue', 'MessagePathEcho[1]'):

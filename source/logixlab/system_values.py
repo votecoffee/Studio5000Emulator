@@ -135,7 +135,7 @@ def description():
                 configuration=gsv_configuration.description(), wall_clock=gsv_wall_clock.description(),
                 timing=gsv_timing.description(), event_status=event_status.description(),
                 minor_fault_log='Ladder FaultLog MinorFaultBits DINT access and MinorEvents INT read or zero reset; modeled instruction minor faults set bit 4 and increment the controller-wide count.',
-                message_path='Ladder Message ConnectionPath reads/writes a length-prefixed 82-byte SINT window',
+                message_path='Ladder Message ConnectionPath reads/writes a length-prefixed 82-byte SINT window; short live base-array sources/destinations report Type 4 Code 6/7.',
                 message_timeout='Ladder Message UnconnectedTimeout and connected ConnectionRate use DINT or TIME32 microseconds; connected TimeoutMultiplier uses SINT',
                 array_recovery='A cleared Type 4 Code 20 in a whole-project ladder scan skips the GSV write or SSV update',
                 ssv=True, task_inhibition=task_inhibit.description(), task_rate=task_inhibit.rate_description(),

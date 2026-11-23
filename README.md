@@ -310,7 +310,8 @@ optional per-control caching. **Message lab** shows message status in
 the ladder viewer, runtime target and index changes, exact LINT writes,
 multidimensional array transfers and simulated timeouts with ladder-controlled retries.
 Ladder GSV and SSV can read and set the length-prefixed ConnectionPath,
-setup timeout, connected packet rate and response timeout multiplier. Ladder can copy the packed FLAGS word
+setup timeout, connected packet rate and response timeout multiplier. A short
+live ConnectionPath array window reports Type 4 Code 6 on SSV or Code 7 on GSV. Ladder can copy the packed FLAGS word
 and use its TO bit to cancel a request or EN_CC to control connection reuse.
 The simulated throttle admits 16
 requests at a time and retries waiting messages. The lab exercises program-local
@@ -592,8 +593,9 @@ A handler can clear
 in whole-project ladder as Type 4 Code 34.
 [Ladder GSV and SSV MinorFaultRecord](docs/controller-handlers.md#read-modeled-program-minor-faults)
 read a scheduled Program's latest modeled minor fault by name or `THIS`.
-Ladder GSV reports Type 4 Code 7 and leaves the buffer intact when a valid
-runtime index leaves too little room for a fault record, device name or module path.
+Ladder GSV reports Type 4 Code 7 when a valid runtime index leaves too little
+room for a fault record, device name or module path. Module Path zeroes the
+base destination array. Fault-record and device-name buffers keep their values.
 A write with known zero Type and Code clears the selected record. An in-bounds
 source with fewer than 11 DINTs remaining records Type 4 Code 6 and skips the
 clear. [FaultLog](docs/controller-handlers.md#read-and-reset-the-controller-minor-fault-summary)

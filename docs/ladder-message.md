@@ -357,9 +357,14 @@ for native Audit Value and Changes to Detect behavior.
   contiguous SINT window in a one-dimensional array. The first two bytes
   form an unsigned little-endian count of 0 through 80. The active path
   follows the header. SSV ignores trailing bytes, while GSV writes all 82
-  elements and zeroes the unused output. Unknown header or active bytes,
-  excessive counts and short windows fault the scan. SSV can store an
-  unsupported route for readback. MSG reports its path error if triggered.
+  elements and zeroes the unused output. If a valid runtime index leaves
+  fewer than 82 cells in a base array, SSV records Type 4 Code 6 and keeps the
+  existing path. GSV records Type 4 Code 7 and keeps the destination intact.
+  The rung continues and the caller's minor record, `S:MINOR`, and FaultLog
+  update. Static short windows and out-of-bounds indices retain their existing
+  errors. Unknown active bytes or an excessive count still fault the scan.
+  SSV can store an unsupported route for readback. MSG reports its path error
+  if triggered. Native short-buffer behavior remains unverified.
 - Numeric Data Table endpoints must use matching SINT, INT, DINT, LINT, or finite REAL types.
   They can name scalar tags or spans of 1 to 64 elements in arrays of up to
   three dimensions. A two- or three-dimensional start must specify every

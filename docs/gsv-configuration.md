@@ -529,10 +529,12 @@ live message forwarding remain unverified.
 In a scheduled ladder Program, `ControllerDevice.DeviceName` and `Module.Path`
 report Type 4, Code 7 when a runtime index starts inside a base SINT array
 with too few elements left for the value. DeviceName needs 33 bytes. Module
-Path needs two length bytes plus the configured route. The entire array
-retains its previous values and the rung continues. The executing Program
-records the fault, `S:MINOR` is set, and the controller FaultLog sets bit 4
-and increments `MinorEvents`.
+Path needs two length bytes plus the configured route. A short DeviceName
+destination keeps its values. A short Module Path destination zeroes the
+base array, including elements before the selected index. This models the
+array-zeroing rule in the Module object help. The rung continues, the executing
+Program records the fault, `S:MINOR` is set, and the controller FaultLog sets
+bit 4 and increments `MinorEvents`.
 
 Static short destinations, incompatible types and read-only tags are still
 rejected before execution. An index outside the selected array follows the

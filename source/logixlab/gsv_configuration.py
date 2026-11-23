@@ -551,6 +551,10 @@ def _structured_fault_record(memory, key, parts, attribute):
 class ArrayWindowTooSmall(ModelError):
     """The selected primitive array tail cannot hold the complete value."""
 
+    def __init__(self, message, *, array_key=None):
+        super().__init__(message)
+        self.array_key = array_key
+
 
 def _check_window_capacity(paths, size, message):
     if len(paths) == size:
@@ -770,7 +774,7 @@ def destination(memory, ref, scope, dtype, value, *, allow_dint=False):
             raise ModelError(error)
         if len(cells) - start < size:
             if not base:
-                raise ArrayWindowTooSmall(error)
+                raise ArrayWindowTooSmall(error, array_key=key)
             raise ModelError(error)
         return key, [base + [i] for i in range(start, start + size)], kind
     if dtype=='STRING':
@@ -810,12 +814,14 @@ def execute(engine, op, scope):
     dtype,value=source(engine,op,scope,executing=True);memory=engine.memory
     try:
         key,paths,kind=destination(memory,op.args[3],scope,dtype,value,allow_dint=dtype=='INT' and op.args[0].casefold()=='module')
-    except ArrayWindowTooSmall:
+    except ArrayWindowTooSmall as short:
         routine = engine._executing_routine
         if (dtype not in (MINOR_FAULT_RECORD, 'SINT[33]', MODULE_PATH) or routine is None
                 or routine.kind != 'RLL' or scope in memory.frames
                 or not engine._record_instruction_minor_fault(GSV_DESTINATION_TOO_SMALL)):
             raise
+        if dtype == MODULE_PATH:
+            memory.store(short.array_key, [], [0] * len(memory.at(short.array_key, [])))
         return
     if dtype in (MAJOR_FAULT_RECORD, MINOR_FAULT_RECORD) and kind != 'DINT':
         value = _structured_fault_values(value, kind)
@@ -857,7 +863,7 @@ def description():
                     attributes={name: dtype for name, (dtype, _) in AOI_DEFINITION_FIELDS.items()}),
                 module=['ForceStatus','LEDStatus','Mode','EntryStatus','FaultCode','FaultInfo','Path'],
                 module_path='Counted CIP route for a local slot, an explicit IPv4 device, or a slot under a qualified remote EN2T/EN2TR.',
-                short_array_destination='Ladder GSV DeviceName, Module Path and MinorFaultRecord record Type 4 Code 7 for an in-bounds root array start with insufficient capacity.',
+                short_array_destination='Ladder GSV DeviceName, Module Path and MinorFaultRecord record Type 4 Code 7 for an in-bounds root array start with insufficient capacity. Module Path also zeroes its base array.',
                 short_array_source='Ladder SSV MinorFaultRecord records Type 4 Code 6 for an in-bounds root DINT array start with insufficient capacity.',
                 named_module_settings='Explicit local and qualified routed source settings with live Mode overrides. EntryStatus models Inhibited, Waiting, and explicit simulated Running or Faulted states.',
                 module_mode_ssv={'source':'Exact scalar INT with bits 0 and 2 only',

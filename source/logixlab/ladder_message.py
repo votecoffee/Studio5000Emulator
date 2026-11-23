@@ -5,6 +5,7 @@ import struct
 from dataclasses import dataclass, replace
 
 from . import software_clock, time_sync, wall_clock
+from .gsv_configuration import ArrayWindowTooSmall, GSV_DESTINATION_TOO_SMALL, SSV_SOURCE_TOO_SMALL
 from .identity import Identity
 from .integer_math import CONTROLLERS
 from .model import ModelError, coerce
@@ -647,7 +648,11 @@ def _path_window(memory, op, scope):
         raise ModelError(error)
     base, cells = region
     start = parts[-1] if parts != base else 0
-    if len(cells) - start < PATH_BUFFER_SIZE or isinstance(cells[0], list):
+    if not cells or isinstance(cells[0], list):
+        raise ModelError(error)
+    if len(cells) - start < PATH_BUFFER_SIZE:
+        if not base:
+            raise ArrayWindowTooSmall(error)
         raise ModelError(error)
     return key, base, start
 
@@ -703,7 +708,13 @@ def execute_attribute(engine, op, scope):
     memory = engine.memory
     control = _control_key(engine, op.args[1], scope, op.name)
     if attribute == 'connectionpath':
-        return _execute_path_attribute(memory, op, scope, control)
+        try:
+            _execute_path_attribute(memory, op, scope, control)
+        except ArrayWindowTooSmall:
+            code = SSV_SOURCE_TOO_SMALL if op.name == 'SSV' else GSV_DESTINATION_TOO_SMALL
+            if not engine._record_instruction_minor_fault(code):
+                raise
+        return
     member, types = TIMING_ATTRIBUTES[attribute]
     key, parts, dtype = _timing_operand(memory, op, scope, member, types)
     record = memory.values[control]
