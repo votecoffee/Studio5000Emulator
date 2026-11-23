@@ -404,7 +404,7 @@ def description():
                 shifts='DINT arrays, rising EN, low-to-high word order, partial last word preserved',
                 shift_extent='v35 5580 standalone BSL/BSR or member-array BSL overrun sets ER for Type 4 Code 20 recovery',
                 fifo='SINT/INT/DINT/REAL plus qualified v35 5580 mixed numeric payloads and matching TIMER/COUNTER/CONTROL/PID, strings and explicit UDTs; rising EN/EU, saved LEN/POS, selected-member bounds',
-                numeric_conversions='v35 5580 RLL FFL/FFU/LFL/LFU: narrow numeric payload/array pairs; signed integer extension, low-bit narrowing, float32 REAL and representable nearest-even integer results',
+                numeric_conversions='v35 5580 RLL FFL/FFU/LFL/LFU: signed integer extension, low-bit narrowing, float32 REAL and nearest-even rounding. SINT/INT keep the low bits of a rounded DINT-range REAL payload.',
                 numeric_selection='Bounded DINT/finite REAL load immediates; structural payload preflight, lazy edge reads, complete unknown writes and whole-advance rollback',
                 fifo_empty='Empty unload writes a typed zero element once per qualified rising edge',
                 load_position='v35 5580 FFL/LFL check only start + POS in the selected array or member on the load edge; a reached missing slot raises Type 4 Code 20',

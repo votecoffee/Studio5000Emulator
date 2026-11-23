@@ -1,6 +1,6 @@
 """Logical basic-record/STRING/UDT queue copies and qualified narrow numeric conversions."""
 import copy
-from .integer_math import CONTROLLERS, dint_radix
+from .integer_math import CONTROLLERS, NARROW_RESULT_TYPES, dint_radix
 from .model import ModelError,coerce,INT_BITS
 from . import numeric_storage, time_values
 
@@ -38,13 +38,20 @@ def numeric_type(memory,ref,scope,*,destination=False):
     return dtype
 
 
+def convert_numeric(value, source, dest):
+    if source == 'REAL' and dest in NARROW_RESULT_TYPES:
+        result, _ = numeric_storage.round_real_to_narrow_signed(coerce(value, source), dest)
+        return result
+    return numeric_storage.convert(value, source, dest)
+
+
 def read(memory,ref,scope,dtype):
     if not aggregate(dtype) and numeric_storage.available(memory.project):
         word = dint_radix(ref)
         if word is not None:
             return numeric_storage.convert(word, 'DINT', dtype)
         source=numeric_type(memory,ref,scope)
-        return numeric_storage.convert(memory.read(ref,scope),source,dtype)
+        return convert_numeric(memory.read(ref,scope), source, dtype)
     value=memory.read(ref,scope)
     if not aggregate(dtype):return coerce(value,dtype)
     if not isinstance(value,dict):raise ModelError('FIFO requires one represented logical record')
@@ -60,7 +67,7 @@ def write(memory,ref,scope,dtype,value):
     if not aggregate(dtype) and numeric_storage.available(memory.project):
         target=numeric_type(memory,ref,scope,destination=True)
         key,parts,_=memory.check_writable(ref,scope)
-        memory.store(key,parts,numeric_storage.convert(value,dtype,target))
+        memory.store(key, parts, convert_numeric(value, dtype, target))
         return
     if not aggregate(dtype):memory.write(ref,value,scope);return
     key,parts,kind=memory.check_writable(ref,scope)

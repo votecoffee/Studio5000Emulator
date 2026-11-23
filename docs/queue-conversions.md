@@ -16,10 +16,15 @@ Other controller/firmware profiles retain their matching-type numeric rules.
 
 Integer widening sign-extends signed values; integer narrowing keeps the low
 destination bits. REAL sources and results use float32 representation. REAL to
-integer conversion rounds to nearest, ties to even, and requires a result that
-fits the destination. This shares the [numeric MOV model](numeric-storage.md).
-For example, REAL 3.5 loads as INT 4; DINT 4660 loads as SINT 52; SINT -1 unloads
+integer conversion rounds to nearest, with ties going to even. SINT and INT
+take the low bits of a rounded DINT-range REAL value. For example, REAL
+32767.5 loads as INT -32768, and REAL 127.5 unloads as SINT -128. The queue
+instructions retain the rung's math flags and the task's minor-fault flag.
+Rounded values outside DINT range use the checked conversion.
+
+REAL 3.5 loads as INT 4, DINT 4660 loads as SINT 52, and SINT -1 unloads
 as DINT -1. DINT 16777217 converts to REAL 16777216.
+[Rockwell REAL-to-integer conversion](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/real-to-integer.html)
 
 Load immediates are bounded signed-DINT integers or finite REAL constants.
 FFL and LFL decode unsuffixed binary, octal and hexadecimal source words before
@@ -60,8 +65,8 @@ Choose **Control lab** and step once to rearm its queue latches. Open the called
   Its default 4660 becomes 52. Pulse `MixedPop` to return it in REAL `MixedStackResult`.
 - Set each trigger false and step before its next rising edge. Holding it true
   retains the queue position. The fourth array elements are guards.
-- A reached load of REAL 40000 into the INT queue faults and rolls back. Set the
-  source to 3.5 to retry the same edge successfully.
+- REAL 40000 loads into the INT queue as -25536. Use REAL 2147483648 to see a
+  range fault and rollback, then set the source to 3.5 to retry the same edge.
 
 The baseline follows installed v35 help 14529/14528/14527/14526 and Rockwell's
 published [FFU reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/array--file--shift-instructions/fifo-unload--ffu-.html).

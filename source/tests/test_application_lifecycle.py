@@ -5373,12 +5373,16 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual((row['MixedResult'],row['MixedStackResult']),(4,52.0));self.assertEqual((row['MixedQueue[0]'],row['MixedStack[0]']),(0,0))
         self.assertEqual((row['MixedQueue[3]'],row['MixedStack[3]']),(999,99))
         write('MixedUnload',False);write('MixedPop',False);write('MixedSource',40000.0);step();write('MixedLoad',True)
+        row=values(step())
+        self.assertEqual((row['MixedQueue[0]'],row['MixedQueueControl.POS']),(-25536,1))
+        write('MixedLoad',False);write('MixedSource',2**31);step();write('MixedLoad',True)
         with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:before=json.load(response)
         with self.assertRaises(HTTPError) as error:step()
         self.assertEqual(error.exception.code,400);self.assertIn('overflow',error.exception.read().decode());error.exception.close()
         with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
         for key in ('tags','routines','scan','ms','task_schedule','routine_edits','trace'):self.assertEqual(after[key],before[key])
-        write('MixedSource',-3.5);row=values(step());self.assertEqual(row['MixedQueue[0]'],-4)
+        write('MixedSource',-3.5);row=values(step())
+        self.assertEqual((row['MixedQueue[0]'],row['MixedQueue[1]'],row['MixedQueueControl.POS']),(-25536,-4,2))
         report=self.post('report',{})['control_operations'];self.assertIn('FFL/FFU/LFL/LFU',report['numeric_conversions']);self.assertFalse(report['native_fault_classification'])
 
     def test_system_lab_wall_clock_reads_typed_fields_and_keeps_lazy_rollback_through_http(self):

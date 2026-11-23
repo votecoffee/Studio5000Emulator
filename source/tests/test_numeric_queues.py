@@ -65,11 +65,12 @@ class NumericQueueTests(unittest.TestCase):
             e.step();e.memory.write('StartPB',True);e.step();self.assertEqual(e.memory.read('Queue[0]'),expected)
 
     def test_bounded_real_and_dint_immediates_convert_only_on_reached_load(self):
-        for literal,dtype,expected in [('3.5','SINT',4),('4660','SINT',52),('-1','INT',-1),('16777217','REAL',16777216.0)]:
+        for literal,dtype,expected in [('3.5','SINT',4),('4660','SINT',52),('-1','INT',-1),
+                                       ('16777217','REAL',16777216.0),('127.5','SINT',-128),('32767.5','INT',-32768)]:
             for op in ('FFL','LFL'):
                 e=self.checked([f'XIC(StartPB){op}({literal},Queue[0],Ctl,?,?);'],dtype=dtype,length=1,queue=(0,0,0,99))
                 e.step();e.memory.write('StartPB',True);e.step();self.assertEqual(e.memory.read('Queue[0]'),expected)
-        e=self.checked(['XIC(StartPB)FFL(128.0,Queue[0],Ctl,?,?);'],dtype='SINT',length=1,queue=(0,0,0,99))
+        e=self.checked(['XIC(StartPB)FFL(2147483648.0,Queue[0],Ctl,?,?);'],dtype='SINT',length=1,queue=(0,0,0,99))
         e.step();e.memory.write('StartPB',True);self.fault(e,'overflow')
 
     def test_radix_loads_decode_sign_and_respect_edge_and_full_paths(self):
@@ -102,6 +103,35 @@ class NumericQueueTests(unittest.TestCase):
         for op,expected,remaining in [('FFU',2,[2.5,7.25,0.0,99]),('LFU',2,[1.5,0.0,7.25,99])]:
             e=self.checked([f'XIC(StartPB){op}(Queue[0],Outgoing,Ctl,?,?);'],dtype='REAL',dest_type='DINT',length=3,position=2,queue=(1.5,2.5,7.25,99))
             e.step();e.memory.write('StartPB',True);e.step();self.assertEqual(e.memory.read('Outgoing'),expected);self.assertEqual(e.memory.read('Queue'),remaining)
+
+    def test_real_load_and_unload_narrow_without_changing_math_flags_or_queue_order(self):
+        def configure(root):
+            root.find('Controller').set('ReportMinorOverflow', 'true')
+
+        for dtype, value, result in (('SINT', 255.5, 0), ('INT', 32767.5, -32768)):
+            for op, arguments, array_type, position, initial, remaining, destination in (
+                    ('FFL', 'Incoming,Queue[0]', dtype, 0, (0, 17, 33, 99), [result, 17, 33, 99], 'Queue[0]'),
+                    ('LFL', 'Incoming,Queue[0]', dtype, 0, (0, 17, 33, 99), [result, 17, 33, 99], 'Queue[0]'),
+                    ('FFU', 'Queue[0],Outgoing', 'REAL', 2, (value, 17, 33, 99), [17, 33, 0, 99], 'Outgoing'),
+                    ('LFU', 'Queue[0],Outgoing', 'REAL', 2, (17, value, 33, 99), [17, 0, 33, 99], 'Outgoing')):
+                with self.subTest(op=op, dtype=dtype):
+                    e = self.checked([
+                        f'XIC(StartPB)MOV(-1,SpeedCommand){op}({arguments},Ctl,?,?)'
+                        'XIO(S:V)XIC(S:N)XIO(S:Z)OTE(RunLatch);',
+                        'XIC(S:MINOR)OTE(MotorRunning);',
+                    ], dtype=array_type, source_type='REAL', dest_type=dtype, source=value,
+                        length=3, position=position, queue=initial, mutate=configure)
+                    e.step()
+                    self.assertEqual(e.memory.read('Queue'), list(initial))
+                    e.memory.write('StartPB', True)
+                    e.step()
+                    self.assertEqual(e.memory.read(destination), result)
+                    self.assertEqual(e.memory.read('Queue'), remaining)
+                    self.assertEqual(e.memory.read('Ctl.POS'), 1)
+                    self.assertTrue(e.memory.read('RunLatch'))
+                    self.assertFalse(e.memory.read('MotorRunning'))
+                    e.step()
+                    self.assertEqual(e.memory.read('Queue'), remaining)
 
     def test_empty_unload_establishes_typed_zero_without_consuming_array_values(self):
         for op in ('FFU','LFU'):
@@ -146,7 +176,7 @@ class NumericQueueTests(unittest.TestCase):
         for op in ('FFL','LFL','FFU','LFU'):
             load=op in ('FFL','LFL')
             rung=f'{op}(Incoming,Queue[0],Ctl,?,?);' if load else f'{op}(Queue[0],Outgoing,Ctl,?,?);'
-            e=self.checked(['XIC(StartPB)'+rung],dtype='SINT' if load else 'REAL',source_type='REAL',dest_type='SINT',source=128.0,length=2,position=0 if load else 1,queue=(0 if load else 128.0,17,0,99))
+            e=self.checked(['XIC(StartPB)'+rung],dtype='SINT' if load else 'REAL',source_type='REAL',dest_type='SINT',source=2**31,length=2,position=0 if load else 1,queue=(0 if load else 2**31,17,0,99))
             e.step();e.memory.write('StartPB',True);self.fault(e,'overflow')
             e.memory.write('Incoming' if load else 'Queue[0]',3.5);e.step()
             self.assertEqual(e.memory.read('Queue[0]' if load else 'Outgoing'),4)

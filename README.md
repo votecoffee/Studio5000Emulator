@@ -499,9 +499,9 @@ and CONTROL records, including nested UDT members. **Record lab** demonstrates
 detached snapshots and typed clearing in FIFO/LIFO storage.
 
 [Numeric queue conversions](docs/queue-conversions.md) let ladder FIFO/LIFO
-load and unload different SINT/INT/DINT/REAL types with typed conversion,
-edge retention and transactional rollback. **Control lab** includes a called
-example for both queues and stacks.
+load and unload different SINT/INT/DINT/REAL types. DINT-range REAL results
+can round and narrow to SINT or INT while retaining math flags, edge behavior,
+and rollback. **Control lab** includes an example for both queues and stacks.
 
 [Clipped numeric fills](docs/clipped-fills.md) let FLL stop oversized requests
 at the selected logical array boundary while preserving source capture and
