@@ -4,9 +4,9 @@ import re
 from .expressions import Expression
 from .conditions import Condition
 from . import string_operations, string_conversions, numeric_copy, numeric_fill, aggregate_copy, size_truncate, comparisons, wide_st, lreal_expressions
-from .integer_math import WIDE_TYPES, CONTROLLERS
+from .integer_math import NARROW_RESULT_TYPES, WIDE_TYPES, CONTROLLERS
 from .model import INT_BITS, literal
-from . import time_values
+from . import numeric_storage, time_values
 from .model import ModelError, coerce
 
 EXTENDED = {'COP','CPS','FLL','SIZE','CPT','CONCAT','MID','DTOS','STOD','TRN','CMP','MEQ'}
@@ -99,18 +99,27 @@ class Extensions:
         expression=self.expression(args[1],bcd=True,floating_literals=True,integer_literals=True,radix_literals=True)
         temporal=time_values.expression_profile(expression,self.memory,scope,dtype,consumer='CPT')
         if temporal is not None:
-            return time_values.evaluate_expression(expression,self.memory,scope,temporal) if execute else None
+            if execute:
+                return time_values.evaluate_expression(expression, self.memory, scope, temporal), False
+            return
+        narrow_real = dtype in NARROW_RESULT_TYPES and numeric_storage.available(self.engine.project)
         floating=(lreal_expressions.analyze(expression,self.memory,scope,dtype,consumer='CPT') or
                   lreal_expressions.analyze(expression,self.memory,scope,dtype,consumer='CPT',precision='REAL'))
         if floating is not None:
-            if execute:return lreal_expressions.evaluate(expression,self.memory,scope,floating)
+            if execute:
+                result = lreal_expressions.evaluate(expression, self.memory, scope, floating)
+                return result, narrow_real and floating.get('precision') == 'REAL'
             return
         profile=wide_st.analyze(expression,self.memory,scope,dtype,consumer='CPT')
         if profile is not None:
             if profile[1]!='number':raise ModelError('CPT requires a numeric expression result')
-            if execute:return wide_st.evaluate(expression,self.memory,scope,profile)
-        elif execute:return expression.evaluate(self.memory,scope,dtype)
-        else:expression.validate(self.memory,scope,dtype)
+            if execute:
+                return wide_st.evaluate(expression, self.memory, scope, profile), False
+        elif execute:
+            result = expression.evaluate(self.memory, scope, dtype)
+            return result, narrow_real and type(result) is float
+        else:
+            expression.validate(self.memory, scope, dtype)
 
     def block(self,op,scope,execute=False):
         n,a=op.name,op.args
@@ -307,7 +316,12 @@ class Extensions:
                 value=value[0]
             if not isinstance(value,list):raise ModelError('SIZE dimension exceeds array rank')
             self.memory.write(a[2],len(value),scope)
-        elif n=='CPT':self.memory.write(a[0],self.compute(a,scope,execute=True),scope)
+        elif n=='CPT':
+            result, narrow_real = self.compute(a, scope, execute=True)
+            if narrow_real:
+                numeric_storage.write_real_math_result(self.memory, a[0], result, scope)
+            else:
+                self.memory.write(a[0], result, scope)
         elif n=='TRN':self.memory.write(a[1],__import__('math').trunc(coerce(self.memory.read(a[0],scope),'REAL')),scope)
         elif n=='CONCAT':
             text=self.memory.string(a[0],scope)+self.memory.string(a[1],scope)

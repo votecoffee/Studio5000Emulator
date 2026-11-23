@@ -43,6 +43,41 @@ class RealExpressionTests(unittest.TestCase):
         e=self.engine(['CPT(Dest,18446744073709551615UL/3UL);'],dtype='ULINT');e.step();self.assertEqual(e.memory.read('Dest'),6148914691236517205)
         e=self.engine(['CPT(Dest,(16777217U+1U)-16777216U);'],dtype='UDINT');e.step();self.assertEqual(e.memory.read('Dest'),2)
 
+    def test_cpt_real_final_store_narrows_for_narrow_and_typed_expressions(self):
+        for dtype, limit in (('SINT', 128), ('INT', 32768)):
+            for expression in ('Source+1', 'Source+1UL'):
+                with self.subTest(dtype=dtype, expression=expression):
+                    e = self.engine([
+                        f'XIC(StartPB)ADD(-1,1,SpeedCommand)CPT(Dest,{expression})'
+                        '[XIC(S:V)XIC(S:C)OTE(RunLatch),XIC(S:N)OTE(MotorRunning)];',
+                    ], types=('REAL', 'DINT', dtype), values=(limit - 1.5, 0, 0))
+                    e.step()
+                    self.assertEqual(e.memory.read('Dest'), 0)
+                    e.memory.write('StartPB', True)
+                    e.step()
+                    self.assertEqual(e.memory.read('Dest'), -limit)
+                    self.assertTrue(e.memory.read('RunLatch'))
+                    self.assertTrue(e.memory.read('MotorRunning'))
+                    e.memory.write('Source', 2.5)
+                    e.step()
+                    self.assertEqual(e.memory.read('Dest'), 4)
+                    self.assertFalse(e.memory.read('RunLatch'))
+                    self.assertFalse(e.memory.read('MotorRunning'))
+
+    def test_cpt_checked_paths_and_expression_faults_keep_atomic_rollback(self):
+        for expression, error in (
+                ('128', 'SINT overflow'), ('127.5L', 'SINT overflow'),
+                ('2147483648.0', 'SINT overflow'), ('127.5/0.0', 'zero')):
+            with self.subTest(expression=expression):
+                e = self.engine(['MOV(77,SpeedCommand);', f'CPT(Dest,{expression});'], dtype='SINT')
+                self.fault(e, error)
+
+        def older_controller(root):
+            root.find('Controller').set('ProcessorType', '1756-L75')
+
+        e = self.engine(['CPT(Dest,127.5);'], dtype='SINT', mutate=older_controller)
+        self.fault(e, 'SINT overflow')
+
     def test_cmp_numeric_relations_bool_composition_and_required_sides(self):
         e=self.engine(['CMP((Source+0.5=7.5)&&!StartPB)OTE(RunLatch);'],dtype='ULINT');e.step();self.assertTrue(e.memory.read('RunLatch'))
         for text in ('(Source>0.0)||(1UL/0.0>0)','(Source<0.0)&&(1UL/0.0>0)'):

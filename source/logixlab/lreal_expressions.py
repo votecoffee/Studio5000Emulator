@@ -258,5 +258,9 @@ def real_description(project):
                 cmp_exceptional_relations='Direct REAL tag operands may supply NaN or infinity to CMP relations.',
                 strings='Built-in STRING and declared DINT LEN/SINT DATA strings; compare active bytes lexically and case-sensitively; validate LEN and required bytes; no string arithmetic/literals',
                 destination_types=sorted(NUMERIC-{'LREAL'}),destination_conversion='Nearest-even integer conversion with range checks; REAL results retain float32 precision',
+                cpt_signed_narrowing=dict(destinations=['SINT','INT'],
+                    result='A rounded DINT-range REAL result stores its low destination bits',
+                    status='The stored result sets S:N and S:Z, with S:V set on narrowing',
+                    native_runtime_parity=False),
                 failures='Unknowns, bounds, domains, integer ranges and later failures roll back; FAL REAL calculation overflow retains the existing ER/POS/prefix/retry behavior',
                 native_runtime_parity=False,native_math_status=False)

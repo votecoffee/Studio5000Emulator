@@ -4027,6 +4027,48 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.post('write', {'tag': 'Mask', 'value': 3})
         self.assertEqual(readings(), (16, 8, False, False, False, False))
 
+    def test_ladder_cpt_narrows_real_final_result_and_rolls_back_late_fault_through_http(self):
+        from test_scalar_math import ScalarMathTests
+
+        fixture = ScalarMathTests()
+        fixture.setUp()
+        try:
+            def configure(root):
+                root.find('Controller').set('ReportMinorOverflow', 'true')
+
+            engine = fixture.checked([
+                'CPT(Results[0],Source+1UL)[XIC(S:V)OTE(RunLatch),XIC(S:Z)OTE(StopPB)];',
+                'XIC(S:V)OTE(StartPB);',
+                'XIC(S:MINOR)OTE(MotorRunning);',
+                'CPT(SpeedCommand,1.0/Mask);',
+            ], source='REAL', dest='SINT', value=126.5, mutate=configure)
+            content = base64.b64encode(engine.project.path.read_bytes()).decode()
+        finally:
+            fixture.doCleanups()
+        self.assertEqual(self.post('load', {'name': 'NarrowRealCPT.L5X', 'content': content})['blockers'], [])
+
+        def readings():
+            state = self.post('step', {'dt': 10})
+            values = {row['name']: row['value'] for row in state['tags']}
+            names = ('Results[0]', 'RunLatch', 'StopPB', 'StartPB', 'MotorRunning')
+            return tuple(values[name] for name in names)
+
+        self.assertEqual(readings(), (-128, True, False, False, True))
+        self.post('write', {'tag': 'Source', 'value': 254.5})
+        before = self.post('write', {'tag': 'Mask', 'value': 0})
+        with self.assertRaises(HTTPError) as error:
+            self.post('step', {'dt': 10})
+        self.assertEqual(error.exception.code, 400)
+        error.exception.close()
+        with urlopen(Request(self.url + '/api/state', headers={'X-Logix-Token':self.token}), timeout=3) as response:
+            after = json.load(response)
+        for name in ('tags', 'scan', 'ms', 'task_schedule'):
+            self.assertEqual(after[name], before[name])
+        self.post('write', {'tag': 'Mask', 'value': 1})
+        self.assertEqual(readings(), (0, True, True, False, True))
+        self.post('write', {'tag': 'Source', 'value': 4.5})
+        self.assertEqual(readings(), (6, False, False, False, False))
+
     def test_imported_unknown_scalar_math_is_lazy_and_atomic_through_http(self):
         import base64
         from test_scalar_math import ScalarMathTests

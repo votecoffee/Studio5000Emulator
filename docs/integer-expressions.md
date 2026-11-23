@@ -94,6 +94,9 @@ This includes earlier writes, scheduler state and any INC progress. A failed
 incremental FAL iteration can be retried at the same element after correcting
 its input; earlier successful advances remain committed.
 
+A [REAL CPT result stored in SINT or INT](real-expressions.md#cpt-into-sint-or-int)
+can narrow at the final store when the rounded result fits DINT.
+
 [Array-index division and bitwise operators](array-index-expressions.md) now
 execute with narrow integer expressions; a single integer tag retains its
 declared range. [Integer powers](ladder-integer-power.md) now have a bounded

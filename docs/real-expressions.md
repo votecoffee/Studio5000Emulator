@@ -34,8 +34,27 @@ a REAL-selecting function keep their exact calculations and type/range rules.
 16777217U becomes 16777216 before computation. Consequently
 `(16777217U+1U)-16777216U` produces zero in a REAL destination. Float32
 intermediates distinguish this from evaluating exact integers and rounding only
-at the end. Results convert once to the destination: integer results use
-nearest-even rounding and must fit; REAL results retain float32 precision.
+at the end. Results convert once to the destination. Integer results use
+nearest-even rounding, and REAL results retain float32 precision.
+
+## CPT into SINT or INT
+
+For v35 ControlLogix 5580 ladder CPT, the final REAL result rounds to the
+nearest integer, with ties going to even. If that integer fits DINT, a SINT
+or INT destination receives its low bits. For example, `CPT(Byte,126.5+1)`
+stores -128 in SINT `Byte`, sets `S:V`, and continues the rung.
+
+`S:N` and `S:Z` reflect the stored value, and the rung retains its existing
+carry flag. Narrowing also sets the task's `S:MINOR` when
+`ReportMinorOverflow` is enabled. The conversion applies to existing narrow
+REAL expressions and mixed REAL expressions with wide or typed operands.
+The expression still checks its intermediates and required operands before
+the store. Integer and binary64 CPT results, rounded values outside DINT range,
+and file-instruction destinations keep their range checks.
+[Rockwell CPT reference](https://www.rockwellautomation.com/en-ie/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/compute-math-instructions/compute--cpt-.html)
+[Rockwell REAL-to-integer conversion](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/real-to-integer.html)
+
+## Conditions and file progress
 
 CMP/FSC support six numeric relations, scalar BOOL tags and eager Boolean
 composition. Both sides are consumed, including when one Boolean result already
