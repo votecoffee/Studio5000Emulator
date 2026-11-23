@@ -3811,6 +3811,38 @@ class ApplicationLifecycleTests(unittest.TestCase):
         state = self.post('write', {'tag': 'Results[0]', 'value': 3.5})
         self.assertEqual(next(row['value'] for row in state['tags'] if row['name'] == 'Results[0]'), 3.5)
 
+    def test_floating_arithmetic_consumes_div_results_through_http(self):
+        import base64
+        import math
+        from test_real_remainder import RealRemainderTests
+
+        fixture = RealRemainderTests()
+        fixture.setUp()
+        try:
+            engine = fixture.checked([
+                'XIC(StartPB)DIV(Source,Mask,Results[0]);',
+                'XIC(StartPB)NEG(Results[0],Results[1]);',
+                'XIC(StartPB)DIV(2.0,Results[0],Results[2]);',
+                'XIC(StartPB)ADD(Results[0],3,SpeedCommand)OTE(RunLatch);',
+            ], divisor=0, dest='LREAL')
+            content = base64.b64encode(engine.project.path.read_bytes()).decode()
+        finally:
+            fixture.doCleanups()
+        loaded = self.post('load', {'name': 'FloatingArithmetic.L5X', 'content': content})
+        self.assertEqual(loaded['blockers'], [])
+        self.post('write', {'tag': 'StartPB', 'value': True})
+        state = self.post('step', {'dt': 10})
+        values = {row['name']: row['value'] for row in state['tags']}
+        self.assertEqual([values[f'Results[{i}]'] for i in range(3)], ['-Infinity', 'Infinity', 0])
+        self.assertEqual(math.copysign(1, values['Results[2]']), -1)
+        self.assertEqual(values['SpeedCommand'], -2147483648)
+        self.assertTrue(values['RunLatch'])
+        self.post('write', {'tag': 'Mask', 'value': 2})
+        state = self.post('step', {'dt': 10})
+        values = {row['name']: row['value'] for row in state['tags']}
+        self.assertEqual([values[f'Results[{i}]'] for i in range(3)], [-3.75, 3.75, 2.0 / -3.75])
+        self.assertEqual(values['SpeedCommand'], -1)
+
     def test_floating_div_signed_integer_limits_and_minor_status_through_http(self):
         import base64
         from test_real_remainder import RealRemainderTests

@@ -1223,16 +1223,14 @@ class Engine:
         if p and n in integer_math.INSTRUCTIONS:
             scalar = n in scalar_math.ARITHMETIC and scalar_math.available(self.project)
             floating=numeric_storage.floating_math_profile(self.memory,op,scope,radix=True) if scalar else None
-            if floating=='LREAL':return scalar_math.execute_lreal(self,op,scope)
-            if floating=='REAL':return scalar_math.execute_real(self,op,scope)
+            if floating is not None:return scalar_math.execute_floating(self,op,scope,floating)
             narrowing=scalar_math.narrowing_profile(self,op,scope) if scalar else None
             if narrowing is not None:return scalar_math.execute_narrowing(self,op,scope,narrowing)
             radix = integer_math.radix_profile(self,op,scope,arithmetic=True) if scalar else None
             if scalar and not radix and scalar_math.time_arithmetic(self, op, scope, execute=True):
                 return True
             dtype = radix or (scalar_math.arithmetic_profile(self,op,scope) if scalar else integer_math.profile(self,op,scope))
-            if dtype=='LREAL':return scalar_math.execute_lreal(self,op,scope)
-            if dtype=='REAL':return scalar_math.execute_real(self,op,scope)
+            if dtype in ('REAL', 'LREAL'):return scalar_math.execute_floating(self,op,scope,dtype)
             if dtype is not None:return integer_math.execute(self,op,scope,dtype,radix=bool(radix))
         if n=='LBL':return p
         if n=='JMP':

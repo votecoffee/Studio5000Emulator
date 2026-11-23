@@ -764,6 +764,8 @@ copies the dividend and continues the rung under the same reporting policy.
 [Floating DIV with a zero divisor](docs/scalar-math.md#floating-div-with-a-zero-divisor)
 can write NaN or signed infinity to REAL or LREAL. Signed integer destinations
 get zero, the maximum or the minimum, according to the result.
+[Standalone floating ladder arithmetic](docs/scalar-math.md#arithmetic-on-nan-and-infinity)
+can consume these values in ADD, SUB, MUL, DIV, NEG and ABS.
 
 [Numeric move and clear](docs/numeric-storage.md) support signed/unsigned integer
 and REAL/LREAL scalar MOV conversions, typed CLR zeros and full writes to unknown

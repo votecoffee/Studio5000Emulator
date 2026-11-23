@@ -78,6 +78,26 @@ parity remain unverified.
 [Rockwell DIV reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/compute-math-instructions/divide--div-.html)
 [Rockwell controller replacement guide, pages 152 and 171–172](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm100_-en-p.pdf)
 
+## Arithmetic on NaN and infinity
+
+Standalone ladder ADD, SUB, MUL, DIV, NEG and ABS can read NaN and infinity
+from REAL and LREAL tags. The v35 5580 model applies IEEE floating-point
+arithmetic. Opposite infinities add to NaN, multiplying infinity by zero
+produces NaN, and dividing a positive finite value by negative infinity
+produces negative zero. NEG and ABS can change the sign of infinity.
+
+A floating destination receives the result. For signed integer destinations,
+NaN becomes zero and infinities become the corresponding signed limit. An infinity
+converted to a signed integer sets the task's modeled `S:MINOR` bit when
+`ReportMinorOverflow` is explicitly enabled. The zero-divisor rules above apply
+when the divisor is zero, including when the dividend is already NaN.
+
+Unsigned destinations reject nonfinite results. Reached operands are still
+required and faults roll back the advance. Finite-input overflow, MOD and
+arithmetic inside expressions retain their existing checks. Native NaN payloads,
+math flags and fault records remain unverified.
+[Rockwell floating-point reference](https://www.rockwellautomation.com/en-in/docs/studio-5000-logix-designer/38-00/contents-ditamap/instruction-set/floating-point-values.html)
+
 ## Widening integer tag arithmetic
 
 Standalone ADD, SUB, MUL, DIV, MOD, NEG and ABS may mix integer tag types when

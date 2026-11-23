@@ -7,13 +7,15 @@ from .bit_transfer import operand, unsigned
 from .integer_math import CONTROLLERS, WIDE_TYPES, bit_value, bitwise_immediate_widths, profile, typed_profile, typed_integer, radix_profile, pattern, integer_bounds, dint_radix, read_source, quotient, execute_zero_divisor
 from .integer_math import signed_floating_exception
 from .model import INT_BITS, UNSIGNED_BITS, ModelError, coerce, literal
-from .numeric_storage import floating_math_profile, lreal_math_source, typed_literal, write_lreal_math_result
+from .numeric_storage import floating_math_profile, lreal_math_source, real_math_source, typed_literal, write_lreal_math_result
 from .real_math import real
 
 BITWISE = frozenset(('AND', 'OR', 'XOR', 'NOT'))
 BITWISE_FLOATS = {'REAL': 'DINT', 'LREAL': 'LINT'}
 ARITHMETIC = frozenset(('ADD', 'SUB', 'MUL', 'DIV', 'MOD', 'NEG', 'ABS'))
 INSTRUCTIONS = BITWISE | ARITHMETIC
+FLOAT_BINARY = {'ADD': operator.add, 'SUB': operator.sub, 'MUL': operator.mul,
+                'DIV': operator.truediv, 'MOD': math.fmod}
 
 
 def available(project):
@@ -81,7 +83,7 @@ def time_arithmetic(engine, op, scope, *, execute=False):
 
 def execute_floating_divide_by_zero(engine, op, scope, dividend, divisor, precision):
     dtype = engine.memory.resolve(op.args[-1], scope)[2]
-    if dividend == 0:
+    if dividend == 0 or math.isnan(dividend):
         result = math.nan
     else:
         sign = math.copysign(1.0, dividend) * math.copysign(1.0, divisor)
@@ -93,39 +95,44 @@ def execute_floating_divide_by_zero(engine, op, scope, dividend, divisor, precis
     return execute_zero_divisor(engine, op, scope, result)
 
 
-def execute_lreal(engine,op,scope):
-    memory=engine.memory
-    values=[lreal_math_source(memory,ref,scope,execute=True,radix=True) for ref in op.args[:-1]]
-    a=values[0]
-    if op.name in ('NEG','ABS'):result=-a if op.name=='NEG' else abs(a)
-    else:
-        b=values[1]
-        if b == 0:
-            if op.name == 'MOD':
-                return execute_zero_divisor(engine, op, scope, 0)
-            if op.name == 'DIV':
-                return execute_floating_divide_by_zero(engine, op, scope, a, b, 'LREAL')
-        result=({'ADD':operator.add,'SUB':operator.sub,'MUL':operator.mul,'DIV':operator.truediv,'MOD':math.fmod}[op.name])(a,b)
-    write_lreal_math_result(memory, op.args[-1], result, scope)
-    return True
+def write_propagated_exception(engine, op, scope, result):
+    memory = engine.memory
+    ref = op.args[-1]
+    dtype = memory.resolve(ref, scope)[2]
+    if dtype in ('REAL', 'LREAL'):
+        memory.write_floating_exception(ref, result, scope)
+        return
+    if dtype in UNSIGNED_BITS:
+        raise ModelError(f'{op.name} nonfinite result cannot be stored in {dtype}')
+    memory.write(ref, signed_floating_exception(result, dtype), scope)
+    if math.isinf(result) and engine.project.controller_configuration.report_minor_overflow is True:
+        memory.minor_fault = True
 
 
-def execute_real(engine,op,scope):
-    """Calculate from finite REAL sources and round before destination conversion."""
-    memory=engine.memory
-    from .numeric_storage import real_math_source
-    values=[real_math_source(memory,ref,scope,execute=True,radix=True) for ref in op.args[:-1]]
-    a=values[0]
-    if op.name in ('NEG','ABS'):result=-a if op.name=='NEG' else abs(a)
+def execute_floating(engine, op, scope, precision):
+    """Use the selected precision and limit exceptional propagation to ladder arithmetic."""
+    memory = engine.memory
+    read_source = lreal_math_source if precision == 'LREAL' else real_math_source
+    name = op.name
+    values = [read_source(memory, ref, scope, execute=True, radix=True, allow_nonfinite_tag=name != 'MOD')
+              for ref in op.args[:-1]]
+    a = values[0]
+    if name in ('NEG', 'ABS'):
+        result = -a if name == 'NEG' else abs(a)
     else:
-        b=values[1]
+        b = values[1]
         if b == 0:
-            if op.name == 'MOD':
+            if name == 'MOD':
                 return execute_zero_divisor(engine, op, scope, 0)
-            if op.name == 'DIV':
-                return execute_floating_divide_by_zero(engine, op, scope, a, b, 'REAL')
-        result=({'ADD':operator.add,'SUB':operator.sub,'MUL':operator.mul,'DIV':operator.truediv,'MOD':math.fmod}[op.name])(a,b)
-    memory.write(op.args[-1],real(result),scope)
+            if name == 'DIV':
+                return execute_floating_divide_by_zero(engine, op, scope, a, b, precision)
+        result = FLOAT_BINARY[name](a, b)
+    if not math.isfinite(result) and any(not math.isfinite(value) for value in values):
+        write_propagated_exception(engine, op, scope, result)
+    elif precision == 'LREAL':
+        write_lreal_math_result(memory, op.args[-1], result, scope)
+    else:
+        memory.write(op.args[-1], real(result), scope)
     return True
 
 
@@ -295,7 +302,7 @@ def description(project):
                     radix_sources=dict(bases=[2,8,16],types=['DINT','LINT','UDINT','ULINT'],selection='Explicit binary64 math only; default conversion helpers and other consumers remain separate',native_runtime_parity=False),
                     source_types=sorted({*INT_BITS,'REAL','LREAL'}),
                     promotion='Convert every required source to binary64 before calculation; signed/unsigned values retain their numeric sign, REAL retains its stored precision',
-                    calculation='Finite host binary64. Nonzero-divisor MOD uses fmod with dividend sign. DIV by zero produces a documented exceptional result in floating and signed integer destinations.',
+                    calculation='Host binary64. Nonzero-divisor MOD uses finite fmod with dividend sign. DIV by zero produces a documented exceptional result in floating and signed integer destinations.',
                     modulo_zero='Writes zero and continues the rung. Sets S:MINOR when ReportMinorOverflow is explicitly true.',
                     selection='Structural/lazy operands, complete unknown writes and existing alias/member/AOI references',
                     native_runtime_parity=False),
@@ -306,7 +313,7 @@ def description(project):
                     radix_sources=dict(bases=[2,8,16],types=['DINT','LINT','UDINT','ULINT'],selection='Existing REAL calculation selectors; decode declared word before float32 conversion',native_runtime_parity=False),
                     integer_conversion='Convert the float32 result to the declared integer by nearest-even rounding with range checks',
                     constants='Bounded DINT/finite REAL and decimal/radix L/U/UL integer constants and signed DINT radix words; declared integer range checked before float32 conversion',
-                    calculation='Convert every required source to finite float32 before calculation; round the result to float32; stored inputs remain unchanged',
+                    calculation='Convert every required finite source to float32 before calculation; round the finite result to float32; stored inputs remain unchanged',
                     boundaries='LREAL inputs select binary64 before final destination conversion',
                     native_runtime_parity=False),
                 real_remainder=dict(sources=['SINT','INT','DINT','REAL'], destinations=['SINT','INT','DINT','REAL'],
@@ -352,6 +359,12 @@ def description(project):
                     destination='REAL or LREAL retain the exceptional value. SINT, INT, DINT and LINT store zero for NaN, the signed maximum for positive infinity and the signed minimum for negative infinity.',
                     status='Sets S:MINOR when ReportMinorOverflow is explicitly true',
                     scope='RLL v35 5580 only. Rung continues after a successful write.', native_runtime_parity=False),
+                exceptional_arithmetic=dict(instructions=sorted(ARITHMETIC - {'MOD'}),
+                    operands='REAL/LREAL tags containing NaN or infinity; existing finite operands still use the selected precision',
+                    result='IEEE floating-point arithmetic; floating destinations retain exceptional results, signed integers store zero or a signed limit, unsigned integers reject them',
+                    minor_status='Infinity converted to a signed integer sets modeled S:MINOR with explicit ReportMinorOverflow; existing divide-by-zero reporting applies',
+                    boundaries='Finite-source overflow remains checked; MOD and expression consumers retain their finite requirements',
+                    native_runtime_parity=False),
                 failures='Reached unknowns, invalid indices, floating DIV by zero into an unsigned integer, excluded ranges and later faults roll back the advance',
                 native_runtime_parity=False, native_math_status=False,
                 remaining=['Other arithmetic destination conversions/mixed signed-to-unsigned forms, larger/typed arithmetic constants, unsigned bitwise sources for floating destinations, and other wide/unsigned/LREAL remainder mixtures',

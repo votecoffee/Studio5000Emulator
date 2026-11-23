@@ -167,9 +167,62 @@ class RealRemainderTests(unittest.TestCase):
                 self.assertEqual(self.snapshot(e), before)
 
     def test_a_later_finite_operation_rolls_back_a_floating_div_exception(self):
-        e = self.checked(['DIV(Source,0.0,Results[1]);', 'ADD(Results[1],1,Results[2]);'])
+        e = self.checked(['DIV(Source,0.0,Results[1]);', 'MOD(Results[1],1,Results[2]);'])
         before = self.snapshot(e)
         with self.assertRaisesRegex(ModelError, 'Nonfinite REAL'):
+            e.step()
+        self.assertEqual(self.snapshot(e), before)
+
+    def test_floating_arithmetic_consumes_exceptional_sources(self):
+        cases = (
+            ('ADD(Source,Mask,Results[1])', math.inf, -math.inf, math.nan),
+            ('ADD(Source,Mask,Results[1])', 1.0, -math.inf, -math.inf),
+            ('SUB(Source,Mask,Results[1])', math.inf, math.inf, math.nan),
+            ('MUL(Source,Mask,Results[1])', -math.inf, 0.0, math.nan),
+            ('MUL(Source,Mask,Results[1])', -math.inf, -2.0, math.inf),
+            ('DIV(Source,Mask,Results[1])', math.inf, math.inf, math.nan),
+            ('DIV(Source,Mask,Results[1])', 1.0, -math.inf, -0.0),
+            ('DIV(Source,Mask,Results[1])', math.nan, 0.0, math.nan),
+            ('NEG(Source,Results[1])', math.inf, 0.0, -math.inf),
+            ('ABS(Source,Results[1])', -math.inf, 0.0, math.inf),
+            ('ABS(Source,Results[1])', math.nan, 0.0, math.nan),
+        )
+        for dtype in ('REAL', 'LREAL'):
+            for instruction, source, other, expected in cases:
+                with self.subTest(dtype=dtype, instruction=instruction, source=source, other=other):
+                    e = self.checked([f'{instruction}OTE(RunLatch);'], source=dtype, other=dtype, dest=dtype)
+                    for ref, value in (('Source', source), ('Mask', other)):
+                        if math.isfinite(value):
+                            e.memory.write(ref, value)
+                        else:
+                            e.memory.write_floating_exception(ref, value)
+                    e.step()
+                    result = e.memory.read('Results[1]')
+                    if math.isnan(expected):
+                        self.assertTrue(math.isnan(result))
+                    else:
+                        self.assertEqual(result, expected)
+                        self.assertEqual(math.copysign(1, result), math.copysign(1, expected))
+                    self.assertTrue(e.memory.read('RunLatch'))
+
+    def test_propagated_result_signed_limits_and_unsigned_rollback(self):
+        def configuration(root):
+            root.find('Controller').set('ReportMinorOverflow', 'true')
+
+        e = self.checked(['MUL(Source,Mask,Results[1]);', 'XIC(S:MINOR)OTE(MotorRunning);'],
+                         source='LREAL', dest='LINT', mutate=configuration)
+        for source, other, expected, status in (
+                (math.inf, 1, 2**63 - 1, True), (-math.inf, 1, -2**63, True), (math.inf, 0, 0, False)):
+            e.memory.write_floating_exception('Source', source)
+            e.memory.write('Mask', other)
+            e.step()
+            self.assertEqual(e.memory.read('Results[1]'), expected)
+            self.assertIs(e.memory.read('MotorRunning'), status)
+
+        e = self.checked(['MOV(99,SpeedCommand);', 'ADD(Source,1,Results[1]);'], dest='ULINT')
+        e.memory.write_floating_exception('Source', math.inf)
+        before = self.snapshot(e)
+        with self.assertRaisesRegex(ModelError, 'nonfinite result'):
             e.step()
         self.assertEqual(self.snapshot(e), before)
 
