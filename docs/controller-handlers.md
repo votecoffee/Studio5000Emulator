@@ -428,12 +428,20 @@ INT Code and DINT[8] Info.
 With `ReportMinorOverflow` enabled, a modeled arithmetic overflow records
 Type 4, Code 4 in the Program that executed the instruction. This includes
 overflows from a called ladder routine or AOI and a recovered DINT subscript
-overflow that also raised a major array fault. The next ladder instruction can
-read the record in the same scan. The timestamp uses the software wall clock
-in UTC microseconds. The Info words remain unknown because their native values
-have not been qualified.
+overflow that also raised a major array fault.
 
-A Program begins with an empty record. Its last recorded overflow persists
+If a runtime index starts within a DINT array tag but fewer than 11 elements
+remain, GSV leaves the whole destination intact and records Type 4, Code 7 in
+the Program that executed it. The rung continues, `S:MINOR` is set, and the
+controller's FaultLog records an instruction fault. This behavior is independent
+of `ReportMinorOverflow`. Static undersized operands remain preflight errors.
+An index outside the array follows the existing array-fault rules instead.
+
+The next ladder instruction can read the record in the same scan. The timestamp
+uses the software wall clock in UTC microseconds. The Info words remain unknown
+because their native values have not been qualified.
+
+A Program begins with an empty record. Its latest modeled minor fault persists
 across successful scans and Run entry. Clearing `S:MINOR` clears the scan flag
 and retains the record.
 
@@ -443,13 +451,14 @@ and must contain known zero Type and Code. The timestamp and Info fields are
 ignored for this operation. A following GSV can read the empty record in the
 same scan. Other Programs' records, the controller's FaultLog bits and event
 count, and the current scan's `S:MINOR` flag retain their values. A later
-reported overflow in the cleared Program creates a new record.
+minor fault in the cleared Program creates a new record.
 
 A fault later in the advance rolls back the clear and any destination writes.
 A reset or reload establishes a new history. Arbitrary record writes and native
 fault-record parity remain unverified for this ladder profile.
 [Rockwell Major, Minor, and I/O Faults](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm014_-en-p.pdf#page=23)
 [Rockwell Program object](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/input-output-instructions/access-the-program-object.html)
+[Rockwell GSV and SSV fault codes](https://www.rockwellautomation.com/en-gb/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/input-output-instructions/get-system-value--gsv--and-set-system-value--ssv-.html)
 [Rockwell ladder GSV and SSV example](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm018_-en-p.pdf)
 
 ## Read and reset the controller minor-fault summary
@@ -465,7 +474,7 @@ SSV(FaultLog,,MinorEvents,ZeroCount);
 ```
 
 Use DINT tags for the bitmap and INT tags for the event count. A modeled
-reported overflow sets instruction-execution bit 4 and increments the count.
+instruction fault sets instruction-execution bit 4 and increments the count.
 The software count stops at 32,767. Writing a bitmap replaces it, and writing
 zero to MinorEvents resets the count. These operations leave the other
 summary value, the Program fault records and `S:MINOR` independent. A

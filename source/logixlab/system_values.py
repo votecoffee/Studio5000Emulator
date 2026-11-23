@@ -134,7 +134,7 @@ def description():
     return dict(legacy='Controller AuditValue/ChangesToDetect into LINT or two DINT elements',
                 configuration=gsv_configuration.description(), wall_clock=gsv_wall_clock.description(),
                 timing=gsv_timing.description(), event_status=event_status.description(),
-                minor_fault_log='Ladder FaultLog MinorFaultBits DINT access and MinorEvents INT read or zero reset; controller-wide modeled overflows set bit 4 and increment the count.',
+                minor_fault_log='Ladder FaultLog MinorFaultBits DINT access and MinorEvents INT read or zero reset; modeled instruction minor faults set bit 4 and increment the controller-wide count.',
                 message_path='Ladder Message ConnectionPath reads/writes a length-prefixed 82-byte SINT window',
                 message_timeout='Ladder Message UnconnectedTimeout and connected ConnectionRate use DINT or TIME32 microseconds; connected TimeoutMultiplier uses SINT',
                 array_recovery='A cleared Type 4 Code 20 in a whole-project ladder scan skips the GSV write or SSV update',

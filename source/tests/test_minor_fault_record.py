@@ -298,6 +298,104 @@ class NamedMinorFaultRecordTests(unittest.TestCase):
             self.assertTrue(self.engine([line], mutate=named_programs, st=True).blockers)
 
 
+SHORT_GSV = 'XIC(ResetCount)GSV(Program,FastProgram,MinorFaultRecord,FaultSample[Index]);'
+READ_CALLER = 'GSV(Program,THIS,MinorFaultRecord,CallerRecord[0]);'
+READ_MINOR = 'XIC(S:MINOR)OTE(MinorSeen);'
+SHORT_TYPE_CODE = (7 << 16) | 4
+
+
+def add_capacity_fixture(root):
+    named_programs(root)
+    tags = root.find('./Controller/Tags')
+    add_fault_dint_array(tags, 'CallerRecord', [77] * 11)
+    config.scalar(tags, 'MinorSeen', 'BOOL', 0)
+
+
+class MinorFaultCapacityTests(unittest.TestCase):
+    setUp = config.GsvConfigurationTests.setUp
+    engine = config.GsvConfigurationTests.engine
+    checked = config.GsvConfigurationTests.checked
+
+    def test_short_live_window_reports_to_caller_and_preserves_entire_destination(self):
+        def settings(root):
+            add_capacity_fixture(root)
+            root.find('Controller').set('ReportMinorOverflow', 'false')
+
+        engine = self.checked([
+            SHORT_GSV.removesuffix(';') + 'XIC(S:V)OTE(OverflowSeen);',
+            READ_MINOR, READ_CALLER, READ_PEER, READ_BITS, READ_COUNT,
+        ], mutate=settings)
+        memory = engine.memory
+        memory.write('Index', 3)
+        engine.step(10)
+        self.assertEqual(memory.read('CallerRecord'), [0] * 11)
+        self.assertEqual(memory.read('LogCount'), 0)
+        memory.write('ResetCount', True)
+        with patch.object(engine, 'wall_time', return_value=TIMESTAMP):
+            engine.step(10)
+        expected = record(TIMESTAMP)
+        expected[2] = SHORT_TYPE_CODE
+        self.assertEqual(memory.read('CallerRecord'), expected)
+        self.assertEqual(memory.read('PeerRecord'), [0] * 11)
+        self.assertEqual(memory.read('FaultSample'), [77] * 13)
+        self.assertTrue(memory.read('MinorSeen'))
+        self.assertFalse(memory.read('OverflowSeen'))
+        self.assertEqual((memory.read('LogBits'), memory.read('LogCount')), (INSTRUCTION_BIT, 1))
+        wire = {name: engine.program_fault_attributes(name, source_sha256=engine.project.sha256)
+                for name in ('BackgroundProgram', 'FastProgram')}
+        self.assertEqual(wire['BackgroundProgram'], {20: bytes(44)})
+        self.assertEqual(wire['FastProgram'], {20: bytes(44), 21: bytes(44)})
+        self.assertEqual(engine.program_fault_description()['program_minor_fault_records'], 1)
+        self.assertEqual(engine.program_fault_description()['program_minor_overflow_records'], 0)
+
+        memory.write('Index', 2)
+        engine.step(10)
+        self.assertEqual(memory.read('FaultSample'), [77, 77] + [0] * 11)
+        self.assertEqual(memory.read('CallerRecord'), expected)
+        self.assertEqual(memory.read('LogCount'), 1)
+        self.assertFalse(memory.read('MinorSeen'))
+
+    def test_late_failure_rolls_back_code_7_and_preserves_previous_overflow(self):
+        engine = self.checked([
+            OVERFLOW, SHORT_GSV, READ_CALLER, READ_COUNT, 'CPT(Out,1/Limit);',
+        ], mutate=add_capacity_fixture)
+        memory = engine.memory
+        memory.write('Index', 3)
+        memory.write('Flag', True)
+        with patch.object(engine, 'wall_time', return_value=TIMESTAMP):
+            engine.step(10)
+        self.assertEqual(memory.read('CallerRecord'), record(TIMESTAMP))
+        memory.write('Flag', False)
+        memory.write('ResetCount', True)
+        memory.write('Limit', 0)
+        with self.assertRaisesRegex(ModelError, 'zero'):
+            engine.step(10)
+        self.assertEqual(memory.read('CallerRecord'), record(TIMESTAMP))
+        self.assertEqual(memory.read('LogCount'), 1)
+        memory.write('ResetCount', False)
+        memory.write('Limit', 2)
+        engine.step(10)
+        self.assertEqual(memory.read('CallerRecord'), record(TIMESTAMP))
+        self.assertEqual(memory.read('LogCount'), 1)
+        memory.write('ResetCount', True)
+        engine.step(10)
+        self.assertEqual(memory.read('CallerRecord[2]'), SHORT_TYPE_CODE)
+        self.assertEqual(memory.read('LogCount'), 2)
+
+    def test_static_short_window_and_runtime_out_of_range_keep_existing_errors(self):
+        fixed = SHORT_GSV.replace('FaultSample[Index]', 'FaultSample[3]')
+        self.assertTrue(self.engine([fixed], mutate=add_capacity_fixture).blockers)
+        engine = self.checked([SHORT_GSV, READ_CALLER, READ_COUNT], mutate=add_capacity_fixture)
+        memory = engine.memory
+        memory.write('Index', 13)
+        engine.step(10)
+        memory.write('ResetCount', True)
+        with self.assertRaisesRegex(ModelError, 'outside bounds'):
+            engine.step(10)
+        self.assertEqual(memory.read('LogCount'), 0)
+        self.assertEqual(memory.read('CallerRecord'), [0] * 11)
+
+
 class MinorFaultLogTests(unittest.TestCase):
     setUp = config.GsvConfigurationTests.setUp
     engine = config.GsvConfigurationTests.engine

@@ -18,6 +18,7 @@ DEVICE_NAME_SIZE = 33
 MAJOR_FAULT_RECORD = 'major-fault-record'
 MINOR_FAULT_RECORD = 'minor-fault-record'
 FAULT_RECORD_WORDS = 11
+GSV_DESTINATION_TOO_SMALL = 7
 FAULT_RECORD_LINT = 'fault-record-lint'
 FAULT_RECORD_SPLIT = 'fault-record-split'
 FAULT_RECORD_TAIL = (('INT', ()), ('INT', ()), ('DINT', (8,)))
@@ -514,7 +515,7 @@ def _minor_fault_record(engine, instance, scope, *, executing):
     record = engine._program_advance.minor_faults.get(program)
     if record is None or record.cleared:
         return MINOR_FAULT_RECORD, (0,) * FAULT_RECORD_WORDS
-    return MINOR_FAULT_RECORD, _fault_words(record.timestamp_us, (4 << 16) | 4)
+    return MINOR_FAULT_RECORD, _fault_words(record.timestamp_us, (record.code << 16) | 4)
 
 
 def _structured_fault_record(memory, key, parts, attribute):
@@ -546,6 +547,10 @@ def _structured_fault_record(memory, key, parts, attribute):
     return key, paths, layout
 
 
+class FaultRecordCapacityError(ModelError):
+    """The selected DINT array tail cannot hold the complete record."""
+
+
 def _fault_record_region(memory, ref, scope, *, writable=False, attribute='MajorFaultRecord'):
     resolve = memory.check_writable if writable else memory.resolve
     key, parts, _ = resolve(ref, scope)
@@ -556,7 +561,10 @@ def _fault_record_region(memory, ref, scope, *, writable=False, attribute='Major
     key, paths, kind = prefix(memory, ref, scope, FAULT_RECORD_WORDS, writable=writable)
     if kind != 'DINT' or len(paths) != FAULT_RECORD_WORDS:
         direction = 'writable' if writable else 'readable'
-        raise ModelError(f'{attribute} requires 11 {direction} contiguous DINT elements or a supported UDT first member')
+        error = f'{attribute} requires 11 {direction} contiguous DINT elements or a supported UDT first member'
+        if kind == 'DINT' and paths and paths[0] and all(isinstance(part, int) for part in paths[0]):
+            raise FaultRecordCapacityError(error)
+        raise ModelError(error)
     return key, paths, kind
 
 
@@ -780,7 +788,13 @@ def _structured_fault_values(words, layout):
 
 def execute(engine, op, scope):
     dtype,value=source(engine,op,scope,executing=True);memory=engine.memory
-    key,paths,kind=destination(memory,op.args[3],scope,dtype,value,allow_dint=dtype=='INT' and op.args[0].casefold()=='module')
+    try:
+        key,paths,kind=destination(memory,op.args[3],scope,dtype,value,allow_dint=dtype=='INT' and op.args[0].casefold()=='module')
+    except FaultRecordCapacityError:
+        if dtype != MINOR_FAULT_RECORD:
+            raise
+        engine._record_instruction_minor_fault(GSV_DESTINATION_TOO_SMALL)
+        return
     if dtype in (MAJOR_FAULT_RECORD, MINOR_FAULT_RECORD) and kind != 'DINT':
         value = _structured_fault_values(value, kind)
     if dtype in ('SINT[33]', MODULE_PATH, MAJOR_FAULT_RECORD, MINOR_FAULT_RECORD):
@@ -831,7 +845,7 @@ def description():
                 module_led_status='Empty controller-only map or aggregate of a complete simulated module inventory.',
                 module_force_status='Controller-only I/O map.',
                 major_fault_record='Active ladder fault routine; DINT[11] or first member of a supported fault-record UDT.',
-                minor_fault_record='Ladder scheduled Program by name or THIS; read the latest reported overflow (4/4) or clear it with zero Type and Code. DINT[11] or supported fault-record UDT.',
+                minor_fault_record='Ladder scheduled Program by name or THIS; read the latest modeled minor fault or clear it with zero Type and Code. A short live DINT array tail produces Type 4 Code 7. DINT[11] or supported fault-record UDT.',
                 controller_device=['DeviceName','ProductCode','ProductRev','SerialNumber','Type','Vendor','Status'],
                 controller_device_source='v35 5580 project processor and firmware revision, virtual EtherNet/IP serial, and modeled controller mode at scan entry.',
                 controller_device_status='Remote keyswitch; Program 0x3070, Run 0x3060, software fault 0x3450 at retry entry.',

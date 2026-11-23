@@ -4,7 +4,7 @@ import copy
 import operator
 from collections import Counter
 from time import perf_counter_ns
-from .fault_log import MinorFaultLog, MinorFaultRecord
+from .fault_log import ARITHMETIC_OVERFLOW, MinorFaultLog, MinorFaultRecord
 from .identity import controller_status_word
 from .program_timing import ProgramTiming
 from . import gsv_configuration, immediate_output, ladder_message, program_control
@@ -304,10 +304,12 @@ class Engine:
     def program_fault_description(self):
         available=(self.mode=='project' and not self.blockers and not self.fault and not self._native_fault_history_uncertain
                    and self.last_cleared_program_fault is None)
-        overflows = sum(program in self._program_timings for program in self._minor_fault_records)
-        clean = len(self._program_timings) - overflows if available else 0
+        minor_faults = sum(program in self._program_timings for program in self._minor_fault_records)
+        clean = len(self._program_timings) - minor_faults if available else 0
         return {'attributes':[20,21],'known_clean_programs':clean,
-                'program_minor_overflow_records':len(self._minor_fault_records),
+                'program_minor_fault_records':len(self._minor_fault_records),
+                'program_minor_overflow_records':sum(record.code == ARITHMETIC_OVERFLOW
+                                                     for record in self._minor_fault_records.values()),
                 'unclassified_fault_seen_since_reset':self._native_fault_history_uncertain,
                 'simulated_recovery_seen_since_reset':self.last_cleared_program_fault is not None,
                 'record_bytes':44,'native_fault_classification':False,'physical_fault_history_imported':False,
@@ -984,10 +986,14 @@ class Engine:
             self._message_advance=None
 
     def _record_minor_overflow(self):
+        self._record_instruction_minor_fault(ARITHMETIC_OVERFLOW)
+
+    def _record_instruction_minor_fault(self, code):
         if (self._program_advance is not None and self._executing_program is not None
                 and self._program_fault is None and not self.addons.prescanning):
-            self._program_advance.minor_faults[self._executing_program] = MinorFaultRecord(self.wall_time())
-            self._program_advance.fault_log.record_overflow()
+            self.memory.minor_fault = True
+            self._program_advance.minor_faults[self._executing_program] = MinorFaultRecord(self.wall_time(), code)
+            self._program_advance.fault_log.record_instruction_fault()
 
     def _recover_ladder_fault(self, op, scope, error):
         if (scope in self.memory.frames or self.mode != 'project'

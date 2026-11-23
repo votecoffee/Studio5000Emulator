@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from . import gsv_configuration
 from .model import ModelError
 
+ARITHMETIC_OVERFLOW = 4
 INSTRUCTION_BIT = 1 << 4
 EVENT_LIMIT = 32767
 ATTRIBUTES = {'minorfaultbits': ('DINT', 'bits'), 'minorevents': ('INT', 'events')}
@@ -12,6 +13,7 @@ ATTRIBUTES = {'minorfaultbits': ('DINT', 'bits'), 'minorevents': ('INT', 'events
 @dataclass(frozen=True)
 class MinorFaultRecord:
     timestamp_us: int | None
+    code: int
     cleared: bool = False
 
 
@@ -20,7 +22,7 @@ class MinorFaultLog:
     bits: int = 0
     events: int = 0
 
-    def record_overflow(self):
+    def record_instruction_fault(self):
         self.bits |= INSTRUCTION_BIT
         self.events = min(self.events + 1, EVENT_LIMIT)
 
