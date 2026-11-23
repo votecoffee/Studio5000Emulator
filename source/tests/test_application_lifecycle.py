@@ -3896,6 +3896,40 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.post('write', {'tag': 'Source', 'value': 10})
         self.assertEqual(readings(), (20, False, False, False))
 
+    def test_ladder_narrow_div_mod_continue_and_report_zero_divisor_through_http(self):
+        from test_scalar_math import ScalarMathTests
+
+        fixture = ScalarMathTests()
+        fixture.setUp()
+        try:
+            def configure(root):
+                root.find('Controller').set('ReportMinorOverflow', 'true')
+
+            engine = fixture.checked([
+                'DIV(Source,Mask,Results[0])XIC(S:V)OTE(RunLatch);',
+                'MOD(Source,Mask,Results[1])XIC(S:V)OTE(MotorRunning);',
+                'XIC(S:V)OTE(StartPB);',
+                'XIC(S:MINOR)OTE(StopPB);',
+            ], dest='SINT', value=25675, mutate=configure)
+            content = base64.b64encode(engine.project.path.read_bytes()).decode()
+        finally:
+            fixture.doCleanups()
+        self.assertEqual(self.post('load', {'name': 'NarrowDivMod.L5X', 'content': content})['blockers'], [])
+
+        def readings():
+            state = self.post('step', {'dt': 10})
+            values = {row['name']: row['value'] for row in state['tags']}
+            names = ('Results[0]', 'Results[1]', 'RunLatch', 'MotorRunning', 'StartPB', 'StopPB')
+            return tuple(values[name] for name in names)
+
+        self.post('write', {'tag': 'Mask', 'value': 131})
+        self.assertEqual(readings(), (-61, -126, True, True, False, True))
+        self.post('write', {'tag': 'Mask', 'value': 0})
+        self.assertEqual(readings(), (75, 0, True, True, False, True))
+        self.post('write', {'tag': 'Source', 'value': 7})
+        self.post('write', {'tag': 'Mask', 'value': 3})
+        self.assertEqual(readings(), (2, 1, False, False, False, False))
+
     def test_imported_unknown_scalar_math_is_lazy_and_atomic_through_http(self):
         import base64
         from test_scalar_math import ScalarMathTests

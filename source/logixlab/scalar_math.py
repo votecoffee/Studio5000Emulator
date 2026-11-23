@@ -5,7 +5,7 @@ import operator
 from . import time_values
 from .bit_transfer import operand, unsigned
 from .integer_math import CONTROLLERS, WIDE_TYPES, bit_value, bitwise_immediate_widths, profile, typed_profile, typed_integer, radix_profile, pattern, integer_bounds, dint_radix, read_source, quotient, execute_zero_divisor
-from .integer_math import (CARRY_INSTRUCTIONS, NARROW_MULTIPLY_TYPES, SIGNED_UNARY_INSTRUCTIONS,
+from .integer_math import (CARRY_INSTRUCTIONS, NARROW_RESULT_TYPES, SIGNED_UNARY_INSTRUCTIONS,
                            SIGNED_WRAP_TYPES, record_carry, signed_floating_exception)
 from .model import INT_BITS, UNSIGNED_BITS, ModelError, coerce, literal
 from .numeric_storage import (floating_math_profile, lreal_math_source, real_math_source,
@@ -266,8 +266,13 @@ def description(project):
                     excluded='Checked wide-to-narrow conversion forms, LINT/unsigned destinations, and other languages',
                     native_runtime_parity=False),
                 narrow_multiply_overflow=dict(instructions=['MUL'],
-                    destinations=sorted(NARROW_MULTIPLY_TYPES),
+                    destinations=sorted(NARROW_RESULT_TYPES),
                     result='A DINT-range product stores its low destination bits and sets S:V if narrowed',
+                    native_runtime_parity=False),
+                narrow_div_mod_overflow=dict(instructions=['DIV', 'MOD'],
+                    destinations=sorted(NARROW_RESULT_TYPES),
+                    result='DINT-range quotients and remainders store their low destination bits and set S:V if narrowed',
+                    zero_divisor='DIV narrows the dividend when it fits DINT. MOD stores zero. Both set S:V.',
                     native_runtime_parity=False),
                 signed_unary_overflow=dict(instructions=sorted(SIGNED_UNARY_INSTRUCTIONS),
                     destinations=sorted(SIGNED_WRAP_TYPES),

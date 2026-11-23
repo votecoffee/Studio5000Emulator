@@ -1,8 +1,8 @@
 """Exact, homogeneous wide-integer ladder operations for the v35 5580 model.
 
-Qualified narrow signed ADD and SUB wrap at the destination width. SINT and INT
-MUL truncate DINT-range products. ABS and NEG retain the signed minimum on
-overflow. Qualified DIV and MOD by zero complete.
+Qualified narrow signed ADD and SUB wrap at the destination width. MUL, DIV
+and MOD truncate DINT-range results in SINT and INT. ABS and NEG retain the
+signed minimum on overflow. Qualified DIV and MOD by zero complete.
 """
 import math
 import operator
@@ -12,10 +12,11 @@ from .model import INT_BITS, UNSIGNED_BITS, ModelError, coerce, literal
 WIDE_TYPES = frozenset(('LINT', *UNSIGNED_BITS))
 CONTROLLERS = frozenset(f'1756-L8{number}E' for number in range(1, 6))
 CARRY_INSTRUCTIONS = frozenset(('ADD', 'SUB'))
-WRAPPING_BINARY_INSTRUCTIONS = CARRY_INSTRUCTIONS | {'MUL'}
+NARROWING_BINARY_INSTRUCTIONS = frozenset(('MUL', 'DIV', 'MOD'))
+WRAPPING_BINARY_INSTRUCTIONS = CARRY_INSTRUCTIONS | NARROWING_BINARY_INSTRUCTIONS
 SIGNED_UNARY_INSTRUCTIONS = frozenset(('ABS', 'NEG'))
 SIGNED_WRAP_TYPES = frozenset(('SINT', 'INT', 'DINT'))
-NARROW_MULTIPLY_TYPES = frozenset(('SINT', 'INT'))
+NARROW_RESULT_TYPES = frozenset(('SINT', 'INT'))
 COMPARISONS = {'EQU': operator.eq, 'NEQ': operator.ne, 'LES': operator.lt,
                'LEQ': operator.le, 'GRT': operator.gt, 'GEQ': operator.ge}
 INSTRUCTIONS = frozenset((*COMPARISONS, 'LIM', 'MOV', 'CLR', 'ADD', 'SUB', 'MUL',
@@ -124,11 +125,17 @@ def execute_zero_divisor(engine, op, scope, result):
     if (project.version != '35' or project.processor.upper() not in CONTROLLERS
             or routine is None or routine.kind != 'RLL' or engine.addons.prescanning):
         raise ModelError(f'{op.name} divide by zero')
+    memory = engine.memory
+    destination = op.args[-1]
     if type(result) is float and not math.isfinite(result):
-        engine.memory.write_floating_exception(op.args[-1], result, scope, math_result=True)
+        memory.write_floating_exception(destination, result, scope, math_result=True)
     else:
-        engine.memory.write(op.args[-1], result, scope, math_result=True)
-    engine.memory.record_overflow(True)
+        if type(result) is int:
+            dtype = memory.resolve(destination, scope)[2]
+            if can_narrow_dint_result(dtype, result):
+                result = bit_value(result, dtype)
+        memory.write(destination, result, scope, math_result=True)
+    memory.record_overflow(True)
     return True
 
 
@@ -291,6 +298,11 @@ def bit_value(value, dtype):
     return value
 
 
+def can_narrow_dint_result(dtype, result):
+    """Check whether a DINT-range result can use SINT or INT bit truncation."""
+    return dtype in NARROW_RESULT_TYPES and -(1 << 31) <= result < (1 << 31)
+
+
 def record_carry(memory, name, values, dtype):
     """Record unsigned carry or borrow at the integer destination's width."""
     if memory.rung_carry is None or name not in CARRY_INSTRUCTIONS or dtype not in INT_BITS:
@@ -306,8 +318,7 @@ def write_integer_result(memory, op, scope, dtype, values, result):
     if (memory.rung_carry is not None and dtype in SIGNED_WRAP_TYPES and (
             name in CARRY_INSTRUCTIONS
             or (name in SIGNED_UNARY_INSTRUCTIONS and values[0] == integer_bounds(dtype)[0])
-            or (name == 'MUL' and dtype in NARROW_MULTIPLY_TYPES
-                and -(1 << 31) <= result < (1 << 31)))):
+            or (name in NARROWING_BINARY_INSTRUCTIONS and can_narrow_dint_result(dtype, result)))):
         stored = bit_value(result, dtype)
         memory.write(op.args[-1], stored, scope)
         memory.record_math_result(stored, overflow=stored != result)

@@ -785,6 +785,8 @@ same rung. Ladder contacts and OTE/OTL can read or set this flag.
 set the flag and continue when the result wraps at the signed minimum.
 [Integer MUL](docs/scalar-math.md#multiply-into-sint-or-int) also reports when
 a DINT-range product is truncated into SINT or INT.
+[Integer DIV and MOD](docs/scalar-math.md#divide-and-modulo-into-sint-or-int)
+report the same narrowing for DINT-range quotients and remainders.
 
 [Numeric move and clear](docs/numeric-storage.md) support signed/unsigned integer
 and REAL/LREAL scalar MOV conversions, typed CLR zeros and full writes to unknown

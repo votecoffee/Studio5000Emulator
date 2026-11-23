@@ -36,8 +36,9 @@ including values, task/time state and existing AOI bindings.
 Structural validation and operand selection apply to all eleven operations.
 Integer division into integer destinations truncates toward zero; integer remainder retains the
 dividend's sign. Wide homogeneous and qualified widening-tag arithmetic stay exact.
-[Signed ADD/SUB](#signed-add-and-sub-overflow) and
-[MUL into SINT or INT](#multiply-into-sint-or-int) can wrap and continue.
+[Signed ADD/SUB](#signed-add-and-sub-overflow), [MUL into SINT or INT](#multiply-into-sint-or-int)
+and [DIV/MOD into SINT or INT](#divide-and-modulo-into-sint-or-int) can wrap and
+continue.
 [ABS and NEG](#absolute-value-and-negation-at-the-signed-minimum) also continue
 at the signed minimum. Other checked integer arithmetic errors roll back the
 advance.
@@ -129,6 +130,24 @@ Products beyond signed DINT range and the checked wide-to-narrow conversion
 profile retain the existing range checks. Native controller results remain
 unverified.
 [Rockwell compute/math instructions](https://www.rockwellautomation.com/en-be/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/compute-math-instructions.html)
+
+## Divide and modulo into SINT or INT
+
+In the v35 ControlLogix 5580 ladder profile, standalone integer DIV and MOD
+can store the low bits of a DINT-range quotient or remainder in SINT or INT.
+DIV truncates the quotient toward zero, and MOD gives the remainder the
+dividend's sign before converting the result. For example, dividing 25675 by
+131 gives a quotient of 195 and a remainder of 130. Stored in SINT, they
+become -61 and -126, and both instructions set `S:V`. `S:N` and `S:Z`
+reflect the stored value, and the existing carry flag is retained.
+
+With a zero divisor, DIV stores the dividend using the same DINT-range
+conversion. MOD stores zero. Both set `S:V`, and the task can read
+`S:MINOR` when `ReportMinorOverflow` is enabled. Checked wide-to-narrow
+forms and quotients outside DINT range retain their range checks. Native
+controller results remain unverified.
+[Rockwell DIV reference](https://www.rockwellautomation.com/en-cz/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/compute-math-instructions/divide--div-.html)
+[Rockwell MOD reference](https://www.rockwellautomation.com/en-be/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/compute-math-instructions/modulo--mod-.html)
 
 ## Absolute value and negation at the signed minimum
 

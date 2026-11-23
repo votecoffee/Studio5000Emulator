@@ -375,6 +375,44 @@ class ScalarMathTests(unittest.TestCase):
                     e.step()
                 self.assertEqual(self.snapshot(e), before)
 
+    def test_integer_div_mod_narrow_the_signed_quotient_and_remainder(self):
+        for dtype, dividend, divisor, quotient, remainder in (
+                ('SINT', 25675, 131, -61, -126),
+                ('SINT', -25675, 131, 61, 126),
+                ('INT', 1600039999, 40000, -25536, -25537),
+                ('INT', -1600039999, 40000, 25536, 25537)):
+            with self.subTest(dtype=dtype, dividend=dividend):
+                e = self.checked([
+                    'ADD(-1,1,Results[2])DIV(Source,Mask,Results[0])XIC(S:C)XIC(S:V)OTE(RunLatch);',
+                    'MOD(Source,Mask,Results[1])[XIC(S:V)OTE(MotorRunning),XIC(S:N)OTE(StopPB)];',
+                ], dest=dtype, value=dividend)
+                e.memory.write('Mask', divisor)
+                e.step()
+                self.assertEqual(e.memory.read('Results'), [quotient, remainder, 0])
+                self.assertTrue(e.memory.read('RunLatch'))
+                self.assertTrue(e.memory.read('MotorRunning'))
+                self.assertEqual(e.memory.read('StopPB'), remainder < 0)
+                e.memory.write('Source', -7)
+                e.memory.write('Mask', 3)
+                e.step()
+                self.assertEqual(e.memory.read('Results'), [-2, -1, 0])
+                self.assertFalse(e.memory.read('RunLatch'))
+                self.assertFalse(e.memory.read('MotorRunning'))
+
+    def test_narrow_signed_div_accepts_radix_but_checks_dint_quotient_range(self):
+        e = self.checked(['DIV(16#FFFFFF80,-1,Results[0])XIC(S:V)OTE(RunLatch);'], dest='SINT')
+        e.step()
+        self.assertEqual(e.memory.read('Results'), [-128, None, None])
+        self.assertTrue(e.memory.read('RunLatch'))
+        for dest in ('SINT', 'INT', 'DINT'):
+            with self.subTest(dest=dest):
+                e = self.checked(['MOV(99,SpeedCommand);', 'DIV(Source,-1,Results[0]);'],
+                                 dest=dest, value=-2147483648)
+                before = self.snapshot(e)
+                with self.assertRaisesRegex(ModelError, 'overflow'):
+                    e.step()
+                self.assertEqual(self.snapshot(e), before)
+
     def test_radix_add_wrap_reports_task_minor_and_false_rung_skips_it(self):
         def configure(root):
             root.find('Controller').set('ReportMinorOverflow', 'true')
