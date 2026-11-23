@@ -1,6 +1,6 @@
 """Bounded 8/16/32/64-bit BCD conversions and INT/DINT byte order for v35 5580."""
 from .bit_transfer import unsigned
-from .integer_math import CONTROLLERS, bit_value, pattern, pattern_width, read_source
+from .integer_math import CONTROLLERS, bit_value, can_narrow_dint_result, pattern, pattern_width, read_source
 from .model import INT_BITS, ModelError
 
 INSTRUCTIONS = frozenset(('FRD', 'TOD', 'SWPB'))
@@ -69,22 +69,25 @@ def execute(memory, op, power, scope):
     if not power:
         return False
     width = validate(memory, op, scope)
-    source = op.args[0]
+    source, dest = op.args[0], op.args[-1]
+    overflow = False
     if op.name == 'FRD':
         # v35 explicitly defines weighted hex nibbles, including A..F.
         result = from_bcd(pattern(memory, source, scope, width, radix=True), width)
+        dtype = scalar(memory, dest, scope)
+        if can_narrow_dint_result(dtype, result):
+            stored = bit_value(result, dtype)
+            overflow = stored != result
+            result = stored
     elif op.name == 'TOD':
         value = read_source(memory, source, scope, radix=True)
         if type(value) is not int:
             raise ModelError('TOD source requires an integer value')
-        dest = op.args[-1]
         dtype = scalar(memory, dest, scope)
         # The documented clamp thresholds are unambiguous for 32- and 64-bit destinations.
         bounded = min(max(value, 0), BCD_MAXIMUM[dtype]) if INT_BITS[dtype] >= 32 else value
         result = to_bcd(bounded, dtype)
-        memory.write(dest, result, scope)
-        memory.record_math_result(result, overflow=bounded != value)
-        return True
+        overflow = bounded != value
     else:
         value = unsigned(memory, source, scope, width)
         order = op.args[1].upper()
@@ -97,7 +100,9 @@ def execute(memory, op, power, scope):
             result = bit_value((value << 16) | (value >> 16), 'DINT')
         else:
             result = bit_value(((value & 0x00ff00ff) << 8) | ((value & 0xff00ff00) >> 8), 'DINT')
-    memory.write(op.args[-1], result, scope, math_result=op.name == 'FRD')
+    memory.write(dest, result, scope)
+    if op.name != 'SWPB':
+        memory.record_math_result(result, overflow=overflow)
     return True
 
 
@@ -109,10 +114,10 @@ def description():
                 preflight='Declared scalar types/shapes, index grammar, permissions, immediate bounds and SWPB selectors; no saved dynamic indices or tag values',
                 selection='False/prescan skip live operands; true checks actual indices and required sources; full writes establish unknown results',
                 array_recovery='A cleared Type 4 Code 20 during a whole-project ladder scan skips the conversion write',
-                frd_range='Two/four/eight/sixteen weighted nibbles including A-F; decoded value must fit the destination; range errors roll back the advance',
+                frd_range='Two/four/eight/sixteen weighted nibbles including A-F; SINT and INT keep low bits of DINT-range results. Remaining range errors roll back the advance',
                 tod_range='Nonnegative integer input: 0..99 (8-bit), 0..9999 (16-bit), 0..99999999 (32-bit), 0..9999999999999999 (64-bit); exact packed destination bits',
                 tod_overflow='Ladder DINT/UDINT and LINT/ULINT clamp negative input to zero and excess input to the packed maximum. 8- and 16-bit destinations retain checked conversion.',
-                bcd_status='Ladder TOD and FRD set S:N and S:Z from the stored result. TOD clamping sets S:V and can set the task S:MINOR with ReportMinorOverflow.',
+                bcd_status='Ladder TOD and FRD set S:N and S:Z from the stored result. TOD clamping and FRD signed narrowing set S:V and can set the task S:MINOR with ReportMinorOverflow.',
                 immediates='FRD/TOD accept decimal and typed radix L/U/UL sources alongside bounded DINT and unsuffixed 32-bit patterns',
                 typed_immediates='FRD decodes the declared 32/64-bit pattern; TOD packs the exact numeric value within destination capacity',
                 typed_radix=dict(bases=[2,8,16],types=['LINT','UDINT','ULINT'],
@@ -123,4 +128,4 @@ def description():
                 swpb='RLL/ST INT to INT/DINT (sign extension) or DINT to DINT tags',
                 orders=sorted(ORDERS), native_math_status=False, native_fault_classification=False,
                 remaining=['BCD ST expressions and remaining FBD forms',
-                           'Byte and word TOD overflow, FRD overflow bits and native status/fault parity'])
+                           'Byte and word TOD overflow, remaining FRD destination conversions and native status/fault parity'])

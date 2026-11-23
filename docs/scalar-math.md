@@ -101,8 +101,9 @@ sets it when the stored value differs from the rounded integer.
 [REAL and LREAL TRN](size-truncate.md#real-and-lreal-trn-into-sint-or-int)
 sets it when the stored low bits change the truncated integer. String MOV
 sets it when the source exceeds destination capacity.
-[Ladder TOD](numeric-conversions.md#ladder-saturation-and-status) sets it
-when the source clamps to zero or the packed maximum.
+[Ladder BCD](numeric-conversions.md#ladder-saturation-and-status) sets it
+when TOD clamps to zero or the packed maximum, or when FRD narrows a decoded
+value into SINT or INT.
 Modeled DIV and MOD with a zero divisor also set it, as does an infinity result
 converted to a signed integer limit. A normal modeled numeric result or
 unclipped string MOV clears the flag. If the controller export explicitly

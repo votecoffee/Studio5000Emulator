@@ -3563,7 +3563,7 @@ class ApplicationLifecycleTests(unittest.TestCase):
         write('Calculate',False);write('Reset',True);row=step();self.assertEqual(row['DintMeanControl.POS'],0)
         report=self.post('report',{})['array_statistics'];self.assertEqual(report['destinations']['STD'],['REAL']);self.assertIn('SINT',report['destinations']['AVE']);self.assertFalse(report['native_math_status'])
 
-    def test_conversion_lab_narrow_bcd_roundtrips_and_range_recovery_through_http(self):
+    def test_conversion_lab_narrow_bcd_roundtrips_and_overflow_results_through_http(self):
         self.assertEqual(self.post('demo',{'sample':'ConversionLab'})['blockers'],[])
         values=lambda state:{row['name']:row['value'] for row in state['tags']}
         def write(tag,value):return self.post('write',{'tag':tag,'value':value})
@@ -3572,12 +3572,12 @@ class ApplicationLifecycleTests(unittest.TestCase):
         write('ByteDecimal',127);write('WordDecimal',32767);write('RawByteBCD',0x7f);row=step()
         self.assertEqual((row['ByteDecoded'],row['WordDecoded'],row['RawByteDecoded']),(127,32767,85))
         write('Enable',False);write('ByteDecimal',99);write('RawByteBCD',0x128);row=step();self.assertEqual((row['ByteDecoded'],row['RawByteDecoded']),(127,85))
-        before=write('Enable',True)
-        with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
-        self.assertEqual(error.exception.code,400);error.exception.close()
-        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
-        for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
-        write('RawByteBCD',0x127);row=step();self.assertEqual((row['ByteDecoded'],row['RawByteDecoded']),(99,127))
+        write('Enable', True)
+        row = step()
+        self.assertEqual((row['ByteDecoded'], row['RawByteDecoded']), (99, -128))
+        write('RawByteBCD', 0x127)
+        row = step()
+        self.assertEqual((row['ByteDecoded'], row['RawByteDecoded']), (99, 127))
         write('ByteDecimal', 100)
         write('WordDecimal', -1)
         row = step()

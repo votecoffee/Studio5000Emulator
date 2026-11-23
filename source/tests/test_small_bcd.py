@@ -38,7 +38,11 @@ class SmallBCDTests(unittest.TestCase):
                 e.step();self.assertEqual(e.memory.read('Results'),[None,99,None]);self.assertEqual(e.memory.read('Source'),value)
                 size,signed=TYPES[source];value=-1 if signed else (1<<(size*8))-1;e.memory.write('Source',value)
                 limit=(1<<(TYPES[dest][0]*8-int(TYPES[dest][1])))-1;expected=fixtures.decoded(value,source)
-                if expected>limit:
+                if dest in ('SINT', 'INT') and expected <= 2147483647:
+                    mask = (1 << (TYPES[dest][0] * 8)) - 1
+                    e.step()
+                    self.assertEqual(e.memory.read('Results'), [None, pattern(expected & mask, dest), None])
+                elif expected > limit:
                     before=self.snapshot(e)
                     with self.assertRaisesRegex(ModelError,'overflow'):e.step()
                     self.assertEqual(self.snapshot(e),before)

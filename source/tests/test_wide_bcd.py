@@ -55,7 +55,11 @@ class WideBCDTests(unittest.TestCase):
                 size,signed=TYPES[source];value=-1 if signed else (1<<(size*8))-1
                 e.memory.write('Source',value);result=decoded(value,source)
                 outsize,outsigned=TYPES[dest];maximum=(1<<(outsize*8-int(outsigned)))-1
-                if result>maximum:
+                if dest in ('SINT', 'INT') and result <= 2147483647:
+                    low_bytes = (result % (1 << (outsize * 8))).to_bytes(outsize, 'big')
+                    e.step()
+                    self.assertEqual(e.memory.read('Results[1]'), int.from_bytes(low_bytes, 'big', signed=True))
+                elif result > maximum:
                     before=self.snapshot(e)
                     with self.assertRaisesRegex(ModelError,'overflow'):e.step()
                     self.assertEqual(self.snapshot(e),before)

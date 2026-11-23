@@ -61,7 +61,7 @@ class RadixBCDTests(unittest.TestCase):
     def test_narrow_tod_and_frd_overflows_remain_transactional(self):
         for call,dest,pattern in [('TOD(16#FFFFFFFFFFFFFFFFL,Results[1]);','INT','qualified'),
                                   ('TOD(16#64U,Results[1]);','USINT','qualified'),
-                                  ('FRD(16#128L,Results[1]);','SINT','overflow'),
+                                  ('FRD(16#2147483648L,Results[1]);','SINT','overflow'),
                                   ('FRD(16#FFFFFFFFFFFFFFFFUL,Results[1]);','UDINT','overflow')]:
             e=self.checked(['MOV(77,SpeedCommand);',call],dest=dest);self.fault(e,pattern)
 

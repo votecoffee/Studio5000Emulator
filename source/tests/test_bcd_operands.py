@@ -40,11 +40,42 @@ class BCDOperandTests(unittest.TestCase):
         for packed,wanted in ((0x32767,32767),(0xffff,16665)):
             e=self.checked(['FRD(Source,Dest);'],types=('DINT','DINT','INT'),values=(packed,0,7));e.step();self.assertEqual(e.memory.read('Dest'),wanted)
 
-    def test_decoded_range_failure_rolls_back_prior_writes_and_scan_state(self):
-        for dtype,packed in (('SINT',0x128),('SINT',0xff),('INT',0x32768),('INT',-1)):
-            e=self.checked(['MOV(23,Mask);','FRD(Source,Dest);'],types=('DINT','DINT',dtype),values=(packed,0,7));before=self.snapshot(e)
-            with self.assertRaisesRegex(ModelError,dtype+' overflow'):e.step()
-            self.assertEqual(self.snapshot(e),before)
+    def test_frd_dint_range_narrowing_updates_flags_and_continues_the_rung(self):
+        def report_overflow(root):
+            root.find('Controller').set('ReportMinorOverflow', 'true')
+
+        for dtype, cases in (
+            ('SINT', ((0x127, 127, False), (0x128, -128, True), (0xff, -91, True),
+                      (0x256, 0, True), (0x2147483647, -1, True), (0x12, 12, False))),
+            ('INT', ((0x32767, 32767, False), (0x32768, -32768, True),
+                     (0x65536, 0, True), (0x10001, 10001, False))),
+        ):
+            with self.subTest(dtype=dtype):
+                e = self.checked([
+                    'FRD(Source,Dest)[XIC(S:V)OTE(RunLatch),XIC(S:N)OTE(StopPB),'
+                    'XIC(S:Z)OTE(MotorRunning),MOV(23,Mask)];',
+                    'XIC(S:MINOR)OTE(StartPB);',
+                ], types=('LINT', 'DINT', dtype), mutate=report_overflow)
+                e.memory.values['dest'] = None
+                for packed, stored, overflow in cases:
+                    e.memory.write('Source', packed)
+                    e.step()
+                    self.assertEqual(e.memory.read('Dest'), stored)
+                    self.assertEqual(e.memory.read('Mask'), 23)
+                    self.assertIs(e.memory.read('RunLatch'), overflow)
+                    self.assertIs(e.memory.read('StopPB'), stored < 0)
+                    self.assertIs(e.memory.read('MotorRunning'), stored == 0)
+                    self.assertIs(e.memory.read('StartPB'), overflow)
+
+    def test_other_decoded_range_failures_roll_back_prior_writes_and_scan_state(self):
+        for dtype, packed in (('SINT', 0x2147483648), ('INT', 0x2147483648),
+                              ('USINT', 0x256), ('UINT', 0x65536)):
+            e = self.checked(['MOV(23,Mask);', 'FRD(Source,Dest);'],
+                             types=('LINT', 'DINT', dtype), values=(packed, 0, 7))
+            before = self.snapshot(e)
+            with self.assertRaisesRegex(ModelError, dtype + ' overflow'):
+                e.step()
+            self.assertEqual(self.snapshot(e), before)
 
     def test_tod_negative_byte_and_word_sources_clamp_into_dint(self):
         for dtype, value in (('SINT', -1), ('SINT', -128), ('INT', -1), ('INT', -32768)):
@@ -76,10 +107,12 @@ class BCDOperandTests(unittest.TestCase):
     def test_bounded_immediates_decode_to_narrow_results(self):
         for value in ('127','16#7F','8#177','2#0111_1111'):
             e=self.checked([f'FRD({value},Dest);'],types=('DINT','DINT','SINT'));e.step();self.assertEqual(e.memory.read('Dest'),85)
-        for value in ('-1','16#FFFF_FFFF'):
-            e=self.checked([f'FRD({value},Dest);'],types=('DINT','DINT','INT'));before=self.snapshot(e)
-            with self.assertRaisesRegex(ModelError,'INT overflow'):e.step()
-            self.assertEqual(self.snapshot(e),before)
+        for value in ('-1', '16#FFFF_FFFF'):
+            e = self.checked([f'FRD({value},Dest)XIC(S:V)OTE(RunLatch);'],
+                             types=('DINT', 'DINT', 'INT'))
+            e.step()
+            self.assertEqual(e.memory.read('Dest'), 8617)
+            self.assertTrue(e.memory.read('RunLatch'))
 
     @staticmethod
     def packet(root):
@@ -126,22 +159,33 @@ class BCDOperandTests(unittest.TestCase):
                 if node is not None:node.set('DataType',kind)
         f.body()[0].find('Text').text='TOD(Step,Shared)FRD(Shared,Count)FRD(Shared,Total);'
         rungs=['XIC(EnableA)LabAccumulator(AccumulatorA,StepA,TotalA,SharedA);','XIC(EnableB)LabAccumulator(AccumulatorB,StepB,TotalB,SharedB);']
-        if late:rungs+=['CPT(Truncated,1/StepA);']
+        if late:rungs+=['CPT(Truncated,1/StepB);']
         e=f.engine(rungs);self.assertEqual(e.blockers,[]);return e
 
     def test_aoi_narrow_input_local_output_and_dint_inout(self):
         e=self.aoi();e.memory.write('StepA',99);e.memory.write('StepB',127);e.step()
         self.assertEqual(tuple(e.memory.read(t) for t in ('SharedA','SharedB','AccumulatorA.Count','AccumulatorB.Count','TotalA','TotalB')),(0x99,0x127,99,127,99,127))
 
-    def test_late_aoi_result_range_failure_restores_local_output_inout_and_bindings(self):
-        e=self.aoi();e.memory.write('StepA',128);before=self.snapshot(e)
-        with self.assertRaisesRegex(ModelError,'SINT overflow'):e.step()
-        self.assertEqual(self.snapshot(e),before);e.memory.write('StepA',127);e.step();self.assertEqual(e.memory.read('TotalA'),127)
+    def test_narrow_aoi_output_keeps_the_wider_local_and_inout(self):
+        e = self.aoi()
+        e.memory.write('StepA', 128)
+        e.step()
+        self.assertEqual(e.memory.read('SharedA'), 0x128)
+        self.assertEqual(e.memory.read('AccumulatorA.Count'), 128)
+        self.assertEqual(e.memory.read('TotalA'), -128)
 
-    def test_later_fault_restores_successful_aoi_conversions(self):
-        e=self.aoi(late=True);e.memory.write('StepA',0);before=self.snapshot(e)
-        with self.assertRaises(ModelError):e.step()
-        self.assertEqual(self.snapshot(e),before);e.memory.write('StepA',2);e.step();self.assertEqual(e.memory.read('SharedB'),3)
+    def test_later_fault_restores_narrow_aoi_output_inout_and_bindings(self):
+        e = self.aoi(late=True)
+        e.memory.write('StepA', 128)
+        e.memory.write('StepB', 0)
+        before = self.snapshot(e)
+        with self.assertRaisesRegex(ModelError, 'zero'):
+            e.step()
+        self.assertEqual(self.snapshot(e), before)
+        e.memory.write('StepB', 3)
+        e.step()
+        self.assertEqual(e.memory.read('TotalA'), -128)
+        self.assertEqual(e.memory.read('SharedB'), 3)
 
     def test_report_keeps_packed_boundary_and_remaining_forms_explicit(self):
         e=self.checked(['FRD(Source,Dest);']);report=e.report()['numeric_conversions']

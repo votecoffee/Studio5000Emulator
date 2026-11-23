@@ -33,10 +33,11 @@ The qualified ladder combinations are:
 | FRD | Any of the eight integer tag types or bounded DINT/32-bit radix/decimal or radix L/U/UL immediate | Writable SINT/INT/DINT/LINT/USINT/UINT/UDINT/ULINT scalar |
 | TOD | Any of the eight integer tag types or bounded DINT/32-bit radix/decimal or radix L/U/UL immediate | Writable SINT/INT/DINT/LINT/USINT/UINT/UDINT/ULINT scalar |
 
-FRD checks the decoded integer against the destination's signed/unsigned range. Thus
-16#127 decodes to SINT 127; 16#128 decodes to 128 and faults on a SINT result.
-It does not store truncated overflow bits. The eight-nibble calculation is
-retained for 32-bit sources, including signed DINT sources and A-F digits.
+FRD decodes all nibbles of the declared source width, including signed DINT
+sources and A-F digits. A DINT-range decoded value written to SINT or INT
+retains the low destination bits. For example, 16#128 decodes to 128 and stores
+-128 in SINT. Other destination conversions check the decoded value against
+the destination range.
 
 TOD consumes the integer decimal value directly, without a float32 conversion:
 SINT 99 packs to DINT 16#99, INT 32767 packs to DINT 16#32767, and either
@@ -53,13 +54,17 @@ An input above the destination's digit capacity stores all nines in the packed
 format. Both cases set `S:V` and continue the rung. When the project enables
 `ReportMinorOverflow`, the task also sees `S:MINOR`. `S:N` and `S:Z` describe
 the stored value. A signed packed result can therefore set `S:N` even when the
-source is positive. Successful FRD also updates `S:N` and `S:Z` from the
-decoded store and clears `S:V`. See the
+source is positive. FRD also updates `S:N` and `S:Z` from its stored value.
+It sets `S:V` when a SINT or INT result differs from the decoded integer
+and raises `S:MINOR` if overflow reporting is enabled. This is the emulator's
+application of the DINT-to-SINT/INT conversion rule to decoded values that
+fit DINT. A value that fits its destination clears `S:V`. See the
 [Rockwell conversion reference](https://www.rockwellautomation.com/en-ie/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/math-conversion-instructions/convert-to-bcd--to-bcd-.html)
-and [replacement guide](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm100_-en-p.pdf#page=168).
+[replacement guide](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm100_-en-p.pdf#page=168)
+and [DINT narrowing rules](https://www.rockwellautomation.com/en-gb/docs/studio-5000-logix-designer/37-00/contents-ditamap/data-conversions.html).
 
-Out-of-range inputs to byte/word TOD and decoded FRD results outside the
-destination range still roll back the advance. A later error also rolls back a
+Byte/word TOD range errors and FRD range errors beyond the modeled
+SINT/INT conversions roll back the advance. A later error also rolls back a
 completed saturated write. Native fault records and controller parity remain
 unverified.
 
@@ -74,8 +79,8 @@ decodes to 16666666666666665 by weighting its sixteen A-F-capable nibbles.
 
 DINT/UDINT retain eight-nibble capacity even with a 64-bit decimal source.
 See [Ladder saturation and status](#ladder-saturation-and-status) for
-out-of-range inputs. FRD checks the decoded result against the destination's
-range. Both instructions take integer operands.
+out-of-range inputs and signed destination narrowing. Both instructions take
+integer operands.
 
 Unsuffixed source immediates retain signed-DINT decimal or 32-bit radix bounds.
 An unsuffixed literal is still a 32-bit pattern for FRD, even with a 64-bit result.
@@ -102,8 +107,8 @@ App `26.1103.214730` adds SINT/USINT and INT/UINT packed operands, completing
 all 64 integer source/destination type pairings for each ladder instruction.
 FRD interprets exactly the declared pattern: SINT -1 weights FF and produces
 165, INT -1 weights FFFF and produces 16665. A-F digits retain their weighted
-values. FRD checks the decimal result against the destination range; 165 does
-not fit SINT and faults transactionally, while it fits USINT or DINT.
+values. A decoded 165 stores -91 in SINT and sets overflow. It fits USINT or
+DINT and is stored as 165 with overflow clear.
 
 TOD qualifies nonnegative inputs up to the packed destination's decimal capacity:
 99 in a byte and 9999 in a word. Signed results preserve those packed bits:
@@ -115,9 +120,9 @@ integer arithmetic, without float32 intermediates.
 This extends the existing width-based software model. Installed v35 help 14674
 and 14675 list the operand types; their native saturation/overflow behavior and
 the FRD description's 32-bit formula do not establish narrow calculation parity.
-Byte and word TOD range errors and decoded FRD destination overflow roll back
-the advance. Native overflow bits, minor-fault records and partial effects for
-those cases remain unqualified. FBD keeps the shared helpers' DINT defaults,
+Byte and word TOD range errors and FRD range errors outside the signed
+narrowing rule roll back the advance. Native result bits, minor-fault records
+and partial effects remain unverified. FBD keeps the shared helpers' DINT defaults,
 and ST FRD/TOD remain unavailable.
 
 In **Conversion lab**, step with SmallBCD false; SmallBCDIndex=99 remains dormant.
@@ -138,8 +143,8 @@ while `FRD(4294967295U,Weighted)` produces 166666665. TOD uses the numeric
 value. `TOD(9007199254740993UL,Packed)` writes the exact pattern
 `16#9007199254740993` to a ULINT destination.
 
-Preflight checks the declared literal range. Reached instructions check TOD's
-destination capacity and FRD's decoded result range. False rungs skip live
+Preflight checks the declared literal range. Reached instructions apply TOD's
+destination capacity and FRD's destination conversion rules. False rungs skip live
 indices, and full writes establish unknown elements. The literal profile is
 extended by the [typed radix source profile](#typed-radix-bcd-sources) below.
 
@@ -166,8 +171,8 @@ the same pattern as a UL source stores sixteen packed nines.
 packs `16#9007199254740993` without floating math.
 
 The destination type determines TOD's decimal capacity and how the packed bits
-are interpreted. FRD checks the decoded result against the destination range. Overwide/invalid source words block
-false rungs. False/prescan skip live indices/data; full writes establish unknown
+are interpreted. FRD uses the same destination rules for tags and constants.
+Overwide or invalid source words block false rungs. False/prescan skip live indices/data; full writes establish unknown
 results. Aliases, selected elements, AOI bindings, source capture and whole-advance
 rollback retain existing behavior. SWPB, BCD expressions/index/file consumers,
 ST calls, FBD defaults and general literal parsing are not extended. The viewer
@@ -237,8 +242,8 @@ routine swaps two INT array elements into DINTs, retaining a guard element of
 999. Disable Enable to retain the ladder results while the ST routine continues.
 ByteDecimal/BytePacked/ByteDecoded and WordDecimal/WordPacked/WordDecoded
 add narrow round trips; NarrowOK checks them. RawByteBCD separately decodes
-into RawByteDecoded. Set RawByteBCD to 296 (16#128) to exercise SINT result
-overflow after earlier conversions, then correct it to 295 (16#127) and retry.
+into RawByteDecoded. Set RawByteBCD to 296 (16#128) to see the SINT result
+wrap to -128 while the scan continues. Set it to 295 (16#127) to see 127.
 False Enable retains ladder results while the called ST routine still runs.
 The separate `IndexedConversions` section starts disabled with `ConversionIndex`
 99 and unknown result arrays. Set the index to 0, then enable the gate:

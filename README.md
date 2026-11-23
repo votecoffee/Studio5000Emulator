@@ -850,9 +850,11 @@ FillNumeric to compare guarded byte, word, signed and rounded REAL fills.
 All eight integer types work as ladder FRD/TOD sources and destinations.
 **Conversion lab** adds gated byte/word round trips with signed packed bits.
 [Ladder TOD](docs/numeric-conversions.md#ladder-saturation-and-status) clamps
-out-of-range inputs for DINT/UDINT/LINT/ULINT destinations and sets the rung
-overflow flag. Enable `WideConversions` in **Conversion lab** for exact
-16-digit round trips, saturation and weighted hexadecimal nibbles. The profile also includes
+out-of-range inputs for DINT/UDINT/LINT/ULINT destinations. Ladder FRD keeps
+the low bits of DINT-range results stored in SINT or INT. TOD sets overflow
+when it clamps, and FRD sets it when narrowing changes the decoded value.
+Enable `WideConversions` in **Conversion lab** for exact 16-digit round trips,
+saturation and weighted hexadecimal nibbles. The profile also includes
 INT/DINT SWPB byte ordering in ladder, with SWPB also available in ST. Choose
 **Conversion lab** to inspect packed BCD, byte orders and sign extension.
 The ladder forms validate dynamic indices structurally and skip live operands

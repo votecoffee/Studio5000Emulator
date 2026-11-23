@@ -16,8 +16,9 @@ Unknown destinations can be established; bounds and later faults roll back.
 inputs and narrow decoded FRD results, plus 32/64-bit packed signed/unsigned
 forms with eight/sixteen decimal digits. Calculations use exact integer
 arithmetic. Ladder TOD clamps out-of-range inputs for 32/64-bit destinations and
-sets the overflow flag. Byte/word TOD range errors and decoded result overflow
-roll back the advance.
+sets the overflow flag. FRD keeps the low destination bits when storing
+DINT-range values in SINT or INT. Byte/word TOD range errors and other FRD range
+errors roll back the advance.
 
 [Integer AVE results](array-statistics.md) convert the existing float32 mean
 to SINT/INT/DINT with ties to even and rounded range checks. STD remains REAL.
