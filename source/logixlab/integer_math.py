@@ -1,7 +1,7 @@
 """Exact, homogeneous wide-integer ladder operations for the v35 5580 model.
 
-Qualified narrow signed ADD and SUB wrap at the destination width. Qualified DIV
-and MOD by zero complete. These conditions can raise task-scoped minor status.
+Qualified narrow signed ADD and SUB wrap at the destination width. ABS and NEG
+retain the signed minimum on overflow. Qualified DIV and MOD by zero complete.
 """
 import math
 import operator
@@ -11,6 +11,7 @@ from .model import INT_BITS, UNSIGNED_BITS, ModelError, coerce, literal
 WIDE_TYPES = frozenset(('LINT', *UNSIGNED_BITS))
 CONTROLLERS = frozenset(f'1756-L8{number}E' for number in range(1, 6))
 CARRY_INSTRUCTIONS = frozenset(('ADD', 'SUB'))
+SIGNED_UNARY_INSTRUCTIONS = frozenset(('ABS', 'NEG'))
 SIGNED_WRAP_TYPES = frozenset(('SINT', 'INT', 'DINT'))
 COMPARISONS = {'EQU': operator.eq, 'NEQ': operator.ne, 'LES': operator.lt,
                'LEQ': operator.le, 'GRT': operator.gt, 'GEQ': operator.ge}
@@ -296,15 +297,18 @@ def record_carry(memory, name, values, dtype):
     memory.rung_carry = left + right > mask if name == 'ADD' else left < right
 
 
-def write_add_sub(memory, op, scope, dtype, values, result):
-    """Store a signed narrow ADD/SUB result and publish its independent flags."""
-    if memory.rung_carry is not None and dtype in SIGNED_WRAP_TYPES:
+def write_integer_result(memory, op, scope, dtype, values, result):
+    """Apply ladder result wrapping where the instruction and destination allow it."""
+    name = op.name
+    if (memory.rung_carry is not None and dtype in SIGNED_WRAP_TYPES
+            and (name in CARRY_INSTRUCTIONS or
+                 name in SIGNED_UNARY_INSTRUCTIONS and values[0] == integer_bounds(dtype)[0])):
         stored = bit_value(result, dtype)
         memory.write(op.args[-1], stored, scope)
         memory.record_math_result(stored, overflow=stored != result)
     else:
         memory.write(op.args[-1], result, scope, math_result=True)
-    record_carry(memory, op.name, values, dtype)
+    record_carry(memory, name, values, dtype)
 
 
 def execute(engine, op, scope, dtype, *, radix=False):
@@ -341,8 +345,5 @@ def execute(engine, op, scope, dtype, *, radix=False):
             result = bit_value({'AND': operator.and_, 'OR': operator.or_, 'XOR': operator.xor}[name](a, b), dtype)
         else:
             result = {'ADD': operator.add, 'SUB': operator.sub, 'MUL': operator.mul}[name](a, b)
-    if name in CARRY_INSTRUCTIONS:
-        write_add_sub(memory, op, scope, dtype, values, result)
-    else:
-        memory.write(op.args[-1], coerce(result, dtype), scope, math_result=True)
+    write_integer_result(memory, op, scope, dtype, values, result)
     return True

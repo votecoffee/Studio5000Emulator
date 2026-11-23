@@ -5,7 +5,7 @@ import operator
 from . import time_values
 from .bit_transfer import operand, unsigned
 from .integer_math import CONTROLLERS, WIDE_TYPES, bit_value, bitwise_immediate_widths, profile, typed_profile, typed_integer, radix_profile, pattern, integer_bounds, dint_radix, read_source, quotient, execute_zero_divisor
-from .integer_math import CARRY_INSTRUCTIONS, SIGNED_WRAP_TYPES, record_carry, signed_floating_exception
+from .integer_math import CARRY_INSTRUCTIONS, SIGNED_UNARY_INSTRUCTIONS, SIGNED_WRAP_TYPES, record_carry, signed_floating_exception
 from .model import INT_BITS, UNSIGNED_BITS, ModelError, coerce, literal
 from .numeric_storage import (floating_math_profile, lreal_math_source, real_math_source,
                               typed_literal, write_exceptional_result, write_lreal_math_result)
@@ -263,6 +263,10 @@ def description(project):
                     result='Signed destination-width wrap with continued rung execution',
                     status='S:V reports overflow, S:N/S:Z test the stored result, and S:C reports carry or borrow independently',
                     excluded='Checked wide-to-narrow conversion forms, LINT/unsigned destinations, and other languages',
+                    native_runtime_parity=False),
+                signed_unary_overflow=dict(instructions=sorted(SIGNED_UNARY_INSTRUCTIONS),
+                    destinations=sorted(SIGNED_WRAP_TYPES),
+                    result='The minimum representable signed value is stored unchanged, and the rung continues with S:V set',
                     native_runtime_parity=False),
                 signed_dint_radix=dict(bases=[2,8,16],bits=32,
                     interpretation='Unsuffixed full words with bit31 set are signed DINT constants; shorter words zero-fill',

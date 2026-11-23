@@ -37,7 +37,9 @@ Structural validation and operand selection apply to all eleven operations.
 Integer division into integer destinations truncates toward zero; integer remainder retains the
 dividend's sign. Wide homogeneous and qualified widening-tag arithmetic stay exact.
 [Signed SINT, INT and DINT ADD/SUB](#signed-add-and-sub-overflow) can wrap and
-continue. Other checked integer arithmetic errors roll back the advance.
+continue. [ABS and NEG](#absolute-value-and-negation-at-the-signed-minimum)
+also continue at the signed minimum. Other checked integer arithmetic errors
+roll back the advance.
 
 ## Carry after integer ADD and SUB
 
@@ -108,10 +110,23 @@ and `S:C` reflects carry or borrow independently. With `ReportMinorOverflow`
 enabled, the task can also test `S:MINOR`.
 
 LINT and unsigned destinations, the checked wide-to-narrow conversion
-profile, and other arithmetic instructions retain their existing range
-checks. A later error still rolls back the advance, including the wrapped
-value and downstream coil writes.
+profile, and [other checked arithmetic results](#absolute-value-and-negation-at-the-signed-minimum)
+retain their range checks. A later error rolls back the advance, including
+the wrapped value and downstream coil writes.
 [Rockwell math status flags](https://www.rockwellautomation.com/en-se/docs/studio-5000-logix-designer/38-01/contents-ditamap/instruction-set/math-status-flags.html)
+
+## Absolute value and negation at the signed minimum
+
+In qualified v35 ControlLogix 5580 ladder logic, integer ABS or NEG with a source
+equal to the SINT, INT or DINT destination minimum stores that minimum and sets
+`S:V`. For example, ABS of -128 into SINT stores -128 because +128 does not fit.
+The rung continues with `S:N` set, `S:Z` clear and `S:C` retained. If
+`ReportMinorOverflow` is enabled, the task can also test `S:MINOR`.
+
+The same source written to a wider destination gives the positive result when
+it fits. Other out-of-range unary results retain their range checks. Native
+controller acceptance of the modeled NEG edge case remains open.
+[Rockwell ABS reference](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/37-02/contents-ditamap/instruction-set/compute-math-instructions/absolute-value--abs-.html)
 
 ## Integer MOD with a zero divisor
 

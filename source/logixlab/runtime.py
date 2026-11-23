@@ -1277,8 +1277,14 @@ class Engine:
             if p: w(0, 0)
         elif n in ("NEG", "ABS", "NOT"):
             if p:
-                value = {"NEG": operator.neg, "ABS": abs, "NOT": operator.invert}[n](r(0))
-                self.memory.write(a[1], value, scope, math_result=True)
+                source = r(0)
+                value = {"NEG": operator.neg, "ABS": abs, "NOT": operator.invert}[n](source)
+                if (self.memory.rung_carry is not None and n in integer_math.SIGNED_UNARY_INSTRUCTIONS
+                        and type(source) is int):
+                    dtype = self.memory.resolve(a[1], scope)[2]
+                    integer_math.write_integer_result(self.memory, op, scope, dtype, (source,), value)
+                else:
+                    self.memory.write(a[1], value, scope, math_result=True)
         elif n in ("ADD", "SUB", "MUL", "DIV", "MOD", "AND", "OR", "XOR"):
             if p:
                 x, y = r(0), r(1)
@@ -1314,7 +1320,7 @@ class Engine:
                         and type(x) is int and type(y) is int):
                     carry_dtype = self.memory.resolve(a[2], scope)[2]
                 if carry_dtype is not None:
-                    integer_math.write_add_sub(self.memory, op, scope, carry_dtype, (x, y), value)
+                    integer_math.write_integer_result(self.memory, op, scope, carry_dtype, (x, y), value)
                 else:
                     self.memory.write(a[2], value, scope, math_result=True)
         elif n in ("TON", "TOF", "RTO"):

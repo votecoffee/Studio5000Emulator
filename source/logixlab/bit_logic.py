@@ -133,7 +133,7 @@ def description(project):
                 minor_status='S:MINOR contacts and coils outside AOI bodies; task-local scan flag for reported DINT subscript overflow',
                 carry_status='S:C contacts read the last successful integer ADD/SUB on the same ladder rung. Each rung starts clear, and nested routines keep independent state.',
                 numeric_status='S:N and S:Z contacts test the latest modeled numeric instruction result stored in the same rung, after destination conversion.',
-                overflow_status='S:V contacts and OTE/OTL use a rung-local flag. Signed narrow ADD/SUB wrapping, narrowing MOV, divide/modulo by zero and infinity-to-signed-integer results can set it.',
+                overflow_status='S:V contacts and OTE/OTL use a rung-local flag. Signed narrow arithmetic, narrowing MOV, divide/modulo by zero and infinity-to-signed-integer results can set it.',
                 failures='Reached unknowns, unrecovered array faults and later errors roll back the advance and existing AOI state',
                 native_runtime_parity=False,
                 remaining=['Native packed BOOL layout, fault/postscan/lifecycle parity and broader controller qualification'])

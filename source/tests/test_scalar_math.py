@@ -349,6 +349,48 @@ class ScalarMathTests(unittest.TestCase):
             self.assertEqual(e.memory.read('MotorRunning'), enabled)
         self.assertEqual(e.memory.read('Results'), [2147483647, None, None])
 
+    def test_abs_and_neg_keep_narrow_signed_minimum_with_overflow(self):
+        def configure(root):
+            root.find('Controller').set('ReportMinorOverflow', 'true')
+
+        for dtype, bits in (('SINT', 8), ('INT', 16), ('DINT', 32)):
+            with self.subTest(dtype=dtype):
+                minimum = -(1 << (bits - 1))
+                e = self.checked([
+                    'XIC(StartPB)ADD(-1,1,Results[2])ABS(Source,Results[0])XIC(S:C)XIC(S:V)XIC(S:N)OTE(RunLatch);',
+                    'XIC(StartPB)NEG(Source,Results[1])XIC(S:V)XIC(S:N)OTE(MotorRunning);',
+                    'XIC(S:MINOR)OTE(StopPB);',
+                ], dtype=dtype, value=minimum, mutate=configure)
+                e.step()
+                self.assertEqual(e.memory.read('Results'), [None, None, None])
+                self.assertFalse(e.memory.read('StopPB'))
+                e.memory.write('StartPB', True)
+                e.step()
+                self.assertEqual(e.memory.read('Results'), [minimum, minimum, 0])
+                for tag in ('RunLatch', 'MotorRunning', 'StopPB'):
+                    self.assertTrue(e.memory.read(tag))
+                e.memory.write('Source', -7)
+                e.step()
+                self.assertEqual(e.memory.read('Results'), [7, 7, 0])
+                for tag in ('RunLatch', 'MotorRunning', 'StopPB'):
+                    self.assertFalse(e.memory.read(tag))
+
+    def test_abs_and_neg_wrap_radix_dint_but_keep_other_range_checks(self):
+        e = self.checked([
+            'ABS(16#80000000,Results[0])XIC(S:V)OTE(RunLatch);',
+            'NEG(16#80000000,Results[1])XIC(S:V)OTE(MotorRunning);',
+        ])
+        e.step()
+        self.assertEqual(e.memory.read('Results'), [-2147483648, -2147483648, None])
+        self.assertTrue(e.memory.read('RunLatch'))
+        self.assertTrue(e.memory.read('MotorRunning'))
+        for name in ('ABS', 'NEG'):
+            with self.subTest(name=name):
+                e = self.checked([f'{name}(Source,Results[0]);'], source='DINT', dest='SINT', value=-129)
+                with self.assertRaisesRegex(ModelError, 'SINT overflow'):
+                    e.step()
+                self.assertEqual(e.memory.read('Results'), [None, None, None])
+
     def test_source_destination_overlap_and_alias_member_guards(self):
         def aliases(root):
             E.SubElement(root.find('./Controller/Tags'), 'Tag', Name='OutputAlias', DataType='DINT', TagType='Alias', AliasFor='Results[1]')
