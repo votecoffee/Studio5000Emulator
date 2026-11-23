@@ -185,6 +185,13 @@ def convert(value, source, dest):
     return coerce(coerce(value, source), dest)
 
 
+def round_real_to_narrow_signed(value, dtype):
+    """Round a binary32 value, then narrow its DINT-range integer result."""
+    rounded = round(value)
+    result = bit_value(rounded, dtype) if can_narrow_dint_result(dtype, rounded) else coerce(rounded, dtype)
+    return result, result != rounded
+
+
 def write_exceptional_result(memory, ref, value, scope, *, instruction):
     """Store an instruction-produced NaN or infinity in a numeric destination."""
     key, parts, dtype = memory.check_writable(ref, scope)
@@ -232,9 +239,7 @@ def execute(engine, op, power, scope):
         write_exceptional_result(memory, op.args[-1], value, scope, instruction=op.name)
         return True
     if source == 'REAL' and dtype in NARROW_RESULT_TYPES:
-        rounded = round(coerce(value, source))
-        result = bit_value(rounded, dtype) if can_narrow_dint_result(dtype, rounded) else coerce(rounded, dtype)
-        overflow = result != rounded
+        result, overflow = round_real_to_narrow_signed(coerce(value, source), dtype)
     else:
         result = convert(value, source, dtype)
         overflow = source in INT_BITS and dtype in INT_BITS and result != value

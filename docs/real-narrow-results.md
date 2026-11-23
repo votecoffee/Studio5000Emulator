@@ -16,9 +16,9 @@ ADD(16#FFFFFFFF,RealInput,ByteResult);
 
 Every required source first converts to finite REAL. Calculation then uses
 the existing software solver, and the result rounds to REAL before conversion
-to the declared integer. Integer conversion rounds to nearest, ties to even;
-the rounded value must fit the destination. At RealInput=2.5 the first result
-is 2. The next examples produce 4, 0, 2 for UnsignedBase=4, and 2.
+to the declared integer. Integer conversion rounds to nearest, with ties going
+to even. At RealInput=2.5 the first result is 2. The next examples produce
+4, 0, 2 for UnsignedBase=4, and 2.
 
 This order matters: 16777217U becomes REAL 16777216 before subtraction.
 An LREAL source or floating L/l literal retains binary64 priority and can
@@ -27,11 +27,13 @@ exact arithmetic and type/range rules; a small saved integer value alone
 does not authorize a new narrowing conversion. Unary calls require a REAL
 source or floating immediate for this REAL profile.
 
-SINT accepts 127.49 rounded to 127; 127.5 rounds to 128 and faults under the
-emulator's range policy. -128.5 rounds to the even -128 and fits. DINT's
-largest representable positive REAL below 2^31 is 2147483520; an integer
-2147483647 converts to REAL 2147483648 and cannot be stored into DINT after
-REAL calculation. This is separate from integer-only DINT arithmetic.
+[Standalone ADD, SUB, MUL, DIV, MOD, NEG and ABS](scalar-math.md#real-arithmetic-into-sint-or-int)
+can narrow a rounded DINT-range result into SINT or INT. In ADD into SINT,
+127.49 rounds to 127 and fits, 127.5 rounds to 128 and stores -128 with
+`S:V` set, and -128.5 rounds to -128 and fits. The rounded result must fit
+the destination for the advanced math instructions. DINT's largest
+representable positive REAL below 2^31 is 2147483520. The integer 2147483647
+converts to REAL 2147483648 and fails a DINT result conversion.
 
 Existing decimal and declared-width radix source rules apply. Structural
 preflight checks references, types, shapes, literals and permissions without
@@ -51,13 +53,13 @@ The REAL math reports now list all eight integer destination types.
 Load **Integer lab**, set NarrowRealIndex=1, enable NarrowRealEnabled and
 step. SINT=2, INT=4, DINT=0, Root=2, Power=2, Radix=2 and Selected[1]=2;
 RoundedEven is true. Index 99 or NarrowRealLateDivisor=0 demonstrates rollback.
-NarrowRealBoundaryEnabled enables the separate 127.5-to-SINT fault; change
-NarrowRealBoundarySource to 127.49 to repair it. Disable the main gate to skip
-invalid live operands and clear the comparison coil.
+NarrowRealBoundaryEnabled shows 127.5 narrowing to -128. Set
+NarrowRealBoundarySource to 2147483648 for a range fault, then restore it to
+127.49 to see the result 127. Disable the main gate to skip invalid live operands
+and clear the comparison coil.
 
-No ST/FBD forms are added. Native numerical, math-status, minor-fault and
-lifecycle parity is unverified; overflow uses the emulator's existing atomic
-range policy. The source basis is installed v35 Data conversions (14451),
+Native numerical, math-status, minor-fault and lifecycle parity remains
+unverified. The source basis is installed v35 Data conversions (14451),
 Immediate values (14454), ADD (14623), MOD (14620), XPY (14478) and SQR (14617).
 
 See [source selection](../source/logixlab/numeric_storage.py),

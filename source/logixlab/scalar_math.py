@@ -9,7 +9,8 @@ from .integer_math import (CARRY_INSTRUCTIONS, NARROW_RESULT_TYPES, SIGNED_UNARY
                            SIGNED_WRAP_TYPES, record_carry, signed_floating_exception)
 from .model import INT_BITS, UNSIGNED_BITS, ModelError, coerce, literal
 from .numeric_storage import (floating_math_profile, lreal_math_source, real_math_source,
-                              typed_literal, write_exceptional_result, write_lreal_math_result)
+                              round_real_to_narrow_signed, typed_literal, write_exceptional_result,
+                              write_lreal_math_result)
 from .real_math import real
 
 BITWISE = frozenset(('AND', 'OR', 'XOR', 'NOT'))
@@ -129,7 +130,15 @@ def execute_floating(engine, op, scope, precision):
     elif precision == 'LREAL':
         write_lreal_math_result(memory, op.args[-1], result, scope)
     else:
-        memory.write(op.args[-1], real(result), scope, math_result=True)
+        result = real(result)
+        ref = op.args[-1]
+        key, parts, dtype = memory.check_writable(ref, scope)
+        if dtype in NARROW_RESULT_TYPES:
+            stored, overflow = round_real_to_narrow_signed(result, dtype)
+            memory.store(key, parts, stored)
+            memory.record_math_result(stored, overflow=overflow)
+        else:
+            memory.write(ref, result, scope, math_result=True)
     return True
 
 
@@ -268,6 +277,10 @@ def description(project):
                 narrow_multiply_overflow=dict(instructions=['MUL'],
                     destinations=sorted(NARROW_RESULT_TYPES),
                     result='A DINT-range product stores its low destination bits and sets S:V if narrowed',
+                    native_runtime_parity=False),
+                narrow_real_arithmetic=dict(instructions=sorted(ARITHMETIC),
+                    destinations=sorted(NARROW_RESULT_TYPES),
+                    result='Binary32 result rounds ties to even, then narrows low bits and sets S:V if its rounded value fits DINT but exceeds the destination',
                     native_runtime_parity=False),
                 narrow_div_mod_overflow=dict(instructions=['DIV', 'MOD'],
                     destinations=sorted(NARROW_RESULT_TYPES),

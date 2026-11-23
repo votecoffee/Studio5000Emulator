@@ -413,6 +413,37 @@ class ScalarMathTests(unittest.TestCase):
                     e.step()
                 self.assertEqual(self.snapshot(e), before)
 
+    def test_real_arithmetic_narrows_rounded_results_into_sint_and_int(self):
+        for dtype, limit in (('SINT', 128), ('INT', 32768)):
+            cases = (
+                (f'ADD({limit - 1.5},1.0,Results[0])', -limit),
+                (f'SUB(-{limit}.0,1.5,Results[0])', limit - 2),
+                (f'MUL({(limit - 0.5) / 2},2,Results[0])', -limit),
+                (f'DIV({2 * limit - 1}.0,2,Results[0])', -limit),
+                (f'MOD({3 * limit - 0.5},{2 * limit},Results[0])', -limit),
+                (f'NEG(-{limit - 0.5},Results[0])', -limit),
+                (f'ABS(-{limit - 0.5},Results[0])', -limit),
+            )
+            for instruction, stored in cases:
+                with self.subTest(dtype=dtype, instruction=instruction):
+                    e = self.checked([
+                        f'{instruction}[XIC(S:V)OTE(RunLatch),XIC(S:N)OTE(MotorRunning)];',
+                    ], dest=dtype)
+                    e.step()
+                    self.assertEqual(e.memory.read('Results'), [stored, None, None])
+                    self.assertTrue(e.memory.read('RunLatch'))
+                    self.assertEqual(e.memory.read('MotorRunning'), stored < 0)
+
+    def test_real_arithmetic_quantizes_result_before_rounding_to_integer(self):
+        e = self.checked([
+            'ADD(127.49999,0.000005,Results[0])XIC(S:V)OTE(RunLatch);',
+            'ADD(126.5,0.0,Results[1])XIO(S:V)OTE(MotorRunning);',
+        ], dest='SINT')
+        e.step()
+        self.assertEqual(e.memory.read('Results'), [-128, 126, None])
+        self.assertTrue(e.memory.read('RunLatch'))
+        self.assertTrue(e.memory.read('MotorRunning'))
+
     def test_radix_add_wrap_reports_task_minor_and_false_rung_skips_it(self):
         def configure(root):
             root.find('Controller').set('ReportMinorOverflow', 'true')

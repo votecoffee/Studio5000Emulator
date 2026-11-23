@@ -151,6 +151,22 @@ controller results remain unverified.
 [Rockwell DIV reference](https://www.rockwellautomation.com/en-cz/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/compute-math-instructions/divide--div-.html)
 [Rockwell MOD reference](https://www.rockwellautomation.com/en-be/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/compute-math-instructions/modulo--mod-.html)
 
+## REAL arithmetic into SINT or INT
+
+In the v35 ControlLogix 5580 ladder profile, standalone ADD, SUB, MUL, DIV,
+MOD, NEG and ABS can narrow a finite REAL result into SINT or INT. The
+instruction rounds the binary32 result to the nearest integer, with ties
+going to even. If that integer fits DINT, the instruction stores its low
+destination bits and sets `S:V` when the value changes. For example,
+`ADD(126.5,1,Byte)` stores -128 in SINT `Byte` and continues the rung.
+
+`S:N` and `S:Z` reflect the stored result. If `ReportMinorOverflow` is
+enabled, narrowing also sets the current task's `S:MINOR`. A rounded result
+outside DINT range fails the conversion. LREAL arithmetic, other destination
+types and expressions use their existing range checks.
+[Rockwell data conversions](https://www.rockwellautomation.com/en-gb/docs/studio-5000-logix-designer/37-00/contents-ditamap/data-conversions.html)
+[Rockwell compute/math instructions](https://www.rockwellautomation.com/en-be/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/compute-math-instructions.html)
+
 ## Absolute value and negation at the signed minimum
 
 In qualified v35 ControlLogix 5580 ladder logic, integer ABS or NEG with a source
@@ -218,9 +234,10 @@ converted to a signed integer sets the task's modeled `S:MINOR` bit when
 when the divisor is zero, including when the dividend is already NaN.
 
 Unsigned destinations reject nonfinite results. Reached operands are still
-required and faults roll back the advance. Finite-input overflow and arithmetic
-inside expressions retain their existing checks. Native NaN payloads, math
-flags and fault records remain unverified.
+required and faults roll back the advance. Finite results use the applicable
+conversion, including [REAL arithmetic into SINT or INT](#real-arithmetic-into-sint-or-int).
+Expressions retain their range checks. Native NaN payloads, math flags and
+fault records remain unverified.
 [Rockwell floating-point reference](https://www.rockwellautomation.com/en-in/docs/studio-5000-logix-designer/38-00/contents-ditamap/instruction-set/floating-point-values.html)
 
 ## Widening integer tag arithmetic

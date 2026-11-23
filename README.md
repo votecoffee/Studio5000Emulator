@@ -787,6 +787,8 @@ set the flag and continue when the result wraps at the signed minimum.
 a DINT-range product is truncated into SINT or INT.
 [Integer DIV and MOD](docs/scalar-math.md#divide-and-modulo-into-sint-or-int)
 report the same narrowing for DINT-range quotients and remainders.
+[Standalone REAL arithmetic](docs/scalar-math.md#real-arithmetic-into-sint-or-int)
+rounds before narrowing to SINT or INT and raises `S:V` on destination overflow.
 
 [Numeric move and clear](docs/numeric-storage.md) support signed/unsigned integer
 and REAL/LREAL scalar MOV conversions, typed CLR zeros and full writes to unknown

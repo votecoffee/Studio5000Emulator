@@ -50,7 +50,14 @@ class RealNarrowResultTests(unittest.TestCase):
         for dtype,value,expected in [('SINT',127.49,127),('SINT',-128.5,-128),('INT',32767.49,32767),
                 ('INT',-32768.5,-32768),('DINT',2147483520,2147483520),('DINT',-2147483648,-2147483648)]:
             e=self.checked(['ADD(Source,0UL,Results[1]);'],source='REAL',value=value,dest=dtype);e.step();self.assertEqual(e.memory.read('Results[1]'),expected)
-        for dtype,value in [('SINT',127.5),('SINT',-128.6),('INT',32767.5),('INT',-32768.6),('DINT',2147483647),('DINT',-2147483904)]:
+        for dtype, value, expected in (('SINT', 127.5, -128), ('SINT', -128.6, 127),
+                                       ('INT', 32767.5, -32768), ('INT', -32768.6, 32767)):
+            e = self.checked(['ADD(Source,0UL,Results[1])XIC(S:V)OTE(RunLatch);'],
+                             source='REAL', value=value, dest=dtype)
+            e.step()
+            self.assertEqual(e.memory.read('Results[1]'), expected)
+            self.assertTrue(e.memory.read('RunLatch'))
+        for dtype, value in (('SINT', 2**31), ('DINT', 2147483647), ('DINT', -2147483904)):
             e=self.checked(['ADD(Source,0UL,Results[1]);'],source='REAL',value=value,dest=dtype);self.fault(e,'overflow')
 
     def test_lreal_priority_and_integer_only_exactness_remain_separate(self):
@@ -119,7 +126,14 @@ class RealNarrowResultTests(unittest.TestCase):
         e=Engine(Project(Path(__file__).resolve().parents[1]/'samples/IntegerLab.L5X'));self.assertEqual(e.blockers,[]);e.step()
         e.memory.write('NarrowRealEnabled',True);e.memory.write('NarrowRealIndex',1);e.step()
         for name,value in {'SINT':2,'INT':4,'DINT':0,'Root':2,'Power':2,'Radix':2,'Selected':[101,2,999],'RoundedEven':True}.items():self.assertEqual(e.memory.read('NarrowReal'+name),value,name)
-        e.memory.write('NarrowRealBoundaryEnabled',True);self.fault(e,'overflow');e.memory.write('NarrowRealBoundarySource',127.49);e.step();self.assertEqual(e.memory.read('NarrowRealBoundaryResult'),127)
+        e.memory.write('NarrowRealBoundaryEnabled', True)
+        e.step()
+        self.assertEqual(e.memory.read('NarrowRealBoundaryResult'), -128)
+        e.memory.write('NarrowRealBoundarySource', 2**31)
+        self.fault(e, 'overflow')
+        e.memory.write('NarrowRealBoundarySource', 127.49)
+        e.step()
+        self.assertEqual(e.memory.read('NarrowRealBoundaryResult'), 127)
         e.memory.write('NarrowRealInput',5.5);e.memory.write('NarrowRealLateDivisor',0);self.fault(e,'zero');e.memory.write('NarrowRealLateDivisor',1);e.step();self.assertEqual(e.memory.read('NarrowRealSINT'),6)
         e.memory.write('NarrowRealEnabled',False);e.memory.write('NarrowRealIndex',99);e.step();self.assertFalse(e.memory.read('NarrowRealRoundedEven'))
         for row in (e.report()['scalar_math']['real_arithmetic'],e.report()['real_math']['real_destination']):self.assertEqual(set(row['integer_destinations']),set(INT_BITS))

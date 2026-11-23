@@ -3961,6 +3961,37 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.post('write', {'tag': 'Mask', 'value': 3})
         self.assertEqual(readings(), (2, 1, False, False, False, False))
 
+    def test_ladder_real_arithmetic_rounds_then_narrows_through_http(self):
+        from test_scalar_math import ScalarMathTests
+
+        fixture = ScalarMathTests()
+        fixture.setUp()
+        try:
+            def configure(root):
+                root.find('Controller').set('ReportMinorOverflow', 'true')
+
+            engine = fixture.checked([
+                'ADD(Source,1,Results[0])[XIC(S:V)OTE(RunLatch),XIC(S:Z)OTE(StopPB)];',
+                'XIC(S:V)OTE(StartPB);',
+                'XIC(S:MINOR)OTE(MotorRunning);',
+            ], source='REAL', dest='SINT', value=126.5, mutate=configure)
+            content = base64.b64encode(engine.project.path.read_bytes()).decode()
+        finally:
+            fixture.doCleanups()
+        self.assertEqual(self.post('load', {'name': 'NarrowRealArithmetic.L5X', 'content': content})['blockers'], [])
+
+        def readings():
+            state = self.post('step', {'dt': 10})
+            values = {row['name']: row['value'] for row in state['tags']}
+            names = ('Results[0]', 'RunLatch', 'StopPB', 'StartPB', 'MotorRunning')
+            return tuple(values[name] for name in names)
+
+        self.assertEqual(readings(), (-128, True, False, False, True))
+        self.post('write', {'tag': 'Source', 'value': 254.5})
+        self.assertEqual(readings(), (0, True, True, False, True))
+        self.post('write', {'tag': 'Source', 'value': 4.5})
+        self.assertEqual(readings(), (6, False, False, False, False))
+
     def test_imported_unknown_scalar_math_is_lazy_and_atomic_through_http(self):
         import base64
         from test_scalar_math import ScalarMathTests

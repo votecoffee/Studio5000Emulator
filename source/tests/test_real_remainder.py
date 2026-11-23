@@ -305,7 +305,8 @@ class RealRemainderTests(unittest.TestCase):
                         self.assertFalse(e.memory.read('MotorRunning'))
 
     def test_unrepresentable_integer_result_rolls_back_all_writes_and_retries(self):
-        e=self.checked(['MOV(99,SpeedCommand);','MOD(Source,Mask,Results[1]);'],dest='SINT',value=127.5,divisor=1000)
+        e = self.checked(['MOV(99,SpeedCommand);', 'MOD(Source,Mask,Results[1]);'],
+                         dest='SINT', value=2**31, divisor=2**32)
         before=self.snapshot(e)
         with self.assertRaisesRegex(ModelError,'overflow'):e.step()
         self.assertEqual(self.snapshot(e),before)
