@@ -104,6 +104,22 @@ Unsigned integer destinations reject NaN and roll back the advance. This
 support applies to ladder instruction calls. CPT, Structured Text and Function
 Block retain their existing expression and block profiles.
 
+## NaN and infinity in roots and angle math
+
+Standalone ladder SQR, DEG, RAD, SIN, COS and TAN accept NaN and infinity
+from REAL and LREAL tags in the v35 5580 model. SQR uses the source's absolute
+value, so either infinity gives positive infinity. DEG and RAD preserve the
+sign of infinity. SIN, COS and TAN return NaN for either infinity. All six
+propagate NaN.
+[Rockwell floating-point reference](https://www.rockwellautomation.com/en-in/docs/studio-5000-logix-designer/38-00/contents-ditamap/instruction-set/floating-point-values.html)
+[Rockwell square-root reference](https://www.rockwellautomation.com/en-mde/docs/studio-5000-logix-designer/37-02/contents-ditamap/instruction-set/compute-math-instructions/square-root--sqrt-.html)
+
+Floating destinations store the result. Signed integer destinations receive
+zero for NaN and the corresponding limit for infinity. A signed conversion
+of infinity sets the modeled task `S:MINOR` bit when `ReportMinorOverflow`
+is explicitly enabled. Unsigned destinations reject nonfinite results.
+Finite-input overflow still rolls back the advance.
+
 ## Wide integer roots and powers
 
 App `26.1105.082615` adds an exact software profile for ladder SQR and XPY

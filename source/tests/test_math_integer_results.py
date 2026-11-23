@@ -113,7 +113,7 @@ class MathIntegerResultTests(unittest.TestCase):
             with self.assertRaises(ModelError):e.step()
             self.assertEqual(self.snapshot(e),before)
         for value in (None,float('inf'),float('nan')):
-            e=self.checked(['SQR(Source,Dest);'],types=('REAL','REAL','DINT'));e.memory.values['source']=value
+            e=self.checked(['LN(Source,Dest);'],types=('REAL','REAL','DINT'));e.memory.values['source']=value
             with self.assertRaises(ModelError):e.step()
             self.assertEqual((e.memory.read('Dest'),e.scan_count,e.time_ms),(7,0,0))
 

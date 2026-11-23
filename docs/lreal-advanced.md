@@ -54,6 +54,8 @@ remain unverified. This does not predict controller execution time.
 [Standalone inverse trigonometry](math-operations.md#inverse-trigonometry-at-the-domain-limits)
 preserves NaN and handles infinite inputs. A finite ASN/ACS input just outside
 the unit interval produces NaN.
+[Standalone roots and angle calculations](math-operations.md#nan-and-infinity-in-roots-and-angle-math)
+also accept NaN and infinity from REAL and LREAL tags.
 
 ## Selection, faults and initialization
 

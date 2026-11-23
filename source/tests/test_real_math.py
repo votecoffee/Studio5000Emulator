@@ -99,7 +99,7 @@ class RealMathTests(unittest.TestCase):
 
     def test_unknown_or_nonfinite_sources_roll_back(self):
         for value in (None,float('nan'),float('inf'),-float('inf')):
-            e=self.checked(['SQR(Source,Dest);']);e.memory.values['source']=value
+            e=self.checked(['LN(Source,Dest);']);e.memory.values['source']=value
             with self.assertRaises(ModelError):e.step()
             self.assertEqual(e.memory.read('Dest'),7.0)
 
@@ -129,6 +129,52 @@ class RealMathTests(unittest.TestCase):
         e = self.checked(['MOV(99,SpeedCommand);', 'ACS(-2.0,Dest);'], types=('REAL', 'REAL', 'UDINT'))
         before = copy.deepcopy(e.memory.values)
         with self.assertRaisesRegex(ModelError, 'ACS nonfinite result'):
+            e.step()
+        self.assertEqual(e.memory.values, before)
+        self.assertEqual(e.scan_count, 0)
+
+    def test_exceptional_root_angle_and_circular_trig_tag_inputs(self):
+        operations = {
+            'SQR': (math.inf, math.inf),
+            'DEG': (-math.inf, math.inf),
+            'RAD': (-math.inf, math.inf),
+            'SIN': (math.nan, math.nan),
+            'COS': (math.nan, math.nan),
+            'TAN': (math.nan, math.nan),
+        }
+        for dtype in ('REAL', 'LREAL'):
+            for name, (negative, positive) in operations.items():
+                with self.subTest(dtype=dtype, name=name):
+                    e = self.checked([f'{name}(Source,Dest)OTE(RunLatch);'], types=(dtype, 'REAL', dtype))
+                    e.memory.values['dest'] = None
+                    for source, expected in ((-math.inf, negative), (math.inf, positive), (math.nan, math.nan)):
+                        e.memory.write_floating_exception('Source', source)
+                        e.step()
+                        result = e.memory.read('Dest')
+                        if math.isnan(expected):
+                            self.assertTrue(math.isnan(result))
+                        else:
+                            self.assertEqual(result, expected)
+                        self.assertTrue(e.memory.read('RunLatch'))
+
+    def test_exceptional_angle_destination_limits_minor_status_and_unsigned_rollback(self):
+        def enable_reporting(root):
+            root.find('Controller').set('ReportMinorOverflow', 'true')
+
+        e = self.checked(['DEG(Source,Dest)OTE(RunLatch);', 'XIC(S:MINOR)OTE(MotorRunning);'],
+                         types=('LREAL', 'REAL', 'LINT'), mutate=enable_reporting)
+        for source, expected, minor in ((-math.inf, -2**63, True),
+                                        (math.inf, 2**63 - 1, True), (math.nan, 0, False)):
+            e.memory.write_floating_exception('Source', source)
+            e.step()
+            self.assertEqual(e.memory.read('Dest'), expected)
+            self.assertTrue(e.memory.read('RunLatch'))
+            self.assertEqual(e.memory.read('MotorRunning'), minor)
+
+        e = self.checked(['MOV(99,SpeedCommand);', 'SIN(Source,Dest);'], types=('REAL', 'REAL', 'UDINT'))
+        e.memory.write_floating_exception('Source', math.inf)
+        before = copy.deepcopy(e.memory.values)
+        with self.assertRaisesRegex(ModelError, 'SIN nonfinite result'):
             e.step()
         self.assertEqual(e.memory.values, before)
         self.assertEqual(e.scan_count, 0)

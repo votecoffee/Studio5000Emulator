@@ -3881,6 +3881,41 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual([values[f'Results[{i}]'] for i in range(3)], [-3.75, 3.75, 2.0 / -3.75])
         self.assertEqual(values['SpeedCommand'], -1)
 
+    def test_roots_angles_and_trig_consume_div_exceptions_through_http(self):
+        import base64
+        import math
+        from test_real_remainder import RealRemainderTests
+
+        fixture = RealRemainderTests()
+        fixture.setUp()
+        try:
+            engine = fixture.checked([
+                'XIC(StartPB)DIV(Source,Mask,Results[0]);',
+                'XIC(StartPB)SQR(Results[0],Results[1]);',
+                'XIC(StartPB)RAD(Results[0],Results[2]);',
+                'XIC(StartPB)COS(Results[2],Inputs[0]);',
+                'XIC(StartPB)DEG(Results[2],SpeedCommand)OTE(RunLatch);',
+            ], source='LREAL', dest='LREAL', value=-7.5, divisor=0)
+            content = base64.b64encode(engine.project.path.read_bytes()).decode()
+        finally:
+            fixture.doCleanups()
+        loaded = self.post('load', {'name': 'ExceptionalUnary.L5X', 'content': content})
+        self.assertEqual(loaded['blockers'], [])
+        self.post('write', {'tag': 'StartPB', 'value': True})
+
+        def readings():
+            state = self.post('step', {'dt': 10})
+            values = {row['name']: row['value'] for row in state['tags']}
+            return tuple(values[name] for name in ('Results[1]', 'Results[2]', 'Inputs[0]', 'SpeedCommand', 'RunLatch'))
+
+        self.assertEqual(readings(), ('Infinity', '-Infinity', 'NaN', -2147483648, True))
+        self.post('write', {'tag': 'Source', 'value': 0})
+        self.assertEqual(readings(), ('NaN', 'NaN', 'NaN', 0, True))
+        self.post('write', {'tag': 'Source', 'value': -8})
+        self.post('write', {'tag': 'Mask', 'value': 2})
+        angle = math.radians(-4)
+        self.assertEqual(readings(), (2, angle, math.cos(angle), -4, True))
+
     def test_floating_div_signed_integer_limits_and_minor_status_through_http(self):
         import base64
         from test_real_remainder import RealRemainderTests

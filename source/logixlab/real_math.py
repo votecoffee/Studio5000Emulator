@@ -18,6 +18,8 @@ INSTRUCTIONS = frozenset((*FUNCTIONS, 'XPY'))
 INTEGER_ROOT_POWER = frozenset(('SQR', 'XPY'))
 UNIT_INTERVAL_TRIG = frozenset(('ASN', 'ACS'))
 INVERSE_TRIG = UNIT_INTERVAL_TRIG | {'ATN'}
+CIRCULAR_TRIG = frozenset(('SIN', 'COS', 'TAN'))
+EXCEPTIONAL_UNARY = INVERSE_TRIG | CIRCULAR_TRIG | {'SQR', 'DEG', 'RAD'}
 SOURCE_TYPES = frozenset(('SINT', 'INT', 'DINT', 'REAL'))
 DESTINATION_TYPES = SOURCE_TYPES
 LREAL_SOURCE_TYPES = frozenset((*INT_BITS, 'REAL', 'LREAL'))
@@ -113,20 +115,22 @@ def execute(memory, op, power, scope):
         return True
     from .numeric_storage import (lreal_math_source, real_math_source,
                                   write_exceptional_result, write_lreal_math_result)
-    inverse = op.name in INVERSE_TRIG
+    name = op.name
+    allow_nonfinite = name in EXCEPTIONAL_UNARY
     if profile in ('REAL', 'LREAL'):
         read = lreal_math_source if profile == 'LREAL' else real_math_source
-        values = [read(memory, ref, scope, execute=True, radix=True, allow_nonfinite_tag=inverse)
+        values = [read(memory, ref, scope, execute=True, radix=True, allow_nonfinite_tag=allow_nonfinite)
                   for ref in op.args[:-1]]
     else:
         values = [real(memory.read(ref, scope)) for ref in op.args[:-1]]
     try:
-        if op.name in UNIT_INTERVAL_TRIG and abs(values[0]) > 1:
+        if (name in UNIT_INTERVAL_TRIG and abs(values[0]) > 1
+                or name in CIRCULAR_TRIG and math.isinf(values[0])):
             result = math.nan
         else:
-            result = math.pow(*values) if op.name == 'XPY' else FUNCTIONS[op.name](*values)
-        if inverse and math.isnan(result):
-            write_exceptional_result(memory, op.args[-1], result, scope, instruction=op.name)
+            result = math.pow(*values) if name == 'XPY' else FUNCTIONS[name](*values)
+        if allow_nonfinite and not math.isfinite(result) and (math.isnan(result) or math.isinf(values[0])):
+            write_exceptional_result(memory, op.args[-1], result, scope, instruction=name)
             return True
         if profile != 'LREAL':
             result = real(result)
@@ -189,6 +193,15 @@ def description():
                     domain='ASN and ACS write NaN for an operand outside -1..1 after source precision is applied; endpoints are included',
                     exceptional_sources='NaN propagates; ASN/ACS of either infinity produce NaN; ATN of either infinity produces the corresponding signed pi/2',
                     destination='REAL/LREAL store NaN; signed integers store zero; unsigned integers reject NaN',
+                    native_runtime_parity=False),
+                exceptional_unary=dict(instructions=sorted(EXCEPTIONAL_UNARY - INVERSE_TRIG),
+                    source='An existing REAL/LREAL tag can contain NaN or signed infinity',
+                    square_root='SQR takes the absolute value, so either infinity yields positive infinity',
+                    angle_conversion='DEG and RAD preserve the sign of infinity',
+                    circular_trig='SIN, COS and TAN produce NaN for either infinity',
+                    nan='NaN propagates through all six instructions',
+                    destination='Floating results preserve NaN or infinity; signed integers store zero or a signed limit; unsigned integers reject a nonfinite result',
+                    boundaries='Finite-input overflow retains the existing checked path',
                     native_runtime_parity=False),
                 failures='Unknown values, unsupported domains and result overflows stop and roll back the advance',
                 native_math_status=False, native_fault_classification=False,
