@@ -171,7 +171,7 @@ class RuntimeTests(unittest.TestCase):
         self.assertEqual(e.last_timer,{})
 
     def test_overflow_stops_and_rolls_back(self):
-        e=self.engine(['ADD(2147483647,1,SpeedCommand);'])
+        e=self.engine(['MUL(2147483647,2,SpeedCommand);'])
         with self.assertRaisesRegex(ModelError,'overflow'): e.step()
         self.assertEqual(e.memory.read('SpeedCommand'),0)
 

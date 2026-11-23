@@ -1313,9 +1313,10 @@ class Engine:
                 if (self.memory.rung_carry is not None and n in integer_math.CARRY_INSTRUCTIONS
                         and type(x) is int and type(y) is int):
                     carry_dtype = self.memory.resolve(a[2], scope)[2]
-                self.memory.write(a[2], value, scope, math_result=True)
                 if carry_dtype is not None:
-                    integer_math.record_carry(self.memory, n, (x, y), carry_dtype)
+                    integer_math.write_add_sub(self.memory, op, scope, carry_dtype, (x, y), value)
+                else:
+                    self.memory.write(a[2], value, scope, math_result=True)
         elif n in ("TON", "TOF", "RTO"):
             timer = r(0)
             if timer["PRE"] < 0 or timer["ACC"] < 0: raise ModelError(f"{n}: negative PRE/ACC")

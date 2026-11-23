@@ -1,7 +1,7 @@
 """Exact, homogeneous wide-integer ladder operations for the v35 5580 model.
 
-Overflow remains a modeled scan fault. Qualified DIV and MOD by zero complete
-with a task-scoped minor status when the controller export enables reporting.
+Qualified narrow signed ADD and SUB wrap at the destination width. Qualified DIV
+and MOD by zero complete. These conditions can raise task-scoped minor status.
 """
 import math
 import operator
@@ -11,6 +11,7 @@ from .model import INT_BITS, UNSIGNED_BITS, ModelError, coerce, literal
 WIDE_TYPES = frozenset(('LINT', *UNSIGNED_BITS))
 CONTROLLERS = frozenset(f'1756-L8{number}E' for number in range(1, 6))
 CARRY_INSTRUCTIONS = frozenset(('ADD', 'SUB'))
+SIGNED_WRAP_TYPES = frozenset(('SINT', 'INT', 'DINT'))
 COMPARISONS = {'EQU': operator.eq, 'NEQ': operator.ne, 'LES': operator.lt,
                'LEQ': operator.le, 'GRT': operator.gt, 'GEQ': operator.ge}
 INSTRUCTIONS = frozenset((*COMPARISONS, 'LIM', 'MOV', 'CLR', 'ADD', 'SUB', 'MUL',
@@ -295,6 +296,17 @@ def record_carry(memory, name, values, dtype):
     memory.rung_carry = left + right > mask if name == 'ADD' else left < right
 
 
+def write_add_sub(memory, op, scope, dtype, values, result):
+    """Store a signed narrow ADD/SUB result and publish its independent flags."""
+    if memory.rung_carry is not None and dtype in SIGNED_WRAP_TYPES:
+        stored = bit_value(result, dtype)
+        memory.write(op.args[-1], stored, scope)
+        memory.record_math_result(stored, overflow=stored != result)
+    else:
+        memory.write(op.args[-1], result, scope, math_result=True)
+    record_carry(memory, op.name, values, dtype)
+
+
 def execute(engine, op, scope, dtype, *, radix=False):
     """Execute a validated true-rung operation; return its rung-out condition."""
     memory = engine.memory
@@ -329,6 +341,8 @@ def execute(engine, op, scope, dtype, *, radix=False):
             result = bit_value({'AND': operator.and_, 'OR': operator.or_, 'XOR': operator.xor}[name](a, b), dtype)
         else:
             result = {'ADD': operator.add, 'SUB': operator.sub, 'MUL': operator.mul}[name](a, b)
-    memory.write(op.args[-1], coerce(result, dtype), scope, math_result=True)
-    record_carry(memory, name, values, dtype)
+    if name in CARRY_INSTRUCTIONS:
+        write_add_sub(memory, op, scope, dtype, values, result)
+    else:
+        memory.write(op.args[-1], coerce(result, dtype), scope, math_result=True)
     return True

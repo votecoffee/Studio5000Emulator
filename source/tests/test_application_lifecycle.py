@@ -42,7 +42,7 @@ def diagnostic_handler_l5x(*, clear_record=False, extra_rung=None, scheduled=Fal
     if clear_record:
         rungs.extend(['CLR(FaultWords[2]);', 'SSV(Program,THIS,MajorFaultRecord,FaultWords[0]);',
                       'MOV(-1,FaultWords[2]);', 'GSV(Program,THIS,MajorFaultRecord,FaultWords[0]);'])
-    rungs.extend(['EQU(HandlerDivisor,0)ADD(2147483647,1,HandlerQuotient);',
+    rungs.extend(['EQU(HandlerDivisor,0)MUL(2147483647,2,HandlerQuotient);',
                   'DIV(40,HandlerDivisor,HandlerQuotient);'])
     if extra_rung:
         rungs.append(extra_rung)
@@ -3772,7 +3772,10 @@ class ApplicationLifecycleTests(unittest.TestCase):
         write('BasicMath',True);row=step()
         self.assertEqual((row['BasicQuotient'],row['BasicRemainder']),(7,0))
         write('BasicB',3);self.assertEqual(step()['BasicQuotient'],2)
-        write('BasicA',2147483647);before=write('BasicB',1)
+        write('BasicA',2147483647);write('BasicB',1)
+        row=step()
+        self.assertEqual((row['BasicSum'],row['BasicProduct']),(-2147483648,2147483647))
+        before=write('BasicB',2)
         with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
         self.assertEqual(error.exception.code,400);error.exception.close();after=current()
         for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])

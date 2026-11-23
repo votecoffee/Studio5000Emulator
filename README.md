@@ -779,6 +779,8 @@ stored result of supported scalar math and moves on the same rung.
 [Ladder S:V](docs/scalar-math.md#overflow-status) reports modeled overflow from
 narrowing moves, clipped strings and supported zero-divisor results on the
 same rung. Ladder contacts and OTE/OTL can read or set this flag.
+[Integer ADD and SUB](docs/scalar-math.md#signed-add-and-sub-overflow) also set
+`S:V` when a SINT, INT or DINT result wraps.
 
 [Numeric move and clear](docs/numeric-storage.md) support signed/unsigned integer
 and REAL/LREAL scalar MOV conversions, typed CLR zeros and full writes to unknown

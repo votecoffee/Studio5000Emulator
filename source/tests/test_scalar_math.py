@@ -299,12 +299,55 @@ class ScalarMathTests(unittest.TestCase):
         self.assertEqual(self.snapshot(e), before)
         e.memory.write('Index', 2);e.step();self.assertEqual(e.memory.read('Results'), [None, None, 10])
 
-    def test_overflow_retains_existing_stop_and_rollback_policy(self):
-        e = self.checked(['MOV(99,SpeedCommand);', 'ADD(Source,Mask,Results[0]);'], source='SINT', dest='SINT', value=127)
-        e.memory.write('Mask', 1);before = self.snapshot(e)
+    def test_signed_add_sub_wrap_and_publish_stored_result_status(self):
+        for dtype, bits in (('SINT', 8), ('INT', 16), ('DINT', 32)):
+            with self.subTest(dtype=dtype):
+                limit = 1 << (bits - 1)
+                e = self.checked([
+                    'ADD(Source,Mask,Results[0])XIC(S:V)XIC(S:N)XIO(S:C)OTE(RunLatch);',
+                    'SUB(Results[0],Mask,Results[1])XIC(S:V)XIO(S:N)XIO(S:C)OTE(MotorRunning);',
+                    'ADD(Results[0],Results[0],Results[2])XIC(S:V)XIC(S:C)XIC(S:Z)OTE(StopPB);',
+                ], dtype=dtype, value=limit - 1)
+                e.memory.write('Mask', 1)
+                e.step()
+                self.assertEqual(e.memory.read('Results'), [-limit, limit - 1, 0])
+                for tag in ('RunLatch', 'MotorRunning', 'StopPB'):
+                    self.assertTrue(e.memory.read(tag))
+                e.memory.write('Source', 2)
+                e.step()
+                self.assertEqual(e.memory.read('Results'), [3, 2, 6])
+                for tag in ('RunLatch', 'MotorRunning', 'StopPB'):
+                    self.assertFalse(e.memory.read(tag))
+
+    def test_later_overflow_rolls_back_a_wrapped_add_and_its_coil(self):
+        e = self.checked([
+            'ADD(Source,1,Results[0])XIC(S:V)OTE(RunLatch);',
+            'MUL(Source,Mask,Results[1]);',
+        ], dtype='SINT', value=127)
+        e.memory.write('Mask', 2)
+        before = self.snapshot(e)
         with self.assertRaisesRegex(ModelError, 'overflow'):e.step()
         self.assertEqual(self.snapshot(e), before)
-        e.memory.write('Source', 126);e.step();self.assertEqual(e.memory.read('Results[0]'), 127)
+        self.assertFalse(e.memory.rung_overflow)
+        e.memory.write('Mask', 1)
+        e.step()
+        self.assertEqual(e.memory.read('Results'), [-128, 127, None])
+        self.assertTrue(e.memory.read('RunLatch'))
+
+    def test_radix_add_wrap_reports_task_minor_and_false_rung_skips_it(self):
+        def configure(root):
+            root.find('Controller').set('ReportMinorOverflow', 'true')
+
+        e = self.checked([
+            'XIC(StartPB)ADD(16#80000000,-1,Results[0])XIC(S:V)OTE(RunLatch);',
+            'XIC(S:MINOR)OTE(MotorRunning);',
+        ], mutate=configure)
+        for enabled in (False, True, False):
+            e.memory.write('StartPB', enabled)
+            e.step()
+            self.assertEqual(e.memory.read('RunLatch'), enabled)
+            self.assertEqual(e.memory.read('MotorRunning'), enabled)
+        self.assertEqual(e.memory.read('Results'), [2147483647, None, None])
 
     def test_source_destination_overlap_and_alias_member_guards(self):
         def aliases(root):

@@ -35,9 +35,9 @@ including values, task/time state and existing AOI bindings.
 
 Structural validation and operand selection apply to all eleven operations.
 Integer division into integer destinations truncates toward zero; integer remainder retains the
-dividend's sign. Wide homogeneous and qualified widening-tag arithmetic stay exact. Arithmetic overflow
-still stops and rolls back the model rather than reproducing native status and
-partial effects.
+dividend's sign. Wide homogeneous and qualified widening-tag arithmetic stay exact.
+[Signed SINT, INT and DINT ADD/SUB](#signed-add-and-sub-overflow) can wrap and
+continue. Other checked integer arithmetic errors roll back the advance.
 
 ## Carry after integer ADD and SUB
 
@@ -55,8 +55,7 @@ stores -1 in DINT `Diff` and sets `Borrowed`.
 The last successful integer ADD or SUB on the rung determines the flag.
 An inactive instruction or a floating calculation leaves it alone. Each rung
 starts clear. Called routines and AOI bodies start with their own flags, and
-returning restores the caller's flag. Existing checked destination range
-errors still roll back the advance. Native mixed-width flag behavior and
+returning restores the caller's flag. Native mixed-width flag behavior and
 overflow continuation remain unverified.
 [Rockwell math status flags](https://www.rockwellautomation.com/en-za/docs/studio-5000-logix-designer/37-01/contents-ditamap/instruction-set/math-status-flags.html)
 [Rockwell carry and borrow reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm015_-en-p.pdf#page=57)
@@ -94,10 +93,25 @@ unclipped string MOV clears the flag. If the controller export explicitly
 enables `ReportMinorOverflow`, setting the flag also raises `S:MINOR` for the
 task invocation. Clearing `S:V` leaves that task status intact.
 
-Finite arithmetic that exceeds a checked destination range still rolls back the
-advance. Native fault records, wider instruction coverage and native status
-qualification remain open.
+For integer ADD and SUB with a SINT, INT or DINT destination, see
+[signed arithmetic overflow](#signed-add-and-sub-overflow). Native fault records
+and status qualification remain open.
 [Rockwell replacement guide](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm100_-en-p.pdf#page=167)
+
+## Signed ADD and SUB overflow
+
+In the v35 ControlLogix 5580 ladder profile, integer ADD and SUB store the low
+bits of the result in SINT, INT and DINT destinations and continue the rung.
+For example, ADD of 127 and 1 into SINT stores -128. SUB of -128 and 1 into
+SINT stores 127. Both set `S:V`. `S:N` and `S:Z` test the stored value,
+and `S:C` reflects carry or borrow independently. With `ReportMinorOverflow`
+enabled, the task can also test `S:MINOR`.
+
+LINT and unsigned destinations, the checked wide-to-narrow conversion
+profile, and other arithmetic instructions retain their existing range
+checks. A later error still rolls back the advance, including the wrapped
+value and downstream coil writes.
+[Rockwell math status flags](https://www.rockwellautomation.com/en-se/docs/studio-5000-logix-designer/38-01/contents-ditamap/instruction-set/math-status-flags.html)
 
 ## Integer MOD with a zero divisor
 
