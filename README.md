@@ -443,7 +443,8 @@ includes precision, selected-output and late-fault examples.
 
 [LREAL roots, powers, logarithms and trigonometry](docs/lreal-advanced.md) adds
 twelve matching-tag ladder forms without a REAL intermediate. **Math lab**
-includes precision, selected outputs and domain/late-fault examples.
+includes precision, selected outputs and late-fault examples. Standalone
+ladder ASN and ACS return NaN for inputs outside their valid range.
 
 [LREAL ladder arithmetic and comparisons](docs/lreal-math.md) adds seven math
 operations, six relations and LIM for matching LREAL tags. **Integer lab**

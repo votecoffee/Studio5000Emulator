@@ -108,7 +108,7 @@ class MathIntegerResultTests(unittest.TestCase):
         self.assertEqual(self.snapshot(e),before)
 
     def test_domain_unknown_and_nonfinite_sources_roll_back_integer_results(self):
-        for text in ('LN(0,Dest);','LOG(-1,Dest);','ASN(2,Dest);','ACS(-2,Dest);','XPY(-2,0.5,Dest);','XPY(2,128,Dest);'):
+        for text in ('LN(0,Dest);','LOG(-1,Dest);','XPY(-2,0.5,Dest);','XPY(2,128,Dest);'):
             e=self.checked(['SQR(6.25,Dest);',text],types=('REAL','REAL','DINT'));before=self.snapshot(e)
             with self.assertRaises(ModelError):e.step()
             self.assertEqual(self.snapshot(e),before)

@@ -75,7 +75,7 @@ class RealMathTests(unittest.TestCase):
             e.step();self.assertEqual(e.memory.read('Dest'),8.0)
 
     def test_domain_and_overflow_failures_roll_back_prior_writes_and_scheduler(self):
-        for text in ('LN(0.0,Dest);','LOG(-1.0,Dest);','ASN(1.1,Dest);','ACS(-1.1,Dest);',
+        for text in ('LN(0.0,Dest);','LOG(-1.0,Dest);',
                      'XPY(-2.0,0.5,Dest);','XPY(0.0,-1.0,Dest);','XPY(2.0,128.0,Dest);','DEG(3.0e38,Dest);'):
             e=self.checked(['MOV(23,Mask);',text]);before=copy.deepcopy(e.memory.values)
             with self.assertRaises(ModelError):e.step()
@@ -102,6 +102,36 @@ class RealMathTests(unittest.TestCase):
             e=self.checked(['SQR(Source,Dest);']);e.memory.values['source']=value
             with self.assertRaises(ModelError):e.step()
             self.assertEqual(e.memory.read('Dest'),7.0)
+
+    def test_inverse_trig_exceptional_tags_and_rung_continuation(self):
+        for dtype in ('REAL', 'LREAL'):
+            for name in ('ASN', 'ACS', 'ATN'):
+                with self.subTest(dtype=dtype, name=name):
+                    e = self.checked([f'{name}(Source,Dest)OTE(RunLatch);'], types=(dtype, 'REAL', dtype))
+                    for source in (-math.inf, math.inf, math.nan):
+                        e.memory.write_floating_exception('Source', source)
+                        e.step()
+                        value = e.memory.read('Dest')
+                        if name == 'ATN' and math.isinf(source):
+                            self.assertAlmostEqual(value, math.copysign(math.pi / 2, source), places=6)
+                        else:
+                            self.assertTrue(math.isnan(value))
+                        self.assertTrue(e.memory.read('RunLatch'))
+
+    def test_inverse_trig_nan_to_signed_and_unsigned_destinations(self):
+        e = self.checked(['ASN(2.0,Dest)OTE(RunLatch);', 'XIC(S:MINOR)OTE(MotorRunning);'],
+                         types=('REAL', 'REAL', 'DINT'))
+        e.step()
+        self.assertEqual(e.memory.read('Dest'), 0)
+        self.assertTrue(e.memory.read('RunLatch'))
+        self.assertFalse(e.memory.read('MotorRunning'))
+
+        e = self.checked(['MOV(99,SpeedCommand);', 'ACS(-2.0,Dest);'], types=('REAL', 'REAL', 'UDINT'))
+        before = copy.deepcopy(e.memory.values)
+        with self.assertRaisesRegex(ModelError, 'ACS nonfinite result'):
+            e.step()
+        self.assertEqual(e.memory.values, before)
+        self.assertEqual(e.scan_count, 0)
 
     def test_in_place_result_captures_source(self):
         e=self.checked(['SQR(Source,Source);'],values=(-16,2,7));e.step()

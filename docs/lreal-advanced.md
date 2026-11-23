@@ -49,8 +49,11 @@ results follow the host solver.
 
 These rules reuse the existing host functions at binary64 precision. Native
 instruction rounding, range reduction, subnormal handling, overflow results,
-NaN/Infinity, math flags, fault continuation and bit-for-bit numerical equivalence
+NaN payloads, math flags, fault continuation and bit-for-bit numerical equivalence
 remain unverified. This does not predict controller execution time.
+[Standalone inverse trigonometry](math-operations.md#inverse-trigonometry-at-the-domain-limits)
+preserves NaN and handles infinite inputs. A finite ASN/ACS input just outside
+the unit interval produces NaN.
 
 ## Selection, faults and initialization
 
@@ -61,7 +64,7 @@ source, including both XPY sources even when the base is 1.
 
 Complete writes establish unknown selected cells and preserve sibling elements.
 Sources are read before their result is written, including aliases and overlapping
-operands. Required unknowns, invalid indices, domain/overflow errors and later
+operands. Required unknowns, invalid indices, unsupported domains, overflow and later
 faults roll back the advance, including earlier values, task progress, timing
 histories and AOI local/external values and bindings. Run-entry initialization
 retains its separate existing prescan boundary; running-scan rollback does not
@@ -78,9 +81,10 @@ The independent `LrealAdvanced` routine demonstrates all twelve forms:
 - LrealRad is the host binary64 value of pi; the other angle/trig results use
   the displayed LrealRadians, LrealDegrees and LrealInverse inputs.
 
-Set LrealLogInput to zero, LrealInverse just above 1, or LrealLateDivisor to zero
-to observe domain or late-fault rollback. Restore the corresponding defaults
-before continuing. Disable the section before returning its index to 99.
+Set LrealInverse just above 1 to see NaN in LrealAsn and LrealAcs. Restore
+LrealInverse to 0.5 for finite results. Set LrealLogInput or LrealLateDivisor to
+zero to observe rollback, then restore the corresponding default. Disable the
+section before returning its index to 99.
 Existing narrow math and ST examples remain independently available.
 
 See [MathLab.L5X](../source/samples/MathLab.L5X),

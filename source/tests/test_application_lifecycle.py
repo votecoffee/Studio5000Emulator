@@ -1219,7 +1219,11 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual(v['LrealSqr'],3.0000000000000004);self.assertEqual(v['LrealLn'],2.2204460492503128e-16);self.assertEqual(v['LrealPower'],1.0000000000000004)
         for name,expected in [('LrealLog',math.log10(1.0000000000000002)),('LrealDeg',math.degrees(0.5)),('LrealRad',math.pi),('LrealSin',math.sin(0.5)),('LrealCos',math.cos(0.5)),('LrealTan',math.tan(0.5)),('LrealAsn',math.asin(0.5)),('LrealAcs',math.acos(0.5)),('LrealAtn',math.atan(0.5))]:self.assertEqual(v[name],expected)
         self.assertEqual((v['LrealResults[0]'],v['LrealResults[2]']),(101.125,999.5))
-        for tag,bad,good in [('LrealLogInput',0,1.0000000000000002),('LrealInverse',1.0000000000000002,0.5),('LrealLateDivisor',0,1)]:
+        write('LrealInverse',1.0000000000000002);v=values(step())
+        self.assertEqual((v['LrealAsn'],v['LrealAcs']),('NaN','NaN'))
+        write('LrealInverse',0.5);v=values(step())
+        self.assertEqual((v['LrealAsn'],v['LrealAcs']),(math.asin(0.5),math.acos(0.5)))
+        for tag,bad,good in [('LrealLogInput',0,1.0000000000000002),('LrealLateDivisor',0,1)]:
             write(tag,bad);before=state_now()
             with self.assertRaises(HTTPError) as caught:step()
             self.assertEqual(caught.exception.code,400);caught.exception.close();after=state_now()

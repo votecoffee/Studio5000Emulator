@@ -1,4 +1,4 @@
-"""Finite standalone ladder math for the v35 5580 software profile."""
+"""Standalone ladder math for the v35 5580 software profile."""
 import math
 
 from .integer_math import CONTROLLERS, WIDE_TYPES, integer_operand, read_source
@@ -16,6 +16,8 @@ FUNCTIONS = {'SQR': square_root, 'LN': math.log, 'LOG': math.log10,
              'ASN': math.asin, 'ACS': math.acos, 'ATN': math.atan}
 INSTRUCTIONS = frozenset((*FUNCTIONS, 'XPY'))
 INTEGER_ROOT_POWER = frozenset(('SQR', 'XPY'))
+UNIT_INTERVAL_TRIG = frozenset(('ASN', 'ACS'))
+INVERSE_TRIG = UNIT_INTERVAL_TRIG | {'ATN'}
 SOURCE_TYPES = frozenset(('SINT', 'INT', 'DINT', 'REAL'))
 DESTINATION_TYPES = SOURCE_TYPES
 LREAL_SOURCE_TYPES = frozenset((*INT_BITS, 'REAL', 'LREAL'))
@@ -109,16 +111,23 @@ def execute(memory, op, power, scope):
             result = integer_power_result(base, exponent, profile)
         memory.write(op.args[-1], result, scope)
         return True
-    if profile=='LREAL':
-        from .numeric_storage import lreal_math_source, write_lreal_math_result
-        values=[lreal_math_source(memory,ref,scope,execute=True,radix=True) for ref in op.args[:-1]]
-    elif profile=='REAL':
-        from .numeric_storage import real_math_source
-        values=[real_math_source(memory,ref,scope,execute=True,radix=True) for ref in op.args[:-1]]
+    from .numeric_storage import (lreal_math_source, real_math_source,
+                                  write_exceptional_result, write_lreal_math_result)
+    inverse = op.name in INVERSE_TRIG
+    if profile in ('REAL', 'LREAL'):
+        read = lreal_math_source if profile == 'LREAL' else real_math_source
+        values = [read(memory, ref, scope, execute=True, radix=True, allow_nonfinite_tag=inverse)
+                  for ref in op.args[:-1]]
     else:
         values = [real(memory.read(ref, scope)) for ref in op.args[:-1]]
     try:
-        result = math.pow(*values) if op.name == 'XPY' else FUNCTIONS[op.name](*values)
+        if op.name in UNIT_INTERVAL_TRIG and abs(values[0]) > 1:
+            result = math.nan
+        else:
+            result = math.pow(*values) if op.name == 'XPY' else FUNCTIONS[op.name](*values)
+        if inverse and math.isnan(result):
+            write_exceptional_result(memory, op.args[-1], result, scope, instruction=op.name)
+            return True
         if profile != 'LREAL':
             result = real(result)
     except (ValueError, OverflowError) as error:
@@ -176,7 +185,12 @@ def description():
                     native_runtime_parity=False),
                 square_root='Absolute value of source before square root, including CPT/ST functions',
                 trig='Radians for SIN/COS/TAN inputs and inverse-trig outputs',
-                failures='Unknown values, domains and nonfinite/overflow results stop and roll back the advance',
+                inverse_trig=dict(instructions=sorted(INVERSE_TRIG),
+                    domain='ASN and ACS write NaN for an operand outside -1..1 after source precision is applied; endpoints are included',
+                    exceptional_sources='NaN propagates; ASN/ACS of either infinity produce NaN; ATN of either infinity produces the corresponding signed pi/2',
+                    destination='REAL/LREAL store NaN; signed integers store zero; unsigned integers reject NaN',
+                    native_runtime_parity=False),
+                failures='Unknown values, unsupported domains and result overflows stop and roll back the advance',
                 native_math_status=False, native_fault_classification=False,
                 remaining=['Other wide/unsigned results and operand forms',
                            'FBD Blocks share these functions; native precision/status/NaN/infinity behavior remains unqualified'])

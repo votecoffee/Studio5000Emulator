@@ -1914,7 +1914,7 @@ class ProgramFaultTests(unittest.TestCase):
             ('TOD(-1,Samples[0])', 0, 'TOD source outside'),
             ('SIZE(Samples,Index,Scaled)', 1, 'SIZE dimension exceeds array rank'),
             ('LN(-1,Scaled)', 0, 'LN outside the finite'),
-            ('ACS(2.0L,Samples[1])', 0, 'ACS outside the finite LREAL'),
+            ('LN(-1.0L,Samples[1])', 0, 'LN outside the finite LREAL'),
             ('XPY(2L,64,Samples[0])', 0, 'DINT overflow in XPY'),
         ):
             with self.subTest(work=work):
@@ -4623,7 +4623,7 @@ class ProgramFaultTests(unittest.TestCase):
     def test_standalone_math_domain_and_overflow_keep_scan_rollback(self):
         for instruction,message in (
             ('LN(-1,LabValues[0])','LN outside the finite'),
-            ('ACS(2,LabValues[0])','ACS outside the finite'),
+            ('LOG(-1,LabValues[0])','LOG outside the finite'),
             ('XPY(2L,64,LabValues[0])','DINT overflow in XPY'),
         ):
             with self.subTest(instruction=instruction):

@@ -62,8 +62,28 @@ class LrealAdvancedTests(unittest.TestCase):
         e=self.checked(['XPY(Source,Inputs[0],Results[1]);'],value=1.0);self.fault(e,'Unknown')
 
     def test_domain_and_overflow_faults_roll_back_prior_math_and_task_history(self):
-        for name,value,other in [('LN',0,3),('LN',-1,3),('LOG',0,3),('ASN',1.0000000000000002,3),('ACS',-1.0000000000000002,3),('XPY',-2,0.5),('XPY',0,-1),('XPY',1e308,2),('DEG',1e308,3)]:
+        for name,value,other in [('LN',0,3),('LN',-1,3),('LOG',0,3),('XPY',-2,0.5),('XPY',0,-1),('XPY',1e308,2),('DEG',1e308,3)]:
             e=self.checked(['MOV(99,SpeedCommand);',operation(name)+';'],value=value);e.memory.write('Mask',float(other));self.fault(e,'finite|Nonfinite')
+
+    def test_inverse_trig_checks_the_interval_at_the_selected_precision(self):
+        for name, bound, expected in (('ASN', 1, math.pi / 2), ('ACS', -1, math.pi)):
+            value = math.nextafter(bound, math.copysign(math.inf, bound))
+            for dtype in ('REAL', 'LREAL'):
+                with self.subTest(name=name, source=dtype):
+                    e = self.checked([f'{name}(Source,Results[Index])OTE(RunLatch);'],
+                                     source=dtype, value=value)
+                    e.memory.write('Index', 1)
+                    e.step()
+                    result = e.memory.read('Results[1]')
+                    if dtype == 'REAL':
+                        self.assertEqual(result, expected)
+                    else:
+                        self.assertTrue(math.isnan(result))
+                    self.assertTrue(e.memory.read('RunLatch'))
+                    self.assertEqual(e.memory.read('Results')[::2], [None, None])
+                    e.memory.write('Source', bound)
+                    e.step()
+                    self.assertEqual(e.memory.read('Results[1]'), expected)
 
     def test_unknown_complete_alias_member_and_overlapping_source_outputs(self):
         def fields(root):

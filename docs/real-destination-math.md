@@ -38,8 +38,9 @@ Floating literals also convert before evaluation. A tiny literal can underflow
 to zero, including a divisor. NEG(0,realResult) retains negative zero. Existing
 finite-result checks apply to ordinary arithmetic.
 [Floating DIV by zero](scalar-math.md#floating-div-with-a-zero-divisor) can
-write NaN or signed infinity to REAL. Unknown required sources, invalid
-power/log/inverse-trig domains and unrepresentable results roll back the advance,
+write NaN or signed infinity to REAL. [Standalone inverse trigonometry](math-operations.md#inverse-trigonometry-at-the-domain-limits)
+handles out-of-range and exceptional inputs. Unknown required sources, invalid
+power/log domains and unrepresentable results roll back the advance,
 including task progress, timing and AOI state. A whole-project ladder handler
 can clear reached array subscript faults in
 [arithmetic](controller-handlers.md#recover-a-ladder-arithmetic-array-fault) and

@@ -63,11 +63,10 @@ earlier writes, time/task state and existing AOI bindings.
 | LN/LOG | Natural/base-ten log; source must be positive |
 | DEG/RAD | Radians to degrees / degrees to radians |
 | SIN/COS/TAN | Trigonometric result from a source in radians |
-| ASN/ACS/ATN | Inverse trigonometric result in radians; ASN/ACS require -1..1 |
+| ASN/ACS/ATN | Inverse trigonometric result in radians. ASN/ACS return NaN outside -1..1. |
 
-The float32 profile rounds sources to float32 before the host calculation
-and rounds the result to float32 before writing. This defines a finite software profile;
-it does not establish bit-for-bit native math-library or precision parity.
+The float32 profile rounds finite sources to float32 before the host calculation
+and rounds a finite result to float32 before writing.
 In-place operations capture their inputs before writing. Unknown destinations
 can be established by a successful full result write.
 
@@ -85,12 +84,25 @@ and therefore faults on a DINT result. These are explicit finite software
 boundaries; exact native intermediate precision remains unqualified.
 
 Prescan and false rungs retain destination data. True rungs evaluate on every
-execution. Unknown required values, domain errors, nonfinite results and
-overflow stop and roll back the entire modeled advance, including data, time
-and task scheduling. Native NaN/infinity results, configurable minor faults,
-math-status flags, underflow status and partial side effects remain unfinished.
-Out-of-range rounded integer results also roll back the advance. The simulator
-does not store truncated overflow bits or synthesize native arithmetic flags.
+execution. Unknown required values, unsupported domains and out-of-range
+results roll back the modeled advance, including data, time and task scheduling.
+Native math-status flags and fault records remain unfinished.
+
+## Inverse trigonometry at the domain limits
+
+For standalone v35 ladder instructions, ASN and ACS write NaN and continue the
+rung when the converted source is below -1 or above 1, including either
+infinity. Both endpoints are valid. A REAL tag first rounds to float32, so a
+value that rounds to an endpoint is valid. LREAL retains its binary64 precision.
+NaN input propagates through ASN, ACS and ATN.
+ATN maps positive and negative infinity to the corresponding signed pi/2.
+[Rockwell ASN reference](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/37-02/contents-ditamap/instruction-set/trigonometric-instructions/arc-sine--asin-.html)
+[Rockwell ACS reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/37-01/contents-ditamap/instruction-set/trigonometric-instructions/arc-cosine--acos-.html)
+
+REAL and LREAL destinations store NaN. Signed integer destinations store zero.
+Unsigned integer destinations reject NaN and roll back the advance. This
+support applies to ladder instruction calls. CPT, Structured Text and Function
+Block retain their existing expression and block profiles.
 
 ## Wide integer roots and powers
 

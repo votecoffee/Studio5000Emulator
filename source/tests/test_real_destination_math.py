@@ -96,8 +96,7 @@ class RealDestinationMathTests(unittest.TestCase):
 
     def test_zero_domains_overflow_and_late_faults_restore_advance(self):
         for call in ('XPY(0,-1,Results[1]);',
-                     'LN(0,Results[1]);','LOG(-1,Results[1]);','ASN(2,Results[1]);',
-                     'ACS(-2,Results[1]);','XPY(2147483647,2147483647,Results[1]);',
+                     'LN(0,Results[1]);','LOG(-1,Results[1]);','XPY(2147483647,2147483647,Results[1]);',
                      'MUL(3.4e38,2,Results[1]);'):
             e=self.checked(['MOV(99,SpeedCommand);',call]);self.fault(e,'zero|finite REAL|REAL value')
         e=self.checked(['XPY(Source,Mask,Results[1]);'],value=-2,other='REAL');e.memory.write('Mask',.5);self.fault(e,'finite REAL')

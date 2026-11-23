@@ -90,7 +90,7 @@ class LrealMathLiteralTests(unittest.TestCase):
 
     def test_domain_and_result_range_checks_are_lazy_and_atomic(self):
         for call,pattern in [('LN(-1.0L,Results[1]);','finite'),('XPY(-2L,0.5L,Results[1]);','finite'),
-                             ('XPY(0L,-1L,Results[1]);','finite'),('ASN(1.0000000000000002L,Results[1]);','finite'),
+                             ('XPY(0L,-1L,Results[1]);','finite'),
                              ('MUL(1e308L,2UL,Results[1]);','Nonfinite')]:
             e=self.checked(['XIC(StartPB)'+call]);e.step();self.assertEqual(e.memory.read('Results'),[None]*3)
             e.memory.write('StartPB',True);self.fault(e,pattern)
