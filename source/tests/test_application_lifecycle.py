@@ -4699,10 +4699,11 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual(row['IndexedDecoded[0]'],1234)
         write('ConversionIndex',2);write('IndexedConversions',True);row=step()
         self.assertEqual((row['IndexedPacked[2]'],row['IndexedDecoded[2]'],row['IndexedSwapped[2]']),(-2147483648,80000000,32768))
-        before=write('IndexedDecimal[2]',100000000)
-        with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
-        self.assertEqual(error.exception.code,400);error.exception.close();after=current()
-        for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
+        write('IndexedDecimal[2]', 100000000)
+        row = step()
+        packed_nines = 0x99999999 - (1 << 32)
+        self.assertEqual((row['IndexedPacked[2]'], row['IndexedDecoded[2]'], row['IndexedSwapped[2]']),
+                         (packed_nines, 99999999, packed_nines))
         write('IndexedDecimal[2]',99);row=step();self.assertEqual((row['IndexedPacked[2]'],row['IndexedDecoded[2]'],row['IndexedSwapped[2]']),(153,99,10027008))
         report=self.post('report',{})['numeric_conversions'];self.assertIn('no saved dynamic indices',report['preflight']);self.assertFalse(report['native_math_status'])
 

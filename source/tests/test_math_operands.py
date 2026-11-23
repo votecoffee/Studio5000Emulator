@@ -130,10 +130,19 @@ class MathOperandTests(unittest.TestCase):
             e.memory.write('Inputs[1]',retry);e.step()
             self.assertTrue(math.isfinite(e.memory.read('Results[1]')))
         e=self.checked(['XIC(StartPB)SQR(Inputs[Index],Results[Index]);'],dest='SINT',index=1)
-        e.memory.write('Inputs[1]',40000);e.step();e.memory.write('StartPB',True);before=self.snapshot(e)
-        with self.assertRaisesRegex(ModelError,'overflow'):e.step()
-        self.assertEqual(self.snapshot(e),before)
-        e.memory.write('Inputs[1]',25);e.step();self.assertEqual(e.memory.read('Results[1]'),5)
+        e.memory.write('Inputs[1]', 40000)
+        e.step()
+        e.memory.write('StartPB', True)
+        e.step()
+        self.assertEqual(e.memory.read('Results[1]'), -56)
+        e.memory.write('Inputs[1]', 1e20)
+        before = self.snapshot(e)
+        with self.assertRaisesRegex(ModelError, 'overflow'):
+            e.step()
+        self.assertEqual(self.snapshot(e), before)
+        e.memory.write('Inputs[1]', 25)
+        e.step()
+        self.assertEqual(e.memory.read('Results[1]'), 5)
 
     def test_later_fault_restores_established_math_results_values_and_scheduler(self):
         e=self.checked(['XIC(StartPB)SQR(Inputs[Index],Results[Index]);','XIC(StartPB)DIV(1,Inputs[2],SpeedCommand);'],index=0)

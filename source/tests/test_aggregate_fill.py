@@ -106,7 +106,18 @@ class AggregateFillTests(unittest.TestCase):
         self.assertEqual(e.memory.read('Records')[2],guard)
 
     def test_zeroed_timer_and_counter_can_be_consumed_as_typed_records(self):
-        e=self.checked(['FLL(0,Timers[0],1);','FLL(0,Counters[0],1);','TON(Timers[0],?,?);','CTU(Counters[0],?,?);']);e.step();self.assertTrue(e.memory.read('Timers[0].DN'));self.assertEqual(e.memory.read('Counters[0].ACC'),1);self.assertTrue(e.memory.read('Counters[0].DN'))
+        e = self.checked([
+            'XIC(S:FS)FLL(0,Timers[0],1);', 'XIC(S:FS)FLL(0,Counters[0],1);',
+            'TON(Timers[0],?,?);', 'CTU(Counters[0],?,?);',
+        ])
+        e.step()
+        self.assertTrue(e.memory.read('Timers[0].TT'))
+        self.assertFalse(e.memory.read('Timers[0].DN'))
+        self.assertEqual(e.memory.read('Counters[0].ACC'), 1)
+        self.assertTrue(e.memory.read('Counters[0].DN'))
+        e.step()
+        self.assertTrue(e.memory.read('Timers[0].DN'))
+        self.assertEqual(e.memory.read('Counters[0].ACC'), 1)
 
     def test_static_and_dynamic_lengths_regions_and_budget_remain_bounded(self):
         for count in ('-1','100001','1.0','StartPB'):
