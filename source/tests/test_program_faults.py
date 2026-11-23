@@ -692,6 +692,8 @@ class ProgramFaultTests(unittest.TestCase):
                 self.assertEqual((fault['type'], fault['code']), (4, 20))
                 self.assertIs(memory.read('FaultWitness'), expected)
                 self.assertEqual(engine.program_fault_description()['program_minor_overflow_records'], int(expected))
+                self.assertEqual((engine._minor_fault_log.bits, engine._minor_fault_log.events),
+                                 (16 if expected else 0, int(expected)))
                 self.assertIs(memory.read('MotorRunning'), expected)
                 self.assertEqual(memory.read('LabIndex'), 0)
                 self.assertEqual(memory.read('SpeedCommand'), 51)

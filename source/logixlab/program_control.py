@@ -1,6 +1,7 @@
 """Program DisableFlag instructions for an ordinary scheduled Program."""
 from dataclasses import dataclass
 
+from .fault_log import MinorFaultLog
 from .gsv_configuration import current_instance, read_caller_context
 from .integer_math import CONTROLLERS
 from .model import ModelError, operations
@@ -16,6 +17,7 @@ class Advance:
     scanned: set[str]
     pending_prescan: set[str]
     minor_faults: dict[str, int | None]
+    fault_log: MinorFaultLog
 
     def set_disabled(self, name, value):
         if value:

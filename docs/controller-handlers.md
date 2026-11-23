@@ -438,6 +438,32 @@ parity remains unverified.
 [Rockwell Major, Minor, and I/O Faults](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm014_-en-p.pdf#page=23)
 [Rockwell Program object](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/input-output-instructions/access-the-program-object.html)
 
+## Read and reset the controller minor-fault summary
+
+A scheduled Standard ladder Program can access the controller-wide FaultLog
+object with an empty instance:
+
+```text
+GSV(FaultLog,,MinorFaultBits,FaultBits);
+GSV(FaultLog,,MinorEvents,FaultCount);
+SSV(FaultLog,,MinorFaultBits,NewFaultBits);
+SSV(FaultLog,,MinorEvents,ZeroCount);
+```
+
+Use DINT tags for the bitmap and INT tags for the event count. A modeled
+reported overflow sets instruction-execution bit 4 and increments the count.
+The software count stops at 32,767. Writing a bitmap replaces it, and writing
+zero to MinorEvents resets the count. These operations leave the other
+summary value, the Program fault records and `S:MINOR` independent. A
+manual bit write does not increment the count. Other fault reasons have no
+modeled event sources through this interface.
+
+Changes are visible in the same scan, across Programs. A failed advance
+rolls back both values and any GSV writes. The summary persists across Run
+entry and supported routine replacement. Resetting the engine or loading
+a project starts the summary at zero. These are simulated diagnostics.
+[Rockwell FaultLog reference](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/input-output-instructions/access-the-faultlog-object.html)
+
 ## Recover shift and queue array faults
 
 A reached out-of-bounds subscript in BSL, BSR, FFL, FFU, LFL or LFU

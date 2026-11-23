@@ -4,6 +4,7 @@ import copy
 import operator
 from collections import Counter
 from time import perf_counter_ns
+from .fault_log import MinorFaultLog
 from .identity import controller_status_word
 from .program_timing import ProgramTiming
 from . import gsv_configuration, immediate_output, ladder_message, program_control
@@ -156,6 +157,7 @@ class Engine:
         self._activation_prescan_pending = set()
         self._program_advance = None
         self._minor_fault_records = {}
+        self._minor_fault_log = MinorFaultLog()
         self._executing_program = None
         self._executing_task = None
         self._executing_routine = None
@@ -869,7 +871,8 @@ class Engine:
         self._timing_advance=TimingAdvance(timings,task_timings)
         self._program_advance=program_control.Advance(set(self._disabled_programs),set(self._program_scanned),
                                                        set(self._activation_prescan_pending),
-                                                       self._minor_fault_records.copy())
+                                                       self._minor_fault_records.copy(),
+                                                       copy.copy(self._minor_fault_log))
         self._immediate_output_advance = {}
         task_outputs = {}
         self._message_advance = self._messages.copy()
@@ -944,6 +947,7 @@ class Engine:
             self._disabled_programs=programs.disabled
             self._activation_prescan_pending=programs.pending_prescan
             self._minor_fault_records=programs.minor_faults
+            self._minor_fault_log=programs.fault_log
             self.scan_count += 1
             self.memory.first_scan = False
             self.fault = ""
@@ -983,6 +987,7 @@ class Engine:
         if (self._program_advance is not None and self._executing_program is not None
                 and self._program_fault is None and not self.addons.prescanning):
             self._program_advance.minor_faults[self._executing_program] = self.wall_time()
+            self._program_advance.fault_log.record_overflow()
 
     def _recover_ladder_fault(self, op, scope, error):
         if (scope in self.memory.frames or self.mode != 'project'

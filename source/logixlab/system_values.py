@@ -1,7 +1,7 @@
 """Bounded GSV audit values and explicit source-configuration reads."""
 import struct
 from .model import ModelError
-from . import event_status, gsv_configuration, gsv_timing, gsv_wall_clock, ladder_message, program_control, task_inhibit
+from . import event_status, fault_log, gsv_configuration, gsv_timing, gsv_wall_clock, ladder_message, program_control, task_inhibit
 
 
 def source(engine,op):
@@ -36,6 +36,7 @@ def legacy(op):
 
 
 def validate(engine,op,scope,*,kind='RLL'):
+    if fault_log.matches(op):return fault_log.access(engine,op,scope,executing=False,kind=kind)
     if (kind != 'RLL' and len(op.args) == 4 and all(isinstance(arg, str) for arg in op.args[:3])
             and op.args[0].casefold() == 'program'
             and op.args[2].casefold() == 'minorfaultrecord'):
@@ -51,6 +52,7 @@ def validate(engine,op,scope,*,kind='RLL'):
 
 
 def execute(engine,op,scope):
+    if fault_log.matches(op):return fault_log.access(engine,op,scope,executing=True)
     if ladder_message.matches_attribute(op):return ladder_message.execute_attribute(engine,op,scope)
     if program_control.matches(op):return program_control.execute(engine,op,scope)
     if event_status.matches(op):
@@ -84,6 +86,7 @@ def write_effects(engine,op,scope):
 
 
 def validate_set(engine, op, scope, *, kind='RLL'):
+    if fault_log.matches(op):return fault_log.access(engine,op,scope,executing=False,kind=kind)
     if ladder_message.matches_attribute(op):return ladder_message.validate_attribute(engine,op,scope,kind)
     if gsv_configuration.matches_major_fault_record(op):
         return gsv_configuration.write_major_fault_record(engine, op, scope, executing=False)
@@ -97,6 +100,9 @@ def validate_set(engine, op, scope, *, kind='RLL'):
 
 def execute_set(engine, op, power, scope):
     if not power:return power
+    if fault_log.matches(op):
+        fault_log.access(engine,op,scope,executing=True)
+        return power
     if ladder_message.matches_attribute(op):
         ladder_message.execute_attribute(engine,op,scope)
         return power
@@ -123,6 +129,7 @@ def description():
     return dict(legacy='Controller AuditValue/ChangesToDetect into LINT or two DINT elements',
                 configuration=gsv_configuration.description(), wall_clock=gsv_wall_clock.description(),
                 timing=gsv_timing.description(), event_status=event_status.description(),
+                minor_fault_log='Ladder FaultLog MinorFaultBits DINT access and MinorEvents INT read or zero reset; controller-wide modeled overflows set bit 4 and increment the count.',
                 message_path='Ladder Message ConnectionPath reads/writes a length-prefixed 82-byte SINT window',
                 message_timeout='Ladder Message UnconnectedTimeout and connected ConnectionRate use DINT or TIME32 microseconds; connected TimeoutMultiplier uses SINT',
                 array_recovery='A cleared Type 4 Code 20 in a whole-project ladder scan skips the GSV write or SSV update',

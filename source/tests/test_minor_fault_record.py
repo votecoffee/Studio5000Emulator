@@ -178,3 +178,153 @@ class MinorFaultRecordTests(unittest.TestCase):
             self.assertTrue(self.engine([GSV], mutate=configure, **args).blockers)
         self.assertTrue(self.engine([GSV.replace('THIS', 'FastProgram')], mutate=configure).blockers)
         self.assertTrue(self.engine([GSV.replace('FaultSample[1]', 'FaultSample[3]')], mutate=configure).blockers)
+
+
+READ_BITS = 'GSV(FaultLog,,MinorFaultBits,LogBits);'
+READ_COUNT = 'GSV(FaultLog,,MinorEvents,LogCount);'
+WRITE_BITS = 'SSV(FaultLog,,MinorFaultBits,BitInput);'
+RESET_COUNT = 'SSV(FaultLog,,MinorEvents,CountInput);'
+INSTRUCTION_BIT = 1 << 4
+
+
+def log_tags(root):
+    configure(root)
+    tags = root.find('./Controller/Tags')
+    for name, dtype, initial in (
+        ('LogBits', 'DINT', 77), ('LogCount', 'INT', 77),
+        ('BitInput', 'DINT', 0), ('CountInput', 'INT', 0),
+        ('WriteBits', 'BOOL', 0), ('ResetCount', 'BOOL', 0),
+    ):
+        config.scalar(tags, name, dtype, initial)
+
+
+class MinorFaultLogTests(unittest.TestCase):
+    setUp = config.GsvConfigurationTests.setUp
+    engine = config.GsvConfigurationTests.engine
+    checked = config.GsvConfigurationTests.checked
+
+    def test_latched_bits_and_count_are_independent_of_program_record(self):
+        engine = self.checked([
+            OVERFLOW, 'XIC(WriteBits)' + WRITE_BITS, 'XIC(ResetCount)' + RESET_COUNT,
+            'XIC(S:MINOR)OTE(OverflowSeen);', READ_BITS, READ_COUNT, GSV,
+        ], mutate=log_tags)
+        memory = engine.memory
+
+        def scan(bits, count):
+            engine.step(10)
+            self.assertEqual((memory.read('LogBits'), memory.read('LogCount')), (bits, count))
+
+        scan(0, 0)
+        with patch.object(engine, 'wall_time', return_value=TIMESTAMP):
+            memory.write('Flag', True)
+            scan(INSTRUCTION_BIT, 1)
+            scan(INSTRUCTION_BIT, 2)
+        self.assertTrue(memory.read('OverflowSeen'))
+        memory.write('Flag', False)
+        memory.write('WriteBits', True)
+        scan(0, 2)
+        self.assertEqual(memory.read('FaultSample')[1:12], record(TIMESTAMP))
+        self.assertFalse(memory.read('OverflowSeen'))
+        # Writing a reason bit changes only the bitmap.
+        memory.write('BitInput', 0x200)
+        memory.write('ResetCount', True)
+        scan(0x200, 0)
+        memory.write('WriteBits', False)
+        memory.write('ResetCount', False)
+        engine.enter_run()
+        scan(0x200, 0)
+        memory.write('Flag', True)
+        scan(0x200 | INSTRUCTION_BIT, 1)
+        reset = Engine(engine.project)
+        reset.step(10)
+        self.assertEqual((reset.memory.read('LogBits'), reset.memory.read('LogCount')), (0, 0))
+
+    def test_controller_summary_is_visible_to_a_second_program(self):
+        def settings(root):
+            log_tags(root)
+            controller = root.find('Controller')
+            tags = controller.find('Tags')
+            config.scalar(tags, 'SecondBits', 'DINT', -1)
+            config.scalar(tags, 'SecondCount', 'INT', -1)
+            scheduled = controller.find('./Tasks/Task[@Name="BackgroundTask"]/ScheduledPrograms')
+            E.SubElement(scheduled, 'ScheduledProgram', Name='FastProgram')
+            tasks = controller.find('Tasks')
+            tasks.remove(tasks.find('Task[@Name="FastTask"]'))
+            routine = controller.find('./Programs/Program[@Name="FastProgram"]/Routines/Routine[@Name="Main"]')
+            routine.clear()
+            routine.attrib.update(Name='Main', Type='RLL')
+            body = E.SubElement(routine, 'RLLContent')
+            for n, line in enumerate((READ_BITS.replace('LogBits', 'SecondBits'),
+                                      READ_COUNT.replace('LogCount', 'SecondCount'))):
+                E.SubElement(E.SubElement(body, 'Rung', Number=str(n), Type='N'), 'Text').text = line
+
+        engine = self.checked([OVERFLOW], mutate=settings)
+        engine.memory.write('Flag', True)
+        engine.step(10)
+        self.assertEqual(engine.memory.read('SecondBits'), INSTRUCTION_BIT)
+        self.assertEqual(engine.memory.read('SecondCount'), 1)
+
+    def test_late_failure_restores_the_controller_summary_and_readbacks(self):
+        engine = self.checked([
+            OVERFLOW, 'XIC(WriteBits)' + WRITE_BITS, 'XIC(ResetCount)' + RESET_COUNT,
+            READ_BITS, READ_COUNT, 'CPT(Limit,1/Index);',
+        ], mutate=log_tags)
+        memory = engine.memory
+        memory.write('Index', 1)
+        memory.write('Flag', True)
+        engine.step(10)
+        memory.write('WriteBits', True)
+        memory.write('ResetCount', True)
+        memory.write('Index', 0)
+        with self.assertRaisesRegex(ModelError, 'zero'):
+            engine.step(10)
+        self.assertEqual((memory.read('LogBits'), memory.read('LogCount')), (INSTRUCTION_BIT, 1))
+        for ref in ('Flag', 'WriteBits', 'ResetCount'):
+            memory.write(ref, False)
+        memory.write('Index', 1)
+        engine.step(10)
+        self.assertEqual((memory.read('LogBits'), memory.read('LogCount')), (INSTRUCTION_BIT, 1))
+        replacement = replacement_engine(engine, engine.project)
+        replacement.step(10)
+        self.assertEqual((replacement.memory.read('LogBits'), replacement.memory.read('LogCount')),
+                         (INSTRUCTION_BIT, 1))
+
+    def test_disabled_reporting_and_manual_status_leave_log_empty(self):
+        def settings(root):
+            log_tags(root)
+            root.find('Controller').set('ReportMinorOverflow', 'false')
+
+        engine = self.checked([OVERFLOW, 'OTL(S:MINOR);', READ_BITS, READ_COUNT], mutate=settings)
+        engine.memory.write('Flag', True)
+        engine.step(10)
+        self.assertEqual((engine.memory.read('LogBits'), engine.memory.read('LogCount')), (0, 0))
+
+    def test_count_is_bounded_to_the_int_result(self):
+        engine = self.checked([OVERFLOW, READ_COUNT], mutate=log_tags)
+        engine._minor_fault_log.events = 32766
+        engine.memory.write('Flag', True)
+        for _ in range(2):
+            engine.step(10)
+            self.assertEqual(engine.memory.read('LogCount'), 32767)
+
+    def test_false_write_skips_live_index_and_invalid_operands_are_rejected(self):
+        engine = self.checked([
+            'XIC(WriteBits)SSV(FaultLog,,MinorFaultBits,FaultSample[Index]);',
+            'XIC(ResetCount)' + RESET_COUNT, READ_BITS, READ_COUNT,
+        ], mutate=log_tags)
+        engine.memory.write('Index', 99)
+        engine.step(10)
+        self.assertEqual(engine.memory.read('LogBits'), 0)
+        engine.memory.write('WriteBits', True)
+        with self.assertRaisesRegex(ModelError, 'outside bounds'):
+            engine.step(10)
+        engine.memory.write('WriteBits', False)
+        engine.memory.write('ResetCount', True)
+        engine.memory.write('CountInput', 1)
+        with self.assertRaisesRegex(ModelError, 'MinorEvents requires zero'):
+            engine.step(10)
+        for rung in (READ_BITS.replace(',,', ',Named,'),
+                     READ_COUNT.replace('LogCount', 'LogBits'),
+                     WRITE_BITS.replace('BitInput', 'CountInput')):
+            self.assertTrue(self.engine([rung], mutate=log_tags).blockers)
+        self.assertTrue(self.engine([READ_BITS], mutate=log_tags, harness=True).blockers)
