@@ -58,13 +58,13 @@ def read_caller_context(engine, scope, executing):
     return program, executing and not startup_prescan
 
 
-def current_instance(engine, cls, instance, scope='', *, executing=False, allow_event=False):
+def current_instance(engine, cls, instance, scope='', *, executing=False, allow_event=False, context='GSV THIS'):
     """Resolve THIS from a source-bound scheduled Program, never saved tag data."""
     if instance.casefold()!='this':return instance
     project=engine.project;configuration=project.task_configuration
     if (project.version!='35' or project.processor.upper() not in CONTROLLERS
             or engine.mode!='project' or scope in engine.memory.frames):
-        raise ModelError('GSV THIS requires an ordinary v35 5580 project Program context; AOI/harness contexts remain unqualified')
+        raise ModelError(f'{context} requires an ordinary v35 5580 project Program context; AOI/harness contexts remain unqualified')
     name=next((n for n in project.programs if n.casefold()==scope.casefold()),None)
     program=project.programs.get(name)
     if (not program or program['class']!='Standard' or program['use_as_folder']
@@ -72,16 +72,16 @@ def current_instance(engine, cls, instance, scope='', *, executing=False, allow_
             or not configuration.source_complete or configuration.source_sha256!=project.sha256
             or not project.program_configuration.type_attributes(name,source_sha256=project.sha256)
             or not any(project.routines[entry].program==name for entry in engine.entries if entry in project.routines)):
-        raise ModelError('GSV THIS requires an eligible scheduled ordinary Standard Program and complete current source')
+        raise ModelError(f'{context} requires an eligible scheduled ordinary Standard Program and complete current source')
     owners=[task for task in project.tasks if any(p.casefold()==name.casefold() for p in task['programs'])]
     scheduler=engine._task_scheduler
     kinds=('Continuous','Periodic','Event') if allow_event else ('Continuous','Periodic')
     if (len(owners)!=1 or owners[0]['class']!='Standard' or owners[0]['type'] not in kinds
             or scheduler is None or scheduler.source!=scheduler.configuration):
-        raise ModelError('GSV THIS requires one unchanged eligible Standard owner Task')
+        raise ModelError(f'{context} requires one unchanged eligible Standard owner Task')
     owner=owners[0]['name']
     if executing and (not isinstance(engine._executing_task,str) or engine._executing_task.casefold()!=owner.casefold()):
-        raise ModelError('GSV THIS has no matching active Task execution context')
+        raise ModelError(f'{context} has no matching active Task execution context')
     return name if cls.casefold()=='program' else owner
 
 
@@ -495,13 +495,16 @@ def _fault_words(timestamp, type_code):
 
 
 def _minor_fault_program(engine, instance, scope, *, executing):
-    if instance.casefold() != 'this':
-        raise ModelError('MinorFaultRecord requires Program THIS')
-    program = current_instance(engine, 'Program', instance, scope, executing=executing, allow_event=True)
-    key = program.casefold()
-    if executing and (engine._program_advance is None or engine._executing_program != key):
+    program = current_instance(engine, 'Program', 'THIS', scope, executing=executing, allow_event=True)
+    caller = program.casefold()
+    if executing and (engine._program_advance is None or engine._executing_program != caller):
         raise ModelError('MinorFaultRecord requires the active ladder Program')
-    return key
+    if instance.casefold() in ('this', caller):
+        return caller
+    # A named target can belong to a different Task than the active caller.
+    target = current_instance(engine, 'Program', 'THIS', instance, allow_event=True,
+                              context='MinorFaultRecord target')
+    return target.casefold()
 
 
 def _minor_fault_record(engine, instance, scope, *, executing):
@@ -828,7 +831,7 @@ def description():
                 module_led_status='Empty controller-only map or aggregate of a complete simulated module inventory.',
                 module_force_status='Controller-only I/O map.',
                 major_fault_record='Active ladder fault routine; DINT[11] or first member of a supported fault-record UDT.',
-                minor_fault_record='Ladder Program THIS; read the latest reported overflow (4/4) or clear it with zero Type and Code. DINT[11] or supported fault-record UDT.',
+                minor_fault_record='Ladder scheduled Program by name or THIS; read the latest reported overflow (4/4) or clear it with zero Type and Code. DINT[11] or supported fault-record UDT.',
                 controller_device=['DeviceName','ProductCode','ProductRev','SerialNumber','Type','Vendor','Status'],
                 controller_device_source='v35 5580 project processor and firmware revision, virtual EtherNet/IP serial, and modeled controller mode at scan entry.',
                 controller_device_status='Remote keyswitch; Program 0x3070, Run 0x3060, software fault 0x3450 at retry entry.',

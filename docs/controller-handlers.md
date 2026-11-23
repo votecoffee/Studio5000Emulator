@@ -416,10 +416,14 @@ behavior remain unverified.
 
 ## Read modeled Program minor faults
 
-Use `GSV(Program,THIS,MinorFaultRecord,FaultWords[0])` in a scheduled Standard
-ladder Program. The destination can be a window of 11 contiguous DINTs or the
-first member of a fault-record UDT with a LINT or two DINT timestamp words,
-INT Type, INT Code and DINT[8] Info.
+In a scheduled Standard ladder Program, use
+`GSV(Program,THIS,MinorFaultRecord,FaultWords[0])` for the current Program or
+supply a scheduled Standard Program name, such as `FastProgram`. Named reads
+can address a different Task's Program. They see the record available when the
+instruction executes. A later Task release can write a new record in the same
+advance. The destination can be a window of 11 contiguous DINTs or the first
+member of a fault-record UDT with a LINT or two DINT timestamp words, INT Type,
+INT Code and DINT[8] Info.
 
 With `ReportMinorOverflow` enabled, a modeled arithmetic overflow records
 Type 4, Code 4 in the Program that executed the instruction. This includes
@@ -433,12 +437,13 @@ A Program begins with an empty record. Its last recorded overflow persists
 across successful scans and Run entry. Clearing `S:MINOR` clears the scan flag
 and retains the record.
 
-Use `SSV(Program,THIS,MinorFaultRecord,ClearWords[0])` to clear the current
-Program's record. The source uses the same layouts as GSV and must contain
-known zero Type and Code. The timestamp and Info fields are ignored for this
-operation. A following GSV returns an empty record in the same scan. The
-controller's FaultLog bits and event count and the current scan's `S:MINOR`
-flag retain their values. A later reported overflow creates a new record.
+Use `SSV(Program,THIS,MinorFaultRecord,ClearWords[0])` or a Program name to
+clear the selected Program's record. The source uses the same layouts as GSV
+and must contain known zero Type and Code. The timestamp and Info fields are
+ignored for this operation. A following GSV can read the empty record in the
+same scan. Other Programs' records, the controller's FaultLog bits and event
+count, and the current scan's `S:MINOR` flag retain their values. A later
+reported overflow in the cleared Program creates a new record.
 
 A fault later in the advance rolls back the clear and any destination writes.
 A reset or reload establishes a new history. Arbitrary record writes and native

@@ -591,8 +591,8 @@ A handler can clear
 [negative timing values](docs/controller-handlers.md#recover-negative-timing-values)
 in whole-project ladder as Type 4 Code 34.
 [Ladder GSV and SSV MinorFaultRecord](docs/controller-handlers.md#read-modeled-program-minor-faults)
-read the current Program's latest reported overflow or clear its record with
-known zero Type and Code. [FaultLog](docs/controller-handlers.md#read-and-reset-the-controller-minor-fault-summary)
+read a scheduled Program's latest reported overflow by name or `THIS`.
+A write with known zero Type and Code clears the selected record. [FaultLog](docs/controller-handlers.md#read-and-reset-the-controller-minor-fault-summary)
 exposes the independent controller-wide minor-fault bitmap and event count.
 
 [Ladder counters and resets](docs/ladder-counters.md) retain DN during overflow

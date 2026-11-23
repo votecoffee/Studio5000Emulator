@@ -184,7 +184,7 @@ class MinorFaultRecordTests(unittest.TestCase):
             dict(st=True),
         ):
             self.assertTrue(self.engine([GSV], mutate=configure, **args).blockers)
-        self.assertTrue(self.engine([GSV.replace('THIS', 'FastProgram')], mutate=configure).blockers)
+        self.assertTrue(self.engine([GSV.replace('THIS', 'MissingProgram')], mutate=configure).blockers)
         self.assertTrue(self.engine([GSV.replace('FaultSample[1]', 'FaultSample[3]')], mutate=configure).blockers)
 
 
@@ -204,6 +204,98 @@ def log_tags(root):
         ('WriteBits', 'BOOL', 0), ('ResetCount', 'BOOL', 0),
     ):
         config.scalar(tags, name, dtype, initial)
+
+
+def named_programs(root):
+    log_tags(root)
+    controller = root.find('Controller')
+    tags = controller.find('Tags')
+    add_fault_dint_array(tags, 'PeerRecord', [77] * 11)
+    add_fault_dint_array(tags, 'ClearWords', [0] * 11)
+    config.scalar(tags, 'PeerOverflow', 'BOOL', 0)
+    body = controller.find('./Programs/Program[@Name="FastProgram"]/Routines/Routine/RLLContent')
+    body.clear()
+    rung = E.SubElement(body, 'Rung', Number='0', Type='N')
+    E.SubElement(rung, 'Text').text = 'XIC(PeerOverflow)ADD(2147483647,1,Out);'
+
+
+READ_PEER = 'GSV(Program,fAsTpRoGrAm,MinorFaultRecord,PeerRecord[0]);'
+CLEAR_PEER = 'XIC(ResetCount)SSV(Program,FastProgram,MinorFaultRecord,ClearWords[0]);'
+
+
+class NamedMinorFaultRecordTests(unittest.TestCase):
+    setUp = config.GsvConfigurationTests.setUp
+    engine = config.GsvConfigurationTests.engine
+    checked = config.GsvConfigurationTests.checked
+
+    def test_cross_task_read_clear_and_relatch_are_local_to_target(self):
+        engine = self.checked([
+            OVERFLOW, CLEAR_PEER, READ_PEER, GSV.replace('THIS', 'BackgroundProgram'),
+            'XIC(S:MINOR)OTE(OverflowSeen);', READ_BITS, READ_COUNT,
+        ], mutate=named_programs)
+        memory = engine.memory
+        memory.write('Flag', True)
+        memory.write('PeerOverflow', True)
+        with patch.object(engine, 'wall_time', return_value=TIMESTAMP):
+            engine.step(10)
+        self.assertEqual(memory.read('FaultSample')[1:12], record(TIMESTAMP))
+        self.assertEqual(memory.read('PeerRecord'), record(TIMESTAMP))
+        self.assertEqual(memory.read('LogCount'), 2)
+
+        memory.write('PeerOverflow', False)
+        memory.write('ResetCount', True)
+        with patch.object(engine, 'wall_time', return_value=TIMESTAMP + 10):
+            engine.step(10)
+        self.assertEqual(memory.read('PeerRecord'), [0] * 11)
+        self.assertEqual(memory.read('FaultSample')[1:12], record(TIMESTAMP + 10))
+        self.assertTrue(memory.read('OverflowSeen'))
+        self.assertEqual((memory.read('LogBits'), memory.read('LogCount')), (INSTRUCTION_BIT, 3))
+        self.assertEqual(engine.program_fault_attributes('FastProgram', source_sha256=engine.project.sha256),
+                         {20: bytes(44)})
+
+        memory.write('Flag', False)
+        memory.write('ResetCount', False)
+        memory.write('PeerOverflow', True)
+        with patch.object(engine, 'wall_time', return_value=TIMESTAMP + 20):
+            engine.step(10)
+        self.assertEqual(memory.read('PeerRecord'), record(TIMESTAMP + 20))
+        self.assertEqual(memory.read('FaultSample')[1:12], record(TIMESTAMP + 10))
+        self.assertFalse(memory.read('OverflowSeen'))
+
+    def test_failed_advance_preserves_peers_record(self):
+        engine = self.checked([CLEAR_PEER, READ_PEER, 'CPT(Limit,1/Index);'], mutate=named_programs)
+        memory = engine.memory
+        memory.write('PeerOverflow', True)
+        memory.write('Index', 1)
+        engine.step(10)
+        original = memory.read('PeerRecord').copy()
+        self.assertEqual(original[2], TYPE_CODE)
+
+        memory.write('PeerOverflow', False)
+        memory.write('ResetCount', True)
+        memory.write('Index', 0)
+        with self.assertRaisesRegex(ModelError, 'zero'):
+            engine.step(10)
+        self.assertEqual(memory.read('PeerRecord'), original)
+        memory.write('ResetCount', False)
+        memory.write('Index', 1)
+        engine.step(10)
+        self.assertEqual(memory.read('PeerRecord'), original)
+        memory.write('ResetCount', True)
+        engine.step(10)
+        self.assertEqual(memory.read('PeerRecord'), [0] * 11)
+
+    def test_rejects_unscheduled_targets_harnesses_and_structured_text(self):
+        def unscheduled(root):
+            named_programs(root)
+            root.find('./Controller/Tasks/Task[@Name="FastTask"]/ScheduledPrograms').clear()
+
+        for rung in (READ_PEER, CLEAR_PEER):
+            with self.subTest(rung=rung):
+                self.assertTrue(self.engine([rung], mutate=unscheduled).blockers)
+                self.assertTrue(self.engine([rung], mutate=named_programs, harness=True).blockers)
+        for line in (READ_PEER, CLEAR_PEER.removeprefix('XIC(ResetCount)')):
+            self.assertTrue(self.engine([line], mutate=named_programs, st=True).blockers)
 
 
 class MinorFaultLogTests(unittest.TestCase):
@@ -335,7 +427,7 @@ class MinorFaultLogTests(unittest.TestCase):
         for rung, options in (
             (SSV, {'harness': True}),
             (SSV, {'st': True}),
-            (SSV.replace('THIS', 'FastProgram'), {}),
+            (SSV.replace('THIS', 'MissingProgram'), {}),
             (SSV.replace('FaultSample[1]', 'FaultSample[3]'), {}),
         ):
             self.assertTrue(self.engine([rung], mutate=log_tags, **options).blockers)
