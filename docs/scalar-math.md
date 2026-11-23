@@ -39,6 +39,28 @@ dividend's sign. Wide homogeneous and qualified widening-tag arithmetic stay exa
 still stops and rolls back the model rather than reproducing native status and
 partial effects.
 
+## Carry after integer ADD and SUB
+
+On the v35 ControlLogix 5580 profile, `XIC(S:C)` and `XIO(S:C)` read a
+ladder rung's carry flag. After a successful integer ADD or SUB, the emulator
+uses the destination's bit width. ADD sets carry when the unsigned sum exceeds
+that width. SUB sets carry when the unsigned left operand is smaller than the
+right operand and subtraction borrows.
+
+For example, `ADD(-1,1,Sum)XIC(S:C)OTE(Carried);` stores zero and sets
+`Carried` when `Sum` is DINT. The addition of the two bit patterns produces
+a carry even though the signed result fits. `SUB(1,2,Diff)XIC(S:C)OTE(Borrowed);`
+stores -1 in DINT `Diff` and sets `Borrowed`.
+
+The last successful integer ADD or SUB on the rung determines the flag.
+An inactive instruction or a floating calculation leaves it alone. Each rung
+starts clear. Called routines and AOI bodies start with their own flags, and
+returning restores the caller's flag. Existing checked destination range
+errors still roll back the advance. Native mixed-width flag behavior and
+overflow continuation remain unverified.
+[Rockwell math status flags](https://www.rockwellautomation.com/en-za/docs/studio-5000-logix-designer/37-01/contents-ditamap/instruction-set/math-status-flags.html)
+[Rockwell carry and borrow reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm015_-en-p.pdf#page=57)
+
 ## Integer MOD with a zero divisor
 
 In the v35 5580 ladder profile, an enabled integer MOD with a zero divisor

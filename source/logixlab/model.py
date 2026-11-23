@@ -1028,6 +1028,7 @@ class Memory:
         self.message_cache = {}
         self.first_scan = True
         self.minor_fault = False
+        self.rung_carry = None
         self._resolved = {}
         self.frames = {}
         self.validating = False

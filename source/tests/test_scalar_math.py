@@ -36,6 +36,71 @@ class ScalarMathTests(unittest.TestCase):
             e = self.checked([operation(name) + ';']);self.assertEqual(e.memory.read('Results'), [None] * 3)
             e.step();self.assertEqual(e.memory.read('Results'), [None, expected, None]);self.assertEqual(e.memory.read('Source'), 7)
 
+    def test_integer_carry_and_borrow_contacts(self):
+        pairs = [(kind, kind) for kind in ('SINT', 'INT', 'DINT', 'LINT')]
+        pairs.append(('LINT', 'DINT'))
+        for source, dest in pairs:
+            with self.subTest(source=source, dest=dest):
+                e = self.checked([
+                    'ADD(Source,Mask,Results[0])XIC(S:C)OTE(RunLatch);',
+                    'SUB(Mask,Source,Results[1])XIC(s:c)OTE(MotorRunning);',
+                ], dtype=dest, source=source, value=-1)
+                e.memory.write('Mask', 1)
+                e.step()
+                self.assertEqual(e.memory.read('Results'), [0, 2, None])
+                self.assertTrue(e.memory.read('RunLatch'))
+                self.assertTrue(e.memory.read('MotorRunning'))
+                e.memory.write('Source', 0)
+                e.step()
+                self.assertEqual(e.memory.read('Results'), [1, 1, None])
+                self.assertFalse(e.memory.read('RunLatch'))
+                self.assertFalse(e.memory.read('MotorRunning'))
+
+    def test_carry_updates_only_on_executed_integer_add_sub_in_the_rung(self):
+        e = self.checked([
+            '[ADD(-1,1,Results[0]),AFI()ADD(1,1,Results[1])]CPT(SpeedCommand,2+2)XIC(S:C)OTE(RunLatch);',
+            'ADD(-1,1,Results[0])ADD(1,1,Results[2])XIO(S:C)OTE(MotorRunning);',
+            'XIO(S:C)OTE(StartPB);',
+        ])
+        e.step()
+        self.assertEqual(e.memory.read('Results'), [0, None, 2])
+        self.assertEqual(e.memory.read('SpeedCommand'), 4)
+        self.assertTrue(e.memory.read('RunLatch'))
+        self.assertTrue(e.memory.read('MotorRunning'))
+        self.assertTrue(e.memory.read('StartPB'))
+        self.assertIsNone(e.memory.rung_carry)
+
+    def test_nested_routine_does_not_inherit_or_overwrite_caller_carry(self):
+        def add_worker(root):
+            routines = root.find('./Controller/Programs/Program/Routines')
+            body = E.SubElement(E.SubElement(routines, 'Routine', Name='Worker', Type='RLL'), 'RLLContent')
+            for number, text in enumerate(('XIC(S:C)OTE(MotorRunning);', 'ADD(1,1,Results[2]);')):
+                E.SubElement(E.SubElement(body, 'Rung', Number=str(number), Type='N'), 'Text').text = text
+
+        e = self.checked(['ADD(-1,1,Results[0])JSR(Worker,0)XIC(S:C)OTE(RunLatch);'], mutate=add_worker)
+        e.step()
+        self.assertEqual(e.memory.read('Results'), [0, None, 2])
+        self.assertFalse(e.memory.read('MotorRunning'))
+        self.assertTrue(e.memory.read('RunLatch'))
+        self.assertIsNone(e.memory.rung_carry)
+
+    def test_carry_participates_in_scan_rollback_and_requires_contacts(self):
+        def older_controller(root):
+            root.find('Controller').set('ProcessorType', '1756-L75')
+
+        self.assertTrue(self.engine(['OTE(S:C);']).blockers)
+        self.assertTrue(self.engine(['ONS(S:C);']).blockers)
+        self.assertTrue(self.engine(['XIC(S:C)OTE(RunLatch);'], mutate=older_controller).blockers)
+        e = self.checked(['ADD(-1,1,Results[0])XIC(S:C)OTE(RunLatch);', 'CPT(SpeedCommand,1/Index);'])
+        before = self.snapshot(e)
+        with self.assertRaisesRegex(ModelError, 'zero'):
+            e.step()
+        self.assertEqual(self.snapshot(e), before)
+        self.assertIsNone(e.memory.rung_carry)
+        e.memory.write('Index', 1)
+        e.step()
+        self.assertTrue(e.memory.read('RunLatch'))
+
     def test_integer_mod_zero_retains_the_old_fault_policy_outside_v35_5580(self):
         def target(root):
             root.find('Controller').set('ProcessorType', '1756-L75')

@@ -7,6 +7,7 @@ WRITES = {'OTE': (0,), 'OTL': (0,), 'OTU': (0,), 'ONS': (0,), 'OSR': (0, 1), 'OS
 PRESCAN_WRITES = frozenset(('OTE', 'ONS', 'OSR', 'OSF'))
 MINOR_FLAG = 's:minor'
 MINOR_FLAG_OPS = frozenset(('XIC', 'XIO', 'OTE', 'OTL', 'OTU'))
+CARRY_FLAG = 's:c'
 
 
 def available(project):
@@ -19,6 +20,10 @@ def validate(engine, op, scope, *, kind='RLL'):
     if any(ref.casefold() == MINOR_FLAG for ref in op.args):
         if kind != 'RLL' or op.name not in MINOR_FLAG_OPS or scope in memory.frames:
             raise ModelError('S:MINOR requires a ladder contact or coil outside AOI bodies')
+        return True
+    if any(ref.casefold() == CARRY_FLAG for ref in op.args):
+        if kind != 'RLL' or op.name not in ('XIC', 'XIO'):
+            raise ModelError('S:C requires a ladder contact')
         return True
     previous = memory.structural
     memory.structural = True
@@ -63,6 +68,8 @@ def prescan(memory, op, scope):
 
 def execute(memory, op, power, scope):
     name, args = op.name, op.args
+    if args[0].casefold() == CARRY_FLAG:
+        return power and (bool(memory.rung_carry) == (name == 'XIC'))
     if args[0].casefold() == MINOR_FLAG:
         if name in ('XIC', 'XIO'):
             return power and (memory.minor_fault == (name == 'XIC'))
@@ -102,6 +109,7 @@ def description(project):
                 array_recovery='Whole-project handlers can clear Type 4 Code 20 and skip the faulting instruction or its outer ladder AOI call',
                 pulse_recovery='OSR/OSF restore the original storage value before handling an out-of-bounds output index',
                 minor_status='S:MINOR contacts and coils outside AOI bodies; task-local scan flag for reported DINT subscript overflow',
+                carry_status='S:C contacts read the last successful integer ADD/SUB on the same ladder rung. Each rung starts clear, and nested routines keep independent state.',
                 failures='Reached unknowns, unrecovered array faults and later errors roll back the advance and existing AOI state',
                 native_runtime_parity=False,
                 remaining=['Native packed BOOL layout, fault/postscan/lifecycle parity and broader controller qualification'])

@@ -772,6 +772,8 @@ get zero, the maximum or the minimum, according to the result.
 can consume these values in ADD, SUB, MUL, DIV, NEG and ABS.
 [Floating MOD](docs/scalar-math.md#nan-and-infinity-in-mod) also handles NaN and
 infinity and retains the v35 zero-divisor rule.
+[Ladder S:C contacts](docs/scalar-math.md#carry-after-integer-add-and-sub) read carry
+or borrow from the last executed integer ADD or SUB on the same rung.
 
 [Numeric move and clear](docs/numeric-storage.md) support signed/unsigned integer
 and REAL/LREAL scalar MOV conversions, typed CLR zeros and full writes to unknown

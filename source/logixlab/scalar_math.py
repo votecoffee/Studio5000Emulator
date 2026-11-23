@@ -5,7 +5,7 @@ import operator
 from . import time_values
 from .bit_transfer import operand, unsigned
 from .integer_math import CONTROLLERS, WIDE_TYPES, bit_value, bitwise_immediate_widths, profile, typed_profile, typed_integer, radix_profile, pattern, integer_bounds, dint_radix, read_source, quotient, execute_zero_divisor
-from .integer_math import signed_floating_exception
+from .integer_math import record_carry, signed_floating_exception
 from .model import INT_BITS, UNSIGNED_BITS, ModelError, coerce, literal
 from .numeric_storage import (floating_math_profile, lreal_math_source, real_math_source,
                               typed_literal, write_exceptional_result, write_lreal_math_result)
@@ -427,4 +427,5 @@ def execute_narrowing(engine, op, scope, specification):
         elif op.name=='DIV':result=quotient(left,right)
         else:result=left-quotient(left,right)*right
     engine.memory.write(op.args[-1],coerce(result,dtype),scope)
+    record_carry(engine.memory, op.name, values, dtype)
     return True

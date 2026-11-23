@@ -3769,10 +3769,8 @@ class ApplicationLifecycleTests(unittest.TestCase):
         names=('BasicSum','BasicDifference','BasicProduct','BasicQuotient','BasicRemainder','BasicNegative','BasicAbsolute','BasicAnd','BasicOr','BasicXor','BasicNot')
         self.assertEqual(tuple(row[t] for t in names),(10,4,21,2,1,-7,7,3,7,4,-8))
         write('BasicMath',False);write('BasicB',0);self.assertEqual(step()['BasicSum'],10)
-        before=write('BasicMath',True)
-        with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
-        self.assertEqual(error.exception.code,400);error.exception.close();after=current()
-        for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
+        write('BasicMath',True);row=step()
+        self.assertEqual((row['BasicQuotient'],row['BasicRemainder']),(7,0))
         write('BasicB',3);self.assertEqual(step()['BasicQuotient'],2)
         write('BasicA',2147483647);before=write('BasicB',1)
         with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
@@ -3780,6 +3778,35 @@ class ApplicationLifecycleTests(unittest.TestCase):
         for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
         write('BasicA',7);write('BasicB',3);self.assertEqual(step()['BasicSum'],10)
         report=self.post('report',{})['scalar_math'];self.assertEqual(len(report['instructions']),11);self.assertFalse(report['native_runtime_parity'])
+
+    def test_ladder_carry_is_rung_local_through_http(self):
+        import base64
+        from test_scalar_math import ScalarMathTests
+
+        fixture = ScalarMathTests()
+        fixture.setUp()
+        try:
+            engine = fixture.checked([
+                'ADD(Source,Mask,Results[0])XIC(S:C)OTE(RunLatch);',
+                'XIC(S:C)OTE(StartPB);',
+                'SUB(Mask,Source,Results[1])XIC(S:C)OTE(MotorRunning);',
+            ], value=-1)
+            content = base64.b64encode(engine.project.path.read_bytes()).decode()
+        finally:
+            fixture.doCleanups()
+        loaded = self.post('load', {'name': 'LadderCarry.L5X', 'content': content})
+        self.assertEqual(loaded['blockers'], [])
+        self.post('write', {'tag': 'Mask', 'value': 1})
+
+        def readings():
+            state = self.post('step', {'dt': 10})
+            values = {row['name']: row['value'] for row in state['tags']}
+            self.assertNotIn('S:C', values)
+            return tuple(values[name] for name in ('Results[0]', 'Results[1]', 'RunLatch', 'StartPB', 'MotorRunning'))
+
+        self.assertEqual(readings(), (0, 2, True, False, True))
+        self.post('write', {'tag': 'Source', 'value': 0})
+        self.assertEqual(readings(), (1, 1, False, False, False))
 
     def test_imported_unknown_scalar_math_is_lazy_and_atomic_through_http(self):
         import base64

@@ -10,6 +10,7 @@ from .model import INT_BITS, UNSIGNED_BITS, ModelError, coerce, literal
 
 WIDE_TYPES = frozenset(('LINT', *UNSIGNED_BITS))
 CONTROLLERS = frozenset(f'1756-L8{number}E' for number in range(1, 6))
+CARRY_INSTRUCTIONS = frozenset(('ADD', 'SUB'))
 COMPARISONS = {'EQU': operator.eq, 'NEQ': operator.ne, 'LES': operator.lt,
                'LEQ': operator.le, 'GRT': operator.gt, 'GEQ': operator.ge}
 INSTRUCTIONS = frozenset((*COMPARISONS, 'LIM', 'MOV', 'CLR', 'ADD', 'SUB', 'MUL',
@@ -286,6 +287,15 @@ def bit_value(value, dtype):
     return value
 
 
+def record_carry(memory, name, values, dtype):
+    """Record unsigned carry or borrow at the integer destination's width."""
+    if memory.rung_carry is None or name not in CARRY_INSTRUCTIONS or dtype not in INT_BITS:
+        return
+    mask = (1 << INT_BITS[dtype]) - 1
+    left, right = (value & mask for value in values)
+    memory.rung_carry = left + right > mask if name == 'ADD' else left < right
+
+
 def execute(engine, op, scope, dtype, *, radix=False):
     """Execute a validated true-rung operation; return its rung-out condition."""
     memory = engine.memory
@@ -321,4 +331,5 @@ def execute(engine, op, scope, dtype, *, radix=False):
         else:
             result = {'ADD': operator.add, 'SUB': operator.sub, 'MUL': operator.mul}[name](a, b)
     memory.write(op.args[-1], coerce(result, dtype), scope)
+    record_carry(memory, name, values, dtype)
     return True
