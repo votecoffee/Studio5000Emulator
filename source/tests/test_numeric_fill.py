@@ -61,8 +61,27 @@ class NumericFillTests(unittest.TestCase):
             e=self.checked(source_type='REAL',dest_type='INT',value=value);e.step();self.assertEqual(e.memory.read('Fills')[1:4],[expected]*3)
         e=self.checked(dest_type='REAL',value=16777217);e.step();self.assertEqual(e.memory.read('Fills')[1:4],[16777216.0]*3)
 
+    def test_ladder_real_fill_narrows_without_changing_math_status(self):
+        def configure(root):
+            root.find('Controller').set('ReportMinorOverflow', 'true')
+
+        for dtype, value, expected in (
+                ('SINT', 127.5, -128), ('SINT', 255.5, 0),
+                ('INT', 32767.5, -32768), ('INT', -32769.5, 32766)):
+            with self.subTest(dtype=dtype, value=value):
+                e = self.checked([
+                    'MOV(-1,SpeedCommand)FLL(Source,Fills[1],Mask)XIO(S:V)XIC(S:N)XIO(S:Z)OTE(RunLatch);',
+                    'XIC(S:MINOR)OTE(StopPB);',
+                    'OTE(S:V)FLL(Source,Fills[1],Mask)XIC(S:V)OTE(MotorRunning);',
+                ], source_type='REAL', dest_type=dtype, value=value, mutate=configure)
+                e.step()
+                self.assertEqual(e.memory.read('Fills'), [11, expected, expected, expected, 55])
+                self.assertTrue(e.memory.read('RunLatch'))
+                self.assertFalse(e.memory.read('StopPB'))
+                self.assertTrue(e.memory.read('MotorRunning'))
+
     def test_real_overflow_stays_excluded_and_rolls_back_prior_work(self):
-        e=self.checked(['MOV(99,Dest);','FLL(Source,Fills[1],Mask);'],source_type='REAL',value=127.5);before=self.snapshot(e)
+        e=self.checked(['MOV(99,Dest);','FLL(Source,Fills[1],Mask);'],source_type='REAL',value=2**31);before=self.snapshot(e)
         with self.assertRaisesRegex(ModelError,'SINT overflow'):e.step()
         self.assertEqual(self.snapshot(e),before)
         e.memory.write('Source',126.5);e.step();self.assertEqual(e.memory.read('Fills')[1:4],[126]*3)

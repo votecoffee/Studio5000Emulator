@@ -28,9 +28,9 @@ Invalid starting indices still fault, including with length zero.
 
 An executed fill samples length, selects the complete clipped window, then
 samples/converts the source once before any stores. A source or length inside
-the destination cannot change that window midway through filling. Existing
-integer truncation/sign extension and representable nearest-even REAL conversion
-remain. Unknown full destinations can be established without reading their
+the destination cannot change that window midway through filling. The window
+uses the [numeric FLL conversion rules](numeric-fill.md#conversion).
+Unknown full destinations can be established without reading their
 previous values. Zero length validates the destination and skips the source.
 False/prescan paths retain their existing lazy operand rules.
 
@@ -41,9 +41,8 @@ region, using declared records and their separate scalar-member work budget.
 
 ## Existing emulator ST extension
 
-The emulator already accepts ST FLL calls. They share this numeric software
-path; native v35 ST FLL is unavailable. This extension does not establish native
-language or Studio import compatibility.
+The emulator's ST FLL extension uses the same clipped window rules and checks
+that rounded REAL values fit the destination.
 
 ST FOR validation now protects the complete clipped numeric window. A static
 start and literal count identify exact cells. Dynamic lengths, aliases and

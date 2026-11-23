@@ -835,8 +835,9 @@ discards the fraction before narrowing and reports destination overflow.
 In **Data lab**, enable `InspectData` to see array and string DATA sizes.
 SIZE, AVE, STD and SRT accept grouped DINT immediates for the array dimension.
 
-[Numeric file fills](docs/numeric-fill.md) add integer narrowing/sign extension,
-structural validation and lazy operand reads for FLL. Grouped binary, octal and
+[Numeric file fills](docs/numeric-fill.md) support integer narrowing and REAL
+rounding into SINT or INT, with structural validation and lazy operand reads.
+Grouped binary, octal and
 hexadecimal DINT sources also work in FLL and
 [numeric queue loads](docs/queue-conversions.md). The same immediate formats
 work for FLL, COP and CPS lengths. In **Data lab**, enable

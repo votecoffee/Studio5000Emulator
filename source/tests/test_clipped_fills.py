@@ -23,6 +23,17 @@ class ClippedFillTests(unittest.TestCase):
             if extra:extra(root)
         return self.engine(['NOP();'], mutate=source, **kwargs)
 
+    def test_st_real_fill_keeps_checked_narrow_destination(self):
+        e = self.st('FLL(Source,Fills[1],Mask);', source_type='REAL', dest_type='SINT', value=127.5)
+        self.assertEqual(e.blockers, [])
+        before = self.snapshot(e)
+        with self.assertRaisesRegex(ModelError, 'SINT overflow'):
+            e.step()
+        self.assertEqual(self.snapshot(e), before)
+        e.memory.write('Source', 126.5)
+        e.step()
+        self.assertEqual(e.memory.read('Fills'), [11, 126, 126, 126, 55])
+
     def clipped_aoi(self):
         e = self.aoi(typed=True); root = E.parse(e.project.path).getroot()
         for text in root.findall('.//AddOnInstructionDefinition/Routines/Routine/RLLContent/Rung/Text'):

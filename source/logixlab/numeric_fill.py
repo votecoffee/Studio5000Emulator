@@ -1,7 +1,8 @@
 """Numeric FLL selection and conversion for the bounded v35 5580 profile."""
-from .integer_math import CONTROLLERS, bit_value
+from .integer_math import CONTROLLERS, NARROW_RESULT_TYPES, bit_value
 from .model import INT_BITS, ModelError, coerce
 from .numeric_copy import block_literal, static_reference, location, prefix
+from .numeric_storage import round_real_to_narrow_signed
 from .real_math import real
 from . import time_values
 
@@ -28,16 +29,18 @@ def operand_spec(memory, ref, scope, *, length=False):
     return dtype, value
 
 
-def converted(value, source_type, destination_type):
+def converted(value, source_type, destination_type, *, ladder=False):
     if source_type in INTEGERS:
         if type(value) is not int:raise ModelError('Numeric FLL source must be a known integer')
         value = coerce(value, source_type)
         if destination_type in INTEGERS:
             return bit_value(value, destination_type)
         return real(value)
-    # REAL narrowing remains a representable, nearest-even software profile.
-    # Native overflow bits/status for REAL-to-integer are not inferred here.
-    return coerce(real(value), destination_type)
+    value = real(value)
+    if ladder and destination_type in NARROW_RESULT_TYPES:
+        result, _ = round_real_to_narrow_signed(value, destination_type)
+        return result
+    return coerce(value, destination_type)
 
 
 def handle(engine, op, scope, *, execute=False):
@@ -67,7 +70,8 @@ def handle(engine, op, scope, *, execute=False):
     memory.check_writable(op.args[1], scope)
     if count:
         source = immediate if immediate is not None else memory.read(op.args[0], scope)
-        value = converted(source, source_type, dtype)
+        routine = engine._executing_routine
+        value = converted(source, source_type, dtype, ladder=routine is not None and routine.kind == 'RLL')
         for path in paths:memory.store(key, path, value)
     return True
 
@@ -210,7 +214,8 @@ def aggregate_description(project):
 def description(project):
     return dict(available=project.version == '35' and project.processor.upper() in CONTROLLERS, profile='v35-5580-numeric-FLL', language='RLL', types=sorted(NUMERIC),
                 integer_conversion='Preserve low destination bits when narrowing; sign-extend when widening',
-                real_conversion='Finite float32; nearest-even integer results must fit the signed destination',
+                real_conversion='Finite float32; nearest-even rounding and DINT-range narrowing into SINT/INT in ladder',
+                ladder_math_status='Numeric FLL retains the current math status flags',
                 operands='Scalar source; decimal or grouped radix DINT and finite REAL source immediates; SINT/INT/DINT length or a bounded decimal/grouped radix DINT immediate',
                 selection='Structural preflight; false/prescan skip live operands; true calls sample length, destination window and source before stores',
                 zero_length='Validate the live destination reference without reading the source value',
@@ -221,5 +226,5 @@ def description(project):
                 failures='Unknown consumed values, invalid indices/lengths, REAL range errors and later faults roll back the advance',
                 native_runtime_parity=False, native_math_status=False,
                 remaining=['Native clipping/base-tag cross-member traversal and packed layouts',
-                           'REAL overflow bits/flags, wider types and native/controller/language/lifecycle qualification',
+                           'Wider types and native/controller/language/lifecycle qualification',
                            'Aggregate zero fills have a separate declared-schema profile; other controller profiles retain legacy behavior'])

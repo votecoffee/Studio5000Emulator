@@ -25,11 +25,14 @@ top bit. DINT 16#12345678 becomes SINT 120 or INT 22136; DINT 128 becomes SINT
 -128. Widening sign-extends: SINT -1 becomes DINT -1. The source is sampled once
 before stores, including when it overlaps the selected destination window.
 
-REAL values use finite float32. Representable REAL-to-integer results round
-ties to even: 2.5 becomes 2, 3.5 becomes 4. REAL overflow results remain excluded
-and roll back the advance; this increment does not infer native overflow bits
-or status. Integer-to-REAL conversion can lose precision, for example DINT
-16777217 becomes REAL 16777216.0.
+REAL values use finite float32. Integer results round to the nearest integer,
+with ties going to even. In ladder FLL, a rounded DINT-range result fills a
+SINT or INT window with its low destination bits. For example, REAL 127.5
+rounds to 128 and fills SINT elements with -128. FLL leaves the rung's math
+flags and the task's minor-fault flag intact. Rounded values outside DINT
+range use the existing checked conversion. Integer-to-REAL conversion can
+lose precision, as when DINT 16777217 becomes REAL 16777216.0.
+[Rockwell FLL reference](https://www.rockwellautomation.com/en-dk/docs/studio-5000-logix-designer/37-02/contents-ditamap/instruction-set/array-file-misc-instructions/file-fill-fll.html)
 
 ## Selection and lifecycle
 
@@ -59,16 +62,16 @@ unqualified. Timing, native partial effects and math-status parity remain open.
 [Aggregate zero fills](aggregate-fill.md) have a separate declared-schema
 profile. Other controller profiles and languages retain their earlier contracts.
 The numeric conversion path does not enable general structure patterns, wide
-types or FBD forms. Existing emulator ST FLL calls share the software path,
-including clipped windows and conservative FOR write effects. Native v35 ST FLL
-is unavailable; these calls are an emulator extension, not native language parity.
+types or FBD forms. The emulator's ST FLL extension uses clipped windows and
+conservative FOR write effects, with checked REAL-to-integer conversion.
 
 ## Data lab
 
 Load **Data lab**, set FillNumeric true and step. With FillIndex=1 and
 FillLength=3, ByteFill[1..3] become 120, WordFill[1..3] become 22136,
 SignedFill[1..3] become -1 and RealFill[1..3] become 2. The first and last
-elements are guards. Change FillSource or FillReal and step again to refill.
+elements are guards. Set FillReal to 32767.5 and step to fill RealFill[1..3]
+with -32768.
 
 Set FillNumeric false and an invalid FillIndex to retain the results without
 consuming that index. Re-enable to see a modeled bounds fault, correct the
