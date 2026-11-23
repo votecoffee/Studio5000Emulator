@@ -114,7 +114,7 @@ class TaskInhibitTests(unittest.TestCase):
         self.assertEqual(e.memory.values,before);self.assertEqual(e.scheduler_description(),schedule)
 
     def test_late_fault_rolls_back_flags_values_first_scans_and_release_phase(self):
-        e=self.checked('SSV(Task,Task1,InhibitTask,Control);\nDIV(1,Divisor,Count0);');e.memory.write('Control',1);e.memory.write('Divisor',0)
+        e=self.checked('SSV(Task,Task1,InhibitTask,Control);\nCPT(Count0,1/Divisor);');e.memory.write('Control',1);e.memory.write('Divisor',0)
         before=copy.deepcopy(e.memory.values);schedule=e.scheduler_description()
         with self.assertRaisesRegex(ModelError,'zero'):e.step(25)
         self.assertEqual(e.memory.values,before);self.assertEqual(e.scheduler_description(),schedule)
@@ -122,7 +122,7 @@ class TaskInhibitTests(unittest.TestCase):
         self.assertEqual(e.memory.read('First1'),1);self.assertTrue(e.scheduler_description()['tasks'][1]['inhibited'])
 
     def test_fault_after_mid_advance_inhibition_restores_earlier_target_runs(self):
-        e=self.checked('SSV(Task,Task1,InhibitTask,Control);\nDIV(1,Divisor,Count0);',specs=[dict(Rate='10',Priority='1'),dict(Rate='10')])
+        e=self.checked('SSV(Task,Task1,InhibitTask,Control);\nCPT(Count0,1/Divisor);',specs=[dict(Rate='10',Priority='1'),dict(Rate='10')])
         e.memory.write('Control',1);e.memory.write('Divisor',0);before=copy.deepcopy(e.memory.values);schedule=e.scheduler_description()
         with self.assertRaises(ModelError):e.step(30)
         self.assertEqual(e.memory.values,before);self.assertEqual(e.scheduler_description(),schedule)
@@ -249,7 +249,7 @@ class TaskInhibitTests(unittest.TestCase):
         self.assertEqual(e.project.task_timing.attributes('Task1',source_sha256=e.project.sha256)[2],struct.pack('<I',10000))
 
     def test_bad_rate_and_later_fault_roll_back_rates_phase_and_progress(self):
-        e=self.checked('XIC(Gate)SSV(Task,Task1,Rate,Control);\nGSV(Task,Task1,Rate,Readout);\nDIV(1,Divisor,Count0);')
+        e=self.checked('XIC(Gate)SSV(Task,Task1,Rate,Control);\nGSV(Task,Task1,Rate,Readout);\nCPT(Count0,1/Divisor);')
         e.memory.write('Gate',False);e.step(17)
         e.memory.write('Gate',True)
         before=copy.deepcopy(e.scheduler_description())
@@ -316,7 +316,7 @@ class TaskInhibitTests(unittest.TestCase):
 
     def test_priority_fault_restores_staged_priority_rate_and_values(self):
         e=self.checked('XIC(Gate)SSV(Task,Task1,Priority,PrioIn);\nXIC(Gate)SSV(Task,Task1,Rate,Control);\n'
-                       'GSV(Task,Task1,Priority,PrioOut);\nDIV(1,Divisor,Count0);')
+                       'GSV(Task,Task1,Priority,PrioOut);\nCPT(Count0,1/Divisor);')
         e.memory.write('Gate',False);e.step()
         schedule=e.scheduler_description()
         e.memory.write('Gate',True);e.memory.write('Control',20000)
@@ -376,7 +376,7 @@ class TaskInhibitTests(unittest.TestCase):
             self.assertFalse(e.scheduler_description()['watchdog_enforced'])
 
     def test_watchdog_range_and_late_failure_roll_back_override_and_progress(self):
-        logic='XIC(Gate)SSV(Task,Task1,Watchdog,Control);\nGSV(Task,Task1,Watchdog,Readout);\nDIV(1,Divisor,Count0);'
+        logic='XIC(Gate)SSV(Task,Task1,Watchdog,Control);\nGSV(Task,Task1,Watchdog,Readout);\nCPT(Count0,1/Divisor);'
         e=self.checked(logic,mutate=self.explicit_watchdogs,defer=True)
         e.enter_run();e.memory.write('Gate',False);e.memory.values['control']=None;e.step()
         self.assertEqual(e.memory.read('Readout'),125001)

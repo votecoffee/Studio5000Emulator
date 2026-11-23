@@ -24,17 +24,25 @@ class ArithmeticConstantTests(unittest.TestCase):
                 for value in (-1,0,127,2147483647):
                     for args in (f'Source,{value}',f'{value},Source'):
                         with self.subTest(source=source,dest=dest,args=args):
-                            e=self.engine([f'ADD({args},Results[1]);'],source=source,dest=dest,value=3)
+                            e=self.engine([f'ADD({args},Results[1])XIC(S:V)OTE(RunLatch);'],
+                                          source=source,dest=dest,value=3)
                             low, high = BOUNDS[dest]
                             self.assertEqual(not e.blockers, low <= value <= high)
                             if e.blockers:
                                 continue
-                            if not low <= 3 + value <= high:
+                            result = 3 + value
+                            overflow = not low <= result <= high
+                            if overflow and dest == 'DINT' and source in ('USINT', 'UINT'):
+                                e.step()
+                                self.assertEqual(e.memory.read('Results'), [None, result - (1 << 32), None])
+                                self.assertTrue(e.memory.read('RunLatch'))
+                            elif overflow:
                                 with self.assertRaisesRegex(ModelError, 'overflow'):
                                     e.step()
                             else:
                                 e.step()
-                                self.assertEqual(e.memory.read('Results'), [None, 3 + value, None])
+                                self.assertEqual(e.memory.read('Results'), [None, result, None])
+                                self.assertFalse(e.memory.read('RunLatch'))
 
     def test_five_binary_operations_keep_operand_order_and_signed_results(self):
         cases=[('ADD',-4,-4),('SUB',-10,10),('MUL',-21,-21),('DIV',-2,0),('MOD',-1,3)]

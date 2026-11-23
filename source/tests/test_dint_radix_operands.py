@@ -84,9 +84,8 @@ class DintRadixTests(unittest.TestCase):
         e.step();e.memory.write('Source',11);e.memory.write('Mask',0);e.step()
         self.assertEqual(e.memory.read('Results'),[10,-7,None])
         e.memory.write('Mask',2);e.step();self.assertEqual(e.memory.read('Results'),[10,-3,None])
-        for call in ('ADD(16#80000000,-1,Results[1]);','DIV(16#80000000,16#FFFFFFFF,Results[1]);',
-                     'ABS(16#80000000,Results[1]);','NEG(16#80000000,Results[1]);'):
-            self.fault(self.checked(['MOV(99,SpeedCommand);',call]),'overflow')
+        self.fault(self.checked(['MOV(99,SpeedCommand);',
+                                 'DIV(16#80000000,16#FFFFFFFF,Results[1]);']), 'overflow')
 
     def test_aoi_inout_and_local_arithmetic_share_warm_rollback_and_exact_signed_constants(self):
         h=typed.TypedIntegerOperandTests();h.setUp();self.addCleanup(h.doCleanups);initial=h.aoi()

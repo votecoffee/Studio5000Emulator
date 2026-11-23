@@ -3779,6 +3779,9 @@ class ApplicationLifecycleTests(unittest.TestCase):
         with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
         self.assertEqual(error.exception.code,400);error.exception.close();after=current()
         for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
+        write('BasicA',-2147483648);write('BasicB',0)
+        row=step()
+        self.assertEqual((row['BasicAbsolute'],row['BasicNegative']),(-2147483648,-2147483648))
         write('BasicA',7);write('BasicB',3);self.assertEqual(step()['BasicSum'],10)
         report=self.post('report',{})['scalar_math'];self.assertEqual(len(report['instructions']),11);self.assertFalse(report['native_runtime_parity'])
 
@@ -4779,25 +4782,35 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual({name:row[name] for name in ('MixedSum','MixedDifference','MixedProduct','MixedQuotient','MixedRemainder','MixedNegated','MixedAbs','MixedUnsignedDifference')},
                          dict(MixedSum='9007199254740995',MixedDifference='9007199254740990',MixedProduct='-21',MixedQuotient='3002399751580331',MixedRemainder='0',MixedNegated=-3,MixedAbs='7',MixedUnsignedDifference='18446744073709551611'))
         report=self.post('report',{})['scalar_math']['widening_arithmetic'];self.assertEqual(len(report['instructions']),7);self.assertFalse(report['native_runtime_parity'])
-        before=self.post('write',{'tag':'NarrowDivisor','value':0})
+        self.post('write',{'tag':'NarrowDivisor','value':0})
+        row={r['name']:r['value'] for r in self.post('step',{'dt':10})['tags']}
+        self.assertEqual((row['MixedQuotient'],row['MixedRemainder']),('9007199254740993','0'))
+        self.post('write',{'tag':'NarrowDivisor','value':3})
+        before=self.post('write',{'tag':'SignedInput','value':'-9223372036854775808'})
         with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
-        self.assertEqual(error.exception.code,400);error.exception.close()
+        self.assertEqual(error.exception.code,400)
+        self.assertIn(b'LINT overflow',error.exception.read())
+        error.exception.close()
         with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
         for key in ('tags','routines','scan','ms','task_schedule','routine_edits'):self.assertEqual(after[key],before[key])
-        self.post('write',{'tag':'NarrowDivisor','value':3});state=self.post('step',{'dt':10});self.assertEqual(state['scan'],before['scan']+1)
+        self.post('write',{'tag':'SignedInput','value':'9007199254740993'})
+        state=self.post('step',{'dt':10})
+        self.assertEqual(state['scan'],before['scan']+1)
 
-    def test_integer_lab_arithmetic_constants_and_zero_divisor_rollback_through_http(self):
+    def test_integer_lab_arithmetic_constants_and_zero_divisor_continuation_through_http(self):
         state=self.post('demo',{'sample':'IntegerLab'});self.assertEqual(state['blockers'],[])
         self.post('write',{'tag':'ArithmeticConstants','value':True});state=self.post('step',{'dt':10})
         row={r['name']:r['value'] for r in state['tags']}
         wanted=dict(ConstantSum='-6',ConstantDifference='17',ConstantProduct='-21',ConstantQuotient='-2',ConstantRemainder='-1',ConstantUnsignedSum=4,ConstantReverseQuotient='-715827882',ConstantAbs='2147483648')
         self.assertEqual({name:row[name] for name in wanted},wanted);self.assertTrue(row['StAllMatches'])
         before=self.post('write',{'tag':'MixedSmall','value':0})
-        with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
-        self.assertEqual(error.exception.code,400);error.exception.close()
-        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
-        for key in ('tags','routines','scan','ms','task_schedule','routine_edits'):self.assertEqual(after[key],before[key])
-        self.post('write',{'tag':'MixedSmall','value':3});state=self.post('step',{'dt':10});self.assertEqual(state['scan'],before['scan']+1)
+        state=self.post('step',{'dt':10})
+        row={r['name']:r['value'] for r in state['tags']}
+        self.assertEqual(state['scan'],before['scan']+1)
+        self.assertEqual((row['ConstantReverseQuotient'],row['ConstantUnsignedSum']),('-2147483648',1))
+        self.post('write',{'tag':'MixedSmall','value':3})
+        row={r['name']:r['value'] for r in self.post('step',{'dt':10})['tags']}
+        self.assertEqual({name:row[name] for name in wanted},wanted)
 
     def test_integer_lab_mixed_relations_exact_limits_and_gate_through_http(self):
         state=self.post('demo',{'sample':'IntegerLab'});self.assertEqual(state['blockers'],[])

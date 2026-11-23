@@ -70,7 +70,7 @@ class FileArithmeticTests(unittest.TestCase):
 
     def test_reset_retry_state_is_transactional_and_clears_on_success(self):
         e=self.overflow(rungs=['XIC(RunLatch)RES(Ctl);',real_overflow_logic(),
-                               'DIV(1,SpeedCommand,Outgoing);'])
+                               'CPT(Outgoing,1/SpeedCommand);'])
         e.memory.write('SpeedCommand',1);e.memory.write('StartPB',True);e.step()
         self.assertTrue(e._file_arithmetic_retry)
         e.memory.write('StartPB',False);e.memory.write('RunLatch',True);e.memory.write('SpeedCommand',0)
@@ -187,7 +187,7 @@ class FileArithmeticTests(unittest.TestCase):
 
     def test_binary64_store_overflow_rolls_back_on_later_fault_and_restores_pending_retry(self):
         text='XIC(StartPB)FAL(Ctl,?,?,ALL,Output[Ctl.POS],Queue[Ctl.POS]*2);'
-        e=self.store_overflow(rungs=[text,'DIV(1,SpeedCommand,Outgoing);'])
+        e=self.store_overflow(rungs=[text,'CPT(Outgoing,1/SpeedCommand);'])
         e.memory.write('StartPB',True);e.memory.write('SpeedCommand',0);before=file_state(e)
         with self.assertRaises(ModelError):e.step()
         self.assertEqual(file_state(e),before)

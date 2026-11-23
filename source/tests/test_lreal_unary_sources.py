@@ -74,14 +74,25 @@ class LrealUnarySourceTests(unittest.TestCase):
             e.memory.write('StartPB',True);self.fault(e,'outside bounds');e.memory.write('Index',1);self.fault(e,'Unknown')
             e.memory.write('Inputs[1]',CASES[name][0]);e.step();self.assertAlmostEqual(e.memory.read('Results[1]'),CASES[name][1],places=14)
 
-    def test_literal_domains_are_lazy_but_required_true_calls_fault(self):
+    def test_literal_domains_are_lazy_until_the_call_executes(self):
         for name,value in [('LN',0),('LOG',-1),('ASN',2),('ACS',-2)]:
             e=self.checked([f'XIC(StartPB){name}({value},Results[1]);']);e.enter_run();e.step()
-            e.memory.write('StartPB',True);self.fault(e,'finite LREAL')
+            self.assertEqual(e.memory.read('Results'),[None]*3)
+            e.memory.write('StartPB',True)
+            if name in ('ASN','ACS'):
+                e.step()
+                self.assertTrue(math.isnan(e.memory.read('Results[1]')))
+            else:
+                self.fault(e,'finite LREAL')
 
     def test_tag_domains_overflow_and_later_fault_restore_advance_and_timing(self):
-        for name,dtype,value in [('LN','USINT',0),('LOG','DINT',-1),('ASN','UINT',2),('ACS','REAL',-2),('DEG','LREAL',1e308)]:
+        for name,dtype,value in [('LN','USINT',0),('LOG','DINT',-1),('DEG','LREAL',1e308)]:
             e=self.checked(['MOV(99,SpeedCommand);',f'{name}(Source,Results[1]);'],source=dtype,value=value);self.fault(e,'finite LREAL')
+        for name,dtype,value in [('ASN','UINT',2),('ACS','REAL',-2)]:
+            e=self.checked(['MOV(99,SpeedCommand);',f'{name}(Source,Results[1]);'],source=dtype,value=value)
+            e.step()
+            self.assertTrue(math.isnan(e.memory.read('Results[1]')))
+            self.assertEqual(e.memory.read('SpeedCommand'),99)
         e=self.checked(['SQR(Source,Results[1]);','CPT(SpeedCommand,1/Index);'],value=9)
         self.fault(e,'zero');e.memory.write('Index',1);e.step();self.assertEqual(e.memory.read('Results[1]'),3.0)
 

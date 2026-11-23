@@ -1,4 +1,5 @@
 """Structural preflight and reached-value checks for standalone ladder math."""
+import math
 import unittest
 from unittest.mock import patch
 from xml.etree import ElementTree as E
@@ -120,9 +121,14 @@ class MathOperandTests(unittest.TestCase):
             text=instruction(name,exponent='0.5')
             e=self.checked(['MOV(99,SpeedCommand);','XIC(StartPB)'+text+';'],index=1)
             e.memory.write('Inputs[1]',value);e.step();e.memory.write('StartPB',True);before=self.snapshot(e)
-            with self.assertRaises(ModelError):e.step()
-            self.assertEqual(self.snapshot(e),before)
-            e.memory.write('Inputs[1]',retry);e.step();self.assertIsNotNone(e.memory.read('Results[1]'))
+            if name in ('ASN','ACS'):
+                e.step()
+                self.assertTrue(math.isnan(e.memory.read('Results[1]')))
+            else:
+                with self.assertRaises(ModelError):e.step()
+                self.assertEqual(self.snapshot(e),before)
+            e.memory.write('Inputs[1]',retry);e.step()
+            self.assertTrue(math.isfinite(e.memory.read('Results[1]')))
         e=self.checked(['XIC(StartPB)SQR(Inputs[Index],Results[Index]);'],dest='SINT',index=1)
         e.memory.write('Inputs[1]',40000);e.step();e.memory.write('StartPB',True);before=self.snapshot(e)
         with self.assertRaisesRegex(ModelError,'overflow'):e.step()
