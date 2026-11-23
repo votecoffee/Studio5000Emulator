@@ -7,7 +7,8 @@ from .bit_transfer import operand, unsigned
 from .integer_math import CONTROLLERS, WIDE_TYPES, bit_value, bitwise_immediate_widths, profile, typed_profile, typed_integer, radix_profile, pattern, integer_bounds, dint_radix, read_source, quotient, execute_zero_divisor
 from .integer_math import signed_floating_exception
 from .model import INT_BITS, UNSIGNED_BITS, ModelError, coerce, literal
-from .numeric_storage import floating_math_profile, lreal_math_source, real_math_source, typed_literal, write_lreal_math_result
+from .numeric_storage import (floating_math_profile, lreal_math_source, real_math_source,
+                              typed_literal, write_exceptional_result, write_lreal_math_result)
 from .real_math import real
 
 BITWISE = frozenset(('AND', 'OR', 'XOR', 'NOT'))
@@ -95,20 +96,6 @@ def execute_floating_divide_by_zero(engine, op, scope, dividend, divisor, precis
     return execute_zero_divisor(engine, op, scope, result)
 
 
-def write_propagated_exception(engine, op, scope, result):
-    memory = engine.memory
-    ref = op.args[-1]
-    dtype = memory.resolve(ref, scope)[2]
-    if dtype in ('REAL', 'LREAL'):
-        memory.write_floating_exception(ref, result, scope)
-        return
-    if dtype in UNSIGNED_BITS:
-        raise ModelError(f'{op.name} nonfinite result cannot be stored in {dtype}')
-    memory.write(ref, signed_floating_exception(result, dtype), scope)
-    if math.isinf(result) and engine.project.controller_configuration.report_minor_overflow is True:
-        memory.minor_fault = True
-
-
 def execute_floating(engine, op, scope, precision):
     """Use the selected precision and limit exceptional propagation to ladder arithmetic."""
     memory = engine.memory
@@ -128,7 +115,7 @@ def execute_floating(engine, op, scope, precision):
                 return execute_floating_divide_by_zero(engine, op, scope, a, b, precision)
         result = FLOAT_BINARY[name](a, b)
     if not math.isfinite(result) and any(not math.isfinite(value) for value in values):
-        write_propagated_exception(engine, op, scope, result)
+        write_exceptional_result(memory, op.args[-1], result, scope, instruction=name)
     elif precision == 'LREAL':
         write_lreal_math_result(memory, op.args[-1], result, scope)
     else:

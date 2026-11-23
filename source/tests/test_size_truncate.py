@@ -167,16 +167,17 @@ class SizeTruncateTests(unittest.TestCase):
         self.assertEqual(self.snapshot(e), before)
         e.memory.write('Reals[1]', -3.9);e.step();self.assertEqual(e.memory.read('Results'), [None, -3, None])
 
-    def test_trn_bad_types_constants_and_nonfinite_values(self):
+    def test_trn_bad_types_constants_and_unsigned_nonfinite_values(self):
         for dtype in ('DINT', 'LINT', 'USINT', 'BOOL'):
             self.assertTrue(self.engine(source=dtype, value=1).blockers)
         for text in ('TRN(Source,StartPB);', 'TRN(TRUE,Dest);', 'TRN(Reals,Dest);', 'TRN(2147483648,Dest);'):
             self.assertTrue(self.engine([text]).blockers)
         def constant(root):root.find('./Controller/Tags/Tag[@Name="Dest"]').set('Constant', 'true')
         self.assertTrue(self.engine(mutate=constant).blockers)
-        e = self.checked();e.memory.values['source'] = float('inf');before = self.snapshot(e)
-        with self.assertRaises(ModelError):e.step()
-        # NaN equality is unsuitable here; infinity retains ordinary equality.
+        e = self.checked(['MOV(99,SpeedCommand);', 'TRN(Source,Dest);'], dest='UDINT')
+        e.memory.write_floating_exception('Source', float('inf'))
+        before = self.snapshot(e)
+        with self.assertRaisesRegex(ModelError, 'TRN nonfinite result'):e.step()
         self.assertEqual(self.snapshot(e), before)
 
     def test_trn_late_fault_rolls_back_size_and_wide_results(self):

@@ -1247,6 +1247,40 @@ class ApplicationLifecycleTests(unittest.TestCase):
         write('TrnInput',-3.9999999999999996);v=values(step());self.assertEqual(v['TrnDint'],-3)
         write('TrnEnabled',False);write('TrnIndex',99);step()
 
+    def test_ladder_trn_uses_div_exceptions_and_negative_zero_through_http(self):
+        import base64
+        import math
+        from test_size_truncate import SizeTruncateTests
+
+        fixture = SizeTruncateTests()
+        fixture.setUp()
+        try:
+            engine = fixture.checked([
+                'XIC(StartPB)DIV(Source,Mask,Reals[0]);',
+                'XIC(StartPB)TRN(Reals[0],Dest);',
+                'XIC(StartPB)TRN(Dest,SpeedCommand)OTE(RunLatch);',
+            ], dest='LREAL', value=-1.5)
+            content = base64.b64encode(engine.project.path.read_bytes()).decode()
+        finally:
+            fixture.doCleanups()
+        loaded = self.post('load', {'name': 'ExceptionalTruncation.L5X', 'content': content})
+        self.assertEqual(loaded['blockers'], [])
+        self.post('write', {'tag': 'StartPB', 'value': True})
+
+        def readings():
+            state = self.post('step', {'dt': 10})
+            values = {row['name']: row['value'] for row in state['tags']}
+            return values['Dest'], values['SpeedCommand'], values['RunLatch']
+
+        self.assertEqual(readings(), ('-Infinity', -2147483648, True))
+        self.post('write', {'tag': 'Source', 'value': 0})
+        self.assertEqual(readings(), ('NaN', 0, True))
+        self.post('write', {'tag': 'Source', 'value': -1.5})
+        self.post('write', {'tag': 'Mask', 'value': 4})
+        value, integer, continued = readings()
+        self.assertEqual((value, integer, continued), (0, 0, True))
+        self.assertEqual(math.copysign(1, value), -1)
+
     def test_copy_lab_lreal_images_partial_bytes_and_atomic_recovery(self):
         self.post('demo',{'sample':'CopyLab'})
         write=lambda tag,value:self.post('write',{'tag':tag,'value':value})

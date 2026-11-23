@@ -13,8 +13,8 @@ TRN(RealInput,WholeDouble);
 
 Tagged REAL sources use their stored float32 value. Tagged LREAL sources retain
 their stored binary64 precision before truncation toward zero. The integer part
-is then converted to the declared destination type. Integer results must fit;
-REAL results may round to float32, and LREAL results use finite binary64.
+is then converted to the declared destination type. Finite integer results
+must fit. REAL results may round to float32, and LREAL results use binary64.
 
 For example, LREAL 16777217.875 truncates to integer 16777217. A DINT or LREAL
 destination retains that value; a REAL destination rounds it to 16777216.
@@ -35,12 +35,17 @@ below 2^64 is 18446744073709549568. Values at 2^63/2^64 fault when the respectiv
 integer destination cannot represent them. Negative fractions between -1 and 0
 truncate to zero before an unsigned destination is checked.
 
-The software solver uses host truncation. Finite very large LREAL values remain
-valid for LREAL results; subnormal inputs truncate to zero. Fractional negative
-values and negative zero produce positive floating zero through the host integer
-intermediate. Native rounding, signed-zero/subnormal handling, saturation,
-overflow results, math flags, faults and lifecycle equivalence remain unverified.
-NaN/Infinity are outside this model. This does not predict execution time.
+Large finite LREAL values remain valid for LREAL results. A floating result
+keeps the source sign when a fraction, subnormal or signed zero truncates to
+zero. For instance, TRN of -0.9 to REAL produces -0.0.
+
+REAL and LREAL destinations preserve NaN and the sign of infinity from
+floating-point tags. Signed integer destinations get zero for NaN, the maximum
+for positive infinity and the minimum for negative infinity. Converting infinity
+to a signed integer sets the task's modeled `S:MINOR` bit when the export
+explicitly enables `ReportMinorOverflow`. Unsigned integer destinations reject
+nonfinite results. Native result bits, math flags and fault records remain
+unverified. [Rockwell conversion guidance](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm100_-en-p.pdf#page=171)
 
 Structural preflight checks declared types, scalar shapes, reference grammar,
 permissions and static bounds. False rungs and prescan skip live operands.

@@ -185,6 +185,19 @@ def convert(value, source, dest):
     return coerce(coerce(value, source), dest)
 
 
+def write_exceptional_result(memory, ref, value, scope, *, instruction):
+    """Store an instruction-produced NaN or infinity in a numeric destination."""
+    key, parts, dtype = memory.check_writable(ref, scope)
+    if dtype in ('REAL', 'LREAL'):
+        memory.write_floating_exception(ref, value, scope)
+        return
+    if dtype not in INT_BITS or dtype in UNSIGNED_BITS:
+        raise ModelError(f'{instruction} nonfinite result cannot be stored in {dtype}')
+    memory.store(key, parts, signed_floating_exception(value, dtype))
+    if math.isinf(value) and memory.project.controller_configuration.report_minor_overflow is True:
+        memory.minor_fault = True
+
+
 def execute(engine, op, power, scope):
     if not power:return False
     memory = engine.memory
@@ -207,15 +220,10 @@ def execute(engine, op, power, scope):
         return True
     typed = typed_literal(ref)
     value = typed[1] if typed is not None else memory.read(ref, scope)
-    if source in ('REAL', 'LREAL') and isinstance(value, float) and not math.isfinite(value):
-        if dtype in ('REAL', 'LREAL'):
-            memory.write_floating_exception(op.args[-1], value, scope)
-            return True
-        if dtype in INT_BITS and dtype not in UNSIGNED_BITS:
-            memory.store(key, parts, signed_floating_exception(value, dtype))
-            if math.isinf(value) and engine.project.controller_configuration.report_minor_overflow is True:
-                memory.minor_fault = True
-            return True
+    if (source in ('REAL', 'LREAL') and isinstance(value, float)
+            and not math.isfinite(value) and dtype not in UNSIGNED_BITS):
+        write_exceptional_result(memory, op.args[-1], value, scope, instruction=op.name)
+        return True
     memory.store(key, parts, convert(value, source, dtype))
     return True
 

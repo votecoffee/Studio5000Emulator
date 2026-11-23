@@ -1,9 +1,9 @@
-"""Structural SIZE and finite REAL/LREAL truncation for the v35 5580 profile."""
+"""Structural SIZE and REAL/LREAL truncation for the v35 5580 profile."""
 import math
 
 from .integer_math import CONTROLLERS, dint_radix
 from .model import INT_BITS, ModelError, coerce, literal
-from .numeric_storage import typed_literal
+from .numeric_storage import typed_literal, write_exceptional_result
 from .real_math import real
 
 NARROW = frozenset(('SINT', 'INT', 'DINT', 'REAL'))
@@ -100,8 +100,14 @@ def handle(engine, op, scope, *, execute=False):
         result = coerce(dimensions[dimension], dtype)
     else:
         value = typed_source[1] if typed_source is not None else memory.read(op.args[0], scope)
-        result = math.trunc(coerce(value, 'LREAL') if source_type == 'LREAL' else real(value))
+        if type(value) is float and not math.isfinite(value):
+            write_exceptional_result(memory, op.args[1], value, scope, instruction='TRN')
+            return True
+        source_value = coerce(value, 'LREAL') if source_type == 'LREAL' else real(value)
+        result = math.trunc(source_value)
         key, parts, dtype = scalar(memory, op.args[1], scope, TRN_DESTINATIONS, destination=True)
+        if result == 0 and dtype in ('REAL', 'LREAL'):
+            result = math.copysign(0.0, source_value)
         result = coerce(result, dtype)
     memory.store(key, parts, result)
     return True
@@ -111,13 +117,18 @@ def description(project):
     return dict(available=project.version == '35' and project.processor.upper() in CONTROLLERS,
                 profile='v35-5580-SIZE-TRN', size_languages=['RLL', 'ST'], trn_languages=['RLL'],
                 size='Whole arrays or selected elements, closest logical member array, or capacity of scalar strings; no leaf-value reads',
-                size_destinations=sorted(NARROW), trn_source='Finite REAL/LREAL tag, bounded DINT/finite REAL immediate or finite floating L/l LREAL immediate',
+                size_destinations=sorted(NARROW), trn_source='REAL/LREAL tag, bounded DINT/finite REAL immediate or finite floating L/l LREAL immediate',
                 trn_destinations=sorted(TRN_DESTINATIONS), truncation='Preserve tagged REAL float32 or LREAL binary64 source precision; truncate toward zero, then representable destination conversion',
+                floating_truncation=dict(
+                    zero='Floating results preserve the sign when a source truncates to zero',
+                    exceptional='REAL/LREAL retain NaN or signed infinity; signed integers store zero or the signed limit; unsigned integers reject nonfinite results',
+                    minor_status='Infinity converted to a signed integer sets modeled S:MINOR with explicit ReportMinorOverflow',
+                    native_runtime_parity=False),
                 lreal='Tagged and floating L/l LREAL sources with integer/REAL/LREAL destinations; v35 ladder TRN',
                 selection='Structural preflight; false/prescan skip live values and dynamic indices',
                 array_recovery='A cleared Type 4 Code 20 during a whole-project ladder scan skips the SIZE or TRN result write',
                 dimension='Immediate 0..2 within source rank, including grouped unsuffixed DINT radix words',
                 dynamic_dimension='Existing SINT/INT/DINT tag extension; native SIZE documents an immediate 0..2',
                 native_runtime_parity=False, native_math_status=False,
-                remaining=['Native rounding/overflow, signed zero, subnormals, status, fault and lifecycle parity',
+                remaining=['Native rounding/overflow, float bit patterns, status, fault and lifecycle parity',
                            'Packed layout, cross-member traversal and broader controller qualification'])

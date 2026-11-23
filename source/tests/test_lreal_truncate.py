@@ -74,12 +74,44 @@ class LrealTruncateTests(unittest.TestCase):
         for dtype,value in [('LINT',float(2**63)),('LINT',math.nextafter(float(-2**63),-math.inf)),('ULINT',float(2**64)),('ULINT',-1.0),('SINT',128.0)]:
             e=self.checked(['MOV(99,SpeedCommand);','TRN(Source,Dest);'],dest=dtype,value=value);self.fault(e,'overflow')
 
-    def test_finite_extremes_subnormals_and_host_truncation_zero_policy(self):
-        for value in (1e308,-1e308,5e-324,-5e-324,-0.0,-.9):
-            e=self.checked(value=value);e.step();expected=float(math.trunc(value))
-            self.assertEqual(struct.pack('<d',e.memory.read('Dest')),struct.pack('<d',expected))
+    def test_finite_extremes_and_signed_zero(self):
+        for source, values in (('LREAL', (1e308, -1e308, 5e-324, -5e-324, -0.0, -.9)),
+                               ('REAL', (2**-149, -2**-149, -0.0, -.9))):
+            for dest in ('REAL', 'LREAL') if source == 'REAL' else ('LREAL',):
+                for value in values:
+                    with self.subTest(source=source, dest=dest, value=value):
+                        e = self.checked(source=source, dest=dest, value=value)
+                        e.step()
+                        expected = math.copysign(float(abs(math.trunc(value))), value)
+                        self.assertEqual(struct.pack('<d', e.memory.read('Dest')), struct.pack('<d', expected))
+        e = self.checked(['TRN(-0.9L,Dest);'], dest='REAL')
+        e.step()
+        self.assertEqual(math.copysign(1, e.memory.read('Dest')), -1)
         e=self.checked(dest='REAL',value=1e308);self.fault(e,'REAL|range|large')
-        e=self.checked();e.memory.values['source']=float('inf');self.fault(e,'Nonfinite LREAL')
+
+    def test_ladder_trn_preserves_or_converts_exceptional_sources(self):
+        def enable_reporting(root):
+            root.find('Controller').set('ReportMinorOverflow', 'true')
+
+        destinations = {'REAL': None, 'LREAL': None, 'SINT': 8, 'INT': 16, 'DINT': 32, 'LINT': 64}
+        for source in ('REAL', 'LREAL'):
+            for dest, bits in destinations.items():
+                with self.subTest(source=source, dest=dest):
+                    e = self.checked(['TRN(Source,Dest)OTE(RunLatch);', 'XIC(S:MINOR)OTE(MotorRunning);'],
+                                     source=source, dest=dest, mutate=enable_reporting)
+                    limits = (2**(bits - 1) - 1, -2**(bits - 1), 0) if bits is not None else None
+                    for index, value in enumerate((math.inf, -math.inf, math.nan)):
+                        e.memory.write_floating_exception('Source', value)
+                        e.step()
+                        result = e.memory.read('Dest')
+                        if limits is not None:
+                            self.assertEqual(result, limits[index])
+                        elif math.isnan(value):
+                            self.assertTrue(math.isnan(result))
+                        else:
+                            self.assertEqual(result, value)
+                        self.assertTrue(e.memory.read('RunLatch'))
+                        self.assertEqual(e.memory.read('MotorRunning'), bits is not None and math.isinf(value))
 
     def test_false_and_prescan_skip_unknowns_and_bad_indices(self):
         e=self.checked(['XIC(StartPB)TRN(Inputs[Index],Results[Index]);']);e.memory.write('Index',99)

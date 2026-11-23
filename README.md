@@ -434,11 +434,12 @@ ladder operations with numeric tag sources and a LREAL result. **Integer lab** i
 
 [LREAL byte copies](docs/lreal-copy.md) adds COP/CPS binary64 images, integer
 round trips and partial writes. **Byte copy lab** includes precision, selected
-outputs and invalid-image/late-fault examples.
+outputs, infinity bit patterns and late-fault examples.
 
 [LREAL truncation](docs/lreal-truncate.md) preserves binary64 sources for ladder
-TRN, with signed/unsigned integer and REAL/LREAL results. **Math lab** includes
-precision, selected-output and late-fault examples.
+TRN, with signed/unsigned integer and REAL/LREAL results. TRN supports NaN and
+infinity from tags and preserves the sign of floating zero. **Math lab**
+includes precision, selected-output and late-fault examples.
 
 [LREAL roots, powers, logarithms and trigonometry](docs/lreal-advanced.md) adds
 twelve matching-tag ladder forms without a REAL intermediate. **Math lab**

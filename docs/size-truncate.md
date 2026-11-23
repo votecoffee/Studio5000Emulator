@@ -37,11 +37,12 @@ The ladder monitor shows the decoded dimension. The existing emulator
 extension accepting a SINT/INT/DINT dimension tag remains available, with rank and
 range checked when executed. This extension is not claimed as native syntax.
 
-TRN consumes a finite REAL or LREAL tag or a floating L/l constant and truncates
-toward zero at the source precision. It writes SINT/INT/DINT/LINT/
-USINT/UINT/UDINT/ULINT/REAL/LREAL destinations when the result fits. Bounded DINT
-and finite REAL immediates retain the existing float32 source policy. See
-[LREAL truncation](lreal-truncate.md) for precision and destination examples.
+TRN truncates toward zero at the stored REAL or LREAL precision. It writes
+representable results to SINT, INT, DINT, LINT, USINT, UINT, UDINT, ULINT, REAL
+and LREAL. Floating results preserve signed zero. NaN and infinity in source
+tags are supported for floating and signed integer results. Bounded DINT
+and finite REAL immediates use float32. A finite floating L/l constant uses
+binary64. See [LREAL truncation](lreal-truncate.md) for destination examples.
 ST continues to use its separate TRUNC expression;
 this change does not add a TRN ST call or expand FBD.
 
