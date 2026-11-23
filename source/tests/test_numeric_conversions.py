@@ -50,14 +50,50 @@ class NumericConversionTests(unittest.TestCase):
         e = self.checked(['TOD(99999999,Dest);']);e.step()
         self.assertEqual(e.memory.read('Dest'), -1717986919)
 
-    def test_tod_range_failure_rolls_back_prior_writes_and_scheduler(self):
-        for source in (-1,100000000,2147483647):
-            e = self.checked(['MOV(23,Mask);','TOD(Source,Dest);'], values=(source,7,9))
-            before = copy.deepcopy(e.memory.values)
-            with self.assertRaisesRegex(ModelError, 'qualified'):e.step()
-            self.assertEqual(e.memory.values, before)
-            self.assertEqual((e.scan_count,e.time_ms), (0,0))
-            self.assertEqual(e.scheduler_description()['tasks'][0]['executions'],0)
+    def test_tod_clamps_documented_widths_and_updates_status_before_continuing(self):
+        def configure(root):
+            root.find('Controller').set('ReportMinorOverflow', 'true')
+
+        for dtype, maximum, packed in (
+            ('DINT', 99999999, -1717986919),
+            ('UDINT', 99999999, 0x99999999),
+            ('LINT', 9999999999999999, -7378697629483820647),
+            ('ULINT', 9999999999999999, 0x9999999999999999),
+        ):
+            with self.subTest(dtype=dtype):
+                e = self.checked([
+                    'TOD(Source,Dest)[XIC(S:V)OTE(RunLatch),XIC(S:N)OTE(StopPB),'
+                    'XIC(S:Z)OTE(MotorRunning),MOV(23,Mask)];',
+                    'XIC(S:MINOR)OTE(StartPB);',
+                ], types=('LINT', 'DINT', dtype), mutate=configure)
+                e.memory.values['dest'] = None
+                for source, expected, overflow in (
+                    (-1, 0, True), (maximum, packed, False),
+                    (maximum + 1, packed, True), (0, 0, False),
+                ):
+                    e.memory.write('Source', source)
+                    e.step()
+                    self.assertEqual(e.memory.read('Dest'), expected)
+                    self.assertEqual(e.memory.read('Mask'), 23)
+                    self.assertIs(e.memory.read('RunLatch'), overflow)
+                    self.assertIs(e.memory.read('StopPB'), expected < 0)
+                    self.assertIs(e.memory.read('MotorRunning'), expected == 0)
+                    self.assertIs(e.memory.read('StartPB'), overflow)
+
+    def test_frd_publishes_stored_zero_and_replaces_previous_overflow(self):
+        e = self.checked([
+            'OTL(S:V)OTL(S:N)FRD(Source,Dest)[XIO(S:V)OTE(RunLatch),'
+            'XIC(S:N)OTE(StopPB),XIC(S:Z)OTE(MotorRunning)];',
+            'XIC(S:MINOR)OTE(StartPB);',
+        ])
+        for source, expected in ((0, 0), (0x7f, 85)):
+            e.memory.write('Source', source)
+            e.step()
+            self.assertEqual(e.memory.read('Dest'), expected)
+            self.assertTrue(e.memory.read('RunLatch'))
+            self.assertFalse(e.memory.read('StopPB'))
+            self.assertFalse(e.memory.read('StartPB'))
+            self.assertIs(e.memory.read('MotorRunning'), expected == 0)
 
     def test_swpb_dint_orders_and_signed_results(self):
         for source, order, expected in ((0x12345678,'REVERSE',0x78563412),

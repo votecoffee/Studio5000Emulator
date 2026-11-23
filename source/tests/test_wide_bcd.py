@@ -111,13 +111,12 @@ class WideBCDTests(unittest.TestCase):
                 self.assertEqual(engine.memory.read('Results[1]'), encoded(value, dtype))
 
     def test_typed_bcd_range_faults_and_literal_guards(self):
-        for instruction, error in (
-            ('TOD(-1L,Results[1]);', 'qualified'),
-            ('TOD(10000000000000000UL,Results[1]);', 'qualified'),
-            ('FRD(-1L,Results[1]);', 'overflow'),
+        for instruction, dest, error in (
+            ('TOD(-1L,Results[1]);', 'INT', 'qualified'),
+            ('TOD(10000000000000000UL,Results[1]);', 'UINT', 'qualified'),
+            ('FRD(-1L,Results[1]);', 'DINT', 'overflow'),
         ):
             with self.subTest(instruction=instruction):
-                dest = 'DINT' if instruction.startswith('FRD') else 'ULINT'
                 engine = self.checked(['MOV(99,SpeedCommand);', 'XIC(StartPB)' + instruction], dest=dest)
                 engine.step()
                 self.assertEqual(engine.memory.read('Results'), [None, None, None])
@@ -144,18 +143,13 @@ class WideBCDTests(unittest.TestCase):
         self.assertEqual(e.memory.read('Results'),[None,encoded(9007199254740993,'ULINT'),None])
         self.assertEqual(e.memory.read('Decoded'),[None,9007199254740993,None])
 
-    def test_tod_capacity_negative_and_later_fault_roll_back_prior_writes(self):
-        for dest,value in (('LINT',10000000000000000),('ULINT',10000000000000000),('UDINT',100000000),('DINT',100000000),('ULINT',-1)):
-            e=self.checked(['MOV(99,SpeedCommand);','TOD(Source,Results[1]);'],source='LINT',dest=dest,value=value)
-            before=self.snapshot(e)
-            with self.assertRaisesRegex(ModelError,'qualified'):e.step()
-            self.assertEqual(self.snapshot(e),before)
-            e.memory.write('Source',99);e.step();self.assertEqual(e.memory.read('Results[1]'),0x99)
-        e=self.checked(['TOD(Source,Results[1]);','FRD(Results[1],Decoded[1]);','CPT(SpeedCommand,1/Index);'])
+    def test_later_fault_rolls_back_saturated_bcd_and_following_writes(self):
+        e=self.checked(['TOD(Source,Results[1]);','FRD(Results[1],Decoded[1]);','CPT(SpeedCommand,1/Index);'],
+                       value=10000000000000000)
         before=self.snapshot(e)
         with self.assertRaisesRegex(ModelError,'zero'):e.step()
         self.assertEqual(self.snapshot(e),before)
-        e.memory.write('Index',1);e.step();self.assertEqual(e.memory.read('Decoded[1]'),9007199254740993)
+        e.memory.write('Index',1);e.step();self.assertEqual(e.memory.read('Decoded[1]'),9999999999999999)
 
     def test_alias_udt_members_and_inplace_capture(self):
         def fields(root):

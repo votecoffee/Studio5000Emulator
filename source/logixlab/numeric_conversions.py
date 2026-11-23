@@ -6,6 +6,7 @@ from .model import INT_BITS, ModelError
 INSTRUCTIONS = frozenset(('FRD', 'TOD', 'SWPB'))
 ORDERS = frozenset(('REVERSE', 'WORD', 'HIGHLOW'))
 PACKED_TYPES = tuple(INT_BITS)
+BCD_MAXIMUM = {dtype: 10 ** (width // 4) - 1 for dtype, width in INT_BITS.items()}
 
 
 def scalar(memory, ref, scope, *, destination=False):
@@ -54,7 +55,7 @@ def from_bcd(value, width=32):
 
 def to_bcd(value, dtype='DINT'):
     digits = INT_BITS[dtype] // 4
-    maximum = 10 ** digits - 1
+    maximum = BCD_MAXIMUM[dtype]
     if not 0 <= value <= maximum:
         raise ModelError(f'TOD source outside the qualified 0..{maximum} range')
     result = 0
@@ -76,7 +77,14 @@ def execute(memory, op, power, scope):
         value = read_source(memory, source, scope, radix=True)
         if type(value) is not int:
             raise ModelError('TOD source requires an integer value')
-        result = to_bcd(value, scalar(memory, op.args[-1], scope))
+        dest = op.args[-1]
+        dtype = scalar(memory, dest, scope)
+        # The documented clamp thresholds are unambiguous for 32- and 64-bit destinations.
+        bounded = min(max(value, 0), BCD_MAXIMUM[dtype]) if INT_BITS[dtype] >= 32 else value
+        result = to_bcd(bounded, dtype)
+        memory.write(dest, result, scope)
+        memory.record_math_result(result, overflow=bounded != value)
+        return True
     else:
         value = unsigned(memory, source, scope, width)
         order = op.args[1].upper()
@@ -89,7 +97,7 @@ def execute(memory, op, power, scope):
             result = bit_value((value << 16) | (value >> 16), 'DINT')
         else:
             result = bit_value(((value & 0x00ff00ff) << 8) | ((value & 0xff00ff00) >> 8), 'DINT')
-    memory.write(op.args[-1], result, scope)
+    memory.write(op.args[-1], result, scope, math_result=op.name == 'FRD')
     return True
 
 
@@ -103,6 +111,8 @@ def description():
                 array_recovery='A cleared Type 4 Code 20 during a whole-project ladder scan skips the conversion write',
                 frd_range='Two/four/eight/sixteen weighted nibbles including A-F; decoded value must fit the destination; range errors roll back the advance',
                 tod_range='Nonnegative integer input: 0..99 (8-bit), 0..9999 (16-bit), 0..99999999 (32-bit), 0..9999999999999999 (64-bit); exact packed destination bits',
+                tod_overflow='Ladder DINT/UDINT and LINT/ULINT clamp negative input to zero and excess input to the packed maximum. 8- and 16-bit destinations retain checked conversion.',
+                bcd_status='Ladder TOD and FRD set S:N and S:Z from the stored result. TOD clamping sets S:V and can set the task S:MINOR with ReportMinorOverflow.',
                 immediates='FRD/TOD accept decimal and typed radix L/U/UL sources alongside bounded DINT and unsuffixed 32-bit patterns',
                 typed_immediates='FRD decodes the declared 32/64-bit pattern; TOD packs the exact numeric value within destination capacity',
                 typed_radix=dict(bases=[2,8,16],types=['LINT','UDINT','ULINT'],
@@ -113,4 +123,4 @@ def description():
                 swpb='RLL/ST INT to INT/DINT (sign extension) or DINT to DINT tags',
                 orders=sorted(ORDERS), native_math_status=False, native_fault_classification=False,
                 remaining=['BCD ST expressions and remaining FBD forms',
-                           'TOD saturation, math status and native fault parity'])
+                           'Byte and word TOD overflow, FRD overflow bits and native status/fault parity'])

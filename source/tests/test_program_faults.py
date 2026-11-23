@@ -1911,7 +1911,7 @@ class ProgramFaultTests(unittest.TestCase):
             ('DIV(Samples[0],Index,Scaled)', 0, 'Nonfinite REAL'),
             ('MUL(2147483647,2,Samples[1])', 0, 'DINT overflow'),
             ('CPT(Scaled,Samples[1]/Index)', 0, 'divide by zero'),
-            ('TOD(-1,Samples[0])', 0, 'TOD source outside'),
+            ('FRD(16#FFFFFFFFFFFFFFFFUL,Samples[0])', 0, 'DINT overflow'),
             ('SIZE(Samples,Index,Scaled)', 1, 'SIZE dimension exceeds array rank'),
             ('LN(-1,Scaled)', 0, 'LN outside the finite'),
             ('LN(-1.0L,Samples[1])', 0, 'LN outside the finite LREAL'),
@@ -4553,7 +4553,7 @@ class ProgramFaultTests(unittest.TestCase):
 
     def test_conversion_range_and_size_dimension_errors_keep_scan_rollback(self):
         for instruction,message in (
-            ('TOD(-1,LabValues[0])','TOD source outside'),
+            ('FRD(16#FFFFFFFFFFFFFFFFUL,LabValues[0])','DINT overflow'),
             ('SIZE(LabValues,LabIndex,LabValues[0])','SIZE dimension exceeds array rank'),
         ):
             with self.subTest(instruction=instruction):

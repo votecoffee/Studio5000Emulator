@@ -58,14 +58,20 @@ class RadixBCDTests(unittest.TestCase):
             e.step();self.assertEqual(e.memory.read('Results[1]'),fixtures.encoded(value,dest))
             self.assertEqual(e.memory.read('Decoded[1]'),value)
 
-    def test_negative_and_excessive_tod_values_and_frd_overflows_remain_transactional(self):
-        for call,dest,pattern in [('TOD(16#FFFFFFFFFFFFFFFFL,Results[1]);','ULINT','qualified'),
-                                  ('TOD(16#FFFFFFFFFFFFFFFFUL,Results[1]);','ULINT','qualified'),
-                                  (f'TOD({self.token(16,10000000000000000,"UL")},Results[1]);','ULINT','qualified'),
+    def test_narrow_tod_and_frd_overflows_remain_transactional(self):
+        for call,dest,pattern in [('TOD(16#FFFFFFFFFFFFFFFFL,Results[1]);','INT','qualified'),
                                   ('TOD(16#64U,Results[1]);','USINT','qualified'),
                                   ('FRD(16#128L,Results[1]);','SINT','overflow'),
                                   ('FRD(16#FFFFFFFFFFFFFFFFUL,Results[1]);','UDINT','overflow')]:
             e=self.checked(['MOV(77,SpeedCommand);',call],dest=dest);self.fault(e,pattern)
+
+    def test_tod_radix_literals_clamp_by_numeric_value(self):
+        for literal, expected in (('16#FFFFFFFFFFFFFFFFL', 0),
+                                  ('16#FFFFFFFFFFFFFFFFUL', 0x9999999999999999)):
+            e = self.checked([f'TOD({literal},Results[1])XIC(S:V)OTE(RunLatch);'], dest='ULINT')
+            e.step()
+            self.assertEqual(e.memory.read('Results'), [None, expected, None])
+            self.assertTrue(e.memory.read('RunLatch'))
 
     def test_invalid_digits_widths_grouping_and_suffixes_block_false_calls(self):
         for token in ('16#100000000U','16#10000000000000000L','2#2UL','8#8L','16#FF U','16#FF_L','16#FFLU','-16#FFL'):

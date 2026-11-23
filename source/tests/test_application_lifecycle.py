@@ -3578,11 +3578,11 @@ class ApplicationLifecycleTests(unittest.TestCase):
         with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
         for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
         write('RawByteBCD',0x127);row=step();self.assertEqual((row['ByteDecoded'],row['RawByteDecoded']),(99,127))
-        write('ByteDecimal',100);before=write('WordDecimal',-1)
-        with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
-        self.assertEqual(error.exception.code,400);error.exception.close()
-        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
-        for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
+        write('ByteDecimal', 100)
+        write('WordDecimal', -1)
+        row = step()
+        self.assertEqual((row['ByteDecoded'], row['WordPacked'], row['WordDecoded'], row['NarrowOK']),
+                         (100, 0, 0, False))
         write('WordDecimal',9999);row=step();self.assertEqual((row['ByteDecoded'],row['WordDecoded'],row['NarrowOK']),(100,9999,True))
         report=self.post('report',{})['numeric_conversions'];self.assertEqual(report['rll_operands']['TOD']['sources'],['SINT','INT','DINT','LINT','USINT','UINT','UDINT','ULINT']);self.assertFalse(report['native_math_status'])
 
@@ -4799,7 +4799,7 @@ class ApplicationLifecycleTests(unittest.TestCase):
         row={r['name']:r['value'] for r in self.post('step',{'dt':10})['tags']}
         self.assertTrue(row['RunLatch']);self.assertEqual(row['Values[0]'],'9007199254740993');self.assertEqual(row['Dest'],7)
 
-    def test_conversion_lab_wide_bcd_exact_values_capacity_and_retry_through_http(self):
+    def test_conversion_lab_wide_bcd_exact_values_saturation_and_retry_through_http(self):
         self.assertEqual(self.post('demo',{'sample':'ConversionLab'})['blockers'],[])
         values=lambda state:{row['name']:row['value'] for row in state['tags']}
         def write(tag,value):return self.post('write',{'tag':tag,'value':value})
@@ -4809,13 +4809,18 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual(row['WidePacked'],'10378291982571407763');self.assertEqual(row['SignedPacked'],'-8068452091138143853')
         self.assertEqual((row['WideDecoded'],row['SignedDecoded'],row['WideWeighted']),('9007199254740993','9007199254740993','16666666666666665'))
         self.assertEqual(row['UnsignedPacked'],2576980377);self.assertTrue(row['WideOK'])
-        before=write('WideDecimal','10000000000000000')
-        with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
-        self.assertEqual(error.exception.code,400);error.exception.close()
-        with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
-        for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
-        write('WideDecimal','9999999999999999');row=step();self.assertEqual(row['WideDecoded'],'9999999999999999');self.assertEqual(row['WidePacked'],'11068046444225730969')
-        write('WideConversions',False);write('WideDecimal','10000000000000000');row=step();self.assertEqual(row['WidePacked'],'11068046444225730969');self.assertFalse(row['WideOK'])
+        write('WideDecimal', '10000000000000000')
+        row = step()
+        self.assertEqual((row['WideDecoded'], row['SignedDecoded']), ('9999999999999999',) * 2)
+        self.assertEqual(row['WidePacked'], '11068046444225730969')
+        self.assertFalse(row['WideOK'])
+        write('WideDecimal', '9999999999999999')
+        self.assertTrue(step()['WideOK'])
+        write('WideConversions', False)
+        write('WideDecimal', '12')
+        row = step()
+        self.assertEqual(row['WidePacked'], '11068046444225730969')
+        self.assertFalse(row['WideOK'])
         report=self.post('report',{})['numeric_conversions'];self.assertEqual(report['rll_operands']['FRD']['sources'],['SINT','INT','DINT','LINT','USINT','UINT','UDINT','ULINT']);self.assertFalse(report['native_runtime_parity'])
 
     def test_imported_wide_bcd_unknown_results_indices_and_late_fault_are_atomic_through_http(self):

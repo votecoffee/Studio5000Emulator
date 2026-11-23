@@ -14,9 +14,10 @@ Unknown destinations can be established; bounds and later faults roll back.
 
 [BCD operand combinations](numeric-conversions.md) permit narrow decimal TOD
 inputs and narrow decoded FRD results, plus 32/64-bit packed signed/unsigned
-forms with eight/sixteen decimal digits. Calculations
-remain exact integer operations. Decoded result overflow and invalid TOD ranges
-use the existing whole-advance rollback policy.
+forms with eight/sixteen decimal digits. Calculations use exact integer
+arithmetic. Ladder TOD clamps out-of-range inputs for 32/64-bit destinations and
+sets the overflow flag. Byte/word TOD range errors and decoded result overflow
+roll back the advance.
 
 [Integer AVE results](array-statistics.md) convert the existing float32 mean
 to SINT/INT/DINT with ties to even and rounded range checks. STD remains REAL.
@@ -236,7 +237,8 @@ FRD weights eight/sixteen hex nibbles, including A–F; TOD accepts all eight
 integer source types and packs eight/sixteen decimal digits by destination
 width, retaining signed/unsigned bit patterns and exact 64-bit values. SWPB uses
 explicit byte-order selectors and sign-extends swapped INT results to DINT.
-Native TOD saturation/math flags remain separate from modeled rollback.
+[BCD saturation and status](numeric-conversions.md#ladder-saturation-and-status)
+describes the ladder model and its remaining native verification.
 
 [Masked moves and bit fields](bit-transfer.md) use declared SINT/INT/DINT
 widths, zero-fill, snapshot overlap and preserved destination bits. BTD positions

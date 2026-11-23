@@ -80,8 +80,8 @@ write only the selected flag. For example, `OTL(S:N)OTL(S:Z)` sets both until
 another instruction updates them.
 
 Standalone scalar arithmetic and bitwise instructions, standalone roots, powers,
-logarithms and trigonometry, TRN, and numeric MOV and CLR update both flags from
-the stored value when executed. Each rung starts with both clear. Nested routine
+logarithms and trigonometry, TRN, TOD, FRD, and numeric MOV and CLR update both
+flags from the stored value when executed. Each rung starts with both clear. Nested routine
 and AOI execution preserve the caller's flags.
 Expression and other instruction coverage, native status bit details and
 overflow effects remain unverified.
@@ -101,6 +101,8 @@ sets it when the stored value differs from the rounded integer.
 [REAL and LREAL TRN](size-truncate.md#real-and-lreal-trn-into-sint-or-int)
 sets it when the stored low bits change the truncated integer. String MOV
 sets it when the source exceeds destination capacity.
+[Ladder TOD](numeric-conversions.md#ladder-saturation-and-status) sets it
+when the source clamps to zero or the packed maximum.
 Modeled DIV and MOD with a zero divisor also set it, as does an infinity result
 converted to a signed integer limit. A normal modeled numeric result or
 unclipped string MOV clears the flag. If the controller export explicitly

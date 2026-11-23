@@ -18,8 +18,8 @@ powers. The installed v35 definition explicitly includes hex digits A–F: sourc
 declared pattern; DINT -1 produces 166666665 and LINT -1 produces
 16666666666666665. FRD does not reject nondecimal nibbles.
 
-TOD accepts nonnegative decimal integers and packs their digits into the
-destination width: 0..99 for SINT/USINT, 0..9999 for INT/UINT,
+TOD packs nonnegative decimal values within the destination's digit capacity.
+The exact input ranges are 0..99 for SINT/USINT, 0..9999 for INT/UINT,
 0..99999999 for DINT/UDINT and 0..9999999999999999 for
 LINT/ULINT. Signed destinations retain the packed bit pattern: in DINT, 80000000 produces
 -2147483648, and 99999999 produces -1717986919 (16#99999999). FRD reverses this
@@ -46,11 +46,22 @@ remain unqualified. FRD/TOD calls are unavailable in ST, matching the installed
 v35 language list. Existing [FBD conversion records](fbd-conversions.md) retain
 their separate DINT-only BCD contract; no new FBD forms are added here.
 
-Negative or excessive TOD sources stop and roll back the modeled advance.
-Decoded FRD results outside the destination range also stop and roll back.
-Native TOD saturation, truncation/overflow bits, math flags and configurable minor faults remain
-unfinished. This valid-range profile must not be treated as native overflow
-behavior.
+### Ladder saturation and status
+
+For DINT/UDINT and LINT/ULINT destinations, a negative TOD input stores zero.
+An input above the destination's digit capacity stores all nines in the packed
+format. Both cases set `S:V` and continue the rung. When the project enables
+`ReportMinorOverflow`, the task also sees `S:MINOR`. `S:N` and `S:Z` describe
+the stored value. A signed packed result can therefore set `S:N` even when the
+source is positive. Successful FRD also updates `S:N` and `S:Z` from the
+decoded store and clears `S:V`. See the
+[Rockwell conversion reference](https://www.rockwellautomation.com/en-ie/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/math-conversion-instructions/convert-to-bcd--to-bcd-.html)
+and [replacement guide](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm100_-en-p.pdf#page=168).
+
+Out-of-range inputs to byte/word TOD and decoded FRD results outside the
+destination range still roll back the advance. A later error also rolls back a
+completed saturated write. Native fault records and controller parity remain
+unverified.
 
 ## Exact 64-bit BCD
 
@@ -62,10 +73,9 @@ packed type decodes back to the original decimal value. ULINT `16#FFFFFFFFFFFFFF
 decodes to 16666666666666665 by weighting its sixteen A-F-capable nibbles.
 
 DINT/UDINT retain eight-nibble capacity even with a 64-bit decimal source.
-TOD rejects negative inputs or values above the destination's decimal capacity.
-FRD rejects decoded results that do not fit the destination. It does not clip
-or wrap decoded overflows. Native saturation/overflow flags remain separate
-work. No REAL/LREAL conversion is introduced.
+See [Ladder saturation and status](#ladder-saturation-and-status) for
+out-of-range inputs. FRD checks the decoded result against the destination's
+range. Both instructions take integer operands.
 
 Unsuffixed source immediates retain signed-DINT decimal or 32-bit radix bounds.
 An unsuffixed literal is still a 32-bit pattern for FRD, even with a 64-bit result.
@@ -78,8 +88,9 @@ no wide form; ST FRD/TOD remain unavailable.
 Enable `WideConversions` in **Conversion lab**. The default signed/unsigned
 round trips yield 9007199254740993, `WideWeighted` yields 16666666666666665,
 and `UnsignedPacked` yields 2576980377 (`16#99999999`). Set `WideDecimal` to
-9999999999999999 to exercise full capacity. A value of 10000000000000000 faults
-and rolls back the advance; correct it and retry. Wide watches use decimal text.
+9999999999999999 to exercise full capacity. Raise it to 10000000000000000
+to see both round trips clamp to 9999999999999999 and `WideOK` clear.
+Wide watches use decimal text.
 
 The 64-bit weighted-nibble software model extends the documented 32-bit formula
 to sixteen nibbles using the listed LINT/ULINT operand types. Native calculation,
@@ -104,10 +115,10 @@ integer arithmetic, without float32 intermediates.
 This extends the existing width-based software model. Installed v35 help 14674
 and 14675 list the operand types; their native saturation/overflow behavior and
 the FRD description's 32-bit formula do not establish narrow calculation parity.
-The model rejects TOD inputs outside its per-width valid range and decoded FRD
-results outside their destination range. It does not infer native overflow bits,
-minor-fault settings or partial effects. FBD keeps the shared helpers' DINT
-defaults, and ST FRD/TOD remain unavailable.
+Byte and word TOD range errors and decoded FRD destination overflow roll back
+the advance. Native overflow bits, minor-fault records and partial effects for
+those cases remain unqualified. FBD keeps the shared helpers' DINT defaults,
+and ST FRD/TOD remain unavailable.
 
 In **Conversion lab**, step with SmallBCD false; SmallBCDIndex=99 remains dormant.
 Set SmallBCDIndex=1, enable SmallBCD and step. SmallBytePacked[1] becomes -103,
@@ -148,14 +159,14 @@ interpretation follows the [radix source rules](radix-mov-literals.md#typed-radi
 
 FRD decodes the complete declared pattern, including weighted A-F nibbles.
 `FRD(16#FFFF_FFFFU,Result)` yields 166666665, while a full 64-bit all-ones L or
-UL yields 16666666666666665. TOD instead uses the numeric value: a full all-ones
-L is -1 and fails its nonnegative range; the same pattern as UL exceeds the
-sixteen-digit packed capacity. `TOD(16#0020000000000001UL,Packed)` preserves
-9007199254740993 exactly and packs `16#9007199254740993` without floating math.
+UL yields 16666666666666665. TOD uses the numeric value. Into a LINT or ULINT
+destination, an all-ones L source stores zero because its value is -1, while
+the same pattern as a UL source stores sixteen packed nines.
+`TOD(16#0020000000000001UL,Packed)` preserves 9007199254740993 exactly and
+packs `16#9007199254740993` without floating math.
 
-All eight existing integer destinations retain their rules. TOD checks decimal
-capacity by destination width, FRD checks decoded result range, and signed
-packed destinations retain their bits. Overwide/invalid source words block
+The destination type determines TOD's decimal capacity and how the packed bits
+are interpreted. FRD checks the decoded result against the destination range. Overwide/invalid source words block
 false rungs. False/prescan skip live indices/data; full writes establish unknown
 results. Aliases, selected elements, AOI bindings, source capture and whole-advance
 rollback retain existing behavior. SWPB, BCD expressions/index/file consumers,
@@ -235,7 +246,7 @@ The separate `IndexedConversions` section starts disabled with `ConversionIndex`
 `IndexedDecoded[0]` 1234 and `IndexedSwapped[0]` 305397760 (16#12340000).
 Unwritten siblings remain unknown. Index 2 demonstrates 80000000 packing into
 signed DINT -2147483648 and decoding back; its WORD byte swap is 32768. Invalid
-enabled indices or excluded TOD inputs fault and roll back; correct them and retry.
+enabled indices fault and roll back; correct them and retry.
 
 See [ConversionLab.L5X](../source/samples/ConversionLab.L5X) and
 [implementation](../source/logixlab/numeric_conversions.py).

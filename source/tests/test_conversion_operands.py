@@ -72,8 +72,8 @@ class ConversionOperandTests(unittest.TestCase):
                 e.memory.write('Index',1);e.memory.write('Inputs[1]',1234);e.step()
 
     def test_tod_and_frd_range_failures_are_deferred_until_true_then_recover(self):
-        for name,source,dest,value,retry,expected in (('TOD','DINT','DINT',-1,1234,0x1234),
-                                                    ('TOD','DINT','DINT',100000000,1234,0x1234),
+        for name,source,dest,value,retry,expected in (('TOD','DINT','SINT',-1,12,0x12),
+                                                    ('TOD','DINT','INT',10000,1234,0x1234),
                                                     ('FRD','DINT','SINT',0x128,0x127,127),
                                                     ('FRD','DINT','INT',0x32768,0x32767,32767)):
             e=self.checked(['MOV(99,SpeedCommand);','XIC(StartPB)'+instruction(name)+';'],source=source,dest=dest,index=1)

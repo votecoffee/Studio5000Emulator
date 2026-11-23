@@ -46,11 +46,15 @@ class BCDOperandTests(unittest.TestCase):
             with self.assertRaisesRegex(ModelError,dtype+' overflow'):e.step()
             self.assertEqual(self.snapshot(e),before)
 
-    def test_tod_negative_narrow_sources_keep_existing_range_fault_policy(self):
-        for dtype,value in (('SINT',-1),('SINT',-128),('INT',-1),('INT',-32768)):
-            e=self.checked(['MOV(23,Mask);','TOD(Source,Dest);'],types=(dtype,'DINT','DINT'),values=(value,0,7));before=self.snapshot(e)
-            with self.assertRaisesRegex(ModelError,'TOD source outside'):e.step()
-            self.assertEqual(self.snapshot(e),before)
+    def test_tod_negative_byte_and_word_sources_clamp_into_dint(self):
+        for dtype, value in (('SINT', -1), ('SINT', -128), ('INT', -1), ('INT', -32768)):
+            e = self.checked(['TOD(Source,Dest)XIC(S:V)OTE(RunLatch);',
+                              'XIC(S:MINOR)OTE(MotorRunning);'],
+                             types=(dtype, 'DINT', 'DINT'), values=(value, 0, 7))
+            e.step()
+            self.assertEqual(e.memory.read('Dest'), 0)
+            self.assertTrue(e.memory.read('RunLatch'))
+            self.assertFalse(e.memory.read('MotorRunning'))
 
     def test_false_and_run_prescan_retain_unknown_destination_without_reading_source(self):
         for text,types in (('AFI()TOD(Source,Dest);',('INT','DINT','DINT')),('AFI()FRD(Source,Dest);',('DINT','DINT','SINT'))):
