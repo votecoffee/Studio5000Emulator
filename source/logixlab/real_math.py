@@ -113,8 +113,8 @@ def execute(memory, op, power, scope):
             result = integer_power_result(base, exponent, profile)
         memory.write(op.args[-1], result, scope, math_result=True)
         return True
-    from .numeric_storage import (lreal_math_source, real_math_source,
-                                  write_exceptional_result, write_lreal_math_result)
+    from .numeric_storage import (lreal_math_source, real_math_source, write_exceptional_result,
+                                  write_lreal_math_result, write_real_math_result)
     name = op.name
     allow_nonfinite = name in EXCEPTIONAL_UNARY or name == 'XPY'
     if profile in ('REAL', 'LREAL'):
@@ -144,6 +144,8 @@ def execute(memory, op, power, scope):
         raise ModelError(op.name+' outside the finite '+('LREAL' if profile=='LREAL' else 'REAL')+' math profile') from error
     if profile == 'LREAL':
         write_lreal_math_result(memory, op.args[-1], result, scope)
+    elif profile == 'REAL':
+        write_real_math_result(memory, op.args[-1], result, scope)
     else:
         memory.write(op.args[-1], result, scope, math_result=True)
     return True
@@ -156,7 +158,7 @@ def description():
                 validation='Declared scalar types, shapes, index grammar, permissions and literal bounds; no live indices or saved tag values',
                 selection='False/prescan skip operands; true checks actual indices and all required source values; full writes establish unknown results',
                 array_recovery='A cleared Type 4 Code 20 during a whole-project ladder scan skips the math result write',
-                integer_conversion='Round the float32 result to nearest integer, ties to even; reject rounded out-of-range values with whole-advance rollback',
+                integer_conversion='Round the float32 result to nearest integer, ties to even. Explicit REAL calculations can narrow a DINT-range result to SINT or INT.',
                 arithmetic='Sources and results rounded to float32; host math functions, no native bit-parity claim',
                 integer_root_power=dict(instructions=sorted(INTEGER_ROOT_POWER),
                     source_types=list(INT_BITS), destination_types=list(INT_BITS),
@@ -171,7 +173,7 @@ def description():
                     integer_destinations=sorted(INT_BITS),
                     selection_by_source='A REAL tag or floating immediate selects float32 for all signed/unsigned integer results',
                     radix_sources=dict(bases=[2,8,16],types=['DINT','LINT','UDINT','ULINT'],selection='Existing REAL calculation selectors; decode declared word before float32 conversion',native_runtime_parity=False),
-                    integer_conversion='Convert the float32 result to the declared integer by nearest-even rounding with range checks',
+                    integer_conversion='Round the float32 result ties to even. SINT and INT keep the low bits of a DINT-range result and set S:V on narrowing.',
                     constants='Bounded DINT/finite REAL and decimal/radix L/U/UL integer constants and signed DINT radix words; declared range before float32 conversion',
                     calculation='Finite sources and results round to float32; selected standalone operations accept exceptional floating tag values',
                     boundaries='LREAL inputs select the binary64 path before final destination conversion',

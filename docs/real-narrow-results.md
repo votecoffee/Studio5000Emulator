@@ -27,13 +27,13 @@ exact arithmetic and type/range rules; a small saved integer value alone
 does not authorize a new narrowing conversion. Unary calls require a REAL
 source or floating immediate for this REAL profile.
 
-[Standalone ADD, SUB, MUL, DIV, MOD, NEG and ABS](scalar-math.md#real-arithmetic-into-sint-or-int)
-can narrow a rounded DINT-range result into SINT or INT. In ADD into SINT,
+[Basic arithmetic](scalar-math.md#real-arithmetic-into-sint-or-int) and
+[advanced math](math-operations.md#real-results-into-sint-or-int) can narrow
+a rounded DINT-range REAL result into SINT or INT. For a SINT destination,
 127.49 rounds to 127 and fits, 127.5 rounds to 128 and stores -128 with
-`S:V` set, and -128.5 rounds to -128 and fits. The rounded result must fit
-the destination for the advanced math instructions. DINT's largest
-representable positive REAL below 2^31 is 2147483520. The integer 2147483647
-converts to REAL 2147483648 and fails a DINT result conversion.
+`S:V` set, and -128.5 rounds to -128 and fits. DINT's largest representable
+positive REAL below 2^31 is 2147483520. The integer 2147483647 converts to
+REAL 2147483648 and fails a DINT result conversion.
 
 Existing decimal and declared-width radix source rules apply. Structural
 preflight checks references, types, shapes, literals and permissions without

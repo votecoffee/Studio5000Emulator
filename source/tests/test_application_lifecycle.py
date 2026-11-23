@@ -3529,7 +3529,10 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual(values(self.post('step',{'dt':10}))['RoundedRoot'],4)
         for tag,value in (('Enable',False),('Input',40000),('RoundingInput',6.25)):self.post('write',{'tag':tag,'value':value})
         row=values(self.post('step',{'dt':10}));self.assertEqual((row['ByteRoot'],row['RoundedRoot'],row['StRoot']),(4,4,200.0))
-        before=self.post('write',{'tag':'Enable','value':True})
+        self.post('write',{'tag':'Enable','value':True})
+        row=values(self.post('step',{'dt':10}))
+        self.assertEqual((row['ByteRoot'],row['WordRoot'],row['DintRoot']),(-56,200,200))
+        before=self.post('write',{'tag':'Input','value':2**62})
         with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
         self.assertEqual(error.exception.code,400);error.exception.close()
         with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:after=json.load(response)
@@ -3991,6 +3994,38 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual(readings(), (0, True, True, False, True))
         self.post('write', {'tag': 'Source', 'value': 4.5})
         self.assertEqual(readings(), (6, False, False, False, False))
+
+    def test_ladder_advanced_real_results_narrow_and_recover_through_http(self):
+        from test_scalar_math import ScalarMathTests
+
+        fixture = ScalarMathTests()
+        fixture.setUp()
+        try:
+            def configure(root):
+                root.find('Controller').set('ReportMinorOverflow', 'true')
+
+            engine = fixture.checked([
+                'SQR(Source,Results[0])XIC(S:V)OTE(RunLatch);',
+                'XPY(2.0,Mask,Results[1])XIC(S:V)XIC(S:Z)OTE(MotorRunning);',
+                'XIC(S:V)OTE(StartPB);',
+                'XIC(S:MINOR)OTE(StopPB);',
+            ], source='REAL', dest='SINT', value=16384.0, mutate=configure)
+            content = base64.b64encode(engine.project.path.read_bytes()).decode()
+        finally:
+            fixture.doCleanups()
+        self.assertEqual(self.post('load', {'name': 'NarrowAdvancedReal.L5X', 'content': content})['blockers'], [])
+
+        def readings():
+            state = self.post('step', {'dt': 10})
+            values = {row['name']: row['value'] for row in state['tags']}
+            names = ('Results[0]', 'Results[1]', 'RunLatch', 'MotorRunning', 'StartPB', 'StopPB')
+            return tuple(values[name] for name in names)
+
+        self.post('write', {'tag': 'Mask', 'value': 8})
+        self.assertEqual(readings(), (-128, 0, True, True, False, True))
+        self.post('write', {'tag': 'Source', 'value': 256.0})
+        self.post('write', {'tag': 'Mask', 'value': 3})
+        self.assertEqual(readings(), (16, 8, False, False, False, False))
 
     def test_imported_unknown_scalar_math_is_lazy_and_atomic_through_http(self):
         import base64

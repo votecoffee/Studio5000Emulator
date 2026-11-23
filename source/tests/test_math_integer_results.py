@@ -66,12 +66,40 @@ class MathIntegerResultTests(unittest.TestCase):
             e.step();self.assertEqual(e.memory.read('Dest'),expected)
 
     def test_out_of_range_rounded_result_rolls_back_prior_work(self):
-        for dtype,value in (('SINT',127.5),('SINT',-128.51),('INT',32767.5),
-                            ('INT',-32768.51),('DINT',2147483648.0),('DINT',-2147483904.0)):
+        for dtype, value in itertools.product(('SINT', 'INT', 'DINT'), (2**31, -(2**31)-256)):
             e=self.checked(['MOV(23,Mask);','XPY(Source,1,Dest);'],types=('REAL','REAL',dtype),values=(value,2,7))
             before=self.snapshot(e)
             with self.assertRaisesRegex(ModelError,dtype+' overflow'):e.step()
             self.assertEqual(self.snapshot(e),before)
+
+    def test_standalone_real_root_power_and_angle_results_narrow_with_status(self):
+        cases = (
+            ('SINT', 'SQR(16384.0,Dest)', -128),
+            ('INT', 'SQR(1073741824.0,Dest)', -32768),
+            ('SINT', 'XPY(2.0,8,Dest)', 0),
+            ('INT', 'XPY(2.0,15,Dest)', -32768),
+            ('SINT', 'XPY(-6.0,3,Dest)', 40),
+            ('SINT', 'DEG(3.1415927,Dest)', -76),
+        )
+        for dtype, instruction, expected in cases:
+            with self.subTest(dtype=dtype, instruction=instruction):
+                e = self.checked([
+                    f'{instruction}[XIC(S:V)OTE(RunLatch),XIC(S:N)OTE(MotorRunning),XIC(S:Z)OTE(StopPB)];',
+                ], types=('REAL', 'REAL', dtype))
+                e.step()
+                self.assertEqual(e.memory.read('Dest'), expected)
+                self.assertTrue(e.memory.read('RunLatch'))
+                self.assertEqual(e.memory.read('MotorRunning'), expected < 0)
+                self.assertEqual(e.memory.read('StopPB'), expected == 0)
+
+    def test_integer_only_root_and_power_keep_checked_destination(self):
+        for instruction in ('SQR(16384,Dest);', 'XPY(2,7,Dest);', 'XPY(2L,7,Dest);'):
+            with self.subTest(instruction=instruction):
+                e = self.checked([instruction], types=('DINT', 'DINT', 'SINT'))
+                before = self.snapshot(e)
+                with self.assertRaisesRegex(ModelError, 'SINT overflow'):
+                    e.step()
+                self.assertEqual(self.snapshot(e), before)
 
     def test_false_and_run_prescan_preserve_unknown_results(self):
         e=self.checked(['AFI()SQR(Source,Dest);'],types=('REAL','REAL','DINT'))
@@ -141,9 +169,14 @@ class MathIntegerResultTests(unittest.TestCase):
         self.assertTrue(self.engine(['SQR(Source,Dest);'],types=('REAL','REAL','INT'),mutate=constant).blockers)
 
     def test_report_exposes_rounding_and_overflow_boundary(self):
-        e=self.checked(['SQR(Source,Dest);'],types=('REAL','REAL','DINT'));report=e.report()['real_math']
-        self.assertEqual(report['destinations'],['DINT','INT','REAL','SINT']);self.assertIn('ties to even',report['integer_conversion']);self.assertIn('out-of-range',report['integer_conversion'])
-        self.assertFalse(report['native_math_status']);self.assertFalse(report['native_fault_classification'])
+        e = self.checked(['SQR(Source,Dest);'], types=('REAL', 'REAL', 'DINT'))
+        report = e.report()['real_math']
+        self.assertEqual(report['destinations'], ['DINT', 'INT', 'REAL', 'SINT'])
+        self.assertIn('ties to even', report['integer_conversion'])
+        self.assertIn('DINT-range', report['integer_conversion'])
+        self.assertIn('S:V on narrowing', report['real_destination']['integer_conversion'])
+        self.assertFalse(report['native_math_status'])
+        self.assertFalse(report['native_fault_classification'])
 
 
 class WideRootPowerTests(unittest.TestCase):

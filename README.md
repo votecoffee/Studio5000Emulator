@@ -789,6 +789,8 @@ a DINT-range product is truncated into SINT or INT.
 report the same narrowing for DINT-range quotients and remainders.
 [Standalone REAL arithmetic](docs/scalar-math.md#real-arithmetic-into-sint-or-int)
 rounds before narrowing to SINT or INT and raises `S:V` on destination overflow.
+[Advanced REAL math](docs/math-operations.md#real-results-into-sint-or-int) uses
+the same conversion for standalone roots, powers, logarithms, and angle instructions.
 
 [Numeric move and clear](docs/numeric-storage.md) support signed/unsigned integer
 and REAL/LREAL scalar MOV conversions, typed CLR zeros and full writes to unknown

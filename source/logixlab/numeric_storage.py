@@ -192,6 +192,17 @@ def round_real_to_narrow_signed(value, dtype):
     return result, result != rounded
 
 
+def write_real_math_result(memory, ref, value, scope):
+    """Store a rounded binary32 result and publish any signed narrowing."""
+    key, parts, dtype = memory.check_writable(ref, scope)
+    if dtype in NARROW_RESULT_TYPES:
+        stored, overflow = round_real_to_narrow_signed(value, dtype)
+        memory.store(key, parts, stored)
+        memory.record_math_result(stored, overflow=overflow)
+    else:
+        memory.write(ref, value, scope, math_result=True)
+
+
 def write_exceptional_result(memory, ref, value, scope, *, instruction):
     """Store an instruction-produced NaN or infinity in a numeric destination."""
     key, parts, dtype = memory.check_writable(ref, scope)

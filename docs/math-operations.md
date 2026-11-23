@@ -76,12 +76,20 @@ writes 2 in this 5580 profile, SQR(6.25,Dint) writes 2, and XPY(-2.5,1,Dint)
 writes -2. This differs from the integer-source SQR truncation documented for
 older 5570 controllers, which remain outside this profile.
 
-Range checks apply after rounding: -128.5 becomes a valid SINT -128, while
-127.5 rounds to 128 and faults. Values lost when converting sources/results
-to float32 cannot be recovered by an integer destination: XPY(16777217,1,Dint)
-writes 16777216. A DINT source of 2147483647 becomes 2147483648 in this pipeline
-and therefore faults on a DINT result. These are explicit finite software
-boundaries; exact native intermediate precision remains unqualified.
+## REAL results into SINT or INT
+
+When a REAL tag or literal selects the binary32 profile, a result that rounds
+into DINT range can be narrowed into SINT or INT. For example,
+`SQR(16384.0,Byte)` stores -128 in SINT `Byte`. The square root is 128,
+so narrowing sets `S:V` and the rung continues. `S:N` and `S:Z` reflect
+the stored value. Narrowing also sets task `S:MINOR` when `ReportMinorOverflow`
+is enabled.
+
+Rounded values outside DINT range, integer-only roots and powers, and binary64
+calculations use their existing checked conversions. For example, a DINT
+source of 2147483647 converts to REAL 2147483648 and faults on a DINT result.
+Exact native intermediate precision remains unverified.
+[Rockwell REAL-to-integer conversion](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/real-to-integer.html)
 
 Prescan and false rungs retain destination data. True rungs evaluate on every
 execution. Unknown required values, unsupported domains and out-of-range
@@ -183,8 +191,9 @@ while the called ST routine continues; re-enable to update ladder results.
 ByteRoot, WordRoot and DintRoot also calculate the negative input at their
 respective integer widths. RoundedRoot starts at 2 from RoundingInput 6.25;
 RoundedPower starts at -2 from -2.5 raised to 1. All five ladder results retain
-values when Enable is false. Raising Input to 40000 makes ByteRoot exceed SINT
-and demonstrates whole-advance rollback; correct it to 25 and retry to get 5.
+values when Enable is false. Input 40000 gives ByteRoot -56 and WordRoot and
+DintRoot 200. Input 4611686018427387904 produces a root outside DINT range and
+rolls back the advance. Set Input to 25 to get a root of 5.
 
 The separate `IndexedMath` section starts disabled with `MathIndex` 99 and
 unknown `IndexedRoots`/`IndexedPowers` arrays. Set `MathIndex` to 1, then enable
