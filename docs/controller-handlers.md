@@ -431,12 +431,21 @@ have not been qualified.
 
 A Program begins with an empty record. Its last recorded overflow persists
 across successful scans and Run entry. Clearing `S:MINOR` clears the scan flag
-and retains the record. A fault later in the advance rolls back the record and
-any destination writes. A reset or reload establishes a new history. This
-increment provides a read-only ladder profile for `THIS`. Native fault-record
-parity remains unverified.
+and retains the record.
+
+Use `SSV(Program,THIS,MinorFaultRecord,ClearWords[0])` to clear the current
+Program's record. The source uses the same layouts as GSV and must contain
+known zero Type and Code. The timestamp and Info fields are ignored for this
+operation. A following GSV returns an empty record in the same scan. The
+controller's FaultLog bits and event count and the current scan's `S:MINOR`
+flag retain their values. A later reported overflow creates a new record.
+
+A fault later in the advance rolls back the clear and any destination writes.
+A reset or reload establishes a new history. Arbitrary record writes and native
+fault-record parity remain unverified for this ladder profile.
 [Rockwell Major, Minor, and I/O Faults](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm014_-en-p.pdf#page=23)
 [Rockwell Program object](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/input-output-instructions/access-the-program-object.html)
+[Rockwell ladder GSV and SSV example](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm018_-en-p.pdf)
 
 ## Read and reset the controller minor-fault summary
 

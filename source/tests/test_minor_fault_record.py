@@ -1,4 +1,4 @@
-"""Read modeled Program overflow records from ordinary ladder logic."""
+"""Read and clear modeled overflow records from ordinary ladder logic."""
 import struct
 import unittest
 from unittest.mock import patch
@@ -11,6 +11,7 @@ import test_gsv_configuration as config
 from test_program_faults import add_fault_dint_array
 
 GSV = 'GSV(Program,THIS,MinorFaultRecord,FaultSample[1]);'
+SSV = 'SSV(Program,THIS,MinorFaultRecord,FaultSample[1]);'
 OVERFLOW = 'XIC(Flag)ADD(2147483647,1,Out);'
 TYPE_CODE = (4 << 16) | 4
 TIMESTAMP = 1760000000000000
@@ -150,7 +151,11 @@ class MinorFaultRecordTests(unittest.TestCase):
                                              'Structure', DataType='FaultLayout')
                     E.SubElement(structure, 'DataValueMember', Name='Type', DataType='INT', Value='0')
 
-                engine = self.checked([OVERFLOW, GSV.replace('FaultSample[1]', 'Sample.Time')], mutate=settings)
+                engine = self.checked([
+                    OVERFLOW, GSV.replace('FaultSample[1]', 'Sample.Time'),
+                    'XIO(Flag)CLR(Sample.Type)CLR(Sample.Code);',
+                    'XIO(Flag)' + SSV.replace('FaultSample[1]', 'Sample.Time'), GSV,
+                ], mutate=settings)
                 engine.memory.write('Flag', True)
                 with patch.object(engine, 'wall_time', return_value=TIMESTAMP):
                     engine.step(10)
@@ -160,6 +165,9 @@ class MinorFaultRecordTests(unittest.TestCase):
                     self.assertEqual(value['Time'], TIMESTAMP)
                 else:
                     self.assertEqual([value['Time'], value['TimeHigh']], record(TIMESTAMP)[:2])
+                engine.memory.write('Flag', False)
+                engine.step(10)
+                self.assertEqual(engine.memory.read('FaultSample')[1:12], [0] * 11)
 
     def test_false_rung_skips_live_index_and_scope_is_checked(self):
         logic = 'XIC(Flag)GSV(Program,THIS,MinorFaultRecord,FaultSample[Index]);'
@@ -238,6 +246,99 @@ class MinorFaultLogTests(unittest.TestCase):
         reset = Engine(engine.project)
         reset.step(10)
         self.assertEqual((reset.memory.read('LogBits'), reset.memory.read('LogCount')), (0, 0))
+
+    def test_clear_preserves_summary_and_status_and_relatches_on_overflow(self):
+        engine = self.checked([
+            OVERFLOW, GSV, 'XIC(ResetCount)CLR(FaultSample[3]);', 'XIC(ResetCount)' + SSV,
+            'XIC(S:MINOR)OTE(OverflowSeen);', GSV, READ_BITS, READ_COUNT,
+        ], mutate=log_tags)
+        memory = engine.memory
+        memory.write('ResetCount', True)
+        engine.step(10)
+        self.assertEqual(memory.read('FaultSample')[1:12], [0] * 11)
+        self.assertEqual(engine.program_fault_attributes('BackgroundProgram', source_sha256=engine.project.sha256),
+                         {20: bytes(44), 21: bytes(44)})
+        memory.write('Flag', True)
+        with patch.object(engine, 'wall_time', return_value=TIMESTAMP):
+            engine.step(10)
+        self.assertEqual(memory.read('FaultSample'), [77] + [0] * 11 + [77])
+        self.assertTrue(memory.read('OverflowSeen'))
+        self.assertEqual((memory.read('LogBits'), memory.read('LogCount')), (INSTRUCTION_BIT, 1))
+        self.assertEqual(engine.program_fault_attributes('BackgroundProgram', source_sha256=engine.project.sha256),
+                         {20: bytes(44)})
+
+        memory.write('Flag', False)
+        memory.write('ResetCount', False)
+        engine.enter_run()
+        replacement = replacement_engine(engine, engine.project)
+        replacement.step(10)
+        self.assertEqual(replacement.memory.read('FaultSample')[1:12], [0] * 11)
+        replacement.memory.write('Flag', True)
+        with patch.object(replacement, 'wall_time', return_value=TIMESTAMP + 10):
+            replacement.step(10)
+        self.assertEqual(replacement.memory.read('FaultSample')[1:12], record(TIMESTAMP + 10))
+        self.assertEqual(replacement.memory.read('LogCount'), 2)
+
+    def test_late_failure_rolls_back_clear(self):
+        engine = self.checked([
+            OVERFLOW, GSV, 'XIC(ResetCount)CLR(FaultSample[3]);', 'XIC(ResetCount)' + SSV,
+            GSV, 'CPT(Limit,1/Index);',
+        ], mutate=log_tags)
+        memory = engine.memory
+        memory.write('Index', 1)
+        memory.write('Flag', True)
+        with patch.object(engine, 'wall_time', return_value=TIMESTAMP):
+            engine.step(10)
+        memory.write('Flag', False)
+        memory.write('ResetCount', True)
+        memory.write('Index', 0)
+        with self.assertRaisesRegex(ModelError, 'zero'):
+            engine.step(10)
+        self.assertEqual(memory.read('FaultSample')[1:12], record(TIMESTAMP))
+        memory.write('ResetCount', False)
+        memory.write('Index', 1)
+        engine.step(10)
+        self.assertEqual(memory.read('FaultSample')[1:12], record(TIMESTAMP))
+        memory.write('ResetCount', True)
+        engine.step(10)
+        self.assertEqual(memory.read('FaultSample')[1:12], [0] * 11)
+
+    def test_clear_requires_known_zero_and_valid_live_region(self):
+        def settings(root):
+            log_tags(root)
+            tags = root.find('./Controller/Tags')
+            add_fault_dint_array(tags, 'ClearWords', [0] * 12)
+            array = tags.find('./Tag[@Name="ClearWords"]/Data/Array')
+            array.remove(array.find('./Element[@Index="[3]"]'))
+
+        indirect = 'XIC(ResetCount)' + SSV.replace('FaultSample[1]', 'ClearWords[Index]')
+        engine = self.checked([OVERFLOW, indirect, GSV], mutate=settings)
+        memory = engine.memory
+        memory.write('Index', 99)
+        memory.write('Flag', True)
+        with patch.object(engine, 'wall_time', return_value=TIMESTAMP):
+            engine.step(10)
+        memory.write('Flag', False)
+        memory.write('ResetCount', True)
+        with self.assertRaisesRegex(ModelError, 'outside bounds'):
+            engine.step(10)
+        memory.write('Index', 1)
+        with self.assertRaisesRegex(ModelError, 'known zero Type and Code'):
+            engine.step(10)
+        memory.write('ClearWords[3]', TYPE_CODE)
+        with self.assertRaisesRegex(ModelError, 'known zero Type and Code'):
+            engine.step(10)
+        self.assertEqual(memory.read('FaultSample')[1:12], record(TIMESTAMP))
+        memory.write('ClearWords[3]', 0)
+        engine.step(10)
+        self.assertEqual(memory.read('FaultSample')[1:12], [0] * 11)
+        for rung, options in (
+            (SSV, {'harness': True}),
+            (SSV, {'st': True}),
+            (SSV.replace('THIS', 'FastProgram'), {}),
+            (SSV.replace('FaultSample[1]', 'FaultSample[3]'), {}),
+        ):
+            self.assertTrue(self.engine([rung], mutate=log_tags, **options).blockers)
 
     def test_controller_summary_is_visible_to_a_second_program(self):
         def settings(root):

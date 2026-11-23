@@ -1,4 +1,4 @@
-"""Controller-wide ladder minor-fault summary for the v35 software model."""
+"""Ladder minor-fault records and controller summary for the v35 software model."""
 from dataclasses import dataclass
 
 from . import gsv_configuration
@@ -7,6 +7,12 @@ from .model import ModelError
 INSTRUCTION_BIT = 1 << 4
 EVENT_LIMIT = 32767
 ATTRIBUTES = {'minorfaultbits': ('DINT', 'bits'), 'minorevents': ('INT', 'events')}
+
+
+@dataclass(frozen=True)
+class MinorFaultRecord:
+    timestamp_us: int | None
+    cleared: bool = False
 
 
 @dataclass

@@ -37,9 +37,7 @@ def legacy(op):
 
 def validate(engine,op,scope,*,kind='RLL'):
     if fault_log.matches(op):return fault_log.access(engine,op,scope,executing=False,kind=kind)
-    if (kind != 'RLL' and len(op.args) == 4 and all(isinstance(arg, str) for arg in op.args[:3])
-            and op.args[0].casefold() == 'program'
-            and op.args[2].casefold() == 'minorfaultrecord'):
+    if kind != 'RLL' and gsv_configuration.matches_minor_fault_record(op):
         raise ModelError('MinorFaultRecord currently requires ordinary ladder logic')
     if ladder_message.matches_attribute(op):return ladder_message.validate_attribute(engine,op,scope,kind)
     if program_control.matches(op):return program_control.validate(engine,op,scope)
@@ -88,6 +86,10 @@ def write_effects(engine,op,scope):
 def validate_set(engine, op, scope, *, kind='RLL'):
     if fault_log.matches(op):return fault_log.access(engine,op,scope,executing=False,kind=kind)
     if ladder_message.matches_attribute(op):return ladder_message.validate_attribute(engine,op,scope,kind)
+    if gsv_configuration.matches_minor_fault_record(op):
+        if kind != 'RLL':
+            raise ModelError('MinorFaultRecord currently requires ordinary ladder logic')
+        return gsv_configuration.write_minor_fault_record(engine, op, scope, executing=False)
     if gsv_configuration.matches_major_fault_record(op):
         return gsv_configuration.write_major_fault_record(engine, op, scope, executing=False)
     if program_control.matches(op):return program_control.validate(engine,op,scope)
@@ -105,6 +107,9 @@ def execute_set(engine, op, power, scope):
         return power
     if ladder_message.matches_attribute(op):
         ladder_message.execute_attribute(engine,op,scope)
+        return power
+    if gsv_configuration.matches_minor_fault_record(op):
+        gsv_configuration.write_minor_fault_record(engine, op, scope, executing=True)
         return power
     if gsv_configuration.matches_major_fault_record(op):
         gsv_configuration.write_major_fault_record(engine, op, scope, executing=True)

@@ -48,7 +48,9 @@ records. Physical controller fault history is not imported.
 A [modeled ladder minor overflow](controller-handlers.md#read-modeled-program-minor-faults)
 withholds the Program's empty Local Minor Fault record and its normal status
 word. Its Local Major Fault record remains subject to the existing clean-history
-checks. Modeled overflow values are available through ladder GSV.
+checks. Ladder GSV reads the modeled overflow and ladder SSV can clear that
+record. The native fault record and normal status remain withheld until the
+engine resets its fault history.
 The endpoint exposes aggregate `program_diagnostics` and `program_faults`
 availability summaries. Reads do not advance scans or alter tags. Empty native
 records describe this model's known-clean history; they do not establish full

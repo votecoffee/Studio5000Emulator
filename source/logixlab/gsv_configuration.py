@@ -1,5 +1,5 @@
 """Typed GSV reads of explicit settings and their bounded runtime overrides."""
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import re
 import struct
 from uuid import uuid4
@@ -443,9 +443,17 @@ def module_attribute(engine, instance, attribute, *, executing):
     return 'INT', value
 
 
-def matches_major_fault_record(op):
+def _matches_fault_record(op, attribute):
     return (len(op.args) == 4 and all(isinstance(arg, str) for arg in op.args)
-            and op.args[0].casefold() == 'program' and op.args[2].casefold() == 'majorfaultrecord')
+            and op.args[0].casefold() == 'program' and op.args[2].casefold() == attribute)
+
+
+def matches_major_fault_record(op):
+    return _matches_fault_record(op, 'majorfaultrecord')
+
+
+def matches_minor_fault_record(op):
+    return _matches_fault_record(op, 'minorfaultrecord')
 
 
 def _handler_fault(engine, instance, scope, *, executing):
@@ -486,18 +494,24 @@ def _fault_words(timestamp, type_code):
     return (*time_words, type_code) + (None,) * 8
 
 
-def _minor_fault_record(engine, instance, scope, *, executing):
+def _minor_fault_program(engine, instance, scope, *, executing):
     if instance.casefold() != 'this':
-        raise ModelError('GSV MinorFaultRecord requires Program THIS')
+        raise ModelError('MinorFaultRecord requires Program THIS')
     program = current_instance(engine, 'Program', instance, scope, executing=executing, allow_event=True)
+    key = program.casefold()
+    if executing and (engine._program_advance is None or engine._executing_program != key):
+        raise ModelError('MinorFaultRecord requires the active ladder Program')
+    return key
+
+
+def _minor_fault_record(engine, instance, scope, *, executing):
+    program = _minor_fault_program(engine, instance, scope, executing=executing)
     if not executing:
         return MINOR_FAULT_RECORD, None
-    key = program.casefold()
-    if engine._program_advance is None or engine._executing_program != key:
-        raise ModelError('GSV MinorFaultRecord requires the active ladder Program')
-    records = engine._program_advance.minor_faults
-    words = _fault_words(records[key], (4 << 16) | 4) if key in records else (0,) * FAULT_RECORD_WORDS
-    return MINOR_FAULT_RECORD, words
+    record = engine._program_advance.minor_faults.get(program)
+    if record is None or record.cleared:
+        return MINOR_FAULT_RECORD, (0,) * FAULT_RECORD_WORDS
+    return MINOR_FAULT_RECORD, _fault_words(record.timestamp_us, (4 << 16) | 4)
 
 
 def _structured_fault_record(memory, key, parts, attribute):
@@ -543,23 +557,38 @@ def _fault_record_region(memory, ref, scope, *, writable=False, attribute='Major
     return key, paths, kind
 
 
-def write_major_fault_record(engine, op, scope, *, executing):
-    _configuration_source(engine)
-    _handler_fault(engine, op.args[1], scope, executing=executing)
-    memory = engine.memory
+def _validate_fault_clear(memory, ref, scope, attribute, *, executing):
     previous = memory.structural
     memory.structural = not executing
     try:
-        key, paths, layout = _fault_record_region(memory, op.args[3], scope)
+        key, paths, layout = _fault_record_region(memory, ref, scope, attribute=attribute)
         if executing:
             start = 1 if layout == FAULT_RECORD_LINT else 2
             count = 1 if layout == 'DINT' else 2
-            words = (memory.at(key, path) for path in paths[start:start+count])
+            words = (memory.at(key, path) for path in paths[start:start + count])
             if any(type(word) is not int or word != 0 for word in words):
-                raise ModelError('SSV MajorFaultRecord requires known zero Type and Code')
-            engine._handler_clear_requested = True
+                raise ModelError(f'SSV {attribute} requires known zero Type and Code')
     finally:
         memory.structural = previous
+
+
+def write_major_fault_record(engine, op, scope, *, executing):
+    _configuration_source(engine)
+    _handler_fault(engine, op.args[1], scope, executing=executing)
+    _validate_fault_clear(engine.memory, op.args[3], scope, 'MajorFaultRecord', executing=executing)
+    if executing:
+        engine._handler_clear_requested = True
+
+
+def write_minor_fault_record(engine, op, scope, *, executing):
+    _configuration_source(engine)
+    program = _minor_fault_program(engine, op.args[1], scope, executing=executing)
+    _validate_fault_clear(engine.memory, op.args[3], scope, 'MinorFaultRecord', executing=executing)
+    if executing:
+        records = engine._program_advance.minor_faults
+        record = records.get(program)
+        if record is not None and not record.cleared:
+            records[program] = replace(record, cleared=True)
 
 
 def time_sync_attribute(project, instance, attribute):
@@ -799,7 +828,7 @@ def description():
                 module_led_status='Empty controller-only map or aggregate of a complete simulated module inventory.',
                 module_force_status='Controller-only I/O map.',
                 major_fault_record='Active ladder fault routine; DINT[11] or first member of a supported fault-record UDT.',
-                minor_fault_record='Ladder Program THIS; latest reported overflow (4/4) in the same Program. DINT[11] or supported fault-record UDT; read only.',
+                minor_fault_record='Ladder Program THIS; read the latest reported overflow (4/4) or clear it with zero Type and Code. DINT[11] or supported fault-record UDT.',
                 controller_device=['DeviceName','ProductCode','ProductRev','SerialNumber','Type','Vendor','Status'],
                 controller_device_source='v35 5580 project processor and firmware revision, virtual EtherNet/IP serial, and modeled controller mode at scan entry.',
                 controller_device_status='Remote keyswitch; Program 0x3070, Run 0x3060, software fault 0x3450 at retry entry.',

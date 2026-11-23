@@ -4,7 +4,7 @@ import copy
 import operator
 from collections import Counter
 from time import perf_counter_ns
-from .fault_log import MinorFaultLog
+from .fault_log import MinorFaultLog, MinorFaultRecord
 from .identity import controller_status_word
 from .program_timing import ProgramTiming
 from . import gsv_configuration, immediate_output, ladder_message, program_control
@@ -986,7 +986,7 @@ class Engine:
     def _record_minor_overflow(self):
         if (self._program_advance is not None and self._executing_program is not None
                 and self._program_fault is None and not self.addons.prescanning):
-            self._program_advance.minor_faults[self._executing_program] = self.wall_time()
+            self._program_advance.minor_faults[self._executing_program] = MinorFaultRecord(self.wall_time())
             self._program_advance.fault_log.record_overflow()
 
     def _recover_ladder_fault(self, op, scope, error):
