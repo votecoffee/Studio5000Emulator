@@ -4704,7 +4704,6 @@ class ProgramFaultTests(unittest.TestCase):
     def test_string_operand_and_capacity_errors_keep_scan_rollback(self):
         for instruction, updates, message in (
             ('MID(LabText[0],3,LabPositions[0],LabTextResults[0])',{'LabPositions[0]':80},'(?i)MID.*(range|window|LEN)'),
-            ('CONCAT(LabText[0],LabText[1],LabTextResults[0])',{'LabText[0]':'A'*82},'exceeds capacity'),
             ('STOR(LabText[1],LabReals[0])',{},'(?i)decimal|digit'),
         ):
             with self.subTest(instruction=instruction):
@@ -4731,8 +4730,6 @@ class ProgramFaultTests(unittest.TestCase):
         from test_string_operations import string_data
 
         cases = (
-            ('CONCAT(LabText[0],LabText[1],LabTextResults[0])', 'LabText[0]', 'A' * 82, 51),
-            ('CONCAT(LabText[0],LabText[1],LabTextResults[0])', 'LabText[1].LEN', 83, 51),
             ('MID(LabText[0],3,1,LabTextResults[0])', 'LabText[0].LEN', 83, 51),
             ('FIND(LabText[0],LabText[1],1,LabValues[0])', 'LabText[1].LEN', 83, 51),
             ('INSERT(LabText[0],LabText[1],1,LabTextResults[0])', 'LabText[1].LEN', 83, 51),

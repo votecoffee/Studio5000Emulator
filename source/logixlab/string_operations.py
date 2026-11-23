@@ -5,16 +5,17 @@ from .integer_math import CONTROLLERS, dint_radix
 
 INSTRUCTIONS = frozenset(('FIND', 'INSERT', 'DELETE'))
 INTEGERS = frozenset(('SINT', 'INT', 'DINT'))
+STRING_LENGTH_FAULT = 51
 _SOURCE_LENGTH_FAULT_OPS = INSTRUCTIONS | {'CONCAT', 'MID', 'LOWER', 'UPPER', 'STOD', 'STOR'}
 _OUTPUT_CAPACITY_CODES = {
-    'CONCAT': 51, 'MID': 52, 'DELETE': 52, 'LOWER': 52, 'UPPER': 52, 'DTOS': 52, 'RTOS': 52,
+    'CONCAT': STRING_LENGTH_FAULT, 'MID': 52, 'DELETE': 52, 'LOWER': 52, 'UPPER': 52, 'DTOS': 52, 'RTOS': 52,
 }
 
 
 def fault_code(opcode, error):
     """Map diagnosed string failures to the installed v35 instruction tables."""
     if isinstance(error, StringLengthError) and opcode in _SOURCE_LENGTH_FAULT_OPS:
-        return 51
+        return STRING_LENGTH_FAULT
     if isinstance(error, StringCapacityError):
         return _OUTPUT_CAPACITY_CODES.get(opcode)
     if isinstance(error, StringNumericRangeError) and opcode in ('STOD', 'STOR'):
@@ -99,6 +100,28 @@ def integer_value(memory, ref, scope):
     return coerce(value, 'DINT')
 
 
+def concatenate(engine, op, scope):
+    memory = engine.memory
+    left, right, dest = op.args
+    routine = engine._executing_routine
+    if (engine.project.version != '35' or engine.project.processor.upper() not in CONTROLLERS
+            or routine is None or routine.kind != 'RLL' or scope in memory.frames
+            or engine._executing_program is None or engine._program_fault is not None
+            or engine.addons.prescanning):
+        memory.write_string(dest, memory.string(left, scope) + memory.string(right, scope), scope)
+        return
+
+    capacity = string_operand(memory, dest, scope, destination=True)
+    try:
+        text, truncated = memory.concatenate_strings(left, right, capacity, scope)
+    except StringLengthError:
+        engine._record_instruction_minor_fault(STRING_LENGTH_FAULT)
+        return
+    memory.write_string(dest, text, scope)
+    if truncated:
+        engine._record_instruction_minor_fault(STRING_LENGTH_FAULT)
+
+
 def execute(memory, op, scope):
     validate(memory, op, scope)
     a = op.args
@@ -161,7 +184,7 @@ def description():
                     selection='False/prescan skip live operands; enabled calls retain runtime address, active-LEN/DATA, range and capacity checks',
                     writes='Complete logical string writes establish unknown LEN/active DATA while preserving unused bytes and other elements',
                     array_recovery='A cleared Type 4 Code 20 during a whole-project ladder scan skips the instruction result write',
-                    capacity_diagnostics='Selected ladder operations label known LEN and output capacity failures Type 4 Code 51 or 52 and roll back the advance',
+                    capacity_diagnostics='Qualified ladder CONCAT continues with Type 4 Code 51 on invalid oversized LEN or output clipping. Other modeled capacity faults roll back the advance.',
                     position_diagnostics='Ladder FIND, INSERT, MID and DELETE report Type 4 Code 56 for documented invalid ranges and roll back the advance',
                     comparisons='Required source strings and both CMP logical operands are consumed; no value or identity folding',
                     excluded='New algorithms, empty-search/zero-delete edge behavior, broader types/encoding/controller rules and native status/fault/lifecycle parity',

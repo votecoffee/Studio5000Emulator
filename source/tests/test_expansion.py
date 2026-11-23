@@ -181,12 +181,12 @@ class ExpansionTests(unittest.TestCase):
         self.assertEqual(e.memory.string('Message'),'Z')
         self.assertEqual(e.memory.read('Message.DATA[1]'),ord('B'))
 
-    def test_string_overflow_rolls_back_previous_changes(self):
-        e=self.engine(['MOV(99,ParsedNumber);','CONCAT(Prefix,Prefix,Message);'])
-        e.memory.write('Prefix','X'*50)
-        with self.assertRaisesRegex(ModelError,'capacity'):e.step()
-        self.assertEqual(e.memory.read('ParsedNumber'),0)
-        self.assertEqual(e.memory.string('Message'),'')
+    def test_concat_overflow_keeps_previous_changes_and_writes_the_prefix(self):
+        e = self.engine(['MOV(99,ParsedNumber);', 'CONCAT(Prefix,Prefix,Message);'])
+        e.memory.write('Prefix', 'X' * 50)
+        e.step()
+        self.assertEqual(e.memory.read('ParsedNumber'), 99)
+        self.assertEqual(e.memory.string('Message'), 'X' * 82)
 
     def test_stod_first_contiguous_signed_group(self):
         for text,expected in [('weight=-123.45kg',-123),('part12/34',12),('NO NUMBER',0)]:

@@ -358,7 +358,8 @@ operands to continue at the next instruction. The Controller Fault Handler can
 The [ladder monitor marks the skipped instruction](docs/logic-viewer.md#fault-recovery-in-the-ladder-monitor)
 and shows the cleared fault code in its details.
 [Ladder string fault diagnostics](docs/string-operations.md#ladder-capacity-diagnostics)
-identify selected Type 4 Codes 51, 52, 53 and 56 in rolled-back scans.
+identify selected Type 4 Codes 51, 52, 53 and 56. Scheduled v35 ladder CONCAT
+clips an oversized result and continues the rung with Code 51.
 [Aggregate LEDStatus](docs/gsv-configuration.md#simulated-module-ledstatus)
 summarizes a complete simulated module inventory.
 

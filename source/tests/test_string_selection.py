@@ -6,6 +6,7 @@ from xml.etree import ElementTree as E
 import test_string_operations as strings
 import test_string_conversions as fixtures
 from logixlab.model import ModelError
+from test_program_faults import add_fault_dint_array
 
 CALLS=[('CONCAT','CONCAT(TextCells[Index],SourceB,TextResults[Index]);','ABC123ABCXY'),
        ('MID','MID(TextCells[Index],3,1,TextResults[Index]);','ABC'),
@@ -19,6 +20,25 @@ CALLS=[('CONCAT','CONCAT(TextCells[Index],SourceB,TextResults[Index]);','ABC123A
        ('UPPER','UPPER(TextCells[Index],TextResults[Index]);','ABC123ABC'),
        ('STOR','STOR(TextCells[Index],RealCells[Index]);',123.0),
        ('RTOS','RTOS(RealCells[Index],TextResults[Index]);','2.5')]
+
+
+CONCAT_FAULT = (51 << 16) | 4
+CONCAT_LADDER = [
+    'XIC(StartPB)CONCAT(SourceA,TextCells[0],Alias)XIC(S:MINOR)OTE(RunLatch);',
+    'GSV(Program,THIS,MinorFaultRecord,ConcatFault[0]);',
+    'GSV(FaultLog,,MinorEvents,ConcatFaultCount);',
+]
+
+
+def concat_minor_fixture(root):
+    strings.StringOperationTests.custom_strings(root)
+    controller = root.find('./Controller')
+    controller.set('ReportMinorOverflow', 'false')
+    tags = controller.find('Tags')
+    add_fault_dint_array(tags, 'ConcatFault', [0] * 11)
+    count = E.SubElement(tags, 'Tag', Name='ConcatFaultCount', DataType='INT', TagType='Base')
+    E.SubElement(E.SubElement(count, 'Data', Format='Decorated'),
+                 'DataValue', DataType='INT', Value='0')
 
 
 class StringSelectionTests(unittest.TestCase):
@@ -154,9 +174,73 @@ class StringSelectionTests(unittest.TestCase):
         e=self.checked(['CONCAT(SourceA,SourceB,TextResults[0]);','STOD(SourceA,Numbers[0]);','DELETE(TextResults[0],99,1,TextResults[0]);']);before=self.snapshot(e)
         with self.assertRaisesRegex(ModelError,'DELETE'):e.step()
         self.assertEqual(self.snapshot(e),before)
-        e=self.checked(['CONCAT(SourceA,SourceB,TextResults[0]);']);e.memory.write('SourceA','A'*82);before=self.snapshot(e)
+        e=self.checked(['CONCAT(SourceA,SourceB,TextResults[0]);'],st=True);e.memory.write('SourceA','A'*82);before=self.snapshot(e)
         with self.assertRaisesRegex(ModelError,'exceeds capacity'):e.step()
         self.assertEqual(self.snapshot(e),before)
+
+    def test_concat_clips_to_alias_capacity_and_skips_uncopied_source_bytes(self):
+        engine = self.checked(CONCAT_LADDER, mutate=concat_minor_fixture)
+        memory = engine.memory
+        memory.write('SourceA', 'A' * 14)
+        memory.write('TextCells[0].LEN', 4)
+        memory.write('TextCells[0].DATA[0]', 88)
+        memory.write('TextCells[0].DATA[1]', 89)
+        engine.step()
+        self.assertEqual(memory.string('Alias'), 'old')
+        self.assertEqual(memory.read('ConcatFaultCount'), 0)
+        memory.write('StartPB', True)
+        engine.step()
+        self.assertEqual(memory.string('Record.Text'), 'A' * 14 + 'XY')
+        self.assertEqual(memory.read('ConcatFault[2]'), CONCAT_FAULT)
+        self.assertTrue(memory.read('RunLatch'))
+        self.assertEqual(memory.read('ConcatFaultCount'), 1)
+
+        memory.write('TextCells[0]', 'XYZW')
+        memory.write('SourceA', 'B' * 12)
+        engine.step()
+        self.assertEqual(memory.string('Alias'), 'B' * 12 + 'XYZW')
+        self.assertFalse(memory.read('RunLatch'))
+        self.assertEqual(memory.read('ConcatFaultCount'), 1)
+
+        memory.write('SourceA', 'C' * 17)
+        engine.step()
+        self.assertEqual(memory.string('Alias'), 'C' * 16)
+        self.assertEqual(memory.read('ConcatFaultCount'), 2)
+
+    def test_concat_invalid_source_lengths_leave_result_untouched(self):
+        for operand in ('SourceA.LEN', 'TextCells[0].LEN'):
+            with self.subTest(operand=operand):
+                engine = self.checked(CONCAT_LADDER, mutate=concat_minor_fixture)
+                memory = engine.memory
+                memory.write('StartPB', True)
+                memory.write('SourceA', 'A' * 20)
+                memory.write('TextCells[0]', 'XY')
+                memory.write(operand, 83)
+                before = copy.deepcopy(memory.read('Alias'))
+                engine.step()
+                self.assertEqual(memory.read('Alias'), before)
+                self.assertEqual(memory.read('ConcatFault[2]'), CONCAT_FAULT)
+                self.assertTrue(memory.read('RunLatch'))
+                self.assertEqual(memory.read('ConcatFaultCount'), 1)
+
+    def test_concat_clipped_result_and_minor_fault_roll_back_together(self):
+        engine = self.checked([*CONCAT_LADDER, 'CPT(Result,1/Limit);'], mutate=concat_minor_fixture)
+        memory = engine.memory
+        memory.write('SourceA', 'A' * 18)
+        memory.write('TextCells[0]', 'XY')
+        memory.write('StartPB', True)
+        memory.write('Limit', 0)
+        before = self.snapshot(engine)
+        with self.assertRaisesRegex(ModelError, 'zero'):
+            engine.step()
+        self.assertEqual(self.snapshot(engine), before)
+
+        memory.write('StartPB', False)
+        memory.write('Limit', 1)
+        engine.step()
+        self.assertEqual(memory.string('Alias'), 'old')
+        self.assertEqual(memory.read('ConcatFault[2]'), 0)
+        self.assertEqual(memory.read('ConcatFaultCount'), 0)
 
     def test_aliases_constant_sources_and_custom_string_udt_members(self):
         def fields(root):

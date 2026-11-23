@@ -1523,6 +1523,15 @@ class Memory:
         data, length = self._string_data(ref, scope)
         return self._decode_string_data(data[:length if limit is None else min(length, limit)])
 
+    def concatenate_strings(self, left, right, limit, scope=''):
+        """Validate both lengths before reading the bytes that fit."""
+        left_data, left_length = self._string_data(left, scope)
+        right_data, right_length = self._string_data(right, scope)
+        left_count = min(left_length, limit)
+        right_count = min(right_length, limit - left_count)
+        text = self._decode_string_data(left_data[:left_count] + right_data[:right_count])
+        return text, left_length + right_length > limit
+
     def string_prefix(self, ref, limit, scope=''):
         """Read the copied bytes and determine whether active data was truncated."""
         data, length = self._string_data(ref, scope)

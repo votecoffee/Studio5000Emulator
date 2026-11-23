@@ -324,8 +324,7 @@ class Extensions:
                 self.memory.write(a[0], result, scope)
         elif n=='TRN':self.memory.write(a[1],__import__('math').trunc(coerce(self.memory.read(a[0],scope),'REAL')),scope)
         elif n=='CONCAT':
-            text=self.memory.string(a[0],scope)+self.memory.string(a[1],scope)
-            self.memory.write_string(a[2],text,scope)
+            string_operations.concatenate(self.engine, op, scope)
         elif n=='MID':
             length,start=(self.integer(ref,scope,string_position=True) for ref in a[1:3])
             source=self.memory.string_slice(a[0],start,length,scope)
