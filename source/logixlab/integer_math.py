@@ -1,7 +1,8 @@
 """Exact, homogeneous wide-integer ladder operations for the v35 5580 model.
 
-Qualified narrow signed ADD and SUB wrap at the destination width. ABS and NEG
-retain the signed minimum on overflow. Qualified DIV and MOD by zero complete.
+Qualified narrow signed ADD and SUB wrap at the destination width. SINT and INT
+MUL truncate DINT-range products. ABS and NEG retain the signed minimum on
+overflow. Qualified DIV and MOD by zero complete.
 """
 import math
 import operator
@@ -11,8 +12,10 @@ from .model import INT_BITS, UNSIGNED_BITS, ModelError, coerce, literal
 WIDE_TYPES = frozenset(('LINT', *UNSIGNED_BITS))
 CONTROLLERS = frozenset(f'1756-L8{number}E' for number in range(1, 6))
 CARRY_INSTRUCTIONS = frozenset(('ADD', 'SUB'))
+WRAPPING_BINARY_INSTRUCTIONS = CARRY_INSTRUCTIONS | {'MUL'}
 SIGNED_UNARY_INSTRUCTIONS = frozenset(('ABS', 'NEG'))
 SIGNED_WRAP_TYPES = frozenset(('SINT', 'INT', 'DINT'))
+NARROW_MULTIPLY_TYPES = frozenset(('SINT', 'INT'))
 COMPARISONS = {'EQU': operator.eq, 'NEQ': operator.ne, 'LES': operator.lt,
                'LEQ': operator.le, 'GRT': operator.gt, 'GEQ': operator.ge}
 INSTRUCTIONS = frozenset((*COMPARISONS, 'LIM', 'MOV', 'CLR', 'ADD', 'SUB', 'MUL',
@@ -300,9 +303,11 @@ def record_carry(memory, name, values, dtype):
 def write_integer_result(memory, op, scope, dtype, values, result):
     """Apply ladder result wrapping where the instruction and destination allow it."""
     name = op.name
-    if (memory.rung_carry is not None and dtype in SIGNED_WRAP_TYPES
-            and (name in CARRY_INSTRUCTIONS or
-                 name in SIGNED_UNARY_INSTRUCTIONS and values[0] == integer_bounds(dtype)[0])):
+    if (memory.rung_carry is not None and dtype in SIGNED_WRAP_TYPES and (
+            name in CARRY_INSTRUCTIONS
+            or (name in SIGNED_UNARY_INSTRUCTIONS and values[0] == integer_bounds(dtype)[0])
+            or (name == 'MUL' and dtype in NARROW_MULTIPLY_TYPES
+                and -(1 << 31) <= result < (1 << 31)))):
         stored = bit_value(result, dtype)
         memory.write(op.args[-1], stored, scope)
         memory.record_math_result(stored, overflow=stored != result)

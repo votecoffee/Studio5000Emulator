@@ -36,10 +36,11 @@ including values, task/time state and existing AOI bindings.
 Structural validation and operand selection apply to all eleven operations.
 Integer division into integer destinations truncates toward zero; integer remainder retains the
 dividend's sign. Wide homogeneous and qualified widening-tag arithmetic stay exact.
-[Signed SINT, INT and DINT ADD/SUB](#signed-add-and-sub-overflow) can wrap and
-continue. [ABS and NEG](#absolute-value-and-negation-at-the-signed-minimum)
-also continue at the signed minimum. Other checked integer arithmetic errors
-roll back the advance.
+[Signed ADD/SUB](#signed-add-and-sub-overflow) and
+[MUL into SINT or INT](#multiply-into-sint-or-int) can wrap and continue.
+[ABS and NEG](#absolute-value-and-negation-at-the-signed-minimum) also continue
+at the signed minimum. Other checked integer arithmetic errors roll back the
+advance.
 
 ## Carry after integer ADD and SUB
 
@@ -114,6 +115,20 @@ profile, and [other checked arithmetic results](#absolute-value-and-negation-at-
 retain their range checks. A later error rolls back the advance, including
 the wrapped value and downstream coil writes.
 [Rockwell math status flags](https://www.rockwellautomation.com/en-se/docs/studio-5000-logix-designer/38-01/contents-ditamap/instruction-set/math-status-flags.html)
+
+## Multiply into SINT or INT
+
+For standalone integer MUL in the v35 ControlLogix 5580 ladder profile, a
+DINT-range product writes its low destination bits to SINT or INT and
+continues the rung. For example, MUL of 64 and 2 into SINT writes -128 and sets
+`S:V`. A product that fits the destination clears `S:V`. The stored value
+drives `S:N` and `S:Z`, and MUL preserves the rung's carry flag. With
+`ReportMinorOverflow` enabled, narrowing also sets the task's `S:MINOR`.
+
+Products beyond signed DINT range and the checked wide-to-narrow conversion
+profile retain the existing range checks. Native controller results remain
+unverified.
+[Rockwell compute/math instructions](https://www.rockwellautomation.com/en-be/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/compute-math-instructions.html)
 
 ## Absolute value and negation at the signed minimum
 

@@ -322,7 +322,7 @@ class ScalarMathTests(unittest.TestCase):
     def test_later_overflow_rolls_back_a_wrapped_add_and_its_coil(self):
         e = self.checked([
             'ADD(Source,1,Results[0])XIC(S:V)OTE(RunLatch);',
-            'MUL(Source,Mask,Results[1]);',
+            'CPT(Results[1],Source*Mask);',
         ], dtype='SINT', value=127)
         e.memory.write('Mask', 2)
         before = self.snapshot(e)
@@ -333,6 +333,47 @@ class ScalarMathTests(unittest.TestCase):
         e.step()
         self.assertEqual(e.memory.read('Results'), [-128, 127, None])
         self.assertTrue(e.memory.read('RunLatch'))
+
+    def test_integer_multiply_truncates_narrow_result_and_preserves_carry(self):
+        cases = (
+            ('SINT', 64, 2, -128),
+            ('SINT', 64, 4, 0),
+            ('INT', 12000, 3, -29536),
+            ('INT', -12000, 3, 29536),
+        )
+        for dtype, source, mask, stored in cases:
+            with self.subTest(dtype=dtype, source=source, mask=mask):
+                e = self.checked([
+                    'XIC(StartPB)ADD(-1,1,Results[2])MUL(Source,Mask,Results[0])'
+                    '[XIC(S:C)XIC(S:V)OTE(RunLatch),XIC(S:N)OTE(MotorRunning),XIC(S:Z)OTE(StopPB)];',
+                ], dtype=dtype, value=source)
+                e.memory.write('Mask', mask)
+                e.step()
+                self.assertEqual(e.memory.read('Results'), [None, None, None])
+                e.memory.write('StartPB', True)
+                e.step()
+                self.assertEqual(e.memory.read('Results'), [stored, None, 0])
+                self.assertTrue(e.memory.read('RunLatch'))
+                self.assertEqual(e.memory.read('MotorRunning'), stored < 0)
+                self.assertEqual(e.memory.read('StopPB'), stored == 0)
+                e.memory.write('Mask', 1)
+                e.step()
+                self.assertEqual(e.memory.read('Results'), [source, None, 0])
+                self.assertFalse(e.memory.read('RunLatch'))
+
+    def test_radix_multiply_truncates_small_result_but_checks_dint_range(self):
+        e = self.checked(['MUL(16#FFFFFF80,-1,Results[0])XIC(S:V)OTE(RunLatch);'], dest='SINT')
+        e.step()
+        self.assertEqual(e.memory.read('Results'), [-128, None, None])
+        self.assertTrue(e.memory.read('RunLatch'))
+        for dest in ('SINT', 'INT', 'DINT'):
+            with self.subTest(dest=dest):
+                e = self.checked(['MOV(99,SpeedCommand);', 'MUL(Source,2,Results[0]);'],
+                                 source='DINT', dest=dest, value=2147483647)
+                before = self.snapshot(e)
+                with self.assertRaisesRegex(ModelError, 'overflow'):
+                    e.step()
+                self.assertEqual(self.snapshot(e), before)
 
     def test_radix_add_wrap_reports_task_minor_and_false_rung_skips_it(self):
         def configure(root):

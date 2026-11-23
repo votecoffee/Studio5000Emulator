@@ -3868,6 +3868,34 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.post('write', {'tag': 'Source', 'value': 1})
         self.assertEqual(readings(), (1, False, False, False))
 
+    def test_ladder_narrow_multiply_reports_overflow_and_recovers_through_http(self):
+        from test_scalar_math import ScalarMathTests
+
+        fixture = ScalarMathTests()
+        fixture.setUp()
+        try:
+            def configure(root):
+                root.find('Controller').set('ReportMinorOverflow', 'true')
+
+            engine = fixture.checked([
+                'MUL(Source,2,Results[0])XIC(S:V)OTE(RunLatch);',
+                'XIC(S:V)OTE(StartPB);',
+                'XIC(S:MINOR)OTE(MotorRunning);',
+            ], dtype='SINT', value=64, mutate=configure)
+            content = base64.b64encode(engine.project.path.read_bytes()).decode()
+        finally:
+            fixture.doCleanups()
+        self.assertEqual(self.post('load', {'name': 'NarrowMultiply.L5X', 'content': content})['blockers'], [])
+
+        def readings():
+            state = self.post('step', {'dt': 10})
+            values = {row['name']: row['value'] for row in state['tags']}
+            return tuple(values[name] for name in ('Results[0]', 'RunLatch', 'StartPB', 'MotorRunning'))
+
+        self.assertEqual(readings(), (-128, True, False, True))
+        self.post('write', {'tag': 'Source', 'value': 10})
+        self.assertEqual(readings(), (20, False, False, False))
+
     def test_imported_unknown_scalar_math_is_lazy_and_atomic_through_http(self):
         import base64
         from test_scalar_math import ScalarMathTests
