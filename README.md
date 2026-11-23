@@ -1020,9 +1020,10 @@ and [ladder AOI PID](docs/aoi-pid.md) add master/slave scaling and independent
 InOut/local records; module behavior, native filter coefficients and cascade feedback
 remain unfinished.
 
-[Numeric COP/CPS byte copies](docs/numeric-copies.md) add mixed integer/REAL bit
-images, clipped lengths and preserved partial destination elements. Choose
-**Byte copy lab** to inspect a packed packet and REAL/DINT roundtrips.
+[Numeric COP/CPS byte copies](docs/numeric-copies.md) preserve REAL and LREAL
+bit patterns, including NaN payloads and infinities, across mixed-type copies
+and partial destination writes. Choose **Byte copy lab** to inspect a packed
+packet and see an integer bit pattern produce infinity.
 
 [FBD bitwise operations](docs/fbd-bitwise.md) adds DINT AND/OR/XOR/NOT, masked
 comparison MEQ and explicit-target MVMT. Choose **FBD bitwise lab** for bit

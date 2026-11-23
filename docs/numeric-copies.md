@@ -12,8 +12,8 @@ copying, interruption behavior and fault/partial-effect parity remain unfinished
 
 ## Types and transfer length
 
-Supported numeric elements are SINT, INT, DINT, LINT, USINT, UINT, UDINT, ULINT
-and finite REAL/[LREAL](lreal-copy.md). The copy moves byte images, not converted numeric values:
+Supported numeric elements are SINT, INT, DINT, LINT, USINT, UINT, UDINT, ULINT,
+REAL and [LREAL](lreal-copy.md). Mixed-type copies reinterpret byte images.
 
 | Copy | Result |
 | --- | --- |
@@ -35,7 +35,7 @@ The final copied source element can contribute only a prefix of its bytes. A
 source ending partway through a destination element preserves the destination's
 remaining bytes. For example, bytes 1,2,3,4,5 copied to DINTs whose second value
 was 0x11223344 produce 0x04030201 and 0x11223305. The partial destination must
-have a known finite prior value so those preserved bytes can be retained. Full
+have a known prior value so those preserved bytes can be retained. Full
 destination elements do not require known old values.
 
 ## Regions and overlap
@@ -95,16 +95,19 @@ protection retains its existing conservative analysis and separate restrictions.
 This changes operand selection, not transfer algorithms, numeric encodings,
 aggregate layouts, synchronization or native fault/status/lifecycle claims.
 
-## Unknowns, finite values and rollback
+## Floating-point bit patterns and rollback
 
-Same-type copies retain logical unknown values as before. Mixed-type reads
-require known numeric source values. REAL/LREAL sources and reinterpreted REAL/LREAL
-results must be finite; NaN/Infinity payloads stop and roll back the advance.
-Signed-zero images are preserved for known finite REAL/LREAL values.
+Same-type copies retain logical unknown values. Mixed-type reads require known
+numeric source values. REAL and LREAL byte copies preserve signed zeros,
+infinities, and the sign and payload of quiet or signaling NaNs. This includes
+partial destination writes, which use the existing bytes of the floating-point
+destination. For example, copying UDINT `16#7F80_0001` into a REAL and back
+yields the same signaling NaN bit pattern. The tag monitor displays NaN as
+`NaN`. Payload bits can be inspected by copying the tag into an integer.
 
 Each actual transferred byte consumes one advance-budget unit. Negative or
-invalid lengths, unsupported references, unknown required bytes, unrepresentable
-REAL images or budget exhaustion fault transactionally. The whole advance
+invalid lengths, unsupported references, unknown required bytes or budget
+exhaustion fault transactionally. The whole advance
 restores tags, time, scheduler state and preceding instruction effects. A false
 ladder rung and ordinary prescan do not perform the copy.
 

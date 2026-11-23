@@ -1,8 +1,8 @@
-# Finite LREAL numeric byte copies
+# LREAL numeric byte copies
 
 App `26.1104.014542` adds LREAL to the existing v35 ControlLogix 5580 numeric
 COP/CPS profile. The ten numeric formats now include eight signed/unsigned
-integer types, finite REAL and finite LREAL. Existing ladder and ST calls share
+integer types, REAL and LREAL. Existing ladder and ST calls share
 the byte-copy path; no new ST expression syntax or FBD forms are introduced.
 
 ```text
@@ -17,7 +17,7 @@ LREAL uses an eight-byte little-endian host binary64 image. Copying
 4607182418800017409. Copying those bits back retains the original precision.
 Copying to DINT[2] produces low word 1 and high word 1072693248. These are byte
 reinterpretations, independent of the numeric conversions performed by MOV/TRN.
-Signed zero, subnormal values and large finite values retain their images.
+Signed zero, subnormals, finite values, infinities and NaNs retain their images.
 64-bit integer API results retain the existing exact decimal-string format.
 
 Length counts destination elements. Transfers clip to the requested bytes and
@@ -32,15 +32,14 @@ come from that destination's known old value. For example, copying DINT 1 into
 LREAL 1.0 replaces the low four bytes and produces 1.0000000000000002. Unknown
 partial destinations fault; a full write can establish an unknown destination.
 Mixed copies prepare all destination images before committing any writes.
-Reinterpreted NaN/Infinity images fault and roll back the advance. Same-type
-copies retain the existing logical unknown propagation and sequential forward
+Same-type copies retain the existing logical unknown propagation and sequential forward
 overlap behavior for both COP and CPS.
 
 Structural preflight checks types, shapes, permissions, literal bounds and
 static byte caps without consuming saved dynamic indices, lengths or values.
 False rungs/prescan skip live operands. Zero length validates both live addresses
 without consuming numeric values. Unknown required bytes, invalid indices,
-partial unknown destinations, nonfinite images, budget exhaustion and later
+partial unknown destinations, budget exhaustion and later
 faults roll back the advance, including task progress/timing and AOI local/
 external values and bindings. Matching LREAL AOI InOut/local arrays have
 warm-state rollback cases; copied LREAL AOI parameters remain separate.
@@ -50,7 +49,7 @@ ST FOR analysis retains existing write protection. A copy from LREAL into an
 integer array cannot overwrite a loop's captured integer bounds/step. LREAL
 loop-bound expressions remain outside the expression profile. Both COP and CPS
 execute within one model instruction; native task/I/O interruption, remote
-client synchronization, timing, nonfinite payload continuation, fault classes
+client synchronization, timing, fault classes
 and partial effects remain unverified.
 
 Open **Byte copy lab**. DoubleCopy starts false with DoubleCopyIndex=99 dormant
@@ -61,8 +60,9 @@ and DoubleResults[1] unknown. Set the index to 1, enable the section, then Step:
 - DoublePartial demonstrates the DINT low-word patch of an existing LREAL.
 - DoubleResults[0]/[2] retain fractional guards 101.125 and 999.5.
 
-DoubleInject enables a deliberately nonfinite integer image, which faults the
-copy. Disable it before continuing. DoubleDivisor=0 faults after earlier copies;
+DoubleInject copies the integer image in DoubleInjectedImage into DoubleRoundtrip.
+The default image displays as `Infinity`. Disable DoubleInject and step to
+restore the finite copy. DoubleDivisor=0 faults after earlier copies;
 restore it to 1. Disable DoubleCopy before returning its index to 99. Existing
 REAL packet and indexed examples remain independently available.
 

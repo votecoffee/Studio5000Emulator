@@ -1,6 +1,7 @@
 """Numeric byte images, clipped regions, partial writes and transaction boundaries."""
 import copy
 import itertools
+import math
 import tempfile
 import unittest
 from pathlib import Path
@@ -103,12 +104,36 @@ class NumericCopyTests(unittest.TestCase):
         self.assertEqual(e.memory.values,before)
         e=self.checked(dest_type='DINT');e.memory.values['src'][1]=None;e.step();self.assertIsNone(e.memory.read('Dst')[1])
 
-    def test_nonfinite_real_bit_image_rejects_the_whole_advance(self):
-        for invalid in (0x7fc00000,0x7f800000,-8388608):
-            e=self.checked(['MOV(99,SpeedCommand);','COP(Src[0],Dst[0],3);'],source=[1065353216,invalid,1073741824])
-            before=copy.deepcopy(e.memory.values)
-            with self.subTest(image=invalid),self.assertRaisesRegex(ModelError,'Nonfinite'):e.step()
-            self.assertEqual((e.memory.values,e.time_ms),(before,0))
+    def test_nonfinite_real_images_round_trip_without_quieting_signaling_nan(self):
+        images = [0x7f800000, 0xff800000, 0xffc12345, 0x7f800001]
+
+        def add_image(root):
+            tag(root.find('./Controller/Tags'), 'Roundtrip', 'UDINT', [0] * 4, dims=(4,))
+
+        for st in (False, True):
+            with self.subTest(structured_text=st):
+                e = self.checked(['COP(Src[0],Dst[0],4);', 'CPS(Dst[0],Roundtrip[0],4);'],
+                                 source_type='UDINT', source=images, source_dims=(4,),
+                                 dest=[0] * 4, dest_dims=(4,), mutate=add_image, st=st)
+                e.memory.values['dst'] = [None] * 4
+                e.step()
+                a, b, quiet, signaling = e.memory.read('Dst')
+                self.assertEqual((a, b), (math.inf, -math.inf))
+                self.assertTrue(math.isnan(quiet) and math.isnan(signaling))
+                self.assertEqual(e.memory.read('Roundtrip'), images)
+
+    def test_partial_real_copy_preserves_nonfinite_backing_bytes(self):
+        def add_images(root):
+            tags = root.find('./Controller/Tags')
+            tag(tags, 'Seed', 'UDINT', 0xff812345)
+            tag(tags, 'Roundtrip', 'UDINT', 0)
+
+        e = self.checked(['COP(Seed,Dst,1);', 'CPS(Src,Dst,1);', 'COP(Dst,Roundtrip,1);'],
+                         source_type='USINT', source=0xa5, source_dims=None,
+                         dest=0, dest_dims=None, mutate=add_images)
+        e.step()
+        self.assertTrue(math.isnan(e.memory.read('Dst')))
+        self.assertEqual(e.memory.read('Roundtrip'), 0xff8123a5)
 
     def test_signed_zero_roundtrips_through_its_integer_image(self):
         e=self.checked(['COP(Src,Dst,1);'],source_type='REAL',source=-0.0,source_dims=None,dest_type='DINT',dest=0,dest_dims=None);e.step()

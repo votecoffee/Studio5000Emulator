@@ -75,7 +75,7 @@ and [CLR](https://www.rockwellautomation.com/en-be/docs/studio-5000-logix-design
 references provide related instruction context. [Matching-tag ladder arithmetic
 and comparisons](lreal-math.md), plus [matching-tag advanced math](lreal-advanced.md),
 additionally execute. [TRN](lreal-truncate.md) additionally handles REAL/LREAL sources and integer/REAL/LREAL
-results. [Numeric COP/CPS](lreal-copy.md) additionally handles finite binary64 byte
+results. [Numeric COP/CPS](lreal-copy.md) additionally handles binary64 byte
 images and partial writes. [Mixed-tag arithmetic](mixed-lreal-math.md) promotes
 numeric tag inputs with a LREAL result, including numeric-only and constant-only
 sources through [result selection](lreal-destination-math.md).

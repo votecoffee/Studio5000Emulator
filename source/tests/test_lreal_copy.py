@@ -1,4 +1,4 @@
-"""Finite binary64 COP/CPS byte images, clipped windows and rollback."""
+"""Binary64 COP/CPS byte images, clipped windows and rollback."""
 import math
 import struct
 import unittest
@@ -58,12 +58,25 @@ class LrealCopyTests(unittest.TestCase):
             e=self.checked([instruction+'(Src[0],Src[1],2);'],source_type='LREAL',source=[1.0000000000000002,2,3]);e.step();self.assertEqual(e.memory.read('Src'),[1.0000000000000002]*3)
             e=self.checked([instruction+'(Src[1],Src[0],2);'],source_type='LREAL',source=[1,2,3]);e.step();self.assertEqual(e.memory.read('Src'),[2.0,3.0,3.0])
 
-    def test_nonfinite_images_roll_back_all_outputs_and_task_timing(self):
-        for image in (0x7ff0000000000000,0xfff0000000000000,0x7ff8000000000001):
-            e=self.checked(['MOV(99,SpeedCommand);','CPS(Src[0],Dst[0],3);'],source_type='ULINT',source=[0x3ff0000000000000,image,0x4000000000000000],dest_type='LREAL');self.fault(e,'Nonfinite LREAL')
-        e=self.scalar();e.memory.values['src']=float('inf');self.fault(e,'Nonfinite LREAL')
-        # A partial low-word patch retains the finite destination's upper bytes.
-        e=self.scalar(source_type='DINT',value=1,dest_type='LREAL',dest=math.nextafter(math.inf,0));e.step();self.assertTrue(math.isfinite(e.memory.read('Dst')))
+    def test_nonfinite_lreal_images_round_trip_and_support_a_partial_patch(self):
+        images = [0x7ff0000000000000, 0xfff0000000000000, 0x7ff8000000000001, 0xfff0008000000001]
+
+        def add_images(root):
+            tags = root.find('./Controller/Tags')
+            copies.tag(tags, 'Roundtrip', 'ULINT', [0] * 4, dims=(4,))
+            copies.tag(tags, 'LowWord', 'UDINT', 0x12345678)
+
+        e = self.checked([
+            'CPS(Src[0],Dst[0],4);',
+            'COP(LowWord,Dst[3],1);',
+            'CPS(Dst[0],Roundtrip[0],4);',
+        ], source_type='ULINT', source=images, source_dims=(4,), dest_type='LREAL',
+            dest=[0] * 4, dest_dims=(4,), mutate=add_images)
+        e.step()
+        a, b, quiet, signaling = e.memory.read('Dst')
+        self.assertEqual((a, b), (math.inf, -math.inf))
+        self.assertTrue(math.isnan(quiet) and math.isnan(signaling))
+        self.assertEqual(e.memory.read('Roundtrip'), [*images[:3], 0xfff0008012345678])
 
     def test_false_prescan_zero_length_and_live_unknown_indices_are_lazy(self):
         def controls(root):copies.tag(root.find('./Controller/Tags'),'Index','DINT',99)

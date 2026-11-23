@@ -1259,12 +1259,17 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual(v['DoubleImage'],'4607182418800017409');self.assertEqual((v['DoubleWords[0]'],v['DoubleWords[1]']),(1,1072693248))
         for name in ('DoubleRoundtrip','DoubleResults[1]','DoublePartial'):self.assertEqual(v[name],1.0000000000000002)
         self.assertEqual((v['DoubleResults[0]'],v['DoubleResults[2]']),(101.125,999.5))
-        for tag,bad,good in [('DoubleCopyIndex',99,1),('DoubleInject',True,False),('DoubleDivisor',0,1)]:
+        write('DoubleInject',True)
+        v=values(step());self.assertEqual(v['DoubleRoundtrip'],'Infinity')
+        write('DoubleInjectedImage','18442240474082181121')  # Negative signaling NaN with payload 1.
+        v=values(step());self.assertEqual(v['DoubleRoundtrip'],'NaN')
+        for tag,bad,good in [('DoubleCopyIndex',99,1),('DoubleDivisor',0,1)]:
             write(tag,bad);before=state_now()
             with self.assertRaises(HTTPError) as caught:step()
             self.assertEqual(caught.exception.code,400);caught.exception.close();after=state_now()
             for key in ('tags','scan','ms','task_schedule','routines'):self.assertEqual(after[key],before[key])
             write(tag,good);step()
+        write('DoubleInject',False)
         write('DoubleInput',5e-324);v=values(step());self.assertEqual(v['DoubleImage'],'1');self.assertEqual(v['DoubleRoundtrip'],5e-324)
         write('DoubleCopy',False);write('DoubleCopyIndex',99);step()
 
@@ -1344,9 +1349,12 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.assertEqual(caught.exception.code,400);caught.exception.close();after=state_now()
         self.assertEqual((after['tags'],after['scan'],after['ms'],after['task_schedule']),(before['tags'],before['scan'],before['ms'],before['task_schedule']))
         write('CopyLength',20);v=values(step());self.assertEqual((v['BitPattern'],v['Roundtrip']),(1073741824,2))
-        write('IntegerInput',2143289344);before=state_now()
+        write('IntegerInput',2143289344)
+        v=values(step());self.assertEqual(v['FloatOutput'],'NaN')
+        write('IntegerInput',2139095040);write('FaultDivisor',0);before=state_now()
         with self.assertRaises(HTTPError) as caught:step()
         self.assertEqual(caught.exception.code,400);caught.exception.close();after=state_now();self.assertEqual(after['tags'],before['tags'])
+        write('FaultDivisor',1);v=values(step());self.assertEqual(v['FloatOutput'],'Infinity')
         write('IntegerInput',-1071644672);v=values(step());self.assertEqual(v['FloatOutput'],-2.5)
         report=self.post('report',{});self.assertTrue(report['numeric_copy']['available']);self.assertFalse(report['numeric_copy']['native_runtime_parity'])
         self.assertIn('copy-demo',self.get('/').decode())

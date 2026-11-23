@@ -1,4 +1,5 @@
 """Bounded little-endian numeric COP/CPS regions, without aggregate ABI guesses."""
+import math
 import re
 import struct
 from .integer_math import CONTROLLERS, dint_radix
@@ -118,7 +119,16 @@ def plan(engine,op,scope,count):
     return source,dest,size
 
 
-def encode(value,dtype):
+def encode(value,dtype,*,allow_nonfinite=False):
+    if (allow_nonfinite and dtype in ('REAL', 'LREAL')
+            and type(value) is float and not math.isfinite(value)):
+        if dtype == 'REAL' and math.isnan(value):
+            # Converting a signaling NaN with struct.pack('<f') would quiet it.
+            image = int.from_bytes(struct.pack('<d', value), 'little')
+            sign = (image >> 32) & 0x80000000
+            fraction = (image >> 29) & 0x007fffff
+            return (sign | 0x7f800000 | (fraction or 0x00400000)).to_bytes(4, 'little')
+        return struct.pack('<' + FORMATS[dtype], value)
     if dtype=='REAL':value=real(value)
     elif dtype=='LREAL':
         if type(value) not in (int,float):raise ModelError('Numeric-copy source must be a known numeric scalar')
@@ -129,8 +139,16 @@ def encode(value,dtype):
     except (struct.error,OverflowError) as error:raise ModelError('Numeric-copy source value cannot be encoded') from error
 
 
-def decode(raw,dtype):
+def decode(raw,dtype,*,allow_nonfinite=False):
     value=struct.unpack('<'+FORMATS[dtype],raw)[0]
+    if allow_nonfinite and dtype in ('REAL', 'LREAL') and not math.isfinite(value):
+        if dtype == 'REAL' and math.isnan(value):
+            # Store the original sign and fraction in the host binary64 NaN.
+            image = int.from_bytes(raw, 'little')
+            sign = (image & 0x80000000) << 32
+            fraction = (image & 0x007fffff) << 29
+            value = struct.unpack('<d', (sign | 0x7ff0000000000000 | fraction).to_bytes(8, 'little'))[0]
+        return value
     return real(value) if dtype=='REAL' else coerce(value,'LREAL') if dtype=='LREAL' else value
 
 
@@ -143,14 +161,15 @@ def execute(engine,specification):
         # Retain established forward overlap propagation and unknown-value copies.
         for source_part,dest_part in zip(sparts[:size//SIZES[st]],dparts):memory.store(dk,dest_part,memory.at(sk,source_part))
         return
-    raw=b''.join(encode(memory.at(sk,p),st) for p in sparts[:(size+SIZES[st]-1)//SIZES[st]])[:size]
+    raw=b''.join(encode(memory.at(sk,p),st,allow_nonfinite=True)
+                 for p in sparts[:(size+SIZES[st]-1)//SIZES[st]])[:size]
     writes=[]
     for i,part in enumerate(dparts[:(size+SIZES[dt]-1)//SIZES[dt]]):
         chunk=raw[i*SIZES[dt]:(i+1)*SIZES[dt]]
         if len(chunk)<SIZES[dt]:
-            try:chunk+=encode(memory.at(dk,part),dt)[len(chunk):]
-            except ModelError as error:raise ModelError('Partial numeric-copy destination must be known and finite') from error
-        writes.append((part,decode(chunk,dt)))
+            try:chunk+=encode(memory.at(dk,part),dt,allow_nonfinite=True)[len(chunk):]
+            except ModelError as error:raise ModelError('Partial numeric-copy destination must be known') from error
+        writes.append((part,decode(chunk,dt,allow_nonfinite=True)))
     for part,value in writes:memory.store(dk,part,value)
 
 
@@ -181,12 +200,13 @@ def description(project):
                 partial='Preserve uncopied bytes in final destination element; its prior value must be known',
                 boundaries='Scalar, member or array region; row-major multidimensional arrays and resolved member arrays; no crossing structure members',
                 overlap='Same-type copies propagate forward sequentially for COP and CPS, preserving established model behavior',
-                unknowns='Same-type copies retain logical unknowns; mixed-type reads require known finite source values and finite REAL/LREAL results',
-                lreal='Eight-byte little-endian finite binary64 images; mixed numeric regions, partial bytes and logical same-type copies; no aggregate ABI or native synchronization claim',
+                unknowns='Same-type copies retain logical unknowns; mixed-type reads require known numeric source values',
+                floating_images='REAL and LREAL byte copies preserve signed zero, infinities and NaN sign and payload bits, including partial destination patches',
+                lreal='Eight-byte little-endian binary64 images; mixed numeric regions, partial bytes and logical same-type copies; no aggregate ABI or native synchronization claim',
                 selection='Structural numeric preflight; false/prescan skip live lengths, indices and values; true retains actual region and byte checks',
                 zero_length='Resolve live source/destination addresses without reading their numeric values',
                 atomicity='Both execute inside one model instruction; no native task/I/O/remote-client synchronization claim',
                 budget='One budget unit per actual transferred byte; whole-advance rollback on failure',
                 native_runtime_parity=False,
                 remaining=['Native aggregate/BOOL/string layouts and cross-member/base-tag copying',
-                           'Nonfinite REAL/LREAL payloads, native faults/partial effects, scheduling/interruption and other controller profiles'])
+                           'Native faults/partial effects, scheduling/interruption and other controller profiles'])
