@@ -110,6 +110,8 @@ def handle(engine, op, scope, *, execute=False):
             result = math.copysign(0.0, source_value)
         result = coerce(result, dtype)
     memory.store(key, parts, result)
+    if op.name == 'TRN':
+        memory.record_math_result(result)
     return True
 
 

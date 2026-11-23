@@ -1029,6 +1029,7 @@ class Memory:
         self.first_scan = True
         self.minor_fault = False
         self.rung_carry = None
+        self.rung_math_result = None
         self._resolved = {}
         self.frames = {}
         self.validating = False
@@ -1376,7 +1377,7 @@ class Memory:
             return {**value, **status_members(value['FLAGS'])}
         return value
 
-    def write(self, ref, value, scope=""):
+    def write(self, ref, value, scope="", *, math_result=False):
         key, parts, dtype = self.check_writable(ref,scope)
         # A scalar write establishes a previously unknown value. Bit writes still
         # require the other bits in their backing integer to be known.
@@ -1396,14 +1397,23 @@ class Memory:
             value = word & ((1 << width) - 1)
             if bit[3] and value >= 1 << (width - 1): value -= 1 << width
         self.store(key, parts, value)
+        if math_result and (dtype in INT_BITS or dtype in ('REAL', 'LREAL')):
+            self.record_math_result(value)
 
-    def write_floating_exception(self, ref, value, scope=""):
+    def write_floating_exception(self, ref, value, scope="", *, math_result=False):
         """Store an instruction-generated NaN or infinity in a floating scalar."""
         key, parts, dtype = self.check_writable(ref, scope)
         if (dtype not in ('REAL', 'LREAL') or isinstance(self.at(key, parts), (dict, list))
                 or type(value) is not float or math.isfinite(value)):
             raise ModelError('A floating exception requires one writable REAL or LREAL scalar')
         self.store(key, parts, value)
+        if math_result:
+            self.record_math_result(value)
+
+    def record_math_result(self, value):
+        """Expose a completed numeric store to the current ladder rung."""
+        if self.rung_carry is not None:
+            self.rung_math_result = value
 
     def check_writable(self,ref,scope=''):
         if scope in self.frames:

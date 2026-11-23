@@ -101,6 +101,59 @@ class ScalarMathTests(unittest.TestCase):
         e.step()
         self.assertTrue(e.memory.read('RunLatch'))
 
+    def test_zero_and_negative_flags_observe_the_converted_store(self):
+        cases = (
+            ('DIV(-1.0,4.0,Dest)', 'DINT', 0, True, False),
+            ('DIV(-3.0,2.0,Dest)', 'DINT', -2, False, True),
+            ('DIV(2.0,0.0,Dest)', 'DINT', 2147483647, False, False),
+            ('NOT(0,Dest)', 'DINT', -1, False, True),
+            ('MOV(-1,Dest)', 'USINT', 255, False, False),
+            ('TRN(-0.5,Dest)', 'REAL', -0.0, True, False),
+            ('ABS(-2,Dest)', 'LREAL', 2.0, False, False),
+            ('SQR(0,Dest)', 'LREAL', 0.0, True, False),
+            ('MOD(1.0,0.0,Dest)', 'REAL', 0.0, True, False),
+        )
+        for instruction, dest, result, zero, negative in cases:
+            with self.subTest(instruction=instruction, dest=dest):
+                e = self.checked([f'{instruction}[XIC(S:Z)OTE(RunLatch),XIC(S:N)OTE(MotorRunning)];'],
+                                 dest=dest)
+                e.step()
+                self.assertEqual(e.memory.read('Dest'), result)
+                self.assertEqual(e.memory.read('RunLatch'), zero)
+                self.assertEqual(e.memory.read('MotorRunning'), negative)
+
+    def test_zero_and_negative_flags_are_replaced_and_isolated_by_rung_and_call(self):
+        def add_worker(root):
+            routines = root.find('./Controller/Programs/Program/Routines')
+            body = E.SubElement(E.SubElement(routines, 'Routine', Name='Worker', Type='RLL'), 'RLLContent')
+            E.SubElement(E.SubElement(body, 'Rung', Number='0', Type='N'), 'Text').text = 'CLR(Dest);'
+
+        e = self.checked([
+            'SUB(1,2,Results[0])JSR(Worker,0)XIC(S:N)OTE(RunLatch);',
+            'XIC(S:N)OTE(StartPB);',
+            'SUB(1,2,Results[1])CLR(Results[2])XIO(S:N)XIC(S:Z)OTE(MotorRunning);',
+        ], mutate=add_worker)
+        e.step()
+        self.assertEqual(e.memory.read('Results'), [-1, -1, 0])
+        self.assertTrue(e.memory.read('RunLatch'))
+        self.assertFalse(e.memory.read('StartPB'))
+        self.assertTrue(e.memory.read('MotorRunning'))
+        self.assertIsNone(e.memory.rung_math_result)
+
+    def test_zero_and_negative_flag_consumers_skip_false_and_require_contacts(self):
+        self.assertTrue(self.engine(['OTE(S:N);']).blockers)
+        self.assertTrue(self.engine(['ONS(S:Z);']).blockers)
+        e = self.checked([
+            '[CLR(Dest),AFI()SUB(1,2,Results[1])]XIC(S:Z)OTE(RunLatch);',
+            'ASN(2.0,Results[2])[XIC(S:Z)OTE(StartPB),XIC(S:N)OTE(MotorRunning)];',
+            'XIC(S:N)OTE(StopPB);',
+        ], dest='REAL')
+        e.step()
+        self.assertTrue(e.memory.read('RunLatch'))
+        self.assertFalse(e.memory.read('StartPB'))
+        self.assertFalse(e.memory.read('MotorRunning'))
+        self.assertFalse(e.memory.read('StopPB'))
+
     def test_integer_mod_zero_retains_the_old_fault_policy_outside_v35_5580(self):
         def target(root):
             root.find('Controller').set('ProcessorType', '1756-L75')

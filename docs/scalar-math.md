@@ -61,6 +61,23 @@ overflow continuation remain unverified.
 [Rockwell math status flags](https://www.rockwellautomation.com/en-za/docs/studio-5000-logix-designer/37-01/contents-ditamap/instruction-set/math-status-flags.html)
 [Rockwell carry and borrow reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm015_-en-p.pdf#page=57)
 
+## Zero and negative results
+
+On v35 ControlLogix 5580 ladder rungs, `XIC(S:Z)` tests whether the latest
+modeled numeric result stored on the rung equals zero. `XIC(S:N)` tests
+whether it is less than zero. Use `XIO` for the inverse. The contacts read the
+converted destination value. For example, `DIV(-1.0,4.0,Result)` into DINT
+sets `S:Z` because the stored integer is zero. Both floating zeros set
+`S:Z`. NaN clears both flags, and negative infinity sets `S:N`.
+
+Producers in this revision are standalone scalar arithmetic and bitwise
+instructions, standalone roots, powers, logarithms and trigonometry, TRN, and
+numeric MOV and CLR. False instructions retain the flags. Each rung starts
+with both clear. Nested routine and AOI execution preserve the caller's flags.
+Expression and other instruction coverage, native status bit details and
+overflow effects remain unverified.
+[Rockwell math status flags](https://www.rockwellautomation.com/en-dk/docs/studio-5000-logix-designer/37-02/contents-ditamap/instruction-set/math-status-flags.html)
+
 ## Integer MOD with a zero divisor
 
 In the v35 5580 ladder profile, an enabled integer MOD with a zero divisor

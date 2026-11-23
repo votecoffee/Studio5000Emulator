@@ -111,7 +111,7 @@ def execute(memory, op, power, scope):
         else:
             base, exponent = values
             result = integer_power_result(base, exponent, profile)
-        memory.write(op.args[-1], result, scope)
+        memory.write(op.args[-1], result, scope, math_result=True)
         return True
     from .numeric_storage import (lreal_math_source, real_math_source,
                                   write_exceptional_result, write_lreal_math_result)
@@ -145,7 +145,7 @@ def execute(memory, op, power, scope):
     if profile == 'LREAL':
         write_lreal_math_result(memory, op.args[-1], result, scope)
     else:
-        memory.write(op.args[-1], result, scope)
+        memory.write(op.args[-1], result, scope, math_result=True)
     return True
 
 

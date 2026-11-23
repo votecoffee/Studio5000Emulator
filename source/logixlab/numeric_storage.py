@@ -138,7 +138,7 @@ def write_lreal_math_result(memory, ref, value, scope):
     """Validate the binary64 result before the one destination conversion."""
     value = coerce(value, 'LREAL')
     try:
-        memory.write(ref, value, scope)
+        memory.write(ref, value, scope, math_result=True)
     except OverflowError as error:
         raise ModelError('LREAL math result exceeds finite REAL range') from error
 
@@ -189,11 +189,13 @@ def write_exceptional_result(memory, ref, value, scope, *, instruction):
     """Store an instruction-produced NaN or infinity in a numeric destination."""
     key, parts, dtype = memory.check_writable(ref, scope)
     if dtype in ('REAL', 'LREAL'):
-        memory.write_floating_exception(ref, value, scope)
+        memory.write_floating_exception(ref, value, scope, math_result=True)
         return
     if dtype not in INT_BITS or dtype in UNSIGNED_BITS:
         raise ModelError(f'{instruction} nonfinite result cannot be stored in {dtype}')
-    memory.store(key, parts, signed_floating_exception(value, dtype))
+    result = signed_floating_exception(value, dtype)
+    memory.store(key, parts, result)
+    memory.record_math_result(result)
     if math.isinf(value) and memory.project.controller_configuration.report_minor_overflow is True:
         memory.minor_fault = True
 
@@ -204,7 +206,10 @@ def execute(engine, op, power, scope):
     source = specification(memory, op, scope)
     key, parts, dtype = destination(memory, op.args[-1], scope, allow_time=True, allow_string=op.name == 'MOV')
     if op.name == 'CLR':
-        memory.store(key, parts, coerce(0, dtype))
+        result = coerce(0, dtype)
+        memory.store(key, parts, result)
+        if dtype in TYPES:
+            memory.record_math_result(result)
         return True
     ref = op.args[0]
     capacity = memory.project.string_capacity(dtype)
@@ -224,7 +229,9 @@ def execute(engine, op, power, scope):
             and not math.isfinite(value) and dtype not in UNSIGNED_BITS):
         write_exceptional_result(memory, op.args[-1], value, scope, instruction=op.name)
         return True
-    memory.store(key, parts, convert(value, source, dtype))
+    result = convert(value, source, dtype)
+    memory.store(key, parts, result)
+    memory.record_math_result(result)
     return True
 
 

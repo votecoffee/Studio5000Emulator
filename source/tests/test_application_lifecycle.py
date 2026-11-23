@@ -3808,6 +3808,34 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.post('write', {'tag': 'Source', 'value': 0})
         self.assertEqual(readings(), (1, 1, False, False, False))
 
+    def test_ladder_zero_and_negative_status_read_converted_results_through_http(self):
+        import base64
+        from test_scalar_math import ScalarMathTests
+
+        fixture = ScalarMathTests()
+        fixture.setUp()
+        try:
+            engine = fixture.checked([
+                'DIV(Source,4.0,SpeedCommand)[XIC(S:Z)OTE(RunLatch),XIC(S:N)OTE(MotorRunning)];',
+                'XIC(S:Z)OTE(StartPB);',
+            ], source='REAL', value=-1)
+            content = base64.b64encode(engine.project.path.read_bytes()).decode()
+        finally:
+            fixture.doCleanups()
+        loaded = self.post('load', {'name': 'LadderMathResultFlags.L5X', 'content': content})
+        self.assertEqual(loaded['blockers'], [])
+
+        def readings():
+            state = self.post('step', {'dt': 10})
+            values = {row['name']: row['value'] for row in state['tags']}
+            self.assertNotIn('S:Z', values)
+            self.assertNotIn('S:N', values)
+            return tuple(values[name] for name in ('SpeedCommand', 'RunLatch', 'MotorRunning', 'StartPB'))
+
+        self.assertEqual(readings(), (0, True, False, False))
+        self.post('write', {'tag': 'Source', 'value': -6})
+        self.assertEqual(readings(), (-2, False, True, False))
+
     def test_imported_unknown_scalar_math_is_lazy_and_atomic_through_http(self):
         import base64
         from test_scalar_math import ScalarMathTests

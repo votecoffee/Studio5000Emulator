@@ -120,9 +120,9 @@ def execute_zero_divisor(engine, op, scope, result):
             or routine is None or routine.kind != 'RLL' or engine.addons.prescanning):
         raise ModelError(f'{op.name} divide by zero')
     if type(result) is float and not math.isfinite(result):
-        engine.memory.write_floating_exception(op.args[-1], result, scope)
+        engine.memory.write_floating_exception(op.args[-1], result, scope, math_result=True)
     else:
-        engine.memory.write(op.args[-1], result, scope)
+        engine.memory.write(op.args[-1], result, scope, math_result=True)
     if project.controller_configuration.report_minor_overflow is True:
         engine.memory.minor_fault = True
     return True
@@ -330,6 +330,6 @@ def execute(engine, op, scope, dtype, *, radix=False):
             result = bit_value({'AND': operator.and_, 'OR': operator.or_, 'XOR': operator.xor}[name](a, b), dtype)
         else:
             result = {'ADD': operator.add, 'SUB': operator.sub, 'MUL': operator.mul}[name](a, b)
-    memory.write(op.args[-1], coerce(result, dtype), scope)
+    memory.write(op.args[-1], coerce(result, dtype), scope, math_result=True)
     record_carry(memory, name, values, dtype)
     return True

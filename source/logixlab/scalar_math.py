@@ -128,7 +128,7 @@ def execute_floating(engine, op, scope, precision):
     elif precision == 'LREAL':
         write_lreal_math_result(memory, op.args[-1], result, scope)
     else:
-        memory.write(op.args[-1], real(result), scope)
+        memory.write(op.args[-1], real(result), scope, math_result=True)
     return True
 
 
@@ -232,7 +232,7 @@ def execute_bitwise(engine, op, scope):
     result_type = dtype
     if dtype in BITWISE_FLOATS:
         result_type = 'LINT' if dtype == 'LREAL' or 64 in widths else 'DINT'
-    memory.write(op.args[-1], bit_value(value, result_type), scope)
+    memory.write(op.args[-1], bit_value(value, result_type), scope, math_result=True)
     return True
 
 
@@ -426,6 +426,6 @@ def execute_narrowing(engine, op, scope, specification):
         elif op.name=='MUL':result=left*right
         elif op.name=='DIV':result=quotient(left,right)
         else:result=left-quotient(left,right)*right
-    engine.memory.write(op.args[-1],coerce(result,dtype),scope)
+    engine.memory.write(op.args[-1], coerce(result, dtype), scope, math_result=True)
     record_carry(engine.memory, op.name, values, dtype)
     return True

@@ -1091,8 +1091,10 @@ class Engine:
         if depth>32:raise ModelError('Routine/AOI nesting limit exceeded')
         previous = self._executing_routine
         previous_carry = self.memory.rung_carry
+        previous_math_result = self.memory.rung_math_result
         self._executing_routine = routine
         self.memory.rung_carry = None
+        self.memory.rung_math_result = None
         try:
             if routine.kind=='FBD':self.function_blocks.execute(routine,scope,context);return
             if routine.kind=='ST':self.structured.execute(routine,scope,depth,context);return
@@ -1103,6 +1105,7 @@ class Engine:
                 rung=routine.rungs[pc];events=[];power=False;control='';breaking=False
                 role=plan.get(pc);forced=role in ('body','close') and not enabled
                 self.memory.rung_carry = False if model_carry else None
+                self.memory.rung_math_result = None
                 try:
                     power = self._sequence(rung["nodes"], True, scope, depth, events,force_false=forced)
                     if role=='open':enabled=power
@@ -1126,6 +1129,7 @@ class Engine:
                 if breaking:raise BreakLoop()
         finally:
             self.memory.rung_carry = previous_carry
+            self.memory.rung_math_result = previous_math_result
             self._executing_routine = previous
 
 
@@ -1268,7 +1272,9 @@ class Engine:
         elif n == "CLR":
             if p: w(0, 0)
         elif n in ("NEG", "ABS", "NOT"):
-            if p: w(1, {"NEG": operator.neg, "ABS": abs, "NOT": operator.invert}[n](r(0)))
+            if p:
+                value = {"NEG": operator.neg, "ABS": abs, "NOT": operator.invert}[n](r(0))
+                self.memory.write(a[1], value, scope, math_result=True)
         elif n in ("ADD", "SUB", "MUL", "DIV", "MOD", "AND", "OR", "XOR"):
             if p:
                 x, y = r(0), r(1)
@@ -1303,7 +1309,7 @@ class Engine:
                 if (self.memory.rung_carry is not None and n in integer_math.CARRY_INSTRUCTIONS
                         and type(x) is int and type(y) is int):
                     carry_dtype = self.memory.resolve(a[2], scope)[2]
-                w(2, value)
+                self.memory.write(a[2], value, scope, math_result=True)
                 if carry_dtype is not None:
                     integer_math.record_carry(self.memory, n, (x, y), carry_dtype)
         elif n in ("TON", "TOF", "RTO"):
