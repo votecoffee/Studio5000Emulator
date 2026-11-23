@@ -382,6 +382,42 @@ class MinorFaultCapacityTests(unittest.TestCase):
         self.assertEqual(memory.read('CallerRecord[2]'), SHORT_TYPE_CODE)
         self.assertEqual(memory.read('LogCount'), 2)
 
+    def test_short_device_name_and_module_path_windows_record_minor_faults(self):
+        def settings(root):
+            add_capacity_fixture(root)
+            config.device_buffer(root, count=36)
+            config.GsvConfigurationTests.add_rack_path(root)
+
+        for attr, last_fit, payload in (
+            ('ControllerDevice,,DeviceName', 3, [9, *b'1756-L85E', *([0] * 23)]),
+            ('Module,RackIO,Path', 32, [2, 0, 1, 2]),
+        ):
+            with self.subTest(attribute=attr):
+                engine = self.checked([
+                    f'XIC(ResetCount)GSV({attr},DeviceBytes[Index]);',
+                    READ_CALLER, READ_MINOR, READ_BITS, READ_COUNT,
+                ], mutate=settings)
+                memory = engine.memory
+                initial = memory.read('DeviceBytes').copy()
+                memory.write('Index', last_fit + 1)
+                engine.step(10)
+                self.assertEqual(memory.read('LogCount'), 0)
+                memory.write('ResetCount', True)
+                with patch.object(engine, 'wall_time', return_value=TIMESTAMP):
+                    engine.step(10)
+                expected = record(TIMESTAMP)
+                expected[2] = SHORT_TYPE_CODE
+                self.assertEqual(memory.read('CallerRecord'), expected)
+                self.assertTrue(memory.read('MinorSeen'))
+                self.assertEqual((memory.read('LogBits'), memory.read('LogCount')), (INSTRUCTION_BIT, 1))
+                self.assertEqual(memory.read('DeviceBytes'), initial)
+
+                memory.write('Index', last_fit)
+                engine.step(10)
+                self.assertEqual(memory.read('DeviceBytes'), initial[:last_fit] + payload)
+                self.assertEqual(memory.read('LogCount'), 1)
+                self.assertFalse(memory.read('MinorSeen'))
+
     def test_static_short_window_and_runtime_out_of_range_keep_existing_errors(self):
         fixed = SHORT_GSV.replace('FaultSample[Index]', 'FaultSample[3]')
         self.assertTrue(self.engine([fixed], mutate=add_capacity_fixture).blockers)

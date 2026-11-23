@@ -583,9 +583,9 @@ class GsvConfigurationTests(unittest.TestCase):
         e.memory.write('Flag', True)
         e.memory.write('Index', 3)
         before = copy.deepcopy(e.memory.values)
-        with self.assertRaisesRegex(ModelError, '16 writable contiguous SINT'):
-            e.step()
-        self.assertEqual(e.memory.values, before)
+        e.step()
+        self.assertEqual(e.memory.read('DeviceBytes'), before['devicebytes'])
+        self.assertEqual(e.program_fault_description()['program_minor_fault_records'], 1)
         e.memory.write('Index', 1)
         e.step()
         self.assertEqual(e.memory.read('DeviceBytes'), [-1, 14, 0, 1, 3, 18, 9, *b'192.0.2.7', 0, -1])
@@ -593,7 +593,7 @@ class GsvConfigurationTests(unittest.TestCase):
         e = self.engine(loop, st=True, mutate=source)
         self.assertTrue(any('bounds/step' in error for error in e.blockers), e.blockers)
 
-    def test_module_path_defers_live_selection_and_rolls_back_a_short_window(self):
+    def test_module_path_distinguishes_invalid_index_and_short_live_window(self):
         def source(root):
             self.add_rack_path(root)
             device_buffer(root, count=6)
@@ -604,13 +604,16 @@ class GsvConfigurationTests(unittest.TestCase):
         self.assertEqual(e.memory.read('DeviceBytes'), [-1, None, None, None, None, -1])
         e.memory.write('Out', -8)
         e.memory.write('Flag', True)
-        for index, message in ((99, 'outside bounds'), (3, '4 writable contiguous SINT')):
-            e.memory.write('Index', index)
-            before = copy.deepcopy(e.memory.values)
-            with self.assertRaisesRegex(ModelError, message):
-                e.step()
-            self.assertEqual(e.memory.values, before)
-            self.assertEqual(e.scan_count, 1)
+        before = copy.deepcopy(e.memory.values)
+        with self.assertRaisesRegex(ModelError, 'outside bounds'):
+            e.step()
+        self.assertEqual(e.memory.values, before)
+        self.assertEqual(e.scan_count, 1)
+        e.memory.write('Index', 3)
+        e.step()
+        self.assertEqual(e.memory.read('Out'), 12)
+        self.assertEqual(e.memory.read('DeviceBytes'), before['devicebytes'])
+        self.assertEqual(e.program_fault_description()['program_minor_fault_records'], 1)
         e.memory.write('Index', 2)
         e.step()
         self.assertEqual(e.memory.read('DeviceBytes'), [-1, None, 2, 0, 1, 2])
@@ -976,9 +979,9 @@ class GsvConfigurationTests(unittest.TestCase):
         e=self.engine(['GSV(ControllerDevice,,DeviceName,DeviceBytes[4]);'],mutate=device_buffer)
         self.assertTrue(e.blockers)
 
-    def test_device_name_bounds_fail_atomically_and_guard_st_for_effects(self):
+    def test_device_name_short_st_window_fails_atomically_and_guards_st_for_effects(self):
         e=self.checked(['GSV(ControllerDevice,,ProductCode,PriorityOut);',
-                        'GSV(ControllerDevice,,DeviceName,DeviceBytes[Index]);'],mutate=device_buffer)
+                        'GSV(ControllerDevice,,DeviceName,DeviceBytes[Index]);'],st=True,mutate=device_buffer)
         e.memory.write('Index',4)
         before=copy.deepcopy(e.memory.values)
         with self.assertRaisesRegex(ModelError,'33 writable contiguous SINT'):

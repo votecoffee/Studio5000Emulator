@@ -592,8 +592,8 @@ A handler can clear
 in whole-project ladder as Type 4 Code 34.
 [Ladder GSV and SSV MinorFaultRecord](docs/controller-handlers.md#read-modeled-program-minor-faults)
 read a scheduled Program's latest modeled minor fault by name or `THIS`.
-A live DINT buffer with fewer than 11 remaining elements raises Type 4 Code 7
-and leaves the buffer intact.
+Ladder GSV reports Type 4 Code 7 and leaves the buffer intact when a valid
+runtime index leaves too little room for a fault record, device name or module path.
 A write with known zero Type and Code clears the selected record. [FaultLog](docs/controller-handlers.md#read-and-reset-the-controller-minor-fault-summary)
 exposes the independent controller-wide minor-fault bitmap and event count.
 

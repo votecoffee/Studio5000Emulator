@@ -994,6 +994,8 @@ class Engine:
             self.memory.minor_fault = True
             self._program_advance.minor_faults[self._executing_program] = MinorFaultRecord(self.wall_time(), code)
             self._program_advance.fault_log.record_instruction_fault()
+            return True
+        return False
 
     def _recover_ladder_fault(self, op, scope, error):
         if (scope in self.memory.frames or self.mode != 'project'

@@ -547,8 +547,17 @@ def _structured_fault_record(memory, key, parts, attribute):
     return key, paths, layout
 
 
-class FaultRecordCapacityError(ModelError):
-    """The selected DINT array tail cannot hold the complete record."""
+class ArrayDestinationTooSmall(ModelError):
+    """The selected primitive array tail cannot hold the complete value."""
+
+
+def _check_window_capacity(paths, size, message):
+    if len(paths) == size:
+        return
+    # Embedded arrays may have following members in native storage.
+    if paths and paths[0] and all(isinstance(part, int) for part in paths[0]):
+        raise ArrayDestinationTooSmall(message)
+    raise ModelError(message)
 
 
 def _fault_record_region(memory, ref, scope, *, writable=False, attribute='MajorFaultRecord'):
@@ -559,12 +568,11 @@ def _fault_record_region(memory, ref, scope, *, writable=False, attribute='Major
         if record is not None:
             return record
     key, paths, kind = prefix(memory, ref, scope, FAULT_RECORD_WORDS, writable=writable)
-    if kind != 'DINT' or len(paths) != FAULT_RECORD_WORDS:
-        direction = 'writable' if writable else 'readable'
-        error = f'{attribute} requires 11 {direction} contiguous DINT elements or a supported UDT first member'
-        if kind == 'DINT' and paths and paths[0] and all(isinstance(part, int) for part in paths[0]):
-            raise FaultRecordCapacityError(error)
+    direction = 'writable' if writable else 'readable'
+    error = f'{attribute} requires 11 {direction} contiguous DINT elements or a supported UDT first member'
+    if kind != 'DINT':
         raise ModelError(error)
+    _check_window_capacity(paths, FAULT_RECORD_WORDS, error)
     return key, paths, kind
 
 
@@ -736,8 +744,10 @@ def execute_module_set(engine, op, scope):
 def destination(memory, ref, scope, dtype, value, *, allow_dint=False):
     if dtype == 'SINT[33]':
         key, parts, kind = prefix(memory, ref, scope, DEVICE_NAME_SIZE, writable=True)
-        if kind != 'SINT' or len(parts) != DEVICE_NAME_SIZE:
-            raise ModelError('GSV ControllerDevice DeviceName requires 33 writable contiguous SINT elements')
+        error = 'GSV ControllerDevice DeviceName requires 33 writable contiguous SINT elements'
+        if kind != 'SINT':
+            raise ModelError(error)
+        _check_window_capacity(parts, DEVICE_NAME_SIZE, error)
         return key, parts, kind
     if dtype in (MAJOR_FAULT_RECORD, MINOR_FAULT_RECORD):
         attribute = 'MinorFaultRecord' if dtype == MINOR_FAULT_RECORD else 'MajorFaultRecord'
@@ -750,7 +760,11 @@ def destination(memory, ref, scope, dtype, value, *, allow_dint=False):
             raise ModelError(error)
         base, cells = region
         start = parts[-1] if parts != base else 0
-        if len(cells) - start < size or isinstance(cells[0], list):
+        if not cells or isinstance(cells[0], list):
+            raise ModelError(error)
+        if len(cells) - start < size:
+            if not base:
+                raise ArrayDestinationTooSmall(error)
             raise ModelError(error)
         return key, [base + [i] for i in range(start, start + size)], kind
     if dtype=='STRING':
@@ -790,10 +804,12 @@ def execute(engine, op, scope):
     dtype,value=source(engine,op,scope,executing=True);memory=engine.memory
     try:
         key,paths,kind=destination(memory,op.args[3],scope,dtype,value,allow_dint=dtype=='INT' and op.args[0].casefold()=='module')
-    except FaultRecordCapacityError:
-        if dtype != MINOR_FAULT_RECORD:
+    except ArrayDestinationTooSmall:
+        routine = engine._executing_routine
+        if (dtype not in (MINOR_FAULT_RECORD, 'SINT[33]', MODULE_PATH) or routine is None
+                or routine.kind != 'RLL' or scope in memory.frames
+                or not engine._record_instruction_minor_fault(GSV_DESTINATION_TOO_SMALL)):
             raise
-        engine._record_instruction_minor_fault(GSV_DESTINATION_TOO_SMALL)
         return
     if dtype in (MAJOR_FAULT_RECORD, MINOR_FAULT_RECORD) and kind != 'DINT':
         value = _structured_fault_values(value, kind)
@@ -835,6 +851,7 @@ def description():
                     attributes={name: dtype for name, (dtype, _) in AOI_DEFINITION_FIELDS.items()}),
                 module=['ForceStatus','LEDStatus','Mode','EntryStatus','FaultCode','FaultInfo','Path'],
                 module_path='Counted CIP route for a local slot, an explicit IPv4 device, or a slot under a qualified remote EN2T/EN2TR.',
+                short_array_destination='Ladder DeviceName, Module Path and MinorFaultRecord record Type 4 Code 7 for an in-bounds root array start with insufficient capacity.',
                 named_module_settings='Explicit local and qualified routed source settings with live Mode overrides. EntryStatus models Inhibited, Waiting, and explicit simulated Running or Faulted states.',
                 module_mode_ssv={'source':'Exact scalar INT with bits 0 and 2 only',
                                  'visibility':'Immediate within an advance; rolled back on fault',

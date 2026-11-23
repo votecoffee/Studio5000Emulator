@@ -230,6 +230,8 @@ padding into 33 writable SINT elements. A larger array or an indexed start
 works when the complete window fits in the selected array. Bytes outside
 the window retain their values. The catalog name comes from the project
 processor, independent of the endpoint's advertised identity profile.
+See [short array destinations](#short-array-destinations) for ladder fault
+handling when a runtime index leaves fewer than 33 bytes.
 
 SerialNumber is a read-only GSV attribute with a writable DINT destination.
 It returns the same 32-bit virtual serial that EtherNet/IP advertises,
@@ -516,11 +518,29 @@ from configuration and native returned bytes have yet to be verified.
 
 The destination must have at least four writable SINT cells from the
 selected start in one dimension. A skipped call leaves the array alone
-and defers any indirect index. A reached short window faults and rolls
-back the emulator scan. The native short-buffer zeroing and minor-fault
-log and live message forwarding remain open.
+and defers any indirect index. See [short array destinations](#short-array-destinations)
+for the modeled ladder minor fault on a short window. Native route bytes and
+live message forwarding remain unverified.
 [Rockwell Module object](https://www.rockwellautomation.com/en-gb/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/input-output-instructions/access-the-module-object.html)
 [Rockwell backplane routing reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/at/enet-at002_-en-p.pdf)
+
+## Short array destinations
+
+In a scheduled ladder Program, `ControllerDevice.DeviceName` and `Module.Path`
+report Type 4, Code 7 when a runtime index starts inside a base SINT array
+with too few elements left for the value. DeviceName needs 33 bytes. Module
+Path needs two length bytes plus the configured route. The entire array
+retains its previous values and the rung continues. The executing Program
+records the fault, `S:MINOR` is set, and the controller FaultLog sets bit 4
+and increments `MinorEvents`.
+
+Static short destinations, incompatible types and read-only tags are still
+rejected before execution. An index outside the selected array follows the
+existing array-fault rules. A short window still stops the advance in
+Structured Text, an AOI, or an isolated routine harness. Native controller
+behavior remains unverified for the modeled byte-array profile.
+
+[Rockwell GSV and SSV fault codes](https://www.rockwellautomation.com/en-gb/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/input-output-instructions/get-system-value--gsv--and-set-system-value--ssv-.html)
 
 ## Module Ethernet path
 
