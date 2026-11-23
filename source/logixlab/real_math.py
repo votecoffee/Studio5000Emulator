@@ -116,7 +116,7 @@ def execute(memory, op, power, scope):
     from .numeric_storage import (lreal_math_source, real_math_source,
                                   write_exceptional_result, write_lreal_math_result)
     name = op.name
-    allow_nonfinite = name in EXCEPTIONAL_UNARY
+    allow_nonfinite = name in EXCEPTIONAL_UNARY or name == 'XPY'
     if profile in ('REAL', 'LREAL'):
         read = lreal_math_source if profile == 'LREAL' else real_math_source
         values = [read(memory, ref, scope, execute=True, radix=True, allow_nonfinite_tag=allow_nonfinite)
@@ -124,12 +124,18 @@ def execute(memory, op, power, scope):
     else:
         values = [real(memory.read(ref, scope)) for ref in op.args[:-1]]
     try:
-        if (name in UNIT_INTERVAL_TRIG and abs(values[0]) > 1
+        if name == 'XPY':
+            base, exponent = values
+            if base < 0 and math.isfinite(exponent) and not exponent.is_integer():
+                raise ValueError('Negative power base with a fractional exponent')
+            result = math.pow(base, exponent)
+        elif (name in UNIT_INTERVAL_TRIG and abs(values[0]) > 1
                 or name in CIRCULAR_TRIG and math.isinf(values[0])):
             result = math.nan
         else:
-            result = math.pow(*values) if name == 'XPY' else FUNCTIONS[name](*values)
-        if allow_nonfinite and not math.isfinite(result) and (math.isnan(result) or math.isinf(values[0])):
+            result = FUNCTIONS[name](*values)
+        if (allow_nonfinite and not math.isfinite(result)
+                and (math.isnan(result) or any(math.isinf(value) for value in values))):
             write_exceptional_result(memory, op.args[-1], result, scope, instruction=name)
             return True
         if profile != 'LREAL':
@@ -167,7 +173,7 @@ def description():
                     radix_sources=dict(bases=[2,8,16],types=['DINT','LINT','UDINT','ULINT'],selection='Existing REAL calculation selectors; decode declared word before float32 conversion',native_runtime_parity=False),
                     integer_conversion='Convert the float32 result to the declared integer by nearest-even rounding with range checks',
                     constants='Bounded DINT/finite REAL and decimal/radix L/U/UL integer constants and signed DINT radix words; declared range before float32 conversion',
-                    calculation='All required sources convert to finite float32 before the existing unary/power solver; result rounds to float32',
+                    calculation='Finite sources and results round to float32; selected standalone operations accept exceptional floating tag values',
                     boundaries='LREAL inputs select the binary64 path before final destination conversion',
                     native_runtime_parity=False),
                 lreal=dict(instructions=sorted(INSTRUCTIONS),sources='Scalar numeric tags for unary forms; XPY uses its separate profile',destination='Scalar LREAL tag',
@@ -178,9 +184,9 @@ def description():
                     power=dict(instruction='XPY',source_types=sorted({*INT_BITS,'REAL','LREAL'}),
                         operands='Scalar numeric sources and bounded integer constants with a LREAL result; no LREAL source is required',
                         constants='DINT radix words, bounded DINT/finite REAL and decimal/radix L/U/UL integer or floating L/l constants in either source position; declared precision before binary64 promotion',
-                        promotion='Convert all required numeric tag sources to finite binary64; stored REAL precision and wide integer rounding are retained',
+                        promotion='Convert finite numeric sources to binary64; stored REAL precision and wide integer rounding are retained',
                         native_runtime_parity=False),
-                    arithmetic='Finite host binary64 sources/results; same math functions without a REAL intermediate',
+                    arithmetic='Binary64 math without a REAL intermediate; finite overflow stays checked and selected operations accept exceptional tag values',
                     selection_by_source='An LREAL tag or floating L/l constant selects binary64 with any scalar numeric destination',
                     destination_types=sorted({*INT_BITS, 'REAL', 'LREAL'}),
                     result_conversion='Convert the finite binary64 result once; integer destinations round ties to even and require range',
@@ -202,6 +208,12 @@ def description():
                     nan='NaN propagates through all six instructions',
                     destination='Floating results preserve NaN or infinity; signed integers store zero or a signed limit; unsigned integers reject a nonfinite result',
                     boundaries='Finite-input overflow retains the existing checked path',
+                    native_runtime_parity=False),
+                exceptional_power=dict(instruction='XPY',
+                    inputs='NaN and signed infinity can come from either REAL/LREAL source tag',
+                    evaluation='Both operands are consumed. Host IEEE power rules apply, including NaN to zero power, unit base, and signed zeros from infinite bases',
+                    destination='Floating results preserve NaN or infinity; signed integers store zero or a signed limit; unsigned integers reject a nonfinite result',
+                    boundaries='Negative bases with a finite fractional exponent, finite-input overflow, and zero to a finite negative exponent retain the existing checked path',
                     native_runtime_parity=False),
                 failures='Unknown values, unsupported domains and result overflows stop and roll back the advance',
                 native_math_status=False, native_fault_classification=False,

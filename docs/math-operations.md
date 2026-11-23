@@ -120,6 +120,9 @@ of infinity sets the modeled task `S:MINOR` bit when `ReportMinorOverflow`
 is explicitly enabled. Unsigned destinations reject nonfinite results.
 Finite-input overflow still rolls back the advance.
 
+[Ladder XPY](mixed-lreal-power.md#powers-with-nan-and-infinity) also accepts
+exceptional floating tags in either operand position.
+
 ## Wide integer roots and powers
 
 App `26.1105.082615` adds an exact software profile for ladder SQR and XPY

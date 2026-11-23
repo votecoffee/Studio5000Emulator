@@ -418,7 +418,8 @@ eleven ladder math forms to all numeric tag types and signed DINT-range
 constants. **Math lab** demonstrates roots, angles, logs, trig and fault recovery.
 
 [Mixed LREAL powers](docs/mixed-lreal-power.md) adds XPY with numeric tag pairs
-and signed DINT-range constants, with a LREAL result.
+and signed DINT-range constants, with a LREAL result. Ladder XPY also accepts
+NaN and infinity in either floating tag operand.
 **Math lab** includes precision, wide-integer rounding and fault examples.
 
 [Integer constants with LREAL](docs/lreal-constants.md) adds signed DINT-range

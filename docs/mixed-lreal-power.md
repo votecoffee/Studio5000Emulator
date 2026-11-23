@@ -13,12 +13,13 @@ XPY(DoubleBase,2,DoubleSquare);
 XPY(2,DoubleExponent,DoubleResult);
 ```
 
-Every required source is read and converted to finite binary64 before the host
-real-valued power operation. Integer signs and unsigned numeric values are
+Every required source is read. Finite sources are converted to binary64 before
+the host real-valued power operation. Integer signs and unsigned numeric values are
 preserved. REAL contributes its already stored float32 value. Integer constants
-between -2147483648 and 2147483647 inclusive promote exactly; floating, Boolean,
-typed and larger literals remain excluded. A LREAL destination selects this profile even without a LREAL source, including
-constant-only calls.
+between -2147483648 and 2147483647 inclusive promote exactly.
+[Typed and floating literals](lreal-math-literals.md) use their declared ranges
+and precision. A LREAL destination selects this profile even without a LREAL
+source, including constant-only calls.
 
 DINT 16777217 squared with a LREAL exponent produces 281475010265089. A REAL
 source assigned 16777217 first stores 16777216, so its square is
@@ -27,11 +28,28 @@ Wide integers can round during promotion: the LINT exponent 9007199254740993
 becomes the even binary64 value 9007199254740992, so a base of -1 produces +1.
 This profile operates on converted floating values, not exact integer powers.
 
-Negative bases accept integer-valued exponents. Fractional powers requiring a
-complex result, zero raised to a negative power and overflow fault and roll back
-the advance. Host 0^0 is 1. Finite signed zero, subnormals and underflow retain
+For finite operands, a negative base requires an integer-valued exponent.
+Fractional powers requiring a complex result, zero raised to a negative power
+and overflow fault and roll back the advance. Host 0^0 is 1. Signed zero, subnormals and underflow retain
 the existing binary64 solver behavior. Native precision, math flags, minor-fault
 continuation and lifecycle equivalence remain unverified.
+
+## Powers with NaN and infinity
+
+Either floating tag operand can hold NaN or signed infinity. In the ladder
+model, an exponent of zero or a base of one returns one, even if the other
+operand is NaN. A negative infinity raised to an odd positive integer gives
+negative infinity. An odd negative integer exponent gives negative zero.
+A negative base with a finite fractional exponent still faults, including a
+base of negative infinity. Zero to a finite negative exponent still faults.
+[Rockwell XPY guidance](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/advanced-math-instructions/expt.html)
+[Host power rules](https://docs.python.org/3.13/library/math.html#math.pow)
+
+Floating destinations retain the result. Signed integer destinations receive
+zero for NaN or the signed limit for infinity. A signed conversion of infinity
+sets the modeled task `S:MINOR` bit with explicit `ReportMinorOverflow`
+enabled. Unsigned integer destinations reject a nonfinite result and roll back
+the advance.
 
 Structural preflight checks types, scalar shapes, references, permissions and
 literal bounds without saved values or dynamic indices. False/prescan paths

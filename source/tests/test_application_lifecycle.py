@@ -3916,6 +3916,38 @@ class ApplicationLifecycleTests(unittest.TestCase):
         angle = math.radians(-4)
         self.assertEqual(readings(), (2, angle, math.cos(angle), -4, True))
 
+    def test_ladder_power_consumes_div_exceptions_in_both_operand_positions(self):
+        import base64
+        from test_real_remainder import RealRemainderTests
+
+        fixture = RealRemainderTests()
+        fixture.setUp()
+        try:
+            engine = fixture.checked([
+                'XIC(StartPB)DIV(Source,Mask,Results[0]);',
+                'XIC(StartPB)XPY(Results[0],3,Results[1]);',
+                'XIC(StartPB)XPY(0.5,Results[0],Results[2]);',
+                'XIC(StartPB)XPY(Results[0],3,SpeedCommand)OTE(RunLatch);',
+            ], source='LREAL', dest='LREAL', value=-8, divisor=0)
+            content = base64.b64encode(engine.project.path.read_bytes()).decode()
+        finally:
+            fixture.doCleanups()
+        loaded = self.post('load', {'name': 'ExceptionalPower.L5X', 'content': content})
+        self.assertEqual(loaded['blockers'], [])
+        self.post('write', {'tag': 'StartPB', 'value': True})
+
+        def readings():
+            state = self.post('step', {'dt': 10})
+            values = {row['name']: row['value'] for row in state['tags']}
+            return tuple(values[name] for name in ('Results[1]', 'Results[2]', 'SpeedCommand', 'RunLatch'))
+
+        self.assertEqual(readings(), ('-Infinity', 'Infinity', -2147483648, True))
+        self.post('write', {'tag': 'Source', 'value': 0})
+        self.assertEqual(readings(), ('NaN', 'NaN', 0, True))
+        self.post('write', {'tag': 'Source', 'value': -8})
+        self.post('write', {'tag': 'Mask', 'value': 2})
+        self.assertEqual(readings(), (-64, 16, -64, True))
+
     def test_floating_div_signed_integer_limits_and_minor_status_through_http(self):
         import base64
         from test_real_remainder import RealRemainderTests

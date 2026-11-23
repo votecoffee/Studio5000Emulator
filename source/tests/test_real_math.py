@@ -185,6 +185,64 @@ class RealMathTests(unittest.TestCase):
         e=self.checked(['XPY(Source,Mask,Source);'],values=(2,3,7));e.step()
         self.assertEqual(e.memory.read('Source'),8.0)
 
+    def test_power_covers_exceptional_bases_and_exponents(self):
+        cases = (
+            (math.nan, 0.0, 1.0),
+            (1.0, math.nan, 1.0),
+            (math.nan, 2.0, math.nan),
+            (2.0, math.nan, math.nan),
+            (0.5, math.inf, 0.0),
+            (2.0, math.inf, math.inf),
+            (0.0, -math.inf, math.inf),
+            (-math.inf, 3.0, -math.inf),
+            (-math.inf, 2.0, math.inf),
+            (-math.inf, -3.0, -0.0),
+        )
+        for dtype in ('REAL', 'LREAL'):
+            e = self.checked(['XPY(Source,Mask,Dest)OTE(RunLatch);'], types=(dtype,) * 3)
+            for base, exponent, expected in cases:
+                with self.subTest(dtype=dtype, base=base, exponent=exponent):
+                    for ref, value in (('Source', base), ('Mask', exponent)):
+                        if math.isfinite(value):
+                            e.memory.write(ref, value)
+                        else:
+                            e.memory.write_floating_exception(ref, value)
+                    e.step()
+                    result = e.memory.read('Dest')
+                    if math.isnan(expected):
+                        self.assertTrue(math.isnan(result))
+                    else:
+                        self.assertEqual(result, expected)
+                        self.assertEqual(math.copysign(1, result), math.copysign(1, expected))
+                    self.assertTrue(e.memory.read('RunLatch'))
+
+    def test_exceptional_power_preserves_destination_and_negative_base_checks(self):
+        def enable_reporting(root):
+            root.find('Controller').set('ReportMinorOverflow', 'true')
+
+        e = self.checked(['XPY(Source,Mask,Dest);', 'XIC(S:MINOR)OTE(MotorRunning);'],
+                         types=('LREAL', 'REAL', 'LINT'), values=(2, 3, 7), mutate=enable_reporting)
+        e.memory.write_floating_exception('Source', -math.inf)
+        e.step()
+        self.assertEqual(e.memory.read('Dest'), -2**63)
+        self.assertTrue(e.memory.read('MotorRunning'))
+        e.memory.write('Mask', 0.5)
+        before = copy.deepcopy(e.memory.values)
+        with self.assertRaisesRegex(ModelError, 'XPY outside the finite LREAL'):
+            e.step()
+        self.assertEqual(e.memory.values, before)
+
+        e = self.checked(['MOV(99,SpeedCommand);', 'XPY(Source,Mask,Dest);'],
+                         types=('REAL', 'LREAL', 'ULINT'), values=(2, 2, 7))
+        e.memory.write_floating_exception('Mask', math.inf)
+        before = copy.deepcopy(e.memory.values)
+        with self.assertRaisesRegex(ModelError, 'XPY nonfinite result'):
+            e.step()
+        self.assertEqual(e.memory.values, before)
+        e.memory.write_floating_exception('Mask', -math.inf)
+        e.step()
+        self.assertEqual(e.memory.read('Dest'), 0)
+
     def test_constant_sources_allowed_and_constant_destinations_rejected(self):
         def source(root):root.find('./Controller/Tags/Tag[@Name="Source"]').set('Constant','true')
         e=self.checked(['SQR(Source,Dest);'],mutate=source);e.step()
