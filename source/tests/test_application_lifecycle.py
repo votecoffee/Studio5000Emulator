@@ -3836,6 +3836,32 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.post('write', {'tag': 'Source', 'value': -6})
         self.assertEqual(readings(), (-2, False, True, False))
 
+    def test_ladder_overflow_tracks_narrowing_through_http(self):
+        import base64
+        from test_scalar_math import ScalarMathTests
+
+        fixture = ScalarMathTests()
+        fixture.setUp()
+        try:
+            engine = fixture.checked([
+                'MOV(Source,Results[0])[XIC(S:V)OTE(RunLatch),XIC(S:N)OTE(MotorRunning)];',
+                'XIC(S:V)OTE(StartPB);',
+            ], source='DINT', dest='SINT', value=129)
+            content = base64.b64encode(engine.project.path.read_bytes()).decode()
+        finally:
+            fixture.doCleanups()
+        self.assertEqual(self.post('load', {'name': 'LadderOverflow.L5X', 'content': content})['blockers'], [])
+
+        def readings():
+            state = self.post('step', {'dt': 10})
+            values = {row['name']: row['value'] for row in state['tags']}
+            self.assertNotIn('S:V', values)
+            return tuple(values[name] for name in ('Results[0]', 'RunLatch', 'MotorRunning', 'StartPB'))
+
+        self.assertEqual(readings(), (-127, True, True, False))
+        self.post('write', {'tag': 'Source', 'value': 1})
+        self.assertEqual(readings(), (1, False, False, False))
+
     def test_imported_unknown_scalar_math_is_lazy_and_atomic_through_http(self):
         import base64
         from test_scalar_math import ScalarMathTests

@@ -78,6 +78,27 @@ Expression and other instruction coverage, native status bit details and
 overflow effects remain unverified.
 [Rockwell math status flags](https://www.rockwellautomation.com/en-dk/docs/studio-5000-logix-designer/37-02/contents-ditamap/instruction-set/math-status-flags.html)
 
+## Overflow status
+
+In the v35 ControlLogix 5580 ladder profile, `XIC(S:V)` reads the current rung's
+overflow flag and `XIO(S:V)` tests its inverse. `OTE(S:V)` copies rung power
+to the flag. `OTL(S:V)` sets it when powered and leaves it alone otherwise.
+Each rung starts clear. A nested routine or AOI restores the caller's flag
+when it returns.
+
+Integer MOV sets the flag when the stored value differs from its integer
+source. String MOV sets it when the source exceeds destination capacity.
+Modeled DIV and MOD with a zero divisor also set it, as does an infinity result
+converted to a signed integer limit. A normal modeled numeric result or
+unclipped string MOV clears the flag. If the controller export explicitly
+enables `ReportMinorOverflow`, setting the flag also raises `S:MINOR` for the
+task invocation. Clearing `S:V` leaves that task status intact.
+
+Finite arithmetic that exceeds a checked destination range still rolls back the
+advance. Native fault records, wider instruction coverage and native status
+qualification remain open.
+[Rockwell replacement guide](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm100_-en-p.pdf#page=167)
+
 ## Integer MOD with a zero divisor
 
 In the v35 5580 ladder profile, an enabled integer MOD with a zero divisor

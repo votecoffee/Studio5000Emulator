@@ -195,9 +195,7 @@ def write_exceptional_result(memory, ref, value, scope, *, instruction):
         raise ModelError(f'{instruction} nonfinite result cannot be stored in {dtype}')
     result = signed_floating_exception(value, dtype)
     memory.store(key, parts, result)
-    memory.record_math_result(result)
-    if math.isinf(value) and memory.project.controller_configuration.report_minor_overflow is True:
-        memory.minor_fault = True
+    memory.record_math_result(result, overflow=math.isinf(value))
 
 
 def execute(engine, op, power, scope):
@@ -215,8 +213,12 @@ def execute(engine, op, power, scope):
     capacity = memory.project.string_capacity(dtype)
     if capacity is not None:
         text = string_operations.string_literal(ref)
-        value = memory.string(ref, scope, limit=capacity) if text is None else text[:capacity]
+        if text is None:
+            value, truncated = memory.string_prefix(ref, capacity, scope)
+        else:
+            value, truncated = text[:capacity], len(text) > capacity
         memory.write_string(op.args[-1], value, scope)
+        memory.record_overflow(truncated)
         return True
     if dtype in time_values.TYPES or source in time_values.TYPES:
         ticks = time_values.read_operand(memory, ref, scope)
@@ -231,7 +233,8 @@ def execute(engine, op, power, scope):
         return True
     result = convert(value, source, dtype)
     memory.store(key, parts, result)
-    memory.record_math_result(result)
+    overflow = source in INT_BITS and dtype in INT_BITS and result != value
+    memory.record_math_result(result, overflow=overflow)
     return True
 
 

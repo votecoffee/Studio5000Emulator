@@ -23,18 +23,28 @@ class StringMoveTests(unittest.TestCase):
         fixtures.string_data(E.SubElement(tag, 'Data', Format='Decorated'), 'WXYZ', 4, 'ShortText')
 
     def test_clipping_consumes_only_the_copied_prefix_and_retains_the_source(self):
-        engine = self.checked(['MOV(SourceA,Short);'], mutate=self.short_destination)
+        engine = self.checked(['MOV(SourceA,Short)XIC(S:V)OTE(RunLatch);'], mutate=self.short_destination)
         source = engine.memory.values['sourcea']
         source['DATA'][7] = None
         before = copy.deepcopy(source)
         engine.step()
         self.assertEqual(engine.memory.string('Short'), 'ABC1')
+        self.assertTrue(engine.memory.read('RunLatch'))
         self.assertEqual(source, before)
         source['DATA'][2] = None
         before = copy.deepcopy(engine.memory.values)
         with self.assertRaisesRegex(ModelError, 'unknown active DATA'):
             engine.step()
         self.assertEqual(engine.memory.values, before)
+
+    def test_clipped_literal_sets_overflow_and_fitting_literal_clears_it(self):
+        engine = self.checked([
+            "MOV('ABCDE',Short)[XIC(S:V)OTE(RunLatch),MOV('XY',Short)XIO(S:V)OTE(MotorRunning)];",
+        ], mutate=self.short_destination)
+        engine.step()
+        self.assertEqual(engine.memory.string('Short'), 'XY')
+        self.assertTrue(engine.memory.read('RunLatch'))
+        self.assertTrue(engine.memory.read('MotorRunning'))
 
     def test_short_and_empty_moves_preserve_destination_tail_bytes(self):
         engine = self.checked(['MOV(SourceB,Short);'], mutate=self.short_destination)

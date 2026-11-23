@@ -1092,9 +1092,11 @@ class Engine:
         previous = self._executing_routine
         previous_carry = self.memory.rung_carry
         previous_math_result = self.memory.rung_math_result
+        previous_overflow = self.memory.rung_overflow
         self._executing_routine = routine
         self.memory.rung_carry = None
         self.memory.rung_math_result = None
+        self.memory.rung_overflow = False
         try:
             if routine.kind=='FBD':self.function_blocks.execute(routine,scope,context);return
             if routine.kind=='ST':self.structured.execute(routine,scope,depth,context);return
@@ -1106,6 +1108,7 @@ class Engine:
                 role=plan.get(pc);forced=role in ('body','close') and not enabled
                 self.memory.rung_carry = False if model_carry else None
                 self.memory.rung_math_result = None
+                self.memory.rung_overflow = False
                 try:
                     power = self._sequence(rung["nodes"], True, scope, depth, events,force_false=forced)
                     if role=='open':enabled=power
@@ -1130,6 +1133,7 @@ class Engine:
         finally:
             self.memory.rung_carry = previous_carry
             self.memory.rung_math_result = previous_math_result
+            self.memory.rung_overflow = previous_overflow
             self._executing_routine = previous
 
 

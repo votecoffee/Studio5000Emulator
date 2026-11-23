@@ -123,8 +123,7 @@ def execute_zero_divisor(engine, op, scope, result):
         engine.memory.write_floating_exception(op.args[-1], result, scope, math_result=True)
     else:
         engine.memory.write(op.args[-1], result, scope, math_result=True)
-    if project.controller_configuration.report_minor_overflow is True:
-        engine.memory.minor_fault = True
+    engine.memory.record_overflow(True)
     return True
 
 

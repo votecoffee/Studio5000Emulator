@@ -776,6 +776,9 @@ infinity and retains the v35 zero-divisor rule.
 or borrow from the last executed integer ADD or SUB on the same rung.
 [Ladder S:N and S:Z](docs/scalar-math.md#zero-and-negative-results) test the
 stored result of supported scalar math and moves on the same rung.
+[Ladder S:V](docs/scalar-math.md#overflow-status) reports modeled overflow from
+narrowing moves, clipped strings and supported zero-divisor results on the
+same rung. Ladder contacts and OTE/OTL can read or set this flag.
 
 [Numeric move and clear](docs/numeric-storage.md) support signed/unsigned integer
 and REAL/LREAL scalar MOV conversions, typed CLR zeros and full writes to unknown

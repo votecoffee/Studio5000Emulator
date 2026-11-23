@@ -17,7 +17,8 @@ zero fill and signed interpretation. Other spellings/consumers remain separate.
 Integer moves preserve the low destination bits. Widening sign-extends signed
 sources and zero-extends unsigned sources. For example, DINT 16#12345678 becomes
 SINT 120 or INT 22136; signed -1 becomes the unsigned destination's all-ones value.
-Native overflow/status effects accompanying these conversions remain unmodeled.
+When the stored integer differs from the source, MOV sets the modeled
+[rung overflow flag](scalar-math.md#overflow-status).
 
 LREAL uses binary64 storage and conversion. See [its supported forms](lreal-storage.md).
 Integer-to-REAL conversion produces float32, including precision loss for large
@@ -34,9 +35,9 @@ preserves NaN and the sign of infinity in either floating-point destination.
 When converting to SINT, INT, DINT or LINT, MOV stores zero for NaN, the signed
 maximum for positive infinity, and the signed minimum for negative infinity.
 These moves establish the destination and continue the rung. An infinity
-converted to a signed integer sets the modeled task `S:MINOR` bit when the
-controller export explicitly enables `ReportMinorOverflow`. An unsigned
-destination still rejects a nonfinite source.
+converted to a signed integer sets `S:V`, and sets the modeled task `S:MINOR`
+bit when the controller export explicitly enables `ReportMinorOverflow`.
+An unsigned destination still rejects a nonfinite source.
 
 For the conversion rules, see [Rockwell's Replacement Guidelines, pp. 171–172](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm100_-en-p.pdf#page=171).
 Native math flags, fault records and NaN payload bits have not been qualified.

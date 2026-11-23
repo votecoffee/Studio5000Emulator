@@ -154,6 +154,63 @@ class ScalarMathTests(unittest.TestCase):
         self.assertFalse(e.memory.read('MotorRunning'))
         self.assertFalse(e.memory.read('StopPB'))
 
+    def test_overflow_contacts_coils_and_task_reporting(self):
+        self.assertTrue(self.engine(['OTU(S:V);']).blockers)
+        self.assertTrue(self.engine(['ONS(S:V);']).blockers)
+        for reporting in (False, True):
+            with self.subTest(reporting=reporting):
+                def configure(root):
+                    root.find('Controller').set('ReportMinorOverflow', str(reporting).lower())
+                    for name in ('Cleared', 'MinorSeen'):
+                        tag = E.SubElement(root.find('Controller/Tags'), 'Tag', Name=name,
+                                           TagType='Base', DataType='BOOL')
+                        E.SubElement(E.SubElement(tag, 'Data', Format='Decorated'), 'DataValue',
+                                     DataType='BOOL', Value='0')
+
+                e = self.checked([
+                    '[XIC(StartPB)OTE(S:V),AFI()OTL(S:V)]XIC(S:V)OTE(RunLatch);',
+                    'XIC(S:V)OTE(StopPB);',
+                    'XIC(StartPB)OTL(S:V)XIC(S:V)OTE(MotorRunning);',
+                    '[XIC(StartPB)OTL(S:V),AFI()OTE(S:V)]XIO(S:V)OTE(Cleared);',
+                    'XIC(S:MINOR)OTE(MinorSeen);',
+                ], mutate=configure)
+                e.memory.write('StartPB', True)
+                e.step()
+                self.assertTrue(e.memory.read('RunLatch'))
+                self.assertFalse(e.memory.read('StopPB'))
+                self.assertTrue(e.memory.read('MotorRunning'))
+                self.assertTrue(e.memory.read('Cleared'))
+                self.assertEqual(e.memory.read('MinorSeen'), reporting)
+                e.memory.write('StartPB', False)
+                e.step()
+                self.assertFalse(e.memory.read('RunLatch'))
+                self.assertFalse(e.memory.read('MotorRunning'))
+                self.assertFalse(e.memory.read('MinorSeen'))
+                self.assertFalse(e.memory.rung_overflow)
+
+    def test_overflow_producers_replace_flag_and_keep_caller_state(self):
+        def add_worker(root):
+            routines = root.find('./Controller/Programs/Program/Routines')
+            body = E.SubElement(E.SubElement(routines, 'Routine', Name='Worker', Type='RLL'), 'RLLContent')
+            E.SubElement(E.SubElement(body, 'Rung', Number='0', Type='N'), 'Text').text = 'XIC(S:V)OTE(StopPB);'
+
+        e = self.checked([
+            'MOV(Source,Results[0])JSR(Worker,0)XIC(S:V)OTE(RunLatch);',
+            'DIV(1,0,SpeedCommand)XIC(S:V)OTE(StartPB);',
+            'MOV(Source,Results[1])CLR(Results[2])XIO(S:V)OTE(MotorRunning);',
+        ], source='DINT', dest='SINT', value=129, mutate=add_worker)
+        e.step()
+        self.assertEqual(e.memory.read('Results'), [-127, -127, 0])
+        self.assertFalse(e.memory.read('StopPB'))
+        self.assertTrue(e.memory.read('RunLatch'))
+        self.assertTrue(e.memory.read('StartPB'))
+        self.assertTrue(e.memory.read('MotorRunning'))
+        e.memory.write('Source', 1)
+        e.step()
+        self.assertEqual(e.memory.read('Results'), [1, 1, 0])
+        self.assertFalse(e.memory.read('RunLatch'))
+        self.assertFalse(e.memory.rung_overflow)
+
     def test_integer_mod_zero_retains_the_old_fault_policy_outside_v35_5580(self):
         def target(root):
             root.find('Controller').set('ProcessorType', '1756-L75')

@@ -192,8 +192,7 @@ bytes past the copied prefix. A zero-length source sets LEN to zero. MOV
 reads the source before it writes, including when the operands alias one
 string. Unknown copied bytes or invalid LEN and live indices fault and roll
 back the full advance. False rungs and ordinary prescan skip live data and
-indices. The emulator models clipping and leaves native S:V and minor-fault
-behavior unqualified.
+indices. Clipping sets the modeled [rung overflow flag](scalar-math.md#overflow-status).
 
 Quoted literals accept punctuation, including commas and parentheses. Use
 `$'` for a quote, `$$` for a dollar sign, or `$hh` for a hexadecimal byte.

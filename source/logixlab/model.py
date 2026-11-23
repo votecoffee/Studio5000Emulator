@@ -1030,6 +1030,7 @@ class Memory:
         self.minor_fault = False
         self.rung_carry = None
         self.rung_math_result = None
+        self.rung_overflow = False
         self._resolved = {}
         self.frames = {}
         self.validating = False
@@ -1410,10 +1411,17 @@ class Memory:
         if math_result:
             self.record_math_result(value)
 
-    def record_math_result(self, value):
+    def record_math_result(self, value, *, overflow=False):
         """Expose a completed numeric store to the current ladder rung."""
         if self.rung_carry is not None:
             self.rung_math_result = value
+            self.record_overflow(overflow)
+
+    def record_overflow(self, overflow):
+        if self.rung_carry is not None:
+            self.rung_overflow = overflow
+            if overflow and self.project.controller_configuration.report_minor_overflow is True:
+                self.minor_fault = True
 
     def check_writable(self,ref,scope=''):
         if scope in self.frames:
@@ -1506,6 +1514,11 @@ class Memory:
     def string(self,ref,scope='',*,limit=None):
         data, length = self._string_data(ref, scope)
         return self._decode_string_data(data[:length if limit is None else min(length, limit)])
+
+    def string_prefix(self, ref, limit, scope=''):
+        """Read the copied bytes and determine whether active data was truncated."""
+        data, length = self._string_data(ref, scope)
+        return self._decode_string_data(data[:min(length, limit)]), length > limit
 
     def string_slice(self, ref, start, count, scope=''):
         """Read an exact one-based window within both declared DATA and active LEN."""
