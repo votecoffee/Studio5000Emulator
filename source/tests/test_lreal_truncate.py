@@ -71,8 +71,34 @@ class LrealTruncateTests(unittest.TestCase):
     def test_signed_unsigned_boundaries_use_stored_binary64_value(self):
         for dtype,value in [('LINT',math.nextafter(float(2**63),0)),('LINT',float(-2**63)),('ULINT',math.nextafter(float(2**64),0)),('UDINT',4294967295.875)]:
             e=self.checked(dest=dtype,value=value);e.step();self.assertEqual(e.memory.read('Dest'),math.trunc(value))
-        for dtype,value in [('LINT',float(2**63)),('LINT',math.nextafter(float(-2**63),-math.inf)),('ULINT',float(2**64)),('ULINT',-1.0),('SINT',128.0)]:
+        for dtype,value in [('LINT',float(2**63)),('LINT',math.nextafter(float(-2**63),-math.inf)),('ULINT',float(2**64)),('ULINT',-1.0),('SINT',2147483648.0),('INT',-2147483649.0)]:
             e=self.checked(['MOV(99,SpeedCommand);','TRN(Source,Dest);'],dest=dtype,value=value);self.fault(e,'overflow')
+
+    def test_narrow_signed_destinations_keep_binary64_until_truncation(self):
+        def report_overflow(root):
+            root.find('Controller').set('ReportMinorOverflow', 'true')
+
+        cases = (
+            ('SINT', 'Source', 127.99999999999999, 127, False),
+            ('SINT', '16777217.875L', 0, 1, True),
+            ('SINT', 'Source', 256.875, 0, True),
+            ('INT', 'Source', -32769.875, 32767, True),
+            ('INT', 'Source', 2147483647.875, -1, True),
+            ('INT', '-2147483648.875l', 0, 0, True),
+        )
+        for dtype, operand, value, expected, overflow in cases:
+            with self.subTest(dtype=dtype, operand=operand, value=value):
+                engine = self.checked([
+                    f'TRN({operand},Results[1])[XIC(S:V)OTE(RunLatch),'
+                    'XIC(S:Z)OTE(MotorRunning),XIC(S:N)OTE(StopPB)];',
+                    'XIC(S:MINOR)OTE(StartPB);',
+                ], dest=dtype, value=value, mutate=report_overflow)
+                engine.step()
+                self.assertEqual(engine.memory.read('Results'), [None, expected, None])
+                self.assertIs(engine.memory.read('RunLatch'), overflow)
+                self.assertIs(engine.memory.read('MotorRunning'), expected == 0)
+                self.assertIs(engine.memory.read('StopPB'), expected < 0)
+                self.assertIs(engine.memory.read('StartPB'), overflow)
 
     def test_finite_extremes_and_signed_zero(self):
         for source, values in (('LREAL', (1e308, -1e308, 5e-324, -5e-324, -0.0, -.9)),

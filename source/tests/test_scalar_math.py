@@ -155,13 +155,12 @@ class ScalarMathTests(unittest.TestCase):
         self.assertFalse(e.memory.read('StopPB'))
 
     def test_overflow_contacts_coils_and_task_reporting(self):
-        self.assertTrue(self.engine(['OTU(S:V);']).blockers)
         self.assertTrue(self.engine(['ONS(S:V);']).blockers)
         for reporting in (False, True):
             with self.subTest(reporting=reporting):
                 def configure(root):
                     root.find('Controller').set('ReportMinorOverflow', str(reporting).lower())
-                    for name in ('Cleared', 'MinorSeen'):
+                    for name in ('Cleared', 'OteCleared', 'MinorSeen'):
                         tag = E.SubElement(root.find('Controller/Tags'), 'Tag', Name=name,
                                            TagType='Base', DataType='BOOL')
                         E.SubElement(E.SubElement(tag, 'Data', Format='Decorated'), 'DataValue',
@@ -170,8 +169,9 @@ class ScalarMathTests(unittest.TestCase):
                 e = self.checked([
                     '[XIC(StartPB)OTE(S:V),AFI()OTL(S:V)]XIC(S:V)OTE(RunLatch);',
                     'XIC(S:V)OTE(StopPB);',
-                    'XIC(StartPB)OTL(S:V)XIC(S:V)OTE(MotorRunning);',
-                    '[XIC(StartPB)OTL(S:V),AFI()OTE(S:V)]XIO(S:V)OTE(Cleared);',
+                    '[XIC(StartPB)OTL(S:V),AFI()OTU(S:V)]XIC(S:V)OTE(MotorRunning);',
+                    'XIC(StartPB)OTL(S:V)OTU(s:v)XIO(S:V)OTE(Cleared);',
+                    '[XIC(StartPB)OTL(S:V),AFI()OTE(S:V)]XIO(S:V)OTE(OteCleared);',
                     'XIC(S:MINOR)OTE(MinorSeen);',
                 ], mutate=configure)
                 e.memory.write('StartPB', True)
@@ -180,6 +180,7 @@ class ScalarMathTests(unittest.TestCase):
                 self.assertFalse(e.memory.read('StopPB'))
                 self.assertTrue(e.memory.read('MotorRunning'))
                 self.assertTrue(e.memory.read('Cleared'))
+                self.assertTrue(e.memory.read('OteCleared'))
                 self.assertEqual(e.memory.read('MinorSeen'), reporting)
                 e.memory.write('StartPB', False)
                 e.step()

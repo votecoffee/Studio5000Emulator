@@ -13,8 +13,10 @@ TRN(RealInput,WholeDouble);
 
 Tagged REAL sources use their stored float32 value. Tagged LREAL sources retain
 their stored binary64 precision before truncation toward zero. The integer part
-is then converted to the declared destination type. Finite integer results
-must fit. REAL results may round to float32, and LREAL results use binary64.
+is then converted to the declared destination type. SINT and INT keep the low
+bits of a DINT-range result and set the rung overflow flag if the value changes.
+Other finite integer conversions check the destination range. REAL results may
+round to float32, and LREAL results use binary64.
 
 For example, LREAL 16777217.875 truncates to integer 16777217. A DINT or LREAL
 destination retains that value; a REAL destination rounds it to 16777216.
@@ -24,9 +26,9 @@ source policy: TRN(16777217.875,DoubleResult) produces LREAL 16777218.
 App `26.1105.073842` also accepts floating L/l constants as ladder TRN sources.
 `TRN(16777217.875L,Whole)` produces 16777217 in a LINT destination, while
 `TRN(16777217.875,Whole)` produces 16777218. Include a decimal point or exponent
-before the suffix to select LREAL. The source must be finite, and the truncated
-result must fit the destination. **Conversion lab** demonstrates both inputs
-when `ImmediateConversions` is enabled.
+before the suffix to select LREAL. The source must be finite and uses the same
+destination conversion as a tagged LREAL operand. **Conversion lab**
+demonstrates both inputs when `ImmediateConversions` is enabled.
 
 Signed and unsigned boundaries use the actual stored binary64 value. LINT's
 minimum is representable; its positive maximum is not exactly representable as

@@ -107,7 +107,7 @@ def handle(engine, op, scope, *, execute=False):
         source_value = coerce(value, 'LREAL') if source_type == 'LREAL' else real(value)
         result = math.trunc(source_value)
         key, parts, dtype = scalar(memory, op.args[1], scope, TRN_DESTINATIONS, destination=True)
-        if source_type == 'REAL' and can_narrow_dint_result(dtype, result):
+        if can_narrow_dint_result(dtype, result):
             stored = bit_value(result, dtype)
             overflow = stored != result
             result = stored
@@ -127,8 +127,8 @@ def description(project):
                 size='Whole arrays or selected elements, closest logical member array, or capacity of scalar strings; no leaf-value reads',
                 size_destinations=sorted(NARROW), trn_source='REAL/LREAL tag, bounded DINT/finite REAL immediate or finite floating L/l LREAL immediate',
                 trn_destinations=sorted(TRN_DESTINATIONS), truncation='Preserve tagged REAL float32 or LREAL binary64 source precision; truncate toward zero before destination conversion',
-                real_to_narrow_signed=dict(destinations=['SINT', 'INT'],
-                    result='A truncated DINT-range REAL value stores its low destination bits and sets S:V if narrowed',
+                real_to_narrow_signed=dict(sources=['REAL', 'LREAL'], destinations=['SINT', 'INT'],
+                    result='A truncated DINT-range value stores its low destination bits and sets S:V if narrowed',
                     native_runtime_parity=False),
                 floating_truncation=dict(
                     zero='Floating results preserve the sign when a source truncates to zero',

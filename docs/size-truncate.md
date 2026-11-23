@@ -47,17 +47,21 @@ and finite REAL immediates use float32. A finite floating L/l constant uses
 binary64. See [LREAL truncation](lreal-truncate.md) for destination examples.
 ST uses the TRUNC expression separately.
 
-### REAL TRN into SINT or INT
+<a id="real-trn-into-sint-or-int"></a>
 
-For a REAL operand, TRN discards the fractional part before it converts the
-whole result. If that result fits DINT, SINT and INT store its low bits. For
+### REAL and LREAL TRN into SINT or INT
+
+TRN discards the fractional part of a REAL or LREAL operand before converting
+the whole result. If that result fits DINT, SINT and INT store its low bits. For
 example, TRN of 127.9 to SINT stores 127 with `S:V` clear. TRN of 128.9 to
 the same destination stores -128, sets `S:V`, and continues the rung.
 `S:N` and `S:Z` reflect the stored value. If `ReportMinorOverflow` is
 enabled, narrowing also sets the task's `S:MINOR` flag.
 
-LREAL sources, results outside DINT range, and other destination types use
-their existing checked conversion.
+For LREAL sources this uses the truncated binary64 value. For example,
+TRN of the constant 16777217.875L to SINT stores 1. A REAL source first
+represents the value as 16777218 and stores 2. Results outside DINT range
+and other destination types use checked conversion. Native parity remains open.
 [Rockwell truncation reference](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/math-conversion-instructions/truncate--trn-.html)
 
 Preflight checks types, shape and permissions without consuming saved scalar

@@ -85,16 +85,16 @@ overflow effects remain unverified.
 
 In the v35 ControlLogix 5580 ladder profile, `XIC(S:V)` reads the current rung's
 overflow flag and `XIO(S:V)` tests its inverse. `OTE(S:V)` copies rung power
-to the flag. `OTL(S:V)` sets it when powered and leaves it alone otherwise.
-Each rung starts clear. A nested routine or AOI restores the caller's flag
-when it returns.
+to the flag. `OTL(S:V)` sets it when powered and `OTU(S:V)` clears it when
+powered. Both retain the flag when false. Each rung starts clear. A nested
+routine or AOI restores the caller's flag when it returns.
 
 Integer MOV sets the flag when the stored value differs from its integer
 source. [REAL MOV into SINT or INT](numeric-storage.md#real-moves-into-sint-or-int)
 sets it when the stored value differs from the rounded integer.
-[REAL TRN](size-truncate.md#real-trn-into-sint-or-int) sets it when the low-bit
-store changes the truncated integer. String MOV sets it when the source
-exceeds destination capacity.
+[REAL and LREAL TRN](size-truncate.md#real-and-lreal-trn-into-sint-or-int)
+sets it when the stored low bits change the truncated integer. String MOV
+sets it when the source exceeds destination capacity.
 Modeled DIV and MOD with a zero divisor also set it, as does an infinity result
 converted to a signed integer limit. A normal modeled numeric result or
 unclipped string MOV clears the flag. If the controller export explicitly
@@ -104,6 +104,7 @@ task invocation. Clearing `S:V` leaves that task status intact.
 For integer ADD and SUB with a SINT, INT or DINT destination, see
 [signed arithmetic overflow](#signed-add-and-sub-overflow). Native fault records
 and status qualification remain open.
+[Rockwell controller status](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/37-02/contents-ditamap/studio-5000-logix-designer/controller-properties/runtime-controller-configuration-and-status.html)
 [Rockwell replacement guide](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm100_-en-p.pdf#page=167)
 
 ## Signed ADD and SUB overflow

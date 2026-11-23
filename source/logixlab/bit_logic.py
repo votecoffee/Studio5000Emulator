@@ -6,7 +6,8 @@ INSTRUCTIONS = frozenset(('XIC', 'XIO', 'OTE', 'OTL', 'OTU', 'ONS', 'OSR', 'OSF'
 WRITES = {'OTE': (0,), 'OTL': (0,), 'OTU': (0,), 'ONS': (0,), 'OSR': (0, 1), 'OSF': (0, 1)}
 PRESCAN_WRITES = frozenset(('OTE', 'ONS', 'OSR', 'OSF'))
 MINOR_FLAG = 's:minor'
-MINOR_FLAG_OPS = frozenset(('XIC', 'XIO', 'OTE', 'OTL', 'OTU'))
+STATUS_COILS = frozenset(('OTE', 'OTL', 'OTU'))
+STATUS_BIT_OPS = STATUS_COILS | {'XIC', 'XIO'}
 CARRY_FLAG = 's:c'
 OVERFLOW_FLAG = 's:v'
 MATH_FLAGS = frozenset((CARRY_FLAG, OVERFLOW_FLAG, 's:n', 's:z'))
@@ -20,12 +21,12 @@ def validate(engine, op, scope, *, kind='RLL'):
     if op.name not in INSTRUCTIONS or not available(engine.project):return False
     memory = engine.memory
     if any(ref.casefold() == MINOR_FLAG for ref in op.args):
-        if kind != 'RLL' or op.name not in MINOR_FLAG_OPS or scope in memory.frames:
+        if kind != 'RLL' or op.name not in STATUS_BIT_OPS or scope in memory.frames:
             raise ModelError('S:MINOR requires a ladder contact or coil outside AOI bodies')
         return True
     if any(ref.casefold() == OVERFLOW_FLAG for ref in op.args):
-        if kind != 'RLL' or op.name not in ('XIC', 'XIO', 'OTE', 'OTL'):
-            raise ModelError('S:V requires a ladder contact, OTE or OTL')
+        if kind != 'RLL' or op.name not in STATUS_BIT_OPS:
+            raise ModelError('S:V requires a ladder contact or coil')
         return True
     if any(ref.casefold() in MATH_FLAGS for ref in op.args):
         if kind != 'RLL' or op.name not in ('XIC', 'XIO'):
@@ -75,9 +76,9 @@ def prescan(memory, op, scope):
 def execute(memory, op, power, scope):
     name, args = op.name, op.args
     ref = args[0].casefold()
-    if ref == OVERFLOW_FLAG and name in ('OTE', 'OTL'):
+    if ref == OVERFLOW_FLAG and name in STATUS_COILS:
         if name == 'OTE' or power:
-            memory.record_overflow(power)
+            memory.record_overflow(power and name != 'OTU')
         return power
     if ref in MATH_FLAGS:
         if not power:
@@ -133,7 +134,7 @@ def description(project):
                 minor_status='S:MINOR contacts and coils outside AOI bodies; task-local scan flag for reported DINT subscript overflow',
                 carry_status='S:C contacts read the last successful integer ADD/SUB on the same ladder rung. Each rung starts clear, and nested routines keep independent state.',
                 numeric_status='S:N and S:Z contacts test the latest modeled numeric instruction result stored in the same rung, after destination conversion.',
-                overflow_status='S:V contacts and OTE/OTL use a rung-local flag. Signed narrow arithmetic, narrowing MOV, divide/modulo by zero and infinity-to-signed-integer results can set it.',
+                overflow_status='S:V contacts and OTE/OTL/OTU use a rung-local flag. A powered OTU clears it and preserves the task minor flag. Signed narrow arithmetic, narrowing MOV, divide/modulo by zero and infinity-to-signed-integer results can set it.',
                 failures='Reached unknowns, unrecovered array faults and later errors roll back the advance and existing AOI state',
                 native_runtime_parity=False,
                 remaining=['Native packed BOOL layout, fault/postscan/lifecycle parity and broader controller qualification'])

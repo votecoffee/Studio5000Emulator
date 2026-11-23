@@ -830,8 +830,10 @@ adds CPT/CMP calculations with explicit intermediate checks. Enable
 
 [Array size and truncation](docs/size-truncate.md) support selected arrays,
 string capacity reads, lazy unknown-value handling and signed/unsigned TRN results.
-[REAL TRN into SINT or INT](docs/size-truncate.md#real-trn-into-sint-or-int)
-discards the fraction before narrowing and reports destination overflow.
+[REAL and LREAL TRN into SINT or INT](docs/size-truncate.md#real-and-lreal-trn-into-sint-or-int)
+discard the fraction before narrowing DINT-range results and report destination
+overflow. [OTU(S:V)](docs/scalar-math.md#overflow-status) clears the current
+rung's overflow flag while retaining the task's minor-fault status.
 In **Data lab**, enable `InspectData` to see array and string DATA sizes.
 SIZE, AVE, STD and SRT accept grouped DINT immediates for the array dimension.
 
