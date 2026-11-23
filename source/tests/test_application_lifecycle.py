@@ -3739,6 +3739,37 @@ class ApplicationLifecycleTests(unittest.TestCase):
         ])
         self.assertFalse(report['native_math_status'])
 
+    def test_ladder_real_move_rounds_then_narrows_through_http(self):
+        from test_numeric_storage import NumericStorageTests
+
+        fixture = NumericStorageTests()
+        fixture.setUp()
+        try:
+            def configure(root):
+                root.find('Controller').set('ReportMinorOverflow', 'true')
+
+            engine = fixture.checked([
+                'MOV(Source,Results[0])[XIC(S:V)OTE(RunLatch),XIC(S:Z)OTE(StopPB)];',
+                'XIC(S:V)OTE(StartPB);',
+                'XIC(S:MINOR)OTE(MotorRunning);',
+            ], source='REAL', dest='SINT', value=127.5, mutate=configure)
+            content = base64.b64encode(engine.project.path.read_bytes()).decode()
+        finally:
+            fixture.doCleanups()
+        self.assertEqual(self.post('load', {'name': 'NarrowRealMove.L5X', 'content': content})['blockers'], [])
+
+        def readings():
+            state = self.post('step', {'dt': 10})
+            values = {row['name']: row['value'] for row in state['tags']}
+            names = ('Results[0]', 'RunLatch', 'StopPB', 'StartPB', 'MotorRunning')
+            return tuple(values[name] for name in names)
+
+        self.assertEqual(readings(), (-128, True, False, False, True))
+        self.post('write', {'tag': 'Source', 'value': 255.5})
+        self.assertEqual(readings(), (0, True, True, False, True))
+        self.post('write', {'tag': 'Source', 'value': 126.5})
+        self.assertEqual(readings(), (126, False, False, False, False))
+
     def test_imported_unknown_numeric_move_and_clear_recover_through_http(self):
         import base64
         from test_numeric_storage import NumericStorageTests

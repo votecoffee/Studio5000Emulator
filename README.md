@@ -790,7 +790,8 @@ report the same narrowing for DINT-range quotients and remainders.
 
 [Numeric move and clear](docs/numeric-storage.md) support signed/unsigned integer
 and REAL/LREAL scalar MOV conversions, typed CLR zeros and full writes to unknown
-destinations. MOV preserves NaN and infinities in floating destinations and
+destinations. [REAL MOV into SINT or INT](docs/numeric-storage.md#real-moves-into-sint-or-int)
+rounds before narrowing and reports destination overflow. MOV preserves NaN and infinities in floating destinations and
 converts them to zero or a signed integer limit. Enable `MoveNumeric` in
 **Data lab** to try the finite conversions.
 

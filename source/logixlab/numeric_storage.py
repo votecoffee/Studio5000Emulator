@@ -3,7 +3,8 @@ import math
 import re
 from . import string_operations, time_values
 from .st_literals import scan as typed_integer
-from .integer_math import CONTROLLERS, WIDE_TYPES, bit_value, signed_floating_exception
+from .integer_math import (CONTROLLERS, NARROW_RESULT_TYPES, WIDE_TYPES, bit_value,
+                           can_narrow_dint_result, signed_floating_exception)
 from .model import INT_BITS, UNSIGNED_BITS, ModelError, coerce, literal
 from .real_math import real
 
@@ -181,7 +182,6 @@ def convert(value, source, dest):
         if type(value) is not int:raise ModelError('MOV requires a known integer source')
         value = coerce(value, source)
         return bit_value(value, dest) if dest in INT_BITS else coerce(value, dest)
-    # Keep REAL overflow results/status outside this representable profile.
     return coerce(coerce(value, source), dest)
 
 
@@ -231,9 +231,14 @@ def execute(engine, op, power, scope):
             and not math.isfinite(value) and dtype not in UNSIGNED_BITS):
         write_exceptional_result(memory, op.args[-1], value, scope, instruction=op.name)
         return True
-    result = convert(value, source, dtype)
+    if source == 'REAL' and dtype in NARROW_RESULT_TYPES:
+        rounded = round(coerce(value, source))
+        result = bit_value(rounded, dtype) if can_narrow_dint_result(dtype, rounded) else coerce(rounded, dtype)
+        overflow = result != rounded
+    else:
+        result = convert(value, source, dtype)
+        overflow = source in INT_BITS and dtype in INT_BITS and result != value
     memory.store(key, parts, result)
-    overflow = source in INT_BITS and dtype in INT_BITS and result != value
     memory.record_math_result(result, overflow=overflow)
     return True
 
@@ -261,7 +266,10 @@ def description(project):
                     scope='MOV source only; base fields describe unsuffixed DINT, typed_suffixes describes attached typed forms; no explicit sign, other consumers or native parity',
                     native_runtime_parity=False),
                 integers='Preserve low destination bits; sign-extend signed sources and zero-extend unsigned sources when widening',
-                real='Finite REAL binary32 and LREAL binary64; source precision retained before destination conversion; nearest-even integer results must fit',
+                real='Finite REAL binary32 and LREAL binary64 retain source precision before nearest-even integer rounding',
+                real_to_narrow_signed=dict(source='REAL', destinations=sorted(NARROW_RESULT_TYPES),
+                    result='If the rounded value fits DINT, store the low bits and set S:V on narrowing',
+                    native_runtime_parity=False),
                 lreal='Declared LREAL tags and finite floating L/l MOV literals; binary64 storage/conversion, CLR and atomic tag access; expression and wire-layout profiles remain separate',
                 floating_exceptions=dict(sources=['REAL', 'LREAL'],
                     floating_result='MOV preserves NaN or signed infinity in either floating type',
@@ -274,4 +282,4 @@ def description(project):
                 failures='Reached unknown source, invalid indices, excluded REAL ranges and later faults roll back the advance',
                 native_math_status=False, native_runtime_parity=False,
                 remaining=['Lossy or cross-family time/date conversion, string CLR and non-string aggregate MOV/CLR; typed radix in other consumers/controllers',
-                           'REAL overflow result bits, native status/fault/lifecycle/packed layout parity'])
+                           'Other REAL overflow conversions and native status/fault/lifecycle/packed layout parity'])

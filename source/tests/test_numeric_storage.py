@@ -58,12 +58,41 @@ class NumericStorageTests(unittest.TestCase):
         self.assertEqual(e.memory.read('Results[1]'), 18446744073709551616.0)
 
     def test_real_range_errors_remain_excluded_and_roll_back(self):
-        for dest, value in (('SINT', 127.5), ('USINT', 255.5), ('UDINT', -1.0), ('LINT', 2**63), ('ULINT', 2**64)):
+        for dest, value in (('SINT', 2**31), ('INT', -(2**31)-256), ('USINT', 255.5),
+                            ('UDINT', -1.0), ('LINT', 2**63), ('ULINT', 2**64)):
             e = self.checked(['MOV(99,SpeedCommand);', 'MOV(Source,Results[1]);'], source='REAL', dest=dest, value=value)
             before = self.snapshot(e)
             with self.assertRaisesRegex(ModelError, 'overflow'):e.step()
             self.assertEqual(self.snapshot(e), before)
             e.memory.write('Source', 2.5);e.step();self.assertEqual(e.memory.read('Results[1]'), 2)
+
+    def test_real_move_rounds_and_narrows_signed_destinations(self):
+        for dtype, cases in (
+                ('SINT', ((127.5, -128, True), (-128.5, -128, False), (-129.5, 126, True), (255.5, 0, True))),
+                ('INT', ((32767.5, -32768, True), (-32768.5, -32768, False), (-32769.5, 32766, True)))):
+            with self.subTest(dtype=dtype):
+                e = self.checked([
+                    'XIC(StartPB)MOV(Source,Results[Index])'
+                    '[XIC(S:V)OTE(RunLatch),XIC(S:N)OTE(MotorRunning),XIC(S:Z)OTE(StopPB)];',
+                ], source='REAL', dest=dtype)
+                e.memory.write('Index', 99)
+                e.step()
+                self.assertEqual(e.memory.read('Results'), [None, None, None])
+                e.memory.write('Index', 1)
+                e.memory.write('StartPB', True)
+                for source, stored, overflow in cases:
+                    e.memory.write('Source', source)
+                    e.step()
+                    self.assertEqual(e.memory.read('Results'), [None, stored, None])
+                    self.assertEqual(e.memory.read('RunLatch'), overflow)
+                    self.assertEqual(e.memory.read('MotorRunning'), stored < 0)
+                    self.assertEqual(e.memory.read('StopPB'), stored == 0)
+
+    def test_real_move_literal_uses_float32_before_rounding_and_narrowing(self):
+        e = self.checked(['MOV(127.4999999,Results[1])XIC(S:V)OTE(RunLatch);'], dest='SINT')
+        e.step()
+        self.assertEqual(e.memory.read('Results'), [None, -128, None])
+        self.assertTrue(e.memory.read('RunLatch'))
 
     def test_integer_and_real_negative_to_unsigned_have_distinct_boundaries(self):
         e = self.checked(source='DINT', dest='USINT', value=-1);e.step();self.assertEqual(e.memory.read('Results[1]'), 255)

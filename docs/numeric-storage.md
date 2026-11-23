@@ -22,10 +22,21 @@ When the stored integer differs from the source, MOV sets the modeled
 
 LREAL uses binary64 storage and conversion. See [its supported forms](lreal-storage.md).
 Integer-to-REAL conversion produces float32, including precision loss for large
-integers. REAL sources also use float32; integer results round to nearest, ties
-to even, and must fit the signed or unsigned destination. Excluded REAL ranges
-fail the complete advance rather than guessing native overflow result bits.
-Thus integer -1 can move to USINT 255, while REAL -1.0 to USINT remains excluded.
+integers. Integer results round to nearest, with ties going to the even integer.
+
+### REAL moves into SINT or INT
+
+Ladder MOV rounds the float32 source first. When the rounded value fits DINT, a
+SINT or INT destination receives the low bits. For example, 127.5 rounds to
+128 and stores -128 in SINT with `S:V` set. -128.5 also stores -128, with
+`S:V` clear because the rounded value already fits. `S:N` and `S:Z`
+reflect the stored value. With `ReportMinorOverflow` enabled, narrowing also
+sets the task's `S:MINOR` flag.
+
+Rounded values outside DINT range, other destination types, and LREAL sources
+use the existing checked conversion. For example, REAL -1.0 to USINT fails the
+advance. The rule applies to both REAL tags and REAL literals in ladder MOV.
+[Rockwell data conversions](https://www.rockwellautomation.com/en-gb/docs/studio-5000-logix-designer/37-00/contents-ditamap/data-conversions.html)
 
 ### NaN and infinity
 
