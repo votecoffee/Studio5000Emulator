@@ -30,15 +30,40 @@ CONCAT_LADDER = [
 ]
 
 
-def concat_minor_fixture(root):
-    strings.StringOperationTests.custom_strings(root)
+def add_string_minor_tags(root, prefix):
     controller = root.find('./Controller')
     controller.set('ReportMinorOverflow', 'false')
     tags = controller.find('Tags')
-    add_fault_dint_array(tags, 'ConcatFault', [0] * 11)
-    count = E.SubElement(tags, 'Tag', Name='ConcatFaultCount', DataType='INT', TagType='Base')
+    add_fault_dint_array(tags, prefix + 'Fault', [0] * 11)
+    count = E.SubElement(tags, 'Tag', Name=prefix + 'FaultCount', DataType='INT', TagType='Base')
     E.SubElement(E.SubElement(count, 'Data', Format='Decorated'),
                  'DataValue', DataType='INT', Value='0')
+
+
+def concat_minor_fixture(root):
+    strings.StringOperationTests.custom_strings(root)
+    add_string_minor_tags(root, 'Concat')
+
+
+STRING_RELATIONS = ('EQU', 'NEQ', 'LES', 'LEQ', 'GRT', 'GEQ')
+COMPARE_LADDER = [
+    *(f'XIC(StartPB){name}(SourceA,TextCells[0])OTE(CompareBits[{index}]);'
+      for index, name in enumerate(STRING_RELATIONS)),
+    'XIC(S:MINOR)OTE(RunLatch);',
+    'GSV(Program,THIS,MinorFaultRecord,CompareFault[0]);',
+    'GSV(FaultLog,,MinorEvents,CompareFaultCount);',
+]
+
+
+def compare_minor_fixture(root):
+    strings.StringOperationTests.custom_strings(root)
+    add_string_minor_tags(root, 'Compare')
+    tags = root.find('./Controller/Tags')
+    tag = E.SubElement(tags, 'Tag', Name='CompareBits', DataType='BOOL', TagType='Base', Dimensions='6')
+    array = E.SubElement(E.SubElement(tag, 'Data', Format='Decorated'),
+                         'Array', DataType='BOOL', Dimensions='6')
+    for index in range(6):
+        E.SubElement(array, 'Element', Index=f'[{index}]', Value='0')
 
 
 class StringSelectionTests(unittest.TestCase):
@@ -241,6 +266,81 @@ class StringSelectionTests(unittest.TestCase):
         self.assertEqual(memory.string('Alias'), 'old')
         self.assertEqual(memory.read('ConcatFault[2]'), 0)
         self.assertEqual(memory.read('ConcatFaultCount'), 0)
+
+    def test_all_six_string_relations_report_oversized_len_with_documented_power(self):
+        for bad_tag in ('SourceA', 'TextCells[0]'):
+            with self.subTest(operand=bad_tag):
+                engine = self.checked(COMPARE_LADDER, mutate=compare_minor_fixture)
+                memory = engine.memory
+                memory.write('SourceA', 'ABC')
+                memory.write('TextCells[0]', 'ABC')
+                memory.write(bad_tag + '.LEN', 83)
+                engine.step()
+                self.assertEqual(memory.read('CompareBits'), [False] * 6)
+                self.assertEqual(memory.read('CompareFaultCount'), 0)
+
+                memory.write('StartPB', True)
+                engine.step()
+                self.assertEqual(memory.read('CompareBits'), [False, True, False, False, False, False])
+                self.assertEqual(memory.read('CompareFault[2]'), CONCAT_FAULT)
+                self.assertEqual(memory.read('CompareFaultCount'), 6)
+                self.assertTrue(memory.read('RunLatch'))
+                self.assertEqual(memory.read(bad_tag + '.LEN'), 83)
+
+                memory.write(bad_tag + '.LEN', 3)
+                engine.step()
+                self.assertEqual(memory.read('CompareBits'), [True, False, False, True, False, True])
+                self.assertEqual(memory.read('CompareFaultCount'), 6)
+                self.assertFalse(memory.read('RunLatch'))
+
+    def test_unsigned_len_rules_for_neq_and_ordering_report_negative_lengths(self):
+        engine = self.checked(COMPARE_LADDER[1:], mutate=compare_minor_fixture)
+        memory = engine.memory
+        memory.write('SourceA.LEN', -1)
+        memory.write('TextCells[0]', 'ABC')
+        memory.write('StartPB', True)
+        engine.step()
+        self.assertEqual(memory.read('CompareBits'), [False, True, False, False, False, False])
+        self.assertEqual(memory.read('CompareFault[2]'), CONCAT_FAULT)
+        self.assertEqual(memory.read('CompareFaultCount'), 5)
+        self.assertTrue(memory.read('RunLatch'))
+
+    def test_oversized_custom_string_fault_applies_to_literal_comparison(self):
+        engine = self.checked([
+            "NEQ('old',Alias)OTE(CompareBits[0]);", 'XIC(S:MINOR)OTE(RunLatch);',
+            'GSV(Program,THIS,MinorFaultRecord,CompareFault[0]);',
+        ], mutate=compare_minor_fixture)
+        memory = engine.memory
+        memory.write('Alias.LEN', 17)
+        engine.step()
+        self.assertTrue(memory.read('CompareBits[0]'))
+        self.assertTrue(memory.read('RunLatch'))
+        self.assertEqual(memory.read('CompareFault[2]'), CONCAT_FAULT)
+        self.assertEqual(memory.read('Record.Text.LEN'), 17)
+
+    def test_compare_checks_both_lengths_before_data_and_rolls_back_on_a_later_fault(self):
+        engine = self.checked([
+            'EQU(TextCells[0],SourceB)OTE(CompareBits[0]);',
+            'GSV(Program,THIS,MinorFaultRecord,CompareFault[0]);',
+            'GSV(FaultLog,,MinorEvents,CompareFaultCount);',
+            'CPT(Result,1/Limit);',
+        ], mutate=compare_minor_fixture)
+        memory = engine.memory
+        memory.write('TextCells[0].LEN', 2)
+        memory.write('SourceB.LEN', 83)
+        memory.write('Limit', 0)
+        before = self.snapshot(engine)
+        with self.assertRaisesRegex(ModelError, 'zero'):
+            engine.step()
+        self.assertEqual(self.snapshot(engine), before)
+        memory.write('Limit', 2)
+        engine.step()
+        self.assertEqual(memory.read('CompareFault[2]'), CONCAT_FAULT)
+        self.assertEqual(memory.read('CompareFaultCount'), 1)
+        memory.write('SourceB.LEN', 2)
+        with self.assertRaisesRegex(ModelError, 'unknown active DATA'):
+            engine.step()
+        self.assertEqual(memory.read('CompareFaultCount'), 1)
 
     def test_aliases_constant_sources_and_custom_string_udt_members(self):
         def fields(root):

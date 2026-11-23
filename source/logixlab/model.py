@@ -1503,12 +1503,14 @@ class Memory:
             raise BlockExtentError('Block operation exceeds the modeled array/member boundary')
         return key,addresses[:count],dtype
 
-    def _string_data(self, ref, scope):
+    def _string_data(self, ref, scope, *, unsigned_length=False):
         _,_,dtype=self.resolve(ref,scope)
         capacity=self.project.string_capacity(dtype)
         obj=self.read(ref,scope)
         if capacity is None or not isinstance(obj,dict):raise ModelError('String operand required')
         length=obj['LEN']
+        if unsigned_length and type(length) is int and length < 0:
+            length += 1 << 32
         if type(length) is int and length > capacity and isinstance(obj['DATA'], list) and len(obj['DATA']) == capacity:
             raise StringLengthError(f'String LEN {length} exceeds DATA capacity {capacity} for {ref}')
         if not isinstance(length,int) or not 0<=length<=capacity or len(obj['DATA'])!=capacity:raise ModelError('String LEN/DATA unknown or outside declared capacity')
@@ -1522,6 +1524,17 @@ class Memory:
     def string(self,ref,scope='',*,limit=None):
         data, length = self._string_data(ref, scope)
         return self._decode_string_data(data[:length if limit is None else min(length, limit)])
+
+    def string_pair(self, refs, literals, scope, *, unsigned_length=False):
+        """Check both string lengths before decoding either operand."""
+        captured = []
+        for ref, text in zip(refs, literals, strict=True):
+            if text is None:
+                data, length = self._string_data(ref, scope, unsigned_length=unsigned_length)
+                captured.append(data[:length])
+            else:
+                captured.append(text)
+        return tuple(text if isinstance(text, str) else self._decode_string_data(text) for text in captured)
 
     def concatenate_strings(self, left, right, limit, scope=''):
         """Validate both lengths before reading the bytes that fit."""

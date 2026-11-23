@@ -142,7 +142,7 @@ The v35 ControlLogix 5580 ladder profile recognizes these Type 4 codes:
 
 | Condition | Code | Instructions |
 | --- | --- | --- |
-| Source LEN exceeds its declared DATA capacity | 51 | CONCAT, MID, FIND, INSERT, DELETE, LOWER, UPPER, STOD, STOR |
+| Source LEN exceeds its declared DATA capacity | 51 | CONCAT, MID, FIND, INSERT, DELETE, LOWER, UPPER, STOD, STOR, and the six standalone string relations |
 | Combined source text exceeds destination capacity | 51 | CONCAT |
 | Result exceeds destination capacity | 52 | MID, DELETE, LOWER, UPPER, DTOS, RTOS |
 | Parsed numeric value exceeds the scalar destination type | 53 | STOD, STOR |
@@ -159,6 +159,8 @@ unused. Both cases set `S:MINOR` and update the Program record and FaultLog.
 A later scan error rolls back the write and the minor fault. Structured Text,
 isolated routine execution and AOI bodies retain their existing capacity checks.
 
+Standalone string comparisons in scheduled Standard ladder record Code 51
+and produce the rung result described [below](#ladder-string-comparison-literals).
 The remaining faults in the table roll back the advance. Type 4 Code 53 covers
 well-formed numeric input. Code 56 covers errors
 encountered during execution. Invalid MID immediates can still block the project
@@ -226,10 +228,18 @@ string tag. For example, `EQU(Status,'RUN')` tests a status tag,
 
 Ordering compares active bytes as unsigned values. Equal prefixes sort by
 length, with the shorter string first. An embedded `$00` is a byte within
-the string. A true rung requires valid tag LEN and all active bytes. False
-rungs and prescan skip live values and indirect indices. Malformed literals
-and mixed string/numeric types block preflight. A reached fault restores
-earlier coils and other writes from the advance.
+the string. Scheduled Standard ladder checks both tag lengths before reading
+the active bytes. If either LEN exceeds its own DATA capacity, the comparison
+records Type 4 Code 51. NEQ returns true. EQU, LES, LEQ, GRT, and GEQ return
+false. The scan continues and updates the current Program fault record, the
+controller FaultLog and `S:MINOR`. A later error rolls back these updates.
+The installed v35 flowcharts specify these outputs. The NEQ and ordering
+topics also specify unsigned lengths, so those five relations treat a negative
+DINT LEN as oversized. Negative LEN in EQU remains a scan error.
+
+False rungs and prescan skip live values and indirect indices. Malformed
+literals and mixed string/numeric types block preflight. Unknown required
+bytes, unknown LEN, and out-of-range indices retain their existing checks.
 
 In **String lab**, set `CompareStringIndex` to 0, write `ABC` to
 `IndexedSource[0]`, and enable `CompareStrings`. All three comparison coils
@@ -240,6 +250,7 @@ faults and rolls back the earlier equality coil.
 The installed v35 standalone comparison topics list immediate string operands.
 `CMP` and `FSC` use string tags in their expression grammar. Native Studio
 acceptance remains unverified. [Rockwell equality reference](https://www.rockwellautomation.com/en-mde/docs/studio-5000-logix-designer/37-02/contents-ditamap/instruction-set/compare-instructions/equal-to--eq-.html)
+[Rockwell inequality reference](https://www.rockwellautomation.com/en-ie/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/compare-instructions/not-equal-to--ne-.html)
 [Rockwell CMP reference](https://www.rockwellautomation.com/en-be/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/compare-instructions/compare--cmp-.html)
 [Rockwell FSC reference](https://www.rockwellautomation.com/en-no/docs/studio-5000-logix-designer/37-01/contents-ditamap/instruction-set/array-file-misc-instructions/file-search-and-compare-fsc.html)
 

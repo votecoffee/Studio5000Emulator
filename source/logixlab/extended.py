@@ -283,11 +283,7 @@ class Extensions:
         n,a=op.name,op.args
         if n in COMPARE and any(self.is_string(x,scope) for x in a):
             if not power:return False
-            values = []
-            for ref in a:
-                text = string_operations.string_literal(ref)
-                values.append(self.memory.string(ref, scope) if text is None else text)
-            return comparisons.RELATIONS[n](*values)
+            return string_operations.compare(self.engine, op, scope, comparisons.RELATIONS[n])
         if n in string_conversions.INSTRUCTIONS:
             if power:string_conversions.execute(self.memory,op,scope)
             return power

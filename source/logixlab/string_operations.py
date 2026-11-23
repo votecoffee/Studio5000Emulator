@@ -100,14 +100,36 @@ def integer_value(memory, ref, scope):
     return coerce(value, 'DINT')
 
 
+def _reports_ladder_string_faults(engine, scope):
+    routine = engine._executing_routine
+    return (engine.project.version == '35' and engine.project.processor.upper() in CONTROLLERS
+            and routine is not None and routine.kind == 'RLL' and scope not in engine.memory.frames
+            and engine._executing_program is not None and engine._program_fault is None
+            and not engine.addons.prescanning)
+
+
+def compare(engine, op, scope, relation):
+    memory = engine.memory
+    if not _reports_ladder_string_faults(engine, scope):
+        values = []
+        for ref in op.args:
+            text = string_literal(ref)
+            values.append(memory.string(ref, scope) if text is None else text)
+        return relation(*values)
+
+    literals = tuple(string_literal(ref) for ref in op.args)
+    try:
+        values = memory.string_pair(op.args, literals, scope, unsigned_length=op.name != 'EQU')
+    except StringLengthError:
+        engine._record_instruction_minor_fault(STRING_LENGTH_FAULT)
+        return op.name == 'NEQ'
+    return relation(*values)
+
+
 def concatenate(engine, op, scope):
     memory = engine.memory
     left, right, dest = op.args
-    routine = engine._executing_routine
-    if (engine.project.version != '35' or engine.project.processor.upper() not in CONTROLLERS
-            or routine is None or routine.kind != 'RLL' or scope in memory.frames
-            or engine._executing_program is None or engine._program_fault is not None
-            or engine.addons.prescanning):
+    if not _reports_ladder_string_faults(engine, scope):
         memory.write_string(dest, memory.string(left, scope) + memory.string(right, scope), scope)
         return
 
@@ -177,6 +199,7 @@ def description():
                     operands='Either side may be a scalar STRING/user-string tag or single-quoted byte literal',
                     comparison='Case-sensitive unsigned byte ordering; shorter equal prefixes sort first',
                     selection='Validate literal syntax and string tag shape structurally; read active bytes only on a true rung',
+                    oversized_length='Scheduled ladder reports Type 4 Code 51; NEQ returns true and the other five relations return false.',
                     native_runtime_parity=False),
                 operand_selection=dict(language='RLL',firmware='35',controllers=sorted(CONTROLLERS),
                     instructions=['CONCAT','MID','DTOS','STOD','FIND','INSERT','DELETE','LOWER','UPPER','STOR','RTOS','EQU','NEQ','LES','LEQ','GRT','GEQ','CMP'],
