@@ -1028,6 +1028,7 @@ class Memory:
         self.message_cache = {}
         self.first_scan = True
         self.minor_fault = False
+        self.on_minor_overflow = None
         self.rung_carry = None
         self.rung_negative = False
         self.rung_zero = False
@@ -1423,7 +1424,12 @@ class Memory:
         if self.rung_carry is not None:
             self.rung_overflow = overflow
             if overflow and self.project.controller_configuration.report_minor_overflow is True:
-                self.minor_fault = True
+                self.report_minor_overflow()
+
+    def report_minor_overflow(self):
+        self.minor_fault = True
+        if self.on_minor_overflow is not None:
+            self.on_minor_overflow()
 
     def check_writable(self,ref,scope=''):
         if scope in self.frames:

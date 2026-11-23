@@ -10,11 +10,12 @@ from .program_configuration import ATTRIBUTE
 
 @dataclass
 class Advance:
-    """Program flags and first-scan history staged for one advance."""
+    """Program flags and scan diagnostics staged for one advance."""
 
     disabled: set[str]
     scanned: set[str]
     pending_prescan: set[str]
+    minor_faults: dict[str, int | None]
 
     def set_disabled(self, name, value):
         if value:

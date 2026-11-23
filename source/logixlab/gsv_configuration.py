@@ -16,7 +16,8 @@ TASK = {'rate':(2,'DINT'), 'watchdog':(12,'DINT'), 'priority':(6,'INT'),
         'disableupdateoutputs':(18,'DINT'), 'inhibittask':(19,'DINT')}
 DEVICE_NAME_SIZE = 33
 MAJOR_FAULT_RECORD = 'major-fault-record'
-MAJOR_FAULT_WORDS = 11
+MINOR_FAULT_RECORD = 'minor-fault-record'
+FAULT_RECORD_WORDS = 11
 FAULT_RECORD_LINT = 'fault-record-lint'
 FAULT_RECORD_SPLIT = 'fault-record-split'
 FAULT_RECORD_TAIL = (('INT', ()), ('INT', ()), ('DINT', (8,)))
@@ -476,13 +477,30 @@ def _major_fault_record(engine, instance, scope, *, executing):
     fault = _handler_fault(engine, instance, scope, executing=executing)
     if fault is None:
         return MAJOR_FAULT_RECORD, None
-    timestamp = fault['timestamp_us']
-    time_words = (None, None) if timestamp is None else struct.unpack('<2i', struct.pack('<q', timestamp))
     type_code = 0 if engine._handler_clear_requested else (fault['code'] << 16) | fault['type']
-    return MAJOR_FAULT_RECORD, (*time_words, type_code) + (None,) * 8
+    return MAJOR_FAULT_RECORD, _fault_words(fault['timestamp_us'], type_code)
 
 
-def _structured_fault_record(memory, key, parts):
+def _fault_words(timestamp, type_code):
+    time_words = (None, None) if timestamp is None else struct.unpack('<2i', struct.pack('<q', timestamp))
+    return (*time_words, type_code) + (None,) * 8
+
+
+def _minor_fault_record(engine, instance, scope, *, executing):
+    if instance.casefold() != 'this':
+        raise ModelError('GSV MinorFaultRecord requires Program THIS')
+    program = current_instance(engine, 'Program', instance, scope, executing=executing, allow_event=True)
+    if not executing:
+        return MINOR_FAULT_RECORD, None
+    key = program.casefold()
+    if engine._program_advance is None or engine._executing_program != key:
+        raise ModelError('GSV MinorFaultRecord requires the active ladder Program')
+    records = engine._program_advance.minor_faults
+    words = _fault_words(records[key], (4 << 16) | 4) if key in records else (0,) * FAULT_RECORD_WORDS
+    return MINOR_FAULT_RECORD, words
+
+
+def _structured_fault_record(memory, key, parts, attribute):
     parent = parts[:-1]
     _, _, dtype = memory.resolve(memory.address(key, parent))
     definition = memory.project.udts.get(dtype.lower())
@@ -493,7 +511,7 @@ def _structured_fault_record(memory, key, parts):
     names = [member.get('Name', '') for member in members]
     shape = tuple((member.get('DataType'), dimensions(member.get('Dimension', '0'))) for member in members)
     layout = FAULT_RECORD_LAYOUTS.get(shape)
-    error = ('MajorFaultRecord UDT requires its first member, a LINT or two DINT timestamp words, '
+    error = (f'{attribute} UDT requires its first member, a LINT or two DINT timestamp words, '
              'followed by INT Type, INT Code and DINT[8] Info')
     if (layout is None or len(containers)!=1 or list(containers[0])!=members or names[0]!=parts[-1]
             or not all(names) or len({name.casefold() for name in names})!=len(names)
@@ -505,23 +523,23 @@ def _structured_fault_record(memory, key, parts):
             or any(isinstance(record[name], (dict, list)) for name in names[:-1])
             or not isinstance(record[names[-1]], list) or len(record[names[-1]])!=8
             or any(isinstance(item, (dict, list)) for item in record[names[-1]])):
-        raise ModelError('MajorFaultRecord UDT storage does not match its declared layout')
+        raise ModelError(f'{attribute} UDT storage does not match its declared layout')
     paths = [parent + [name] for name in names[:-1]]
     paths.extend(parent + [names[-1], index] for index in range(8))
     return key, paths, layout
 
 
-def _major_fault_region(memory, ref, scope, *, writable=False):
+def _fault_record_region(memory, ref, scope, *, writable=False, attribute='MajorFaultRecord'):
     resolve = memory.check_writable if writable else memory.resolve
     key, parts, _ = resolve(ref, scope)
     if key is not None and parts and isinstance(parts[-1], str) and not isinstance(memory.at(key, parts), (dict, list)):
-        record = _structured_fault_record(memory, key, parts)
+        record = _structured_fault_record(memory, key, parts, attribute)
         if record is not None:
             return record
-    key, paths, kind = prefix(memory, ref, scope, MAJOR_FAULT_WORDS, writable=writable)
-    if kind != 'DINT' or len(paths) != MAJOR_FAULT_WORDS:
+    key, paths, kind = prefix(memory, ref, scope, FAULT_RECORD_WORDS, writable=writable)
+    if kind != 'DINT' or len(paths) != FAULT_RECORD_WORDS:
         direction = 'writable' if writable else 'readable'
-        raise ModelError(f'MajorFaultRecord requires 11 {direction} contiguous DINT elements or a supported UDT first member')
+        raise ModelError(f'{attribute} requires 11 {direction} contiguous DINT elements or a supported UDT first member')
     return key, paths, kind
 
 
@@ -532,7 +550,7 @@ def write_major_fault_record(engine, op, scope, *, executing):
     previous = memory.structural
     memory.structural = not executing
     try:
-        key, paths, layout = _major_fault_region(memory, op.args[3], scope)
+        key, paths, layout = _fault_record_region(memory, op.args[3], scope)
         if executing:
             start = 1 if layout == FAULT_RECORD_LINT else 2
             count = 1 if layout == 'DINT' else 2
@@ -595,6 +613,8 @@ def source(engine, op, scope='', *, executing=False):
         raise ModelError('Unsupported GSV Controller configuration attribute '+op.args[2])
     if cls == 'program' and attribute == 'majorfaultrecord':
         return _major_fault_record(engine, instance, scope, executing=executing)
+    if cls == 'program' and attribute == 'minorfaultrecord':
+        return _minor_fault_record(engine, instance, scope, executing=executing)
     caller_configuration = cls == 'task' or (cls == 'program' and attribute == 'name')
     if op.name == 'GSV' and caller_configuration and instance.casefold() == 'this':
         scope, executing = read_caller_context(engine, scope, executing)
@@ -679,8 +699,9 @@ def destination(memory, ref, scope, dtype, value, *, allow_dint=False):
         if kind != 'SINT' or len(parts) != DEVICE_NAME_SIZE:
             raise ModelError('GSV ControllerDevice DeviceName requires 33 writable contiguous SINT elements')
         return key, parts, kind
-    if dtype == MAJOR_FAULT_RECORD:
-        return _major_fault_region(memory, ref, scope, writable=True)
+    if dtype in (MAJOR_FAULT_RECORD, MINOR_FAULT_RECORD):
+        attribute = 'MinorFaultRecord' if dtype == MINOR_FAULT_RECORD else 'MajorFaultRecord'
+        return _fault_record_region(memory, ref, scope, writable=True, attribute=attribute)
     if dtype == MODULE_PATH:
         key, parts, kind, region = location(memory, ref, scope, writable=True)
         size = len(value)
@@ -728,9 +749,9 @@ def _structured_fault_values(words, layout):
 def execute(engine, op, scope):
     dtype,value=source(engine,op,scope,executing=True);memory=engine.memory
     key,paths,kind=destination(memory,op.args[3],scope,dtype,value,allow_dint=dtype=='INT' and op.args[0].casefold()=='module')
-    if dtype == MAJOR_FAULT_RECORD and kind != 'DINT':
+    if dtype in (MAJOR_FAULT_RECORD, MINOR_FAULT_RECORD) and kind != 'DINT':
         value = _structured_fault_values(value, kind)
-    if dtype in ('SINT[33]', MODULE_PATH, MAJOR_FAULT_RECORD):
+    if dtype in ('SINT[33]', MODULE_PATH, MAJOR_FAULT_RECORD, MINOR_FAULT_RECORD):
         for path, item in zip(paths, value, strict=True):
             memory.store(key, path, item)
     elif dtype=='STRING':memory.write_string(op.args[3],value,scope)
@@ -778,6 +799,7 @@ def description():
                 module_led_status='Empty controller-only map or aggregate of a complete simulated module inventory.',
                 module_force_status='Controller-only I/O map.',
                 major_fault_record='Active ladder fault routine; DINT[11] or first member of a supported fault-record UDT.',
+                minor_fault_record='Ladder Program THIS; latest reported overflow (4/4) in the same Program. DINT[11] or supported fault-record UDT; read only.',
                 controller_device=['DeviceName','ProductCode','ProductRev','SerialNumber','Type','Vendor','Status'],
                 controller_device_source='v35 5580 project processor and firmware revision, virtual EtherNet/IP serial, and modeled controller mode at scan entry.',
                 controller_device_status='Remote keyswitch; Program 0x3070, Run 0x3060, software fault 0x3450 at retry entry.',

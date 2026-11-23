@@ -103,6 +103,7 @@ class Engine:
         self.mode = mode
         self.selected = routine.lower()
         self.memory = Memory(project, starting_values=starting_values)
+        self.memory.on_minor_overflow = self._record_minor_overflow
         self.extensions = Extensions(self)
         self.labels = {}
         self._mcr_plans = {}
@@ -154,6 +155,8 @@ class Engine:
         self._program_activation = {}
         self._activation_prescan_pending = set()
         self._program_advance = None
+        self._minor_fault_records = {}
+        self._executing_program = None
         self._executing_task = None
         self._executing_routine = None
         self._scan_controller_status = None
@@ -292,12 +295,17 @@ class Engine:
         if (source_sha256!=self.project.sha256 or self.mode!='project' or self.blockers or self.fault or
                 self._native_fault_history_uncertain or self.last_cleared_program_fault is not None or not isinstance(program,str) or
                 program.casefold() not in self._program_timings):return {}
+        if program.casefold() in self._minor_fault_records:
+            return {20:bytes(44)}
         return {20:bytes(44),21:bytes(44)}
 
     def program_fault_description(self):
         available=(self.mode=='project' and not self.blockers and not self.fault and not self._native_fault_history_uncertain
                    and self.last_cleared_program_fault is None)
-        return {'attributes':[20,21],'known_clean_programs':len(self._program_timings) if available else 0,
+        overflows = sum(program in self._program_timings for program in self._minor_fault_records)
+        clean = len(self._program_timings) - overflows if available else 0
+        return {'attributes':[20,21],'known_clean_programs':clean,
+                'program_minor_overflow_records':len(self._minor_fault_records),
                 'unclassified_fault_seen_since_reset':self._native_fault_history_uncertain,
                 'simulated_recovery_seen_since_reset':self.last_cleared_program_fault is not None,
                 'record_bytes':44,'native_fault_classification':False,'physical_fault_history_imported':False,
@@ -307,7 +315,7 @@ class Engine:
         # Only the reference's normal zero state is modeled. Neither the
         # unscheduled 0x0110 word nor unclassified fault/edit bits are inferred.
         if (type(task_owner) is not int or not 1<=task_owner<=0xFFFF or
-                not self.program_fault_attributes(program,source_sha256=source_sha256) or
+                len(self.program_fault_attributes(program,source_sha256=source_sha256)) != 2 or
                 not self.project.program_diagnostics.edit_attributes(program,source_sha256=source_sha256,idle=idle)):
             return {}
         return {1:bytes(2)}
@@ -860,7 +868,8 @@ class Engine:
         if single_timing:task_timings[self._measured_task]=self._task_measurements
         self._timing_advance=TimingAdvance(timings,task_timings)
         self._program_advance=program_control.Advance(set(self._disabled_programs),set(self._program_scanned),
-                                                       set(self._activation_prescan_pending))
+                                                       set(self._activation_prescan_pending),
+                                                       self._minor_fault_records.copy())
         self._immediate_output_advance = {}
         task_outputs = {}
         self._message_advance = self._messages.copy()
@@ -874,6 +883,8 @@ class Engine:
             def run_task(due,task,entries):
                 previous_task,previous_first=self._executing_task,self.memory.first_scan
                 previous_minor = self.memory.minor_fault
+                previous_program = self._executing_program
+                self._executing_program = None
                 self.time_ms=due;self._executing_task=task
                 previous_calls=self.calls.stack;self.calls.stack=[]
                 measured_task=task.casefold() if isinstance(task,str) else None
@@ -888,9 +899,12 @@ class Engine:
                             continue
                         if self.mode=='project':self.memory.first_scan=name not in programs.scanned
                         if name in programs.pending_prescan:
+                            self._executing_program = None
                             self._prescan_routines(self._program_activation[name])
                             programs.pending_prescan.remove(name)
                         programs.scanned.add(name)
+                        if self.mode == 'project':
+                            self._executing_program = name
                         if name in timings:
                             start=perf_counter_ns()
                             self._routine(entry, 0)
@@ -907,6 +921,7 @@ class Engine:
                     self.calls.stack=previous_calls
                     self._executing_task,self.memory.first_scan=previous_task,previous_first
                     self.memory.minor_fault = previous_minor
+                    self._executing_program = previous_program
             self._event_dispatch=event_tasks.Dispatch(self,batch,run_task) if batch else None
             for position,(due,task,entries) in enumerate(runs):
                 index=batch.releases[position][1] if batch else None
@@ -928,6 +943,7 @@ class Engine:
             self._program_scanned=programs.scanned
             self._disabled_programs=programs.disabled
             self._activation_prescan_pending=programs.pending_prescan
+            self._minor_fault_records=programs.minor_faults
             self.scan_count += 1
             self.memory.first_scan = False
             self.fault = ""
@@ -963,6 +979,11 @@ class Engine:
             self._immediate_output_advance=None
             self._message_advance=None
 
+    def _record_minor_overflow(self):
+        if (self._program_advance is not None and self._executing_program is not None
+                and self._program_fault is None and not self.addons.prescanning):
+            self._program_advance.minor_faults[self._executing_program] = self.wall_time()
+
     def _recover_ladder_fault(self, op, scope, error):
         if (scope in self.memory.frames or self.mode != 'project'
                 or self._program_advance is None or self._program_fault is not None):
@@ -991,7 +1012,7 @@ class Engine:
             cause = error
             while cause is not None:
                 if isinstance(cause, SubscriptOverflowBoundsError):
-                    self.memory.minor_fault = True
+                    self.memory.report_minor_overflow()
                     break
                 cause = cause.__cause__
         routine = self._executing_routine.key

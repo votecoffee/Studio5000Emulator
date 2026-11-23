@@ -52,7 +52,7 @@ or XIO. OTE, OTL and OTU can change it. The emulator starts each task
 invocation with the flag clear. Ordinary out-of-bounds indices and
 exports with disabled or unspecified reporting still use Code 20 alone.
 The modeled flag is available in ladder outside AOI bodies. Native
-minor-fault records and controller status behavior remain unverified.
+native fault-record and controller status behavior remain unverified.
 [Rockwell math status and array subscript faults](https://www.rockwellautomation.com/en-ca/docs/studio-5000-logix-designer/37-01/contents-ditamap/math-status-flags.html)
 
 ## Recover COP and CPS array faults
@@ -413,6 +413,30 @@ behavior remain unverified.
 [Rockwell general instructions reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm003_-en-p.pdf)
 [Rockwell timer and counter instruction reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-01/contents-ditamap/instruction-set/timer-and-counter-instructions.html)
 [Rockwell RES reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-00/contents-ditamap/instruction-set/timer-and-counter-instructions/reset--res-.html)
+
+## Read modeled Program minor faults
+
+Use `GSV(Program,THIS,MinorFaultRecord,FaultWords[0])` in a scheduled Standard
+ladder Program. The destination can be a window of 11 contiguous DINTs or the
+first member of a fault-record UDT with a LINT or two DINT timestamp words,
+INT Type, INT Code and DINT[8] Info.
+
+With `ReportMinorOverflow` enabled, a modeled arithmetic overflow records
+Type 4, Code 4 in the Program that executed the instruction. This includes
+overflows from a called ladder routine or AOI and a recovered DINT subscript
+overflow that also raised a major array fault. The next ladder instruction can
+read the record in the same scan. The timestamp uses the software wall clock
+in UTC microseconds. The Info words remain unknown because their native values
+have not been qualified.
+
+A Program begins with an empty record. Its last recorded overflow persists
+across successful scans and Run entry. Clearing `S:MINOR` clears the scan flag
+and retains the record. A fault later in the advance rolls back the record and
+any destination writes. A reset or reload establishes a new history. This
+increment provides a read-only ladder profile for `THIS`. Native fault-record
+parity remains unverified.
+[Rockwell Major, Minor, and I/O Faults](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm014_-en-p.pdf#page=23)
+[Rockwell Program object](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/input-output-instructions/access-the-program-object.html)
 
 ## Recover shift and queue array faults
 

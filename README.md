@@ -590,6 +590,9 @@ preset to the accumulator and clears the status bits.
 A handler can clear
 [negative timing values](docs/controller-handlers.md#recover-negative-timing-values)
 in whole-project ladder as Type 4 Code 34.
+[Ladder GSV MinorFaultRecord](docs/controller-handlers.md#read-modeled-program-minor-faults)
+reads the current Program's latest reported overflow with its simulated timestamp,
+type and code.
 
 [Ladder counters and resets](docs/ladder-counters.md) retain DN during overflow
 or underflow until a wrap in the opposite direction clears both flags.

@@ -36,6 +36,10 @@ def legacy(op):
 
 
 def validate(engine,op,scope,*,kind='RLL'):
+    if (kind != 'RLL' and len(op.args) == 4 and all(isinstance(arg, str) for arg in op.args[:3])
+            and op.args[0].casefold() == 'program'
+            and op.args[2].casefold() == 'minorfaultrecord'):
+        raise ModelError('MinorFaultRecord currently requires ordinary ladder logic')
     if ladder_message.matches_attribute(op):return ladder_message.validate_attribute(engine,op,scope,kind)
     if program_control.matches(op):return program_control.validate(engine,op,scope)
     if event_status.matches(op):return event_status.validate(engine,op,scope)

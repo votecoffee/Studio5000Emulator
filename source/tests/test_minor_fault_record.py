@@ -1,0 +1,180 @@
+"""Read modeled Program overflow records from ordinary ladder logic."""
+import struct
+import unittest
+from unittest.mock import patch
+from xml.etree import ElementTree as E
+
+from logixlab.model import ModelError
+from logixlab.routine_edits import replacement_engine
+from logixlab.runtime import Engine
+import test_gsv_configuration as config
+from test_program_faults import add_fault_dint_array
+
+GSV = 'GSV(Program,THIS,MinorFaultRecord,FaultSample[1]);'
+OVERFLOW = 'XIC(Flag)ADD(2147483647,1,Out);'
+TYPE_CODE = (4 << 16) | 4
+TIMESTAMP = 1760000000000000
+
+
+def configure(root, *, reporting=True):
+    controller = root.find('Controller')
+    if reporting is not None:
+        controller.set('ReportMinorOverflow', str(reporting).lower())
+    tags = controller.find('Tags')
+    add_fault_dint_array(tags, 'FaultSample', [77] * 13)
+    config.scalar(tags, 'OverflowSeen', 'BOOL', 0)
+
+
+def record(timestamp):
+    low, high = struct.unpack('<2i', struct.pack('<q', timestamp))
+    return [low, high, TYPE_CODE] + [None] * 8
+
+
+class MinorFaultRecordTests(unittest.TestCase):
+    setUp = config.GsvConfigurationTests.setUp
+    engine = config.GsvConfigurationTests.engine
+    checked = config.GsvConfigurationTests.checked
+
+    def test_same_scan_read_persistence_and_clean_native_diagnostics(self):
+        engine = self.checked([OVERFLOW, 'XIC(S:MINOR)OTE(OverflowSeen);', 'OTU(S:MINOR);', GSV],
+                              mutate=configure)
+        with patch.object(engine, 'wall_time', return_value=TIMESTAMP):
+            engine.step(10)
+            self.assertEqual(engine.memory.read('FaultSample'), [77] + [0] * 11 + [77])
+            engine.memory.write('Flag', True)
+            engine.step(10)
+            self.assertTrue(engine.memory.read('OverflowSeen'))
+            self.assertEqual(engine.memory.read('FaultSample'), [77] + record(TIMESTAMP) + [77])
+        engine.memory.write('Flag', False)
+        engine.step(10)
+        self.assertFalse(engine.memory.read('OverflowSeen'))
+        self.assertEqual(engine.memory.read('FaultSample'), [77] + record(TIMESTAMP) + [77])
+        wire = engine.program_fault_attributes('BackgroundProgram', source_sha256=engine.project.sha256)
+        self.assertEqual(wire, {20: bytes(44)})
+        engine.enter_run()
+        engine.step(10)
+        self.assertEqual(engine.memory.read('FaultSample')[1:12], record(TIMESTAMP))
+        replacement = replacement_engine(engine, engine.project)
+        replacement.step(10)
+        self.assertEqual(replacement.memory.read('FaultSample')[1:12], record(TIMESTAMP))
+        reset = Engine(engine.project)
+        reset.step(10)
+        self.assertEqual(reset.memory.read('FaultSample')[1:12], [0] * 11)
+
+    def test_disabled_reporting_and_manual_status_do_not_create_records(self):
+        for reported in (False, None):
+            with self.subTest(reporting=reported):
+                def settings(root):
+                    configure(root, reporting=reported)
+
+                engine = self.checked([OVERFLOW, 'OTL(S:MINOR);', 'XIC(S:MINOR)OTE(OverflowSeen);', GSV],
+                                      mutate=settings)
+                engine.memory.write('Flag', True)
+                engine.step(10)
+                self.assertTrue(engine.memory.read('OverflowSeen'))
+                self.assertEqual(engine.memory.read('FaultSample')[1:12], [0] * 11)
+                self.assertEqual(engine.program_fault_description()['program_minor_overflow_records'], 0)
+
+    def test_later_fault_rolls_back_new_record_and_writes(self):
+        engine = self.checked([OVERFLOW, GSV, 'CPT(Limit,1/Index);'], mutate=configure)
+        engine.memory.write('Index', 1)
+        engine.memory.write('Flag', True)
+        with patch.object(engine, 'wall_time', return_value=TIMESTAMP):
+            engine.step(10)
+        engine.memory.write('Index', 0)
+        with patch.object(engine, 'wall_time', return_value=TIMESTAMP + 100):
+            with self.assertRaisesRegex(ModelError, 'zero'):
+                engine.step(10)
+        self.assertEqual(engine.memory.read('FaultSample')[1:12], record(TIMESTAMP))
+        engine.memory.write('Flag', False)
+        engine.memory.write('Index', 1)
+        engine.step(10)
+        self.assertEqual(engine.memory.read('FaultSample')[1:12], record(TIMESTAMP))
+
+    def test_programs_read_separate_records_on_the_same_task(self):
+        def settings(root):
+            configure(root)
+            controller = root.find('Controller')
+            add_fault_dint_array(controller.find('Tags'), 'SecondRecord', [77] * 11)
+            # Give these two Programs the same owner, so a shared status bit
+            # cannot masquerade as a second Program's stored record.
+            background = controller.find('./Tasks/Task[@Name="BackgroundTask"]/ScheduledPrograms')
+            E.SubElement(background, 'ScheduledProgram', Name='FastProgram')
+            tasks = controller.find('Tasks')
+            tasks.remove(tasks.find('Task[@Name="FastTask"]'))
+            routine = controller.find('./Programs/Program[@Name="FastProgram"]/Routines/Routine[@Name="Main"]')
+            routine.clear()
+            routine.attrib.update(Name='Main', Type='RLL')
+            rung = E.SubElement(E.SubElement(routine, 'RLLContent'), 'Rung', Number='0', Type='N')
+            E.SubElement(rung, 'Text').text = 'GSV(Program,THIS,MinorFaultRecord,SecondRecord[0]);'
+
+        engine = self.checked([OVERFLOW, GSV], mutate=settings)
+        engine.memory.write('Flag', True)
+        with patch.object(engine, 'wall_time', return_value=TIMESTAMP):
+            engine.step(10)
+        self.assertEqual(engine.memory.read('FaultSample')[1:12], record(TIMESTAMP))
+        self.assertEqual(engine.memory.read('SecondRecord'), [0] * 11)
+
+    def test_aoi_overflow_is_recorded_for_its_caller_program(self):
+        import test_aoi_queues as aoi
+
+        def settings(root):
+            configure(root)
+            aoi.logic(root, ['ADD(2147483647,1,Stack[0]);'])
+            content = root.find('./Controller/Programs/Program/Routines/Routine/RLLContent')
+            rung = E.SubElement(content, 'Rung', Number=str(len(content)), Type='N')
+            E.SubElement(rung, 'Text').text = GSV
+
+        engine = aoi.AOIQueueTests.engine(self, settings)
+        self.assertEqual(engine.blockers, [])
+        with patch.object(engine, 'wall_time', return_value=TIMESTAMP):
+            engine.step(10)
+        self.assertEqual(engine.memory.read('FaultSample')[1:12], record(TIMESTAMP))
+
+    def test_fault_record_udt_stores_split_type_and_code_and_timestamp(self):
+        for wide_time in (False, True):
+            with self.subTest(wide_time=wide_time):
+                def settings(root):
+                    configure(root)
+                    controller = root.find('Controller')
+                    dtype = E.SubElement(controller.find('DataTypes'), 'DataType', Name='FaultLayout', Class='User')
+                    members = E.SubElement(dtype, 'Members')
+                    time_fields = [('Time', 'LINT', '0')] if wide_time else [('Time', 'DINT', '0'), ('TimeHigh', 'DINT', '0')]
+                    for name, kind, dimension in time_fields + [
+                        ('Type', 'INT', '0'), ('Code', 'INT', '0'), ('Info', 'DINT', '8')
+                    ]:
+                        E.SubElement(members, 'Member', Name=name, DataType=kind, Dimension=dimension)
+                    tag = E.SubElement(controller.find('Tags'), 'Tag', Name='Sample',
+                                       DataType='FaultLayout', TagType='Base')
+                    structure = E.SubElement(E.SubElement(tag, 'Data', Format='Decorated'),
+                                             'Structure', DataType='FaultLayout')
+                    E.SubElement(structure, 'DataValueMember', Name='Type', DataType='INT', Value='0')
+
+                engine = self.checked([OVERFLOW, GSV.replace('FaultSample[1]', 'Sample.Time')], mutate=settings)
+                engine.memory.write('Flag', True)
+                with patch.object(engine, 'wall_time', return_value=TIMESTAMP):
+                    engine.step(10)
+                value = engine.memory.read('Sample')
+                self.assertEqual((value['Type'], value['Code'], value['Info']), (4, 4, [None] * 8))
+                if wide_time:
+                    self.assertEqual(value['Time'], TIMESTAMP)
+                else:
+                    self.assertEqual([value['Time'], value['TimeHigh']], record(TIMESTAMP)[:2])
+
+    def test_false_rung_skips_live_index_and_scope_is_checked(self):
+        logic = 'XIC(Flag)GSV(Program,THIS,MinorFaultRecord,FaultSample[Index]);'
+        engine = self.checked([logic], mutate=configure)
+        engine.memory.write('Index', 99)
+        engine.step(10)
+        self.assertEqual(engine.memory.read('FaultSample'), [77] * 13)
+        engine.memory.write('Flag', True)
+        with self.assertRaisesRegex(ModelError, 'outside bounds'):
+            engine.step(10)
+        self.assertEqual(engine.memory.read('FaultSample'), [77] * 13)
+        for args in (
+            dict(harness=True),
+            dict(st=True),
+        ):
+            self.assertTrue(self.engine([GSV], mutate=configure, **args).blockers)
+        self.assertTrue(self.engine([GSV.replace('THIS', 'FastProgram')], mutate=configure).blockers)
+        self.assertTrue(self.engine([GSV.replace('FaultSample[1]', 'FaultSample[3]')], mutate=configure).blockers)

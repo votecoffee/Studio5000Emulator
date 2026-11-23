@@ -7,7 +7,7 @@ Version `.120` adds bounded read-only Program diagnostics to the native profile:
 | `7` Output List | Null four-byte ACADDR | Complete ordinary source proves no external I/O, produced/consumed or aliased tags, Program parameters or connections |
 | `11` Edits Mode | Two-byte zero, not testing edits | Explicit `TestEdits=false`, visible ordinary RLL routines containing normal rungs, and no relevant native edit reservation, phase or transfer |
 | `20` Local Major Fault | Empty 44-byte record | Supported scheduled whole-project execution with no emulator fault since reset |
-| `21` Local Minor Fault | Empty 44-byte record | Same as `20` |
+| `21` Local Minor Fault | Empty 44-byte record | Same as `20` and no modeled minor overflow recorded for the Program |
 
 The source SHA and original native Program binding must match. Single and list
 reads share the same values; setters remain denied. A null output-list reference
@@ -45,6 +45,10 @@ the engine establishes a new history. Blocked execution, disabled/unscheduled
 Programs and isolated routine harnesses do not expose these whole-Program
 records. Physical controller fault history is not imported.
 
+A [modeled ladder minor overflow](controller-handlers.md#read-modeled-program-minor-faults)
+withholds the Program's empty Local Minor Fault record and its normal status
+word. Its Local Major Fault record remains subject to the existing clean-history
+checks. Modeled overflow values are available through ladder GSV.
 The endpoint exposes aggregate `program_diagnostics` and `program_faults`
 availability summaries. Reads do not advance scans or alter tags. Empty native
 records describe this model's known-clean history; they do not establish full

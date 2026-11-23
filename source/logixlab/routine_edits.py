@@ -29,7 +29,7 @@ def replacement_engine(engine, project):
     candidate.task_outputs=copy.deepcopy(engine.task_outputs)
     candidate._messages=engine._messages.copy()
     for name in ('scan_count','time_ms','last_timer','trace','changes','prescan_count','last_cleared_module_fault',
-                 'last_cleared_program_fault','_initial_prescan_pending','_program_scanned','_disabled_programs','_activation_prescan_pending','_file_incremental','_file_arithmetic_retry','_st_counter_edges','_st_oneshot_edges','instruction_limit','budget','_program_timings','_task_measurements','_task_scan_timings','_task_event_status','_native_fault_history_uncertain'):
+                 'last_cleared_program_fault','_minor_fault_records','_initial_prescan_pending','_program_scanned','_disabled_programs','_activation_prescan_pending','_file_incremental','_file_arithmetic_retry','_st_counter_edges','_st_oneshot_edges','instruction_limit','budget','_program_timings','_task_measurements','_task_scan_timings','_task_event_status','_native_fault_history_uncertain'):
         setattr(candidate,name,copy.deepcopy(getattr(engine,name)))
     if candidate._task_scheduler is not None and engine._task_scheduler is not None:
         candidate._task_scheduler.continue_from(engine._task_scheduler)
