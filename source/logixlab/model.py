@@ -1175,8 +1175,13 @@ class Memory:
 
     def resolve(self, ref, scope="", seen=()):
         ref = ref.strip()
-        cache_key=(ref.lower(),scope.lower())
-        if cache_key in self._resolved:return self._resolved[cache_key]
+        scope_key = scope.lower()
+        cache_key = (ref.lower(), scope_key)
+        # Frame bindings can change between calls. Cache their resolved
+        # canonical targets only, even if the frame is currently absent.
+        cacheable = not scope_key.startswith('@aoi:')
+        if cacheable and cache_key in self._resolved:
+            return self._resolved[cache_key]
         if ref.lower() == "s:fs":
             if scope in self.frames:raise ModelError('S:FS inside AOIs is unsupported')
             return None, [], "BOOL"
@@ -1397,7 +1402,7 @@ class Memory:
                     value = value[actual]
             else: raise ModelError(f"Invalid reference tail {tail}")
         result=(key,parts,dtype.upper())
-        if re.fullmatch(r'(?:Program:[\w]+\.)?[A-Za-z_][\w:]*(?:\[\d+(?:,\d+)*\]|\.[\w]+)*',ref,re.I):
+        if cacheable and re.fullmatch(r'(?:Program:[\w]+\.)?[A-Za-z_][\w:]*(?:\[\d+(?:,\d+)*\]|\.[\w]+)*',ref,re.I):
             self._resolved[cache_key]=result
         return result
 

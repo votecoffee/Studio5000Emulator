@@ -27,7 +27,10 @@ unknown saved locals or replace the definition's optional-parameter behavior.
 Nested RLL and existing ST AOI calls use the same transfer path. ST arithmetic
 and assignment limits remain separate; a supported CPS call can copy LREAL.
 Binding checks read instance and InOut shapes without snapshotting their tags.
-Parameter and body writes are tracked when they occur. Failed advances restore
+Parameter and body writes are tracked when they occur. Each frame reference
+follows its current binding before consulting the canonical address cache.
+Rebinding therefore leaves unrelated cached addresses in place.
+Failed advances restore
 instance fields, outputs, bindings, clocks and scheduling.
 
 Choose **Examples → AOI constants lab**. Step once with Enabled false to inspect

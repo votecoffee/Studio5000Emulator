@@ -723,9 +723,27 @@ class AddOnTests(unittest.TestCase):
 
     def test_same_instance_rebinds_inout_for_each_call(self):
         e=self.engine(['LabAccumulator(AccumulatorA,StepA,TotalA,SharedA);','LabAccumulator(AccumulatorA,StepB,TotalB,SharedB);'])
-        self.assertEqual(e.blockers,[]);e.step()
+        self.assertEqual(e.blockers, [])
+        cache = e.memory._resolved
+        address = e.memory.resolve('RawValue', 'MainProgram')
+        e.step()
         self.assertEqual(e.memory.read('TotalA'),2);self.assertEqual(e.memory.read('TotalB'),5)
         self.assertEqual(e.memory.read('SharedA'),12);self.assertEqual(e.memory.read('SharedB'),23)
+        self.assertIs(e.memory._resolved, cache)
+        self.assertIs(e.memory.resolve('RawValue', 'MainProgram'), address)
+
+    def test_unbound_frame_lookup_cannot_shadow_a_later_binding(self):
+        e = self.engine()
+        frame = '@AOI:unbound'
+        memory = e.memory
+        self.assertEqual(memory.read('SharedA', frame), 10)
+        self.assertNotIn(('shareda', frame.lower()), memory._resolved)
+
+        e.addons._set_frame(frame, {'shareda': ('SharedB', '')})
+        self.assertEqual(memory.read('SharedA', frame), 20)
+        e.addons._set_frame(frame, None)
+        self.assertEqual(memory.read('SharedA', frame), 10)
+        self.assertNotIn(('shareda', frame.lower()), memory._resolved)
 
     def test_later_fault_rolls_back_local_output_inout_time_and_timer_metadata(self):
         e=self.engine(['LabAccumulator(AccumulatorA,StepA,TotalA,SharedA);','CPT(TotalB,1/0);'])

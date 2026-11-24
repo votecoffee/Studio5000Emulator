@@ -124,8 +124,6 @@ class AddOns:
             self.memory.frames.pop(frame, None)
         else:
             self.memory.frames[frame] = bindings
-        # InOut arguments can differ between calls using the same instance.
-        self.memory._resolved={k:v for k,v in self.memory._resolved.items() if k[1]!=frame.lower()}
 
     def validate(self,op,scope,stack=()):
         definition,frame,address,bindings=self._prepare_binding(op,scope)
