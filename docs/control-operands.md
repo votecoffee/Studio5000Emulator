@@ -49,6 +49,8 @@ skip its live dynamic index after structural validation. A true reset selects
 the actual writable scalar CONTROL, sets POS=0 and all represented status
 flags false, and preserves LEN, including an unknown LEN. Unknown old POS/flags
 are replaced without being consumed as inputs. Other records remain unchanged.
+Validation reads the CONTROL shape without a rollback snapshot. The reset
+records only the fields it writes, including for CONTROL members and arrays.
 
 The reset captures the canonical CONTROL identity before writing POS or flags.
 It uses that identity to remove incremental file progress, including when

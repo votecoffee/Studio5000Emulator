@@ -1,6 +1,7 @@
 """CONTROL reset and shift/queue payload selection without dormant reads."""
 import copy
 import unittest
+from unittest.mock import patch
 from xml.etree import ElementTree as E
 
 import test_control_operations as fixtures
@@ -75,11 +76,19 @@ class ControlOperandTests(unittest.TestCase):
 
     def test_control_reset_false_prescan_and_true_unknown_record_initialization(self):
         e = self.checked(['XIC(StartPB)RES(Controls[ControlIndex]);'])
-        before = copy.deepcopy(e.memory.values); e.step(); self.assertEqual(e.memory.values, before)
+        before = copy.deepcopy(e.memory.values)
+        with patch.object(e.memory, '_remember', wraps=e.memory._remember) as remember:
+            e.step()
+        self.assertNotIn('controls', [call.args[0] for call in remember.call_args_list])
+        self.assertEqual(e.memory.values, before)
         e.memory.write('StartPB', True); before = self.snapshot(e)
         with self.assertRaisesRegex(ModelError, 'outside bounds'):e.step()
         self.assertEqual(self.snapshot(e), before)
-        e.memory.write('ControlIndex', 1); e.step(); obj = e.memory.read('Controls')[1]
+        e.memory.write('ControlIndex', 1)
+        with patch.object(e.memory, '_remember', wraps=e.memory._remember) as remember:
+            e.step()
+        self.assertNotIn('controls', [call.args[0] for call in remember.call_args_list])
+        obj = e.memory.read('Controls')[1]
         self.assertIsNone(obj['LEN']); self.assertEqual(obj['POS'], 0)
         self.assertTrue(all(obj[flag] is False for flag in FLAGS)); self.assertIsNone(e.memory.read('Controls')[0]['POS'])
 

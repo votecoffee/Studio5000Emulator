@@ -24,7 +24,7 @@ def validate(engine, op, scope):
         raise ModelError('FSC requires the v35 ControlLogix 5580 software profile')
     if op.args[1:3] != ['?', '?']:
         raise ModelError('FSC LEN/POS use neutral-text ?,? and saved CONTROL values')
-    controls.control(memory, op.args[0], scope)
+    controls.control(memory, op.args[0], scope, mutable=False)
     count = mode(op.args[3])
     expression = engine.extensions.condition(op.args[4], allow_wide=True, bcd=True, lreal=True, integer_literals=True, radix_literals=True)
     if count=='INC':incremental.validate(engine,op,scope)

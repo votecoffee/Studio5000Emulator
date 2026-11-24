@@ -76,7 +76,7 @@ def _validate(memory, op, scope):
         raise ModelError('Array statistics require the v35 ControlLogix 5580 software profile')
     if op.args[4:] != ['?', '?']:
         raise ModelError('Statistics LEN/POS use neutral-text ?,? and saved CONTROL values')
-    controls.control(memory, op.args[3], scope)
+    controls.control(memory, op.args[3], scope, mutable=False)
     key, _, prefix, _ = region(memory, op, scope, structural=True, references=True)
     destination(memory,op,scope,key,prefix)
 

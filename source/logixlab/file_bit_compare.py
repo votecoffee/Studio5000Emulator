@@ -56,7 +56,7 @@ def _validate_controls(memory, op, scope, *, preflight):
     addresses = []
     for ref in (op.args[3], op.args[6]):
         try:
-            controls.control(memory, ref, scope)
+            controls.control(memory, ref, scope, mutable=False)
         except ArrayBoundsError:
             if not preflight:
                 raise
@@ -65,7 +65,7 @@ def _validate_controls(memory, op, scope, *, preflight):
             previous = memory.structural, memory.structural_constant_indices
             try:
                 memory.structural = memory.structural_constant_indices = True
-                controls.control(memory, ref, scope)
+                controls.control(memory, ref, scope, mutable=False)
             finally:
                 memory.structural, memory.structural_constant_indices = previous
         else:

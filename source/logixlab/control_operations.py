@@ -20,14 +20,14 @@ def default():
     return dict(LEN=0, POS=0, **dict.fromkeys(FLAGS, False))
 
 
-def control(memory, ref, scope):
-    return _control_at(memory, *memory.check_writable(ref, scope))
+def control(memory, ref, scope, *, mutable=True):
+    return _control_at(memory, *memory.check_writable(ref, scope), mutable=mutable)
 
 
-def _control_at(memory, key, parts, dtype):
+def _control_at(memory, key, parts, dtype, *, mutable):
     if dtype != 'CONTROL':
         raise ModelError('A scalar writable CONTROL record is required')
-    obj = memory.at(key, parts)
+    obj = memory.at(key, parts, mutable=mutable)
     if not isinstance(obj, dict) or set(obj) != set(default()):
         raise ModelError('A scalar writable CONTROL record is required')
     return obj
@@ -208,7 +208,7 @@ def reset_preflight(memory, op, scope):
     memory.structural = True
     try:
         if memory.resolve(op.args[0], scope)[2] != 'CONTROL':return False
-        control(memory, op.args[0], scope)
+        control(memory, op.args[0], scope, mutable=False)
     finally:memory.structural = previous
     return True
 
@@ -225,7 +225,7 @@ def _validate(memory, op, scope):
     n, a = op.name, op.args
     shift = n in ('BSL', 'BSR')
     ctrl = a[1] if shift else a[2]
-    control(memory, ctrl, scope)
+    control(memory, ctrl, scope, mutable=False)
     if a[3:] != (['?'] if shift else ['?', '?']):
         raise ModelError('Use neutral-text ? pseudo-operands; CONTROL.LEN/POS hold saved values')
     array = a[1] if n in ('FFL', 'LFL') else a[0]
@@ -276,8 +276,12 @@ def prescan(memory, op, scope):
 
 def reset(memory, ref, scope):
     key, parts, dtype = memory.check_writable(ref, scope)
-    obj = _control_at(memory, key, parts, dtype)
-    obj.update(dict.fromkeys(FLAGS, False));obj['POS'] = 0
+    obj = _control_at(memory, key, parts, dtype, mutable=False)
+    updates = dict.fromkeys(FLAGS, False)
+    updates['POS'] = 0
+    for field, value in updates.items():
+        if value is not obj[field]:
+            memory.store(key, parts + [field], value)
     return key, tuple(parts)
 
 

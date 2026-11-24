@@ -570,7 +570,9 @@ class Engine:
         if self._timer_preflight(op,scope):return
         if self._counter_preflight(op,scope):return
         if control_operations.reset_preflight(self.memory,op,scope):return
-        if n=='RES' and self.memory.resolve(a[0],scope)[2]=='CONTROL':control_operations.control(self.memory,a[0],scope);return
+        if n=='RES' and self.memory.resolve(a[0],scope)[2]=='CONTROL':
+            control_operations.control(self.memory, a[0], scope, mutable=False)
+            return
         if n in bit_transfer.INSTRUCTIONS:bit_transfer.preflight(self.memory,op,scope);return
         if scalar_math.validate(self,op,scope):return
         if numeric_storage.validate(self,op,scope):return

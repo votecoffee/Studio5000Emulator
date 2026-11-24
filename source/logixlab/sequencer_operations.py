@@ -42,7 +42,7 @@ def _validate(memory, op, scope):
     a = op.args;control_index = 2 if op.name == 'SQL' else 3
     if a[control_index + 1:] != ['?', '?']:
         raise ModelError('Sequencer LEN/POS use neutral-text ?,? and saved CONTROL values')
-    controls.control(memory, a[control_index], scope)
+    controls.control(memory, a[control_index], scope, mutable=False)
     key, parts, _ = starting_array(memory, a[0], scope, writable=op.name == 'SQL', structural=True)
     ck, cp, _ = memory.resolve(a[control_index], scope)
     if ck == key and (parts[:len(cp)] == cp or cp[:len(parts)] == parts):

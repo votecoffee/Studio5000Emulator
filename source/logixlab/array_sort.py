@@ -13,7 +13,7 @@ def validate(memory, op, scope):
         raise ModelError('SRT requires the v35 ControlLogix 5580 software profile')
     if op.args[3:] != ['?', '?']:
         raise ModelError('SRT LEN/POS use neutral-text ?,? and saved CONTROL values')
-    controls.control(memory, op.args[2], scope)
+    controls.control(memory, op.args[2], scope, mutable=False)
     geometry.region(memory, op, scope, writable=True, structural=True, references=True)
 
 
