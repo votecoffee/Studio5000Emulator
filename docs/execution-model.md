@@ -87,9 +87,10 @@ its destination through prescan, and failures roll back the whole advance.
 These software policies do not establish native intermediate/fault parity.
 
 [Ladder PID](ladder-pid.md) uses explicit percent-error equations and UPD
-seconds per reached true call. Hidden integral/manual history rolls back with
-public fields; Prescan/false clear EN, INI false reinitializes, and Run resets
-history. [Derivative and deadband](pid-dynamics.md) add previous-sample and
+seconds per reached true call. The scan journal tracks individual PID fields
+and DATA slots. Cascade master reads do not track that record for mutation.
+Hidden solver history rolls back with the public fields. Prescan and false
+clear EN, INI false reinitializes, and Run resets history. [Derivative and deadband](pid-dynamics.md) add previous-sample and
 zero-crossing state to the same transaction. [One-way cascade](pid-cascade.md)
 samples OUT in authored order; [ladder AOIs](aoi-pid.md) resolve canonical
 InOut/local PID history with binding rollback. Cascade feedback, smoothing and

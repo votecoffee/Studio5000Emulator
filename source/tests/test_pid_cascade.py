@@ -1,6 +1,7 @@
 """One-way ladder PID cascade: authored order, modes and atomic advances."""
 import copy
 import unittest
+from unittest.mock import patch
 from xml.etree import ElementTree as E
 import test_ladder_pid as fixtures
 from logixlab.model import ModelError
@@ -26,6 +27,47 @@ class PIDCascadeTests(unittest.TestCase):
         e = self.cascade(); e.step()
         self.assertEqual((e.memory.read('CV'), e.memory.read('IntLoop.SP'), e.memory.read('RawCV')), (45, 45, 6553))
         e.step(); self.assertEqual((e.memory.read('IntLoop.SP'), e.memory.read('RawCV')), (60, 11468))
+
+    def test_pid_array_updates_and_master_sampling_do_not_snapshot_containing_tags(self):
+        def banks(root):
+            tags = root.find('./Controller/Tags')
+            saved = tags.find('Tag[@Name="Loop"]/Data/Structure')
+            for name in ('Loops', 'Masters'):
+                tag = E.SubElement(tags, 'Tag', Name=name, TagType='Base', DataType='PID', Dimensions='2')
+                array = E.SubElement(E.SubElement(tag, 'Data', Format='Decorated'), 'Array',
+                                     DataType='PID', Dimensions='2')
+                for index in range(2):
+                    E.SubElement(array, 'Element', Index=f'[{index}]').append(copy.deepcopy(saved))
+
+        e = self.checked(lines=[
+            'XIC(Execute)PID(Loops[1],PV,Tieback,CV,Masters[1],Inhold,Readback);',
+            'CPT(Quotient,1/FaultDivisor);',
+        ], mutate=banks)
+        for address, value in (
+            ('Loops[1].CL', True), ('Masters[1].CL', True), ('Masters[1].CT', True),
+            ('Masters[1].OUT', 50), ('Loops[1].DATA[1]', 123), ('Execute', True),
+        ):
+            e.memory.write(address, value)
+        master = copy.deepcopy(e.memory.at('masters', [1], mutable=False))
+        neighbor = copy.deepcopy(e.memory.at('loops', [0], mutable=False))
+        with patch.object(e.memory, '_remember', wraps=e.memory._remember) as snapshot_tag:
+            self.assertEqual(self.run_step(e), 45)
+            e.memory.write('FaultDivisor', 0)
+            before = self.snapshot(e)
+            with self.assertRaisesRegex(ModelError, 'zero'):
+                e.step()
+            self.assertEqual(self.snapshot(e), before)
+            self.assertEqual(self.run_step(e, FaultDivisor=1), 60)
+            solver = copy.deepcopy(e.last_timer)
+            self.assertEqual(self.run_step(e, Execute=False), 60)
+        self.assertFalse({'loops', 'masters'} & {call.args[0] for call in snapshot_tag.call_args_list})
+        self.assertEqual(e.last_timer, solver)
+        self.assertFalse(e.memory.read('Loops[1].EN'))
+        self.assertEqual(e.memory.read('Loops[1].DATA[0]'), 30)
+        self.assertEqual(e.memory.read('Loops[1].DATA[1]'), 123)
+        self.assertEqual(e.memory.read('Loops[1].DATA[14]'), 60)
+        self.assertEqual(e.memory.at('masters', [1], mutable=False), master)
+        self.assertEqual(e.memory.at('loops', [0], mutable=False), neighbor)
 
     def test_slave_setpoint_uses_its_engineering_span(self):
         e = self.cascade(); e.memory.write('IntLoop.MINS', -50); e.memory.write('IntLoop.MAXS', 150)

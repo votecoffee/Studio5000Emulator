@@ -1107,7 +1107,8 @@ regulator with gain shaping, holds and output limits. Choose **Regulator lab**
 for a closed-loop step response or externally supplied process feedback.
 
 [Ladder PID](docs/ladder-pid.md) adds bounded P/PI/PID calculations, scaling,
-limits, alarms and software manual tracking. [Derivative and deadband](docs/pid-dynamics.md)
+limits, alarms and software manual tracking. PID journals changes to record
+fields and DATA slots for scan rollback. [Derivative and deadband](docs/pid-dynamics.md)
 include PV/error rates, a [modeled derivative smoothing filter](docs/pid-dynamics.md#derivative-smoothing)
 and zero-crossing output holds.
 [Numeric operands and tieback](docs/pid-operands.md) add integer PV/CV and hardware

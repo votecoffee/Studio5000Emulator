@@ -25,7 +25,7 @@ def source(memory, ref, scope, *, immediate=False, role='PV'):
         value = literal(ref)
     except ValueError:
         key, parts, dtype = memory.resolve(ref, scope)
-        if dtype not in NUMERIC_TYPES or isinstance(memory.at(key, parts), (list, dict)):
+        if dtype not in NUMERIC_TYPES or isinstance(memory.at(key, parts, mutable=False), (list, dict)):
             raise ModelError('PID sources require scalar SINT/INT/DINT/REAL operands')
         return key, parts
     if not immediate or type(value) not in (int, float):
@@ -48,7 +48,7 @@ def validate(engine, op, scope):
 
 def _record(memory, ref, scope):
     key, parts, dtype = memory.check_writable(ref, scope)
-    obj = memory.at(key, parts)
+    obj = memory.at(key, parts, mutable=False)
     if dtype != 'PID' or not isinstance(obj, dict) or set(obj) != set(FIELDS):
         raise ModelError('PID requires a writable logical PID record')
     if not isinstance(obj['DATA'], list) or len(obj['DATA']) != 17:
@@ -71,12 +71,13 @@ def _operands(engine, op, scope):
     if op.args[5] != '0':
         hkey, hparts, htype = memory.resolve(op.args[5], scope)
         bit_view = hparts and isinstance(hparts[-1], tuple) and hparts[-1][0] == 'bit'
-        if htype != 'BOOL' or hkey is None or not bit_view and isinstance(memory.at(hkey, hparts), (dict, list)):
+        if (htype != 'BOOL' or hkey is None or
+                not bit_view and isinstance(memory.at(hkey, hparts, mutable=False), (dict, list))):
             raise ModelError('PID inhold bit requires a scalar BOOL tag or literal 0')
         inhold_bit = hkey, hparts
     inhold_value = None if op.args[6] == '0' else source(memory, op.args[6], scope, role='inhold value')
     ckey, cparts, ctype = memory.check_writable(op.args[3], scope)
-    if ctype not in NUMERIC_TYPES or isinstance(memory.at(ckey, cparts), (list, dict)):
+    if ctype not in NUMERIC_TYPES or isinstance(memory.at(ckey, cparts, mutable=False), (list, dict)):
         raise ModelError('PID control variable must be a writable scalar SINT/INT/DINT/REAL tag')
     def known(*addresses):
         # Structural resolution uses index zero for live subscripts. Such
@@ -89,7 +90,7 @@ def _operands(engine, op, scope):
     master = None
     if op.args[4] != '0':
         mkey, mparts, mtype = memory.resolve(op.args[4], scope)
-        mobj = memory.at(mkey, mparts) if mtype == 'PID' else None
+        mobj = memory.at(mkey, mparts, mutable=False) if mtype == 'PID' else None
         if (not isinstance(mobj, dict) or set(mobj) != set(FIELDS) or
                 not isinstance(mobj['DATA'], list) or len(mobj['DATA']) != 17):
             raise ModelError('PID master requires one logical PID record or literal 0')
@@ -291,15 +292,20 @@ def execute(engine, op, power, scope):
     for name, value in results.items():
         bit = 1 << BITS[name]
         ctl = (ctl | bit) if value else (ctl & ~bit)
-    engine.memory.write(op.args[3], assigned_cv, scope)
-    obj.update(CTL=bit_value(ctl, 'DINT'), PV=pv, ERR=error, OUT=out, BIAS=bias,
-               SO=out, MINO=real(low), MAXO=real(high))
+    memory = engine.memory
+    memory.write(op.args[3], assigned_cv, scope)
+    updates = dict(CTL=bit_value(ctl, 'DINT'), PV=pv, ERR=error, OUT=out, BIAS=bias,
+                   SO=out, MINO=real(low), MAXO=real(high))
     if hardware_manual:
-        obj['TIE'] = tieback
+        updates['TIE'] = tieback
     if pv_tracking or cascade_sample:
-        obj['SP'] = v['SP']
+        updates['SP'] = v['SP']
+    for field, value in updates.items():
+        if obj[field] is not value:
+            memory.store(key, parts + [field], value)
     for i, value in ((0, integral), (2, pv), (3, error), (4, v['SP']), (14, real(assigned_cv))):
-        obj['DATA'][i] = value
+        if obj['DATA'][i] is not value:
+            memory.store(key, parts + ['DATA', i], value)
     engine.last_timer[identity] = dict(integral=integral, manual=manual, tracking=tracking, inhold=inhold, at=engine.time_ms,
         pv=pv, error=error, derivative=derivative, derivative_signature=derivative_signature, smoothing_signature=smoothing_signature,
         out=out, deadband=hold, deadband_signature=deadband_signature)
