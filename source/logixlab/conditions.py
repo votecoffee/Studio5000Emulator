@@ -42,20 +42,31 @@ class Condition(Expression):
         if floating is not None:return True,floating['types']
         wide=self.wide_profile(memory,scope)
         if wide is not None:return False,wide[2]
+        return self._validate_plain(memory, scope, read_string_data=read_string_data)
+
+    def _validate_plain(self, memory, scope, *, read_string_data, samples=None):
         if self.typed_types:raise ModelError('Typed integer literals require the qualified integer expression profile')
         types={};real=False
         integer_root = memory.project.version == '35' and memory.project.processor.upper() in CONTROLLERS
         for ref in self.refs:
+            if samples is not None and ref in samples:
+                continue
             dtype=memory.resolve(ref,scope)[2]
-            if dtype=='BOOL':types[ref]='bool';memory.read(ref,scope)
+            if dtype=='BOOL':
+                types[ref]='bool'
+                value=memory.read(ref,scope)
             elif dtype in ('SINT','INT','DINT','REAL'):
-                if isinstance(memory.read(ref,scope),(dict,list)):raise ModelError('CMP requires scalar numeric operands')
+                value=memory.read(ref,scope)
+                if isinstance(value,(dict,list)):raise ModelError('CMP requires scalar numeric operands')
                 types[ref]='number';real|=dtype=='REAL'
             elif memory.project.string_capacity(dtype) is not None:
                 if read_string_data:
                     memory.string(ref,scope)
                 types[ref]='string'
+                continue
             else:raise ModelError('Unsupported CMP operand type '+dtype)
+            if samples is not None:
+                samples[ref]=value
         def infer(node):
             nonlocal real
             kind,value=node[:2]
@@ -111,7 +122,8 @@ class Condition(Expression):
         if wide is not None:
             from . import wide_st
             return bool(wide_st.evaluate(self,memory,scope,wide,partial_string_relations=partial_string_relations))
-        real,types=self.validate(memory,scope,read_string_data=not partial_string_relations)
+        samples = {}
+        real,types=self._validate_plain(memory,scope,read_string_data=not partial_string_relations,samples=samples)
         compare_nonfinite = (allow_nonfinite_relations and real and memory.project.version == '35'
                              and memory.project.processor.upper() in CONTROLLERS)
         def number(x):return coerce(x,'REAL' if real else 'DINT')
@@ -120,7 +132,7 @@ class Condition(Expression):
             if kind=='literal':return number(value)
             if kind=='ref':
                 if types[value]=='string':return memory.string(value,scope)
-                x=memory.read(value,scope)
+                x=samples[value]
                 if relation_operand and types[value]=='number' and isinstance(x, float) and not math.isfinite(x):
                     return x
                 return number(x) if types[value]=='number' else bool(x)

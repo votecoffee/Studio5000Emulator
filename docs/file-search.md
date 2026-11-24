@@ -12,6 +12,9 @@ Scans use live CONTROL.LEN/POS, which can receive
 ALL searches the remaining region in one execution. A positive DINT
 immediate selects comparisons per scan for numeric mode. Each comparison also
 consumes the global instruction budget. LEN is bounded to 4096.
+The narrow scalar evaluator used by FSC and CMP reads each numeric or BOOL
+operand once per comparison. Both sides of Boolean expressions are evaluated.
+As FSC advances, each position reads its own live operands.
 See [implementation](../source/logixlab/file_search.py).
 
 ## Search state

@@ -1,7 +1,9 @@
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 from xml.etree import ElementTree as E
 import test_runtime as fixtures
+from logixlab.conditions import Condition
 from logixlab.model import ModelError
 
 
@@ -45,6 +47,17 @@ class ConditionTests(unittest.TestCase):
     def test_logical_evaluation_does_not_hide_faults(self):
         e=self.engine(['CMP((1=1)||(1.0/0.0>0.0))OTE(CompareOK);'])
         with self.assertRaisesRegex(ModelError,'zero'):e.step()
+
+    def test_scalar_condition_reads_each_live_operand_once(self):
+        e = self.engine(['NOP();'])
+        comparison = Condition('InputValue>=7&&InputValue<=7&&Enabled',
+                               allow_wide=True, lreal=True)
+        with patch.object(e.memory, 'read', wraps=e.memory.read) as read:
+            self.assertTrue(comparison.evaluate(e.memory))
+        self.assertEqual([call.args[0] for call in read.call_args_list],
+                         ['InputValue', 'Enabled'])
+        e.memory.write('InputValue', 8)
+        self.assertFalse(comparison.evaluate(e.memory))
 
     def test_unsupported_or_wrongly_typed_conditions_block_even_false(self):
         for expr in ('InputValue','InputValue&&Enabled','Enabled+1=2','InputValue<8<9','RealInput AND 1=1',

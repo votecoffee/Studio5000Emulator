@@ -726,7 +726,8 @@ elements, latches ER and retries the failing position after repair, including a
 [finite LREAL result that overflows REAL storage](docs/file-arithmetic.md#binary64-result-narrowing).
 
 [File search](docs/file-search.md) adds FSC ALL/numeric/INC modes, match/inhibit
-state and resumable searches using the existing comparison grammar. **Stats lab**
+state and resumable searches using the existing comparison grammar. Narrow
+scalar comparisons read each numeric or BOOL operand once. **Stats lab**
 shows ALL/numeric searches and one comparison per enable edge in INC mode,
 including [binary64 searches with LREAL](docs/file-search.md#binary64-searches).
 Program and Controller fault handlers can clear a reached
