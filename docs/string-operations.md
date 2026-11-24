@@ -58,8 +58,8 @@ Unknown LEN, active DATA, numeric inputs and dynamic index values can remain
 at import. False rungs and prescan skip those operands. Reached calls still
 resolve actual addresses and require every consumed source value, including
 active string bytes, numeric conversions, positions and quantities. MID reads
-its source LEN and the selected DATA bytes; FIND captures the active suffix
-from Start. Standalone ladder comparisons read [only the bytes they need](#ladder-string-comparison-literals).
+its source LEN and the selected DATA bytes. FIND uses the active suffix from
+Start and can use a confirmed match in a partially exported source. Standalone ladder comparisons read [only the bytes they need](#ladder-string-comparison-literals).
 Identical references still require the bytes needed to establish equality. CMP
 consumes both logical operands even when one determines the result.
 
@@ -75,12 +75,17 @@ The software profile uses single-byte strings. Native fault and status handling 
 
 ## FIND search suffixes
 
-App `26.1112.232348` captures only the active source suffix beginning at Start
-in existing ladder and ST FIND calls. Source bytes before Start and inactive
-DATA may be unknown. Source LEN must still be known, valid and nonzero; the
-complete active search string and every byte of the selected source suffix
-must be known. An unknown later suffix byte still faults even if an earlier
-match exists. Empty search strings remain unqualified.
+FIND searches active source bytes beginning at Start. Source bytes before
+Start and inactive DATA may be unknown. Source LEN must be known, valid and
+nonzero, and the search string must be known and nonempty.
+
+In a scheduled Standard v35 ControlLogix 5580 ladder Program, FIND returns a
+match that fits entirely within the known prefix after Start. Later unknown
+bytes cannot change that first position. If the known prefix contains no
+match and an unknown byte is encountered, the scan rolls back. If the entire
+remaining length is shorter than the search string, FIND returns zero without
+reading source bytes. Structured Text and other execution contexts still
+require all active source bytes from Start.
 
 Results are one-based positions in the original source, not offsets into the
 suffix. A valid Start beyond active LEN returns zero without reading source

@@ -150,6 +150,44 @@ class StringSelectionTests(unittest.TestCase):
         with self.assertRaisesRegex(ModelError,'Unknown'):e.step()
         self.assertEqual(self.snapshot(e),before);e.memory.write('Numbers[0]',3);e.memory.write('Numbers[1]',1);e.step();self.assertEqual(e.memory.string('TextResults[0]'),'ABC')
 
+    def test_ladder_find_returns_first_match_before_unknown_suffix(self):
+        engine = self.checked(['FIND(TextCells[0],Search,Start,Numbers[0]);'])
+        memory = engine.memory
+        memory.write('TextCells[0].LEN', 8)
+        for index, value in ((2, 65), (3, 66), (6, 65), (7, 66)):
+            memory.write(f'TextCells[0].DATA[{index}]', value)
+        memory.write('Search', 'AB')
+        memory.write('Start', 3)
+        engine.step()
+        self.assertEqual(memory.read('Numbers[0]'), 3)
+        self.assertIsNone(memory.read('TextCells[0].DATA')[4])
+
+        memory.write('Start', 4)
+        before = self.snapshot(engine)
+        with self.assertRaisesRegex(ModelError, 'unknown active DATA'):
+            engine.step()
+        self.assertEqual(self.snapshot(engine), before)
+
+        memory.write('Start', 7)
+        engine.step()
+        self.assertEqual(memory.read('Numbers[0]'), 7)
+        memory.write('Start', 6)
+        memory.write('TextCells[0].LEN', 6)
+        engine.step()
+        self.assertEqual(memory.read('Numbers[0]'), 0)
+
+    def test_st_find_requires_the_entire_selected_suffix(self):
+        engine = self.checked(['FIND(TextCells[0],Search,Start,Numbers[0]);'], st=True)
+        memory = engine.memory
+        memory.write('TextCells[0].LEN', 3)
+        memory.write('TextCells[0].DATA[0]', 65)
+        memory.write('TextCells[0].DATA[1]', 66)
+        memory.write('Search', 'AB')
+        before = self.snapshot(engine)
+        with self.assertRaisesRegex(ModelError, 'unknown active DATA'):
+            engine.step()
+        self.assertEqual(self.snapshot(engine), before)
+
     def test_concat_requires_active_bytes_and_preserves_unused_bytes(self):
         e=self.checked(['CONCAT(TextCells[0],SourceB,TextResults[0]);']);e.memory.write('TextCells[0].LEN',3);e.memory.write('TextCells[0].DATA[0]',65);before=self.snapshot(e)
         with self.assertRaisesRegex(ModelError,'unknown active'):e.step()

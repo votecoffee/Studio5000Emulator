@@ -1570,8 +1570,8 @@ class Memory:
             raise StringPositionError('MID range exceeds source LEN or declared DATA bounds')
         return self._decode_string_data(data[first:end])
 
-    def string_find(self, ref, search_ref, start, scope=''):
-        """Search a captured active suffix without consuming earlier DATA bytes."""
+    def string_find(self, ref, search_ref, start, scope='', *, allow_partial=False):
+        """Return the first match, using a known prefix when its result is sufficient."""
         data, length = self._string_data(ref, scope)
         if not 1 <= start <= len(data):
             raise StringPositionError('FIND start must be 1..source DATA capacity')
@@ -1580,9 +1580,23 @@ class Memory:
             raise StringPositionError('FIND requires nonempty source and search strings in this model')
         if not search:
             raise ModelError('FIND requires nonempty source and search strings in this model')
-        suffix = self._decode_string_data(data[start - 1:length])
+        first = start - 1
+        end = length
+        if allow_partial:
+            if length - first < len(search):
+                return 0
+            try:
+                end = data.index(None, first, length)
+            except ValueError:
+                pass
+
+        suffix = self._decode_string_data(data[first:end])
         position = suffix.find(search)
-        return start + position if position >= 0 else 0
+        if position >= 0:
+            return start + position
+        if end < length:
+            raise ModelError('String contains unknown active DATA bytes')
+        return 0
 
     def string_without(self, ref, start, count, scope=''):
         """Capture DELETE's retained bytes without consuming its removed window."""

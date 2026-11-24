@@ -100,7 +100,7 @@ def integer_value(memory, ref, scope):
     return coerce(value, 'DINT')
 
 
-def _reports_ladder_string_faults(engine, scope):
+def _scheduled_ladder_context(engine, scope):
     routine = engine._executing_routine
     return (engine.project.version == '35' and engine.project.processor.upper() in CONTROLLERS
             and routine is not None and routine.kind == 'RLL' and scope not in engine.memory.frames
@@ -110,7 +110,7 @@ def _reports_ladder_string_faults(engine, scope):
 
 def compare(engine, op, scope, relation):
     memory = engine.memory
-    if not _reports_ladder_string_faults(engine, scope):
+    if not _scheduled_ladder_context(engine, scope):
         values = []
         for ref in op.args:
             text = string_literal(ref)
@@ -131,7 +131,7 @@ def compare(engine, op, scope, relation):
 def concatenate(engine, op, scope):
     memory = engine.memory
     left, right, dest = op.args
-    if not _reports_ladder_string_faults(engine, scope):
+    if not _scheduled_ladder_context(engine, scope):
         memory.write_string(dest, memory.string(left, scope) + memory.string(right, scope), scope)
         return
 
@@ -146,7 +146,8 @@ def concatenate(engine, op, scope):
         engine._record_instruction_minor_fault(STRING_LENGTH_FAULT)
 
 
-def execute(memory, op, scope):
+def execute(engine, op, scope):
+    memory = engine.memory
     validate(memory, op, scope)
     a = op.args
     capacity = string_operand(memory, a[0], scope)
@@ -159,7 +160,8 @@ def execute(memory, op, scope):
         memory.write_string(a[3], result, scope)
         return
     if op.name == 'FIND':
-        result = memory.string_find(a[0], a[1], start, scope)
+        result = memory.string_find(a[0], a[1], start, scope,
+                                    allow_partial=_scheduled_ladder_context(engine, scope))
         memory.write(a[3], result, scope)
         return
     source = memory.string(a[0], scope)
@@ -182,7 +184,7 @@ def description():
                 mid='Start within declared DATA; exact window within LEN; only selected DATA bytes are consumed',
                 find=dict(languages=['RLL','ST'],
                     selection='Known nonempty source/search LEN; Start within source DATA capacity',
-                    reads='Capture all active source DATA at/after Start and all active search DATA; earlier source and inactive bytes may remain unknown',
+                    reads='Require all active search bytes. In scheduled v35 5580 ladder, a match in the known source prefix after Start can leave later bytes unknown. Other contexts require the full active source suffix.',
                     result='First one-based position in the original source, or zero when absent; valid Start beyond LEN consumes no source DATA',
                     excluded='Empty source/search, unknown consumed bytes, invalid LEN/Start and result-type overflow retain existing guards',
                     native_runtime_parity=False),

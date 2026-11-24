@@ -690,6 +690,8 @@ in ladder and Structured Text, including user strings and existing AOI bindings.
 [MID copy windows](docs/string-operations.md#mid-copy-windows),
 [DELETE retained windows](docs/string-operations.md#delete-retained-windows) and
 [lazy indexed string operands](docs/string-operations.md#operand-selection).
+[Scheduled ladder FIND](docs/string-operations.md#find-search-suffixes) can
+return the first confirmed match before unknown source bytes.
 [Ladder string MOV](docs/string-operations.md#ladder-string-mov) copies tags or
 single-quoted literals and clips the result to the destination capacity.
 The [six ladder string relations](docs/string-operations.md#ladder-string-comparison-literals)

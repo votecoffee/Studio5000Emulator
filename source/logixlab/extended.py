@@ -288,7 +288,7 @@ class Extensions:
             if power:string_conversions.execute(self.memory,op,scope)
             return power
         if n in string_operations.INSTRUCTIONS:
-            if power:string_operations.execute(self.memory,op,scope)
+            if power:string_operations.execute(self.engine,op,scope)
             return power
         if n in comparisons.INSTRUCTIONS and comparisons.available(self.engine.project):
             return comparisons.execute(self.engine,op,power,scope)
