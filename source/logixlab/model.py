@@ -1561,13 +1561,15 @@ class Memory:
         data, length = self._string_data(ref, scope)
         return self._decode_string_data(data[:min(length, limit)]), length > limit
 
-    def string_slice(self, ref, start, count, scope=''):
+    def string_slice(self, ref, start, count, scope='', *, destination=None):
         """Read an exact one-based window within both declared DATA and active LEN."""
         data, length = self._string_data(ref, scope)
         first = start - 1
         end = first + count
         if not 1 <= start <= len(data) or count < 0 or end > length:
             raise StringPositionError('MID range exceeds source LEN or declared DATA bounds')
+        if destination is not None:
+            self._check_string_result_size(destination, count, scope)
         return self._decode_string_data(data[first:end])
 
     def string_find(self, ref, search_ref, start, scope='', *, allow_partial=False):
@@ -1598,7 +1600,7 @@ class Memory:
             raise ModelError('String contains unknown active DATA bytes')
         return 0
 
-    def string_without(self, ref, start, count, scope=''):
+    def string_without(self, ref, start, count, scope='', *, destination=None):
         """Capture DELETE's retained bytes without consuming its removed window."""
         data, length = self._string_data(ref, scope)
         first = start - 1
@@ -1607,16 +1609,22 @@ class Memory:
             raise StringPositionError('DELETE requires positive quantity within the active source string')
         if count == 0:
             raise ModelError('DELETE requires positive quantity within the active source string')
+        if destination is not None:
+            self._check_string_result_size(destination, length - count, scope)
         return self._decode_string_data(data[:first] + data[end:length])
 
+    def _check_string_result_size(self, ref, length, scope):
+        _, _, dtype = self.check_writable(ref, scope)
+        capacity = self.project.string_capacity(dtype)
+        if capacity is None:
+            raise ModelError('String destination required')
+        if length > capacity:
+            raise StringCapacityError(f'String length {length} exceeds capacity {capacity} for {ref}')
+
     def write_string(self,ref,text,scope=''):
-        key,parts,dtype=self.check_writable(ref,scope)
-        capacity=self.project.string_capacity(dtype)
-        if capacity is None:raise ModelError('String destination required')
         try:data=text.encode('latin-1')
         except UnicodeEncodeError as e:raise ModelError('Strings require single-byte characters') from e
-        if len(data) > capacity:
-            raise StringCapacityError(f'String length {len(data)} exceeds capacity {capacity} for {ref}')
+        self._check_string_result_size(ref, len(data), scope)
         obj=self.read(ref,scope)
         # String instructions overwrite LEN and result bytes, preserving unused backing DATA.
         obj['LEN']=len(data)

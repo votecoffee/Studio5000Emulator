@@ -51,16 +51,20 @@ class FindWindowTests(unittest.TestCase):
             self.assertEqual(e.memory.read('Result'), 0)
             self.assertTrue(all(byte is None for byte in e.memory.values['sourcea']['DATA']))
 
-    def test_complete_suffix_is_required_even_after_an_earlier_match_and_retries(self):
-        e = self.checked(['MOV(77,SpeedCommand);', 'FIND(SourceA,Search,4,Result);'])
-        self.unknown(e, 0, 3)
-        e.memory.write('Search', '123')
-        self.unknown(e, 8, 1)
-        self.fault(e, 'unknown active DATA')
-        e.memory.values['sourcea']['DATA'][8] = ord('C')
-        e.step()
-        self.assertEqual(e.memory.read('Result'), 4)
-        self.assertEqual(e.memory.read('SpeedCommand'), 77)
+    def test_known_first_match_can_leave_later_source_bytes_unknown_in_ladder(self):
+        for st in (False, True):
+            with self.subTest(structured_text=st):
+                prefix = 'SpeedCommand := 77;' if st else 'MOV(77,SpeedCommand);'
+                e = self.checked([prefix, 'FIND(SourceA,Search,4,Result);'], st=st)
+                self.unknown(e, 0, 3)
+                e.memory.write('Search', '123')
+                self.unknown(e, 8, 1)
+                if st:
+                    self.fault(e, 'unknown active DATA')
+                    e.memory.values['sourcea']['DATA'][8] = ord('C')
+                e.step()
+                self.assertEqual(e.memory.read('Result'), 4)
+                self.assertEqual(e.memory.read('SpeedCommand'), 77)
 
     def test_search_data_is_required_even_without_a_source_suffix(self):
         for start in (7, 82):
@@ -206,7 +210,8 @@ class FindWindowTests(unittest.TestCase):
         e.memory.write('FindStart', 5);e.step()
         self.assertEqual(e.memory.read('FindResult'), 5)
         profile = e.report()['string_operations']['find']
-        self.assertIn('earlier source', profile['reads'])
+        self.assertIn('known source prefix after Start', profile['reads'])
+        self.assertIn('Other contexts require the full active source suffix', profile['reads'])
         self.assertFalse(profile['native_runtime_parity'])
 
 

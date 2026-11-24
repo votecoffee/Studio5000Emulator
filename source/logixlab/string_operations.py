@@ -146,6 +146,14 @@ def concatenate(engine, op, scope):
         engine._record_instruction_minor_fault(STRING_LENGTH_FAULT)
 
 
+def middle(engine, op, scope, *, start, quantity):
+    memory = engine.memory
+    source, _, _, dest = op.args
+    checked_dest = dest if _scheduled_ladder_context(engine, scope) else None
+    result = memory.string_slice(source, start, quantity, scope, destination=checked_dest)
+    memory.write_string(dest, result, scope)
+
+
 def execute(engine, op, scope):
     memory = engine.memory
     validate(memory, op, scope)
@@ -156,7 +164,8 @@ def execute(engine, op, scope):
         raise StringPositionError(f'{op.name} start must be 1..source DATA capacity')
     if op.name == 'DELETE':
         quantity = integer_value(memory, a[1], scope)
-        result = memory.string_without(a[0], start, quantity, scope)
+        checked_dest = a[3] if _scheduled_ladder_context(engine, scope) else None
+        result = memory.string_without(a[0], start, quantity, scope, destination=checked_dest)
         memory.write_string(a[3], result, scope)
         return
     if op.name == 'FIND':
@@ -211,7 +220,7 @@ def description():
                     selection='False/prescan skip live operands; enabled calls retain runtime address, active-LEN/DATA, range and capacity checks',
                     writes='Complete logical string writes establish unknown LEN/active DATA while preserving unused bytes and other elements',
                     array_recovery='A cleared Type 4 Code 20 during a whole-project ladder scan skips the instruction result write',
-                    capacity_diagnostics='Qualified ladder CONCAT continues with Type 4 Code 51 on invalid oversized LEN or output clipping. Other modeled capacity faults roll back the advance.',
+                    capacity_diagnostics='Qualified ladder CONCAT continues with Type 4 Code 51 on invalid oversized LEN or output clipping. MID and DELETE can diagnose Type 4 Code 52 from result size before reading bytes. Modeled capacity faults outside CONCAT roll back the advance.',
                     position_diagnostics='Ladder FIND, INSERT, MID and DELETE report Type 4 Code 56 for documented invalid ranges and roll back the advance',
                     comparisons='Required source strings and both CMP logical operands are consumed; no value or identity folding',
                     excluded='New algorithms, empty-search/zero-delete edge behavior, broader types/encoding/controller rules and native status/fault/lifecycle parity',

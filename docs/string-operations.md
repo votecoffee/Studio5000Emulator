@@ -167,6 +167,10 @@ isolated routine execution and AOI bodies retain their existing capacity checks.
 
 Standalone string comparisons in scheduled Standard ladder record Code 51
 and produce the rung result described [below](#ladder-string-comparison-literals).
+In scheduled Standard ladder, MID and DELETE validate the source LEN and
+selection before checking the result length against destination capacity. An
+oversized result produces Code 52 even if some selected source bytes are
+unknown. An exact fit still needs every selected byte.
 The remaining faults in the table roll back the advance. Type 4 Code 53 covers
 well-formed numeric input. Code 56 covers errors
 encountered during execution. Invalid MID immediates can still block the project

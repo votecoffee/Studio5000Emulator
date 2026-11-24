@@ -323,8 +323,7 @@ class Extensions:
             string_operations.concatenate(self.engine, op, scope)
         elif n=='MID':
             length,start=(self.integer(ref,scope,string_position=True) for ref in a[1:3])
-            source=self.memory.string_slice(a[0],start,length,scope)
-            self.memory.write_string(a[3],source,scope)
+            string_operations.middle(self.engine, op, scope, start=start, quantity=length)
         elif n=='DTOS':
             if comparisons.available(self.engine.project):
                 text=string_conversions.format_dint(self.memory.read(a[0],scope))

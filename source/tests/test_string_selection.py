@@ -113,6 +113,46 @@ class StringSelectionTests(unittest.TestCase):
                 else:self.assertEqual(e.memory.read(('RealCells' if name=='STOR' else 'Numbers')+'[0]'),expected)
                 self.assertIsNone(e.memory.read('TextResults')[1]['LEN']);self.assertFalse(e.memory.structural)
 
+    def test_mid_and_delete_check_result_capacity_before_required_bytes_in_ladder(self):
+        for name, start, quantity, exact_quantity, expected in (
+            ('MID', 1, 17, 16, 'ABCDEFGHIJKLMNOP'),
+            ('DELETE', 2, 1, 2, 'ADEFGHIJKLMNOPQR'),
+        ):
+            for st in (False, True):
+                with self.subTest(instruction=name, structured_text=st):
+                    tail = f'{name}(TextCells[0],Qty,{start},Alias);'
+                    rungs = ['SpeedCommand := 77;' if st else 'MOV(77,SpeedCommand);', tail]
+                    engine = self.checked(rungs, st=st, mutate=strings.StringOperationTests.custom_strings)
+                    memory = engine.memory
+                    memory.write('TextCells[0]', 'ABCDEFGHIJKLMNOPQR')
+                    key, parts, _ = memory.resolve('TextCells[0].DATA[0]')
+                    memory.store(key, parts, None)
+                    memory.write('Qty', quantity)
+                    before = self.snapshot(engine)
+                    diagnostic = 'unknown active DATA' if st else f'{name}: Type 4 Code 52: .*17 exceeds capacity 16'
+                    with self.assertRaisesRegex(ModelError, diagnostic):
+                        engine.step()
+                    self.assertEqual(self.snapshot(engine), before)
+
+                    memory.write('Qty', exact_quantity)
+                    before = self.snapshot(engine)
+                    with self.assertRaisesRegex(ModelError, 'unknown active DATA'):
+                        engine.step()
+                    self.assertEqual(self.snapshot(engine), before)
+
+                    if not st:
+                        memory.write('Qty', 19)
+                        before = self.snapshot(engine)
+                        with self.assertRaisesRegex(ModelError, f'{name}: Type 4 Code 56:'):
+                            engine.step()
+                        self.assertEqual(self.snapshot(engine), before)
+                        memory.write('Qty', exact_quantity)
+
+                    memory.write('TextCells[0].DATA[0]', ord('A'))
+                    engine.step()
+                    self.assertEqual(memory.string('Alias'), expected)
+                    self.assertEqual(memory.read('SpeedCommand'), 77)
+
     def test_six_string_relations_and_string_cmp_are_lazy_but_not_identity_folded(self):
         for op,expected in [('EQU',False),('NEQ',True),('LES',True),('LEQ',True),('GRT',False),('GEQ',False)]:
             e=self.checked([f'XIC(StartPB){op}(TextCells[Index],SourceB)OTE(RunLatch);']);e.memory.write('RunLatch',True);e.step();self.assertFalse(e.memory.read('RunLatch'))
