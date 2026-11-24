@@ -47,6 +47,41 @@ class ControlOperandTests(unittest.TestCase):
             e.memory.write('SourceIndex', 99); e.step(); self.assertEqual(e.memory.read('Words'), words)
             e.memory.write('StartPB', False); e.step(); self.assertFalse(e.memory.read('Ctl.EN'))
 
+    def test_shift_journals_only_the_selected_control_and_known_words(self):
+        e = self.checked([
+            'XIC(StartPB)BSL(Words[0],Controls[ControlIndex],Bits[SourceIndex],?);',
+            'CPT(SpeedCommand,11/SpeedSetpoint);',
+        ], words=(4, 31, 99))
+        for address, value in (
+            ('ControlIndex', 1), ('Controls[1].LEN', 4), ('Controls[1].POS', 7),
+            ('Controls[1].EN', True), ('Controls[1].UL', True),
+            ('Controls[2].POS', 47), ('SpeedSetpoint', 1),
+        ):
+            e.memory.write(address, value)
+        with patch.object(e.memory, '_remember', wraps=e.memory._remember) as snapshot_tag:
+            e.step()
+            self.assertEqual(e.memory.read('Controls[1].POS'), 0)
+            self.assertTrue(e.memory.read('Controls[1].UL'))
+            e.memory.write('StartPB', True)
+            e.memory.write('SourceIndex', 0)
+            e.memory.write('Bits[0]', True)
+            e.memory.write('SpeedSetpoint', 0)
+            before = self.snapshot(e)
+            with self.assertRaisesRegex(ModelError, 'zero'):
+                e.step()
+            self.assertEqual(self.snapshot(e), before)
+            e.memory.write('SpeedSetpoint', 1)
+            e.step()
+            e.memory.write('SourceIndex', 99)
+            e.step()
+        self.assertNotIn('controls', [call.args[0] for call in snapshot_tag.call_args_list])
+        self.assertEqual(e.memory.read('Words', mutable=False), [9, 31, 99])
+        self.assertEqual(e.memory.read('Controls[1].POS'), 4)
+        self.assertTrue(e.memory.read('Controls[1].EN'))
+        self.assertTrue(e.memory.read('Controls[1].DN'))
+        self.assertFalse(e.memory.read('Controls[1].UL'))
+        self.assertEqual(e.memory.read('Controls[2].POS'), 47)
+
     def test_load_false_held_and_full_skip_payload_but_each_moving_edge_reads_it(self):
         for op in ('FFL', 'LFL'):
             e = self.checked([f'XIC(StartPB){op}(Inputs[SourceIndex],Queue[0],Ctl,?,?);'], length=1)

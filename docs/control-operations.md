@@ -59,7 +59,10 @@ A positive LEN that extends past a standalone array can
 [raise Type 4 Code 20](controller-handlers.md#recover-shift-and-queue-array-faults)
 in the v35 5580 profile. BSL also raises that fault when LEN extends past the
 selected structure member. The fault handler can observe ER. BSR member
-overruns and the emulator's work limit use scan rollback.
+overruns and the emulator's work limit use scan rollback. BSL/BSR record
+changed CONTROL fields at the resolved address, avoiding a copy of the
+containing tag. Recovery restores the pre-instruction fields before the
+handler, with ER set for a recoverable length fault.
 
 ## FIFO pair
 

@@ -572,7 +572,7 @@ also skips out-of-bounds source, mask and reference selections. [PID prescan](do
 skips an out-of-bounds PID record.
 [CONTROL operand selection](docs/control-operands.md) defers shift and FIFO/LIFO
 payload indices until needed and lets false CONTROL resets skip live addresses.
-CONTROL resets record only the fields they clear for rollback.
+CONTROL resets and bit shifts journal individual CONTROL fields for rollback.
 A [shift or queue access past an array](docs/controller-handlers.md#recover-shift-and-queue-array-faults)
 can raise a recoverable Type 4 Code 20 fault. FFL and LFL check the slot
 selected by POS within the selected array or structure member. BSL and LFU

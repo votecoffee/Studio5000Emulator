@@ -14,6 +14,7 @@ FLAGS = ('EN', 'EU', 'DN', 'EM', 'ER', 'UL', 'IN', 'FD')
 INSTRUCTIONS = frozenset(('BSL', 'BSR', 'FFL', 'FFU', 'LFL', 'LFU'))
 NUMERIC = frozenset(('SINT', 'INT', 'DINT', 'REAL'))
 MAX_ELEMENTS = 4096
+_SHIFT_RESET = dict(EN=False, DN=False, ER=False, POS=0)
 
 
 def default():
@@ -265,11 +266,19 @@ def fifo_status(obj):
     return length, position
 
 
+def _store_control_fields(memory, key, parts, obj, updates):
+    for field, value in updates.items():
+        if value is not obj[field]:
+            memory.store(key, parts + [field], value)
+
+
 def prescan(memory, op, scope):
-    obj = control(memory, op.args[1] if op.name in ('BSL', 'BSR') else op.args[2], scope)
     if op.name in ('BSL', 'BSR'):
-        obj.update(EN=False, DN=False, ER=False, POS=0)
+        key, parts, dtype = memory.check_writable(op.args[1], scope)
+        obj = control_at(memory, key, parts, dtype, mutable=False)
+        _store_control_fields(memory, key, parts, obj, _SHIFT_RESET)
     else:
+        obj = control(memory, op.args[2], scope)
         obj['EN' if op.name in ('FFL', 'LFL') else 'EU'] = True
         fifo_status(obj)
 
@@ -279,9 +288,7 @@ def reset(memory, ref, scope):
     obj = control_at(memory, key, parts, dtype, mutable=False)
     updates = dict.fromkeys(FLAGS, False)
     updates['POS'] = 0
-    for field, value in updates.items():
-        if value is not obj[field]:
-            memory.store(key, parts + [field], value)
+    _store_control_fields(memory, key, parts, obj, updates)
     return key, tuple(parts)
 
 
@@ -312,25 +319,40 @@ def _transfer_region(memory, name, ref, count, scope, *, position=None):
         raise UnloadExtentError(f'{name} LEN exceeds the remaining array elements (Type 4 Code 20)') from error
 
 
-def shift(memory, op, power, scope, obj):
-    a = op.args
+def shift(memory, op, power, scope):
+    key, parts, dtype = memory.check_writable(op.args[1], scope)
+    obj = control_at(memory, key, parts, dtype, mutable=False)
     if not power:
-        obj.update(EN=False, DN=False, ER=False, POS=0)
+        _store_control_fields(memory, key, parts, obj, _SHIFT_RESET)
         return False
-    if flag(obj, 'EN'):return True
-    length = integer(obj, 'LEN')
-    obj.update(dict.fromkeys(FLAGS, False));obj['EN'] = True
-    if length < 0:
-        obj['ER'] = True
+    if flag(obj, 'EN'):
         return True
+    length = integer(obj, 'LEN')
+    previous = obj.copy()
+    _store_control_fields(memory, key, parts, obj, dict.fromkeys(FLAGS, False) | {'EN': True})
+    if length < 0:
+        _store_control_fields(memory, key, parts, obj, {'ER': True})
+        return True
+    try:
+        unloaded = _shift_words(memory, op, scope, length)
+    except ArrayBoundsError as error:
+        if isinstance(error, ShiftExtentError):
+            previous['ER'] = True
+        _store_control_fields(memory, key, parts, obj, previous)
+        raise
+    _store_control_fields(memory, key, parts, obj, dict(DN=True, POS=length, UL=unloaded))
+    return True
+
+
+def _shift_words(memory, op, scope, length):
+    a = op.args
     if length:
         count = (length + 31) // 32
         key, paths, _ = _transfer_region(memory, op.name, a[0], count, scope)
     source = memory.read(a[2], scope)
     if type(source) is not bool:raise ModelError('Shift source bit is unknown or not BOOL')
     if length == 0:
-        obj.update(DN=True, POS=0, UL=source)
-        return True
+        return source
     words = list(memory.read_cells(key, paths))
     if any(type(word) is not int for word in words):raise ModelError('Shift requires known DINT array words')
     image = b''.join((word & 0xffffffff).to_bytes(4, 'little') for word in words)
@@ -346,8 +368,7 @@ def shift(memory, op, power, scope, obj):
     shifted = iter_unpack('<i', result.to_bytes(len(image), 'little'))
     for path, (word,) in zip(paths, shifted, strict=True):
         memory.store(key, path, word)
-    obj.update(DN=True, POS=length, UL=unloaded)
-    return True
+    return unloaded
 
 
 def _unload(memory, dest, scope, key, paths, dtype):
@@ -395,15 +416,15 @@ def fifo(memory, op, power, scope, obj):
 
 def execute(memory, op, power, scope):
     validate(memory, op, scope)
-    is_shift = op.name in ('BSL', 'BSR')
-    obj = control(memory, op.args[1 if is_shift else 2], scope)
+    if op.name in ('BSL', 'BSR'):
+        return shift(memory, op, power, scope)
+    obj = control(memory, op.args[2], scope)
     previous = obj.copy()
     try:
-        operation = shift if is_shift else fifo
-        return operation(memory, op, power, scope, obj)
+        return fifo(memory, op, power, scope, obj)
     except ArrayBoundsError as error:
         obj.update(previous)
-        if isinstance(error, ShiftExtentError) or (op.name == 'LFU' and isinstance(error, UnloadExtentError)):
+        if op.name == 'LFU' and isinstance(error, UnloadExtentError):
             obj['ER'] = True
         raise
 
