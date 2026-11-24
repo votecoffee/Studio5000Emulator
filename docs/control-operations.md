@@ -48,6 +48,8 @@ BSL/BSR operate on a bounded DINT array region. Word zero contains the lowest
 bits. A rising EN edge shifts one bit through the low LEN bits; SourceBit fills
 the vacated position and UL receives the displaced bit. Bits outside LEN,
 including high bits in the final word and following words, remain unchanged.
+The emulator reads resolved DINT words directly and shifts one packed bit
+window. An omitted word still reports its address before any data is written.
 
 Prescan and false rungs clear EN/DN/ER/POS and retain array data and UL. A true
 rung with EN already set does not shift again. A new edge sets EN, clears other

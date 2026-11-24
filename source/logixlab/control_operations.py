@@ -4,6 +4,7 @@ No native CONTROL byte layout, fault record or unimplemented consumer is implied
 Length/position pseudo-operands use saved LEN/POS, never per-scan initialization.
 """
 import re
+from struct import iter_unpack
 
 from .model import ArrayBoundsError, BlockExtentError, ModelError, coerce, literal, split_indices
 from .integer_math import CONTROLLERS
@@ -326,9 +327,10 @@ def shift(memory, op, power, scope, obj):
     if length == 0:
         obj.update(DN=True, POS=0, UL=source)
         return True
-    words = [memory.read(memory.address(key, path)) for path in paths]
+    words = list(memory.read_cells(key, paths))
     if any(type(word) is not int for word in words):raise ModelError('Shift requires known DINT array words')
-    bits = sum((word & 0xffffffff) << (32 * i) for i, word in enumerate(words))
+    image = b''.join((word & 0xffffffff).to_bytes(4, 'little') for word in words)
+    bits = int.from_bytes(image, 'little')
     mask = (1 << length) - 1
     if op.name == 'BSL':
         unloaded = bool(bits & (1 << (length - 1)))
@@ -337,9 +339,9 @@ def shift(memory, op, power, scope, obj):
         unloaded = bool(bits & 1)
         selected = ((bits & mask) >> 1) | (int(source) << (length - 1))
     result = (bits & ~mask) | selected
-    for i, path in enumerate(paths):
-        word = (result >> (32 * i)) & 0xffffffff
-        memory.store(key, path, word - (1 << 32) if word & (1 << 31) else word)
+    shifted = iter_unpack('<i', result.to_bytes(len(image), 'little'))
+    for path, (word,) in zip(paths, shifted, strict=True):
+        memory.store(key, path, word)
     obj.update(DN=True, POS=length, UL=unloaded)
     return True
 

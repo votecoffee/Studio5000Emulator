@@ -64,15 +64,6 @@ def selected_region(memory, op, scope, count, *, writable, references):
     return key, paths, prefix, dtype
 
 
-def read_samples(memory, key, paths):
-    """Read the resolved numeric window in order, with address diagnostics for missing values."""
-    for path in paths:
-        value = memory.at(key, path, mutable=False)
-        if value is None:
-            value = memory.read(memory.address(key, path))
-        yield value
-
-
 def validate(memory, op, scope):
     previous = memory.structural
     memory.structural = True
@@ -163,7 +154,7 @@ def execute(memory, op, power, scope):
         obj.update(EN=True, DN=False, ER=True, POS=error.position)
         return True
     destination(memory,op,scope,key,prefix)
-    values = [real(value) for value in read_samples(memory, key, paths)]
+    values = [real(value) for value in memory.read_cells(key, paths)]
     calculate = standard_deviation if op.name == 'STD' else average
     result, overflow_position = calculate(values)
     if overflow_position is not None:

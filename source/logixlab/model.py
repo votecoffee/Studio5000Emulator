@@ -1455,6 +1455,14 @@ class Memory:
             self._remember(key)
         return value
 
+    def read_cells(self, key, paths):
+        """Read resolved scalar cells in order, reporting the address of missing values."""
+        for path in paths:
+            value = self.at(key, path, mutable=False)
+            if value is None:
+                value = self.read(self.address(key, path))
+            yield value
+
     def address(self,key,parts):
         ref=self.project.tags[key].key
         for p in parts:

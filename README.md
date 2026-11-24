@@ -900,6 +900,7 @@ while false or in prescan. Set `ConversionIndex` to 0 and enable
 
 [CONTROL, bit shifts and FIFO](docs/control-operations.md) add BSL/BSR, numeric
 FFL/FFU, LFL/LFU and CONTROL reset with explicit edge and bounds rules.
+BSL and BSR shift packed word windows and preserve bits outside LEN.
 FFL and LFL resolve the current slot directly in one-dimensional arrays.
 LFU resolves the newest slot directly after checking the configured stack length.
 Empty FFU checks the configured length without building slot addresses.

@@ -42,7 +42,7 @@ def execute(memory, op, power, scope):
     if position != 0 or length < 1:
         raise ModelError('SRT qualified whole-region profile requires POS zero and positive LEN')
     key, paths, _, dtype = geometry.region(memory, op, scope, length, writable=True, references=True)
-    values = list(geometry.read_samples(memory, key, paths))
+    values = list(memory.read_cells(key, paths))
     if any(type(value) not in (int, float) or dtype != 'REAL' and type(value) is not int
            or not math.isfinite(value) for value in values):
         raise ModelError('SRT requires known finite values of the declared numeric type')
