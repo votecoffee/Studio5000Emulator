@@ -195,7 +195,7 @@ def scalar(memory, ref, scope, dtype, *, destination=False):
             coerce(value, dtype)
             return
     key, parts, kind = (memory.check_writable if destination else memory.resolve)(ref, scope)
-    value=memory.at(key,parts)
+    value=memory.at(key,parts,mutable=False)
     if kind!=dtype or isinstance(value,list) or value is not None and isinstance(value,dict) is not fifo_values.aggregate(dtype):
         raise ModelError('FIFO requires one element with the exact matching declared numeric, string or UDT type')
 
@@ -288,7 +288,7 @@ def _transfer_region(memory, name, ref, count, scope, *, position=None):
     try:
         if qualified and loading:
             return memory.region(ref, 1, scope, offset=position)
-        if name == 'LFU':
+        if name == 'LFU' or (name == 'FFU' and position == 0):
             return memory.region(ref, int(position > 0), scope,
                                  offset=max(0, position - 1), minimum_extent=count)
         key, paths, dtype = memory.region(ref, count, scope)
@@ -348,7 +348,7 @@ def _unload(memory, dest, scope, key, paths, dtype):
     values = [fifo_values.read(memory,memory.address(key,path),'',dtype) for path in paths]
     # The destination index can read the queue after it moves. Retain the
     # original elements so a bounds error leaves the queue intact.
-    previous = [memory.at(key,path) for path in paths]
+    previous = [memory.at(key,path,mutable=False) for path in paths]
     for path,value in zip(paths,values[1:]+[fifo_values.zero(memory,dtype)]):
         memory.store(key,path,value)
     try:
@@ -410,7 +410,7 @@ def description():
                 fifo='SINT/INT/DINT/REAL plus qualified v35 5580 mixed numeric payloads and matching TIMER/COUNTER/CONTROL/PID, strings and explicit UDTs; rising EN/EU, saved LEN/POS, selected-member bounds',
                 numeric_conversions='v35 5580 RLL FFL/FFU/LFL/LFU: signed integer extension, low-bit narrowing, float32 REAL and nearest-even rounding. SINT/INT keep the low bits of a rounded DINT-range REAL payload.',
                 numeric_selection='Bounded DINT/finite REAL load immediates; structural payload preflight, lazy edge reads, complete unknown writes and whole-advance rollback',
-                fifo_empty='Empty unload writes a typed zero element once per qualified rising edge',
+                fifo_empty='Empty unload checks the configured LEN without building slot paths and writes a typed zero element once per qualified rising edge',
                 load_position='v35 5580 FFL/LFL resolve just the slot at start + POS on the load edge; a reached missing slot raises Type 4 Code 20',
                 aggregate_values='Whole logical basic records/strings/UDTs including backing bytes; unknown represented fields remain unknown; no private instruction histories or native byte-layout claim',
                 basic_record_payloads=['TIMER','COUNTER','CONTROL'],

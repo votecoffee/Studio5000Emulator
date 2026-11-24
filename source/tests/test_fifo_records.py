@@ -3,6 +3,7 @@ import copy
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 from xml.etree import ElementTree as E
 
 from logixlab.model import ModelError,Project
@@ -61,6 +62,21 @@ class RecordQueueTests(unittest.TestCase):
         e=self.checked();expected=self.part(e,11);self.pulse(e,'LoadPart');self.part(e,22)
         self.assertEqual(e.memory.read('PartQueue[0]'),expected)
         e.memory.write_string('IncomingPart.Name','CHANGED');self.assertEqual(e.memory.string('PartQueue[0].Name'),'PART-11')
+
+    def test_record_loads_detach_at_the_store_without_snapshotting_the_source(self):
+        for name, gate, slot in (('FFL', 'LoadPart', 'PartQueue[0]'),
+                                 ('LFL', 'PushPart', 'PartStack[0]')):
+            with self.subTest(instruction=name):
+                e = self.checked()
+                e.step()
+                expected = self.part(e, 11)
+                e.memory.write(gate, True)
+                with patch.object(e.memory, '_remember', wraps=e.memory._remember) as remember:
+                    e.step()
+                self.assertNotIn('incomingpart', [call.args[0] for call in remember.call_args_list])
+                e.memory.write_string('IncomingPart.Name', 'CHANGED')
+                e.memory.write('IncomingPart.Readings[0]', 999)
+                self.assertEqual(e.memory.read(slot), expected)
 
     def test_unloaded_record_is_detached_from_shifted_storage(self):
         e=self.checked();expected=self.part(e,11);self.pulse(e,'LoadPart');self.part(e,22);self.pulse(e,'LoadPart')

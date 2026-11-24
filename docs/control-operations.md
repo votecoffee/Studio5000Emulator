@@ -74,7 +74,8 @@ Validation inspects the queue shape without saving the array for rollback.
 An actual load still records its write so a later fault can undo it.
 FFU returns the
 first element, shifts the entire configured region down, zeroes its last element
-and decrements POS. The software profile writes zero on an empty unload edge.
+and decrements POS. On an empty unload edge, FFU checks LEN and writes a typed
+zero. A one-dimensional empty FIFO needs no slot addresses for that check.
 DN indicates POS>=LEN; EM indicates empty. LEN<=0 or negative POS sets both
 status bits without data movement. POS beyond LEN remains outside the qualified
 profile and stops execution. A reached FFU unload with LEN past a standalone

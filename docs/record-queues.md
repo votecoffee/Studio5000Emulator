@@ -90,6 +90,9 @@ source edits do not change the stored record. FFU returns element zero, shifts
 the entire configured LEN region down, clears its final element and decrements
 POS. LFU returns POS-1 and clears only that element, leaving lower slots intact.
 The destination receives a detached copy.
+Queue instructions capture the source records before writing and detach each
+record at its destination store. This avoids an extra payload copy and avoids
+tracking a read-only input record for rollback.
 
 Clearing uses a typed zero element: numeric fields become zero, BOOL fields
 false, and strings receive LEN=0 with their complete declared DATA array zeroed.

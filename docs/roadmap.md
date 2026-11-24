@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+[Empty ladder FFU](control-operations.md) checks LEN without building
+one-dimensional slot addresses in `26.1124.113022`. [Record queue transfers](record-queues.md#copying-and-clearing)
+detach payloads at the destination store.
+
 [Ladder LFU](control-operations.md#lifo-pair) checks the configured length and
 resolves only the popped slot in a one-dimensional stack in `26.1124.112345`.
 

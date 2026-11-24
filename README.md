@@ -901,7 +901,8 @@ while false or in prescan. Set `ConversionIndex` to 0 and enable
 FFL/FFU, LFL/LFU and CONTROL reset with explicit edge and bounds rules.
 FFL and LFL resolve the current slot directly in one-dimensional arrays.
 LFU resolves the newest slot directly after checking the configured stack length.
-[Matching string/UDT payloads](docs/record-queues.md) extend the queue forms.
+Empty FFU checks the configured length without building slot addresses.
+[Matching string/UDT payloads](docs/record-queues.md) are copied at the store.
 [Alias and indirect array starts](docs/queue-references.md) now work in these
 ladder shift/queue forms for v35 5580. **Queue reference lab** demonstrates
 changing windows, aliases, edge suppression and rollback.

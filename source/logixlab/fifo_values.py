@@ -1,5 +1,4 @@
 """Logical basic-record/STRING/UDT queue copies and qualified narrow numeric conversions."""
-import copy
 from .integer_math import CONTROLLERS, NARROW_RESULT_TYPES, dint_radix
 from .model import ModelError,coerce,INT_BITS
 from . import numeric_storage, time_values
@@ -46,18 +45,18 @@ def convert_numeric(value, source, dest):
 
 
 def read(memory,ref,scope,dtype):
+    """Capture a payload to pass to a store, which detaches logical records."""
     if not aggregate(dtype) and numeric_storage.available(memory.project):
         word = dint_radix(ref)
         if word is not None:
             return numeric_storage.convert(word, 'DINT', dtype)
         source=numeric_type(memory,ref,scope)
         return convert_numeric(memory.read(ref,scope), source, dtype)
-    value=memory.read(ref,scope)
-    if not aggregate(dtype):return coerce(value,dtype)
+    if not aggregate(dtype):return coerce(memory.read(ref,scope),dtype)
+    value=memory.read(ref,scope,mutable=False)
     if not isinstance(value,dict):raise ModelError('FIFO requires one represented logical record')
-    # Typed logical copies retain all represented fields, including unknown
-    # backing bytes. Moving an unknown value does not establish its contents.
-    return copy.deepcopy(value)
+    # Unloads capture these references before replacing whole queue slots.
+    return value
 
 
 def zero(memory,dtype):return memory.project.default(dtype) if aggregate(dtype) else coerce(0,dtype)

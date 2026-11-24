@@ -85,26 +85,27 @@ class QueueReferenceTests(unittest.TestCase):
         self.assertEqual(e.memory.read('Ctl.POS'), 2047)
         self.assertIsNone(e.memory.values['queue'][-1])
 
-    def test_lfu_empty_stack_checks_length_without_building_any_slot_paths(self):
-        e = self.checked(['XIC(PartSensor)LFU(Queue[Index],Outgoing,Ctl,?,?);'],
-                         length=3, position=0, queue=(101, 11, 22, 33))
-        e.step()
-        e.memory.write('PartSensor', True)
-        e.memory.write('Index', 2)
-        before = self.snapshot(e)
-        with self.assertRaisesRegex(ModelError, 'LEN exceeds') as fault:
+    def test_empty_unloads_check_length_without_building_any_slot_paths(self):
+        for name in ('FFU', 'LFU'):
+            e = self.checked([f'XIC(PartSensor){name}(Queue[Index],Outgoing,Ctl,?,?);'],
+                             length=3, position=0, queue=(101, 11, 22, 33))
             e.step()
-        self.assertIsInstance(fault.exception.__cause__, UnloadExtentError)
-        self.assertEqual(self.snapshot(e), before)
-        e.memory.write('Index', 1)
-        with patch.object(e.memory, 'region', wraps=e.memory.region) as region:
-            e.step()
-        windows = [call for call in region.call_args_list if 'minimum_extent' in call.kwargs]
-        self.assertEqual([(call.args[1], call.kwargs) for call in windows],
-                         [(0, {'offset': 0, 'minimum_extent': 3})])
-        self.assertEqual(e.memory.read('Outgoing'), 0)
-        self.assertEqual(e.memory.read('Queue'), [101, 11, 22, 33])
-        self.assertTrue(e.memory.read('Ctl.EM'))
+            e.memory.write('PartSensor', True)
+            e.memory.write('Index', 2)
+            before = self.snapshot(e)
+            with self.assertRaisesRegex(ModelError, 'LEN exceeds') as fault:
+                e.step()
+            self.assertIsInstance(fault.exception.__cause__, UnloadExtentError)
+            self.assertEqual(self.snapshot(e), before)
+            e.memory.write('Index', 1)
+            with patch.object(e.memory, 'region', wraps=e.memory.region) as region:
+                e.step()
+            windows = [call for call in region.call_args_list if 'minimum_extent' in call.kwargs]
+            self.assertEqual([(call.args[1], call.kwargs) for call in windows],
+                             [(0, {'offset': 0, 'minimum_extent': 3})])
+            self.assertEqual(e.memory.read('Outgoing'), 0)
+            self.assertEqual(e.memory.read('Queue'), [101, 11, 22, 33])
+            self.assertTrue(e.memory.read('Ctl.EM'))
 
     def test_fifo_alias_chain_and_indirect_start_keep_guard_elements(self):
         for start in ('Queue[Index]','QueueAlias','AliasChain'):

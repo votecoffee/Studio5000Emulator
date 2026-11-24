@@ -1352,7 +1352,7 @@ class Memory:
             self._resolved[cache_key]=result
         return result
 
-    def read(self, ref, scope="", *, allow_time=False):
+    def read(self, ref, scope="", *, allow_time=False, mutable=True):
         try: return literal(ref)
         except ValueError: pass
         key, parts, dtype = self.resolve(ref, scope)
@@ -1377,7 +1377,7 @@ class Memory:
             if self.validating and scope in self.frames:return self.project.default(dtype)
             raise UnknownValueError(f'Unknown initial byte/value omitted by export: {ref}')
         # Instruction handlers can edit returned records and arrays in place.
-        if isinstance(value, (dict, list)):
+        if mutable and isinstance(value, (dict, list)):
             self._remember(key)
         if not parts and key in self.project.message_configs:
             from .ladder_message import status_members
