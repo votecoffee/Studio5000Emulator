@@ -31,6 +31,10 @@ share the same enclosing tag. [Aliases, indirect starts and RLL
 AOI arrays](statistics-references.md) now execute, with explicit latch, index
 consumption, dimension, binding and rollback rules.
 
+The emulator reads samples from the resolved array window without building a
+tag reference for each value. Shape checks do not snapshot the read-only
+source for rollback. A missing selected value still reports its address.
+
 AVE requires at least one value and calculates the mean. STD requires at least
 two and calculates sample deviation: `sqrt(sum((x-mean)^2)/(N-1))`. This follows
 the installed v35 formula rather than population deviation. Inputs, accumulation,

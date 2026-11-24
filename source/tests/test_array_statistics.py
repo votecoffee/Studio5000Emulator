@@ -1,10 +1,11 @@
 """Dimension-wise file statistics, sample deviation and CONTROL transitions."""
 import copy
 import unittest
+from unittest.mock import patch
 from xml.etree import ElementTree as E
 
 import test_control_operations as fixtures
-from logixlab.model import ModelError
+from logixlab.model import ModelError, UnknownValueError
 
 
 STD_OVERFLOW_CASES = (
@@ -133,11 +134,16 @@ class ArrayStatisticsTests(unittest.TestCase):
         e.memory.write('Ctl.ER',False);e.step();self.assertEqual(e.memory.read('Result'),5.0)
 
     def test_unknown_source_rolls_back_but_inactive_guard_is_not_read(self):
-        e=self.checked(['AVE(Queue[0],0,Result,Ctl,?,?);']);e.memory.values['queue'][4]=None;e.step()
+        e=self.checked(['AVE(Queue[0],0,Result,Ctl,?,?);']);e.memory.values['queue'][4]=None
+        with patch.object(e.memory, '_remember', wraps=e.memory._remember) as remember:
+            e.step()
+            self.assertNotIn('queue', [args[0] for args, _ in remember.call_args_list])
         self.assertEqual(e.memory.read('Result'),5.0)
         e=self.checked(['STD(Queue[0],0,Result,Ctl,?,?);']);e.memory.values['queue'][1]=None
         before=copy.deepcopy(e.memory.values)
-        with self.assertRaisesRegex(ModelError,'Unknown'):e.step()
+        with self.assertRaisesRegex(ModelError, r'Unknown initial byte/value omitted by export: Queue\[1\]') as error:
+            e.step()
+        self.assertIsInstance(error.exception.__cause__, UnknownValueError)
         self.assertEqual(e.memory.values,before)
 
     def test_success_establishes_unknown_destination_and_rung_out(self):

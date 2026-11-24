@@ -747,7 +747,8 @@ selected axes.
 [Array statistics](docs/array-statistics.md) add ladder AVE and sample STD with
 REAL sample deviation and SINT/INT/DINT/REAL averages, including nearest-even
 integer conversion and range rollback. **Stats lab** demonstrates averages,
-deviation, row/column selection and CONTROL rearming.
+deviation, row/column selection and CONTROL rearming. AVE, STD and SRT read
+directly from the selected array window.
 
 [Integer expressions](docs/integer-expressions.md) add exact narrow division in
 ST/CPT/CMP and FAL/FSC consumers. **Math lab** compares truncation, remainder,

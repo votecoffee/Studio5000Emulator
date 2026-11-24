@@ -34,13 +34,13 @@ def selected_region(memory, op, scope, count, *, writable, references):
     key, parts, dtype = (memory.check_writable if writable else memory.resolve)(op.args[0],scope)
     if dtype not in controls.NUMERIC:
         raise ModelError('Statistics sources require SINT/INT/DINT/REAL arrays')
-    if not parts or not isinstance(parts[-1], int) or isinstance(memory.at(key, parts), list):
+    if not parts or not isinstance(parts[-1], int) or isinstance(memory.at(key, parts, mutable=False), list):
         raise ModelError('Statistics require a fully subscripted numeric array element')
     split = len(parts)
     while split and isinstance(parts[split - 1], int):split -= 1
     prefix, indices = parts[:split], parts[split:]
     shape = []
-    value = memory.at(key, prefix)
+    value = memory.at(key, prefix, mutable=False)
     while isinstance(value, list):
         if not value:raise ModelError('Statistics require nonempty array dimensions')
         shape.append(len(value));value = value[0]
@@ -64,6 +64,15 @@ def selected_region(memory, op, scope, count, *, writable, references):
     return key, paths, prefix, dtype
 
 
+def read_samples(memory, key, paths):
+    """Read the resolved numeric window in order, with address diagnostics for missing values."""
+    for path in paths:
+        value = memory.at(key, path, mutable=False)
+        if value is None:
+            value = memory.read(memory.address(key, path))
+        yield value
+
+
 def validate(memory, op, scope):
     previous = memory.structural
     memory.structural = True
@@ -84,7 +93,7 @@ def _validate(memory, op, scope):
 def destination(memory, op, scope, key, prefix):
     dk, dp, dtype = memory.check_writable(op.args[2], scope)
     allowed = controls.NUMERIC if op.name == 'AVE' else {'REAL'}
-    if dtype not in allowed or isinstance(memory.at(dk, dp), (list, dict)):
+    if dtype not in allowed or isinstance(memory.at(dk, dp, mutable=False), (list, dict)):
         raise ModelError(op.name + ' requires a scalar ' + ('SINT/INT/DINT/REAL' if op.name == 'AVE' else 'REAL') + ' destination')
     if dk == key and dp[:len(prefix)] == prefix:
         raise ModelError('Statistics destination must not overlap the source array')
@@ -154,7 +163,7 @@ def execute(memory, op, power, scope):
         obj.update(EN=True, DN=False, ER=True, POS=error.position)
         return True
     destination(memory,op,scope,key,prefix)
-    values = [real(memory.read(memory.address(key, path))) for path in paths]
+    values = [real(value) for value in read_samples(memory, key, paths)]
     calculate = standard_deviation if op.name == 'STD' else average
     result, overflow_position = calculate(values)
     if overflow_position is not None:

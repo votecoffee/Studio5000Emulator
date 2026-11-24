@@ -19,8 +19,9 @@ array and CONTROL must be writable. See [implementation](../source/logixlab/arra
 ## Supported operation
 
 The qualified whole-region profile requires positive LEN and POS=0, with at
-most 4096 values inside the selected dimension/member. Sorting captures all
-required values before writing. Integers retain their exact declared precision;
+most 4096 values inside the selected dimension/member. Sorting reads all
+values from the resolved window before writing. The writes journal the source
+array for rollback. Integers retain their exact declared precision;
 DINT values do not pass through REAL. REAL values must be finite and known.
 Guard elements and other rows, columns or members remain unchanged.
 
