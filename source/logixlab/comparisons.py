@@ -4,7 +4,7 @@ import operator
 
 from . import integer_math, time_values
 from .bit_transfer import operand
-from .model import INT_BITS, UNSIGNED_BITS, ModelError, coerce, literal
+from .model import INT_BITS, UNSIGNED_BITS, ModelError, UnknownValueError, coerce, literal
 from .real_math import real
 from .numeric_storage import lreal_math_source, real_math_source, typed_literal
 
@@ -183,6 +183,46 @@ def masked_equal(memory, args, scope):
     return source == compare
 
 
+def integer_relation(memory, op, scope, *, radix):
+    """Decide direct integer comparisons from values or a missing tag's range."""
+    compare = RELATIONS[op.name]
+    values = []
+    missing = None
+    for ref in op.args:
+        try:
+            value = integer_math.read_source(memory, ref, scope, radix=radix, signed_dint=radix)
+        except UnknownValueError as error:
+            if missing is not None:
+                raise missing[2] from None
+            _, _, dtype = memory.resolve(ref, scope)
+            if dtype not in INT_BITS:
+                raise
+            missing = (len(values), dtype, error)
+            value = None
+        values.append(value)
+    if missing is None:
+        return compare(*values)
+
+    index, dtype, error = missing
+    low, high = integer_bounds(dtype)
+    known = values[1 - index]
+    if type(known) is not int:
+        raise error
+    if op.name in ('EQU', 'NEQ'):
+        if low <= known <= high:
+            raise error
+        return op.name == 'NEQ'
+
+    # An ordering relation is monotone in either operand. If it agrees at
+    # both ends of the missing tag's range, every interior value agrees.
+    values[index] = low
+    result = compare(*values)
+    values[index] = high
+    if result != compare(*values):
+        raise error
+    return result
+
+
 def execute(engine, op, power, scope):
     if not power:return False
     memory = engine.memory
@@ -204,6 +244,8 @@ def execute(engine, op, power, scope):
     else:
         if not radix:
             ordering_profile(engine, op, scope)
+        if op.name in RELATIONS:
+            return integer_relation(memory, op, scope, radix=bool(radix))
         values = [integer_math.read_source(memory,arg,scope,radix=bool(radix),signed_dint=bool(radix)) for arg in op.args]
     if op.name == 'LIM':
         if floating and any(math.isnan(value) for value in values):
@@ -216,7 +258,7 @@ def execute(engine, op, power, scope):
 def description(project):
     return dict(available=available(project), profile='v35-5580-lazy-numeric-comparisons',
                 language='RLL', instructions=sorted(INSTRUCTIONS),
-                selection='Structural preflight; false/prescan skip saved values and dynamic indices; true calls consume every operand',
+                selection='Structural preflight; false/prescan skip saved values and dynamic indices; true calls check addresses and required operands',
                 floating_exceptions=dict(instructions=sorted((*RELATIONS, 'CMP', 'LIM', *FLOAT_PREDICATES)),
                     relations='NEQ is true with either operand NaN. Other relations and LIM are false with any NaN.',
                     ordering='Negative infinity precedes finite values. Positive infinity follows finite values.',
@@ -237,7 +279,7 @@ def description(project):
                 mixed_integer_ordering=dict(instructions=sorted((*RELATIONS,'LIM')), types=list(INTEGER_RANK),
                     operands='Tags with optional bounded constants; highest-ranked tag type must cover every complete declared tag range',
                     promotion='Preserve numeric values and signs; no floating-point conversion and no invented wider common type',
-                    selection='Read-only inputs; false/prescan skip live values and indices; true calls consume every source',
+                    selection='Read-only inputs. Direct relations can decide a result when every value in the declared range of one omitted tag agrees. LIM requires all sources.',
                     constants='Mixed LIM accepts signed-DINT integer literals in any operand position, representable in the highest-ranked tag type; constants do not justify tag-range conversion',
                     immediates='Homogeneous and narrow immediate rules remain separate; larger/typed/REAL mixed constants are excluded',
                     native_runtime_parity=False),

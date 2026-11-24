@@ -40,6 +40,79 @@ class NumericComparisonTests(unittest.TestCase):
             self.assertEqual(self.snapshot(e), before)
             e.memory.write('Values[0]', 7);e.step();self.assertEqual(e.memory.read('RunLatch'), expected)
 
+    def test_direct_relations_decide_results_at_omitted_integer_range_boundaries(self):
+        cases = (
+            ('EQU(Values[0],128)', False), ('NEQ(128,Values[0])', True),
+            ('LES(Values[0],128)', True), ('LES(127,Values[0])', False),
+            ('LEQ(Values[0],127)', True), ('LEQ(128,Values[0])', False),
+            ('GRT(Values[0],127)', False), ('GRT(128,Values[0])', True),
+            ('GEQ(Values[0],-128)', True), ('GEQ(-129,Values[0])', False),
+            ('LES(Values[0],128L)', True), ('NEQ(16#80L,Values[0])', True),
+        )
+        for call, expected in cases:
+            with self.subTest(call=call):
+                e = self.checked([call + 'OTE(RunLatch);'],
+                                 types=('SINT', 'DINT', 'DINT'))
+                e.memory.write('RunLatch', not expected)
+                e.step()
+                self.assertEqual(e.memory.read('RunLatch'), expected)
+                self.assertEqual(e.memory.read('Values'), [None] * 3)
+
+    def test_omitted_ranges_use_exact_unsigned_and_signed_64_bit_endpoints(self):
+        for dtype, literal in (('ULINT', '16#FFFF_FFFF_FFFF_FFFFUL'),
+                               ('LINT', '9223372036854775807L')):
+            with self.subTest(dtype=dtype):
+                e = self.checked([f'LEQ(Values[0],{literal})OTE(RunLatch);',
+                                  f'LES({literal},Values[0])OTE(BatchComplete);'],
+                                 types=(dtype,) * 3)
+                e.step()
+                self.assertTrue(e.memory.read('RunLatch'))
+                self.assertFalse(e.memory.read('BatchComplete'))
+                self.assertEqual(e.memory.read('Values'), [None] * 3)
+
+    def test_fixed_relation_respects_live_addresses_and_ambiguous_comparisons_roll_back(self):
+        e = self.checked(['MOV(77,SpeedCommand);',
+                          'XIC(StartPB)LES(Values[Index],128)OTE(RunLatch);',
+                          'XIC(StartPB)GRT(Values[Index],Dest)OTE(BatchComplete);'],
+                         types=('SINT', 'DINT', 'DINT'), values=(0, 0, -129))
+        e.step()
+        self.assertFalse(e.memory.read('RunLatch'))
+        e.memory.write('StartPB', True)
+        before = self.snapshot(e)
+        with self.assertRaisesRegex(ModelError, 'outside bounds'):
+            e.step()
+        self.assertEqual(self.snapshot(e), before)
+        e.memory.write('Index', 0)
+        e.step()
+        self.assertTrue(e.memory.read('RunLatch'))
+        self.assertTrue(e.memory.read('BatchComplete'))
+
+        e.memory.write('Dest', -128)
+        before = self.snapshot(e)
+        with self.assertRaisesRegex(ModelError, 'Unknown.*Values'):
+            e.step()
+        self.assertEqual(self.snapshot(e), before)
+        e.memory.write('Values[0]', -128)
+        e.step()
+        self.assertTrue(e.memory.read('RunLatch'))
+        self.assertFalse(e.memory.read('BatchComplete'))
+
+    def test_overlapping_equality_and_noninteger_or_missing_pairs_still_require_values(self):
+        cases = (
+            ('EQU(Values[0],127)', 'SINT'),
+            ('NEQ(-128,Values[0])', 'SINT'),
+            ('LES(Values[0],128.0)', 'SINT'),
+            ('LEQ(Values[0],Values[1])', 'SINT'),
+            ('LES(128.0,Values[0])', 'REAL'),
+        )
+        for call, dtype in cases:
+            with self.subTest(call=call):
+                e = self.checked([call + 'OTE(RunLatch);'], types=(dtype, 'DINT', 'DINT'))
+                before = self.snapshot(e)
+                with self.assertRaisesRegex(ModelError, 'Unknown.*Values'):
+                    e.step()
+                self.assertEqual(self.snapshot(e), before)
+
     def test_false_comparisons_do_not_sample_live_index_values(self):
         for text in ('EQU(Values[Index],7)', 'LIM(0,Values[Index],10)', 'MEQ(Values[Index],15,7)'):
             e = self.checked(['XIC(StartPB)' + text + 'OTE(RunLatch);'])

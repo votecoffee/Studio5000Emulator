@@ -72,9 +72,9 @@ values at or outside the endpoints, and equal endpoints select only that value.
 Mixed narrow/wide limits retain exact adjacent 64-bit values.
 
 Structural validation permits unknown saved values. False/prescan skip operand
-values and dynamic indices, and downstream OTE coils still clear. Reached true
-comparisons consume every operand, including a missing high limit when another
-comparison already appears false. In whole-project ladder scans,
+values and dynamic indices, and downstream OTE coils still clear. Enabled
+comparisons resolve their addresses. LIM requires every operand, including a
+missing high limit when another comparison already appears false. In whole-project ladder scans,
 [a cleared Type 4 Code 20 skips the comparison](controller-handlers.md#recover-contact-coil-ons-and-comparison-array-faults)
 and preserves incoming rung power. Reached unknowns, unrecovered faults and
 later errors restore prior writes/coils, task/time state and AOI bindings.
@@ -216,3 +216,18 @@ applies to aliases and live array indices. An enabled rung still validates
 all references and the actual mask address. If one live index selects a
 different element on a later scan, MEQ requires the mask and any selected
 comparand values for that scan.
+
+## Direct comparisons with omitted integer values
+
+In the v35 ControlLogix 5580 software profile, standalone EQU, NEQ, LES,
+LEQ, GRT and GEQ can evaluate with one omitted integer tag when every
+value in its declared range gives the same result. For example,
+`LES(PartCount,128)` is true for an omitted SINT. `EQU(PartCount,128)`
+is false, while `EQU(PartCount,127)` still needs the actual value.
+The same rules apply when the omitted tag is the second operand.
+
+The check uses exact signed or unsigned bounds at the tag's declared width,
+including 64-bit endpoints. Both operand addresses and the instruction's
+type and conversion rules still apply. Two omitted values or a result that
+depends on a missing value stop and roll back the advance. Floating-point,
+time/date, string, LIM and expression comparisons use their existing rules.

@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+[Direct ladder integer comparisons](numeric-comparisons.md#direct-comparisons-with-omitted-integer-values)
+can decide results from an omitted operand's declared range in `26.1124.093359`.
+Live-address faults and comparisons that depend on the missing value still roll back.
+
 [Integer XOR](scalar-math.md#xor-of-the-same-integer-address) and
 [MEQ](numeric-comparisons.md#meq-of-the-same-integer-address) can evaluate
 comparands at the same resolved address with omitted values in `26.1124.092832`.
