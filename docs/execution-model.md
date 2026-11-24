@@ -56,7 +56,9 @@ the declaration namespace. AOI InOut/local tables share canonical storage and
 participate in binding/value rollback.
 
 [AOI FAL/FSC](aoi-file-operations.md) share the ordinary bounded file
-algorithms. INC progress uses resolved CONTROL storage, including InOut banks
+algorithms. FAL and FSC journal CONTROL fields at the resolved address. Each
+iteration writes POS before evaluating its operands. INC progress uses that
+same CONTROL address, including InOut banks
 and nested local records, and participates in whole-advance rollback with
 AOI bindings. Numeric work can continue on a false call if active; a skipped
 AOI suspends execution unless its authored EnableInFalse routine invokes it.

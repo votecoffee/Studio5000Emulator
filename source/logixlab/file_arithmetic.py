@@ -1,4 +1,6 @@
 """Bounded ladder FAL ALL/numeric/INC iteration with existing CPT expressions."""
+from functools import partial
+
 from . import control_operations as controls
 from . import file_incremental as incremental
 from .integer_math import CONTROLLERS, WIDE_TYPES
@@ -78,9 +80,11 @@ def validate(engine, op, scope):
 def execute(engine, op, power, scope):
     count, expression = validate(engine, op, scope)
     memory = engine.memory
-    obj = controls.control(memory, op.args[0], scope)
+    key, parts, dtype = memory.check_writable(op.args[0], scope)
+    obj = controls.control_at(memory, key, parts, dtype, mutable=False)
     previous = obj.copy()
-    control_id = incremental.identity(engine,op.args[0],scope)
+    update_control = partial(controls.store_fields, memory, key, parts, obj)
+    control_id = key, tuple(parts)
     previous_retry = control_id in engine._file_arithmetic_retry
     writes = {}
 
@@ -101,47 +105,47 @@ def execute(engine, op, power, scope):
 
     try:
         if count == 'INC':
-            return incremental.execute(engine, op, power, scope, obj, write_element)
-        return _execute(engine, power, obj, count, write_element, control_id)
+            return incremental.execute(engine, op.name, power, obj, control_id, update_control, write_element)
+        return _execute(engine, power, obj, count, write_element, control_id, update_control)
     except RealCalculationOverflow:
-        obj.update(ER=True, DN=False)
+        update_control(dict(ER=True, DN=False))
         engine._file_arithmetic_retry.add(control_id)
         return power
     except ArrayBoundsError:
         for (key, parts), value in writes.items():
             memory.store(key, parts, value)
-        obj.update(previous)
+        update_control(previous)
         if previous_retry:engine._file_arithmetic_retry.add(control_id)
         else:engine._file_arithmetic_retry.discard(control_id)
         raise
 
 
-def _execute(engine, power, obj, count, write_element, control_id):
+def _execute(engine, power, obj, count, write_element, control_id, update_control):
     if controls.flag(obj, 'ER'):return power
     if controls.flag(obj, 'DN'):
         if not power:
-            obj.update(EN=False, DN=False, ER=False, POS=0)
+            update_control(dict(EN=False, DN=False, ER=False, POS=0))
             engine._file_arithmetic_retry.discard(control_id)
         return power
     enabled = controls.flag(obj, 'EN')
     if not power and (count is None or not enabled):
-        if count is None:obj['EN'] = False
+        if count is None:update_control({'EN': False})
         return False
     length, position = controls.file_cursor(obj, 'FAL')
     if length > controls.MAX_ELEMENTS:
         raise ModelError('FAL exceeds the 4096-element software limit')
     start = position + int(enabled and control_id not in engine._file_arithmetic_retry)
-    obj['EN'] = True
+    update_control({'EN': True})
     if start >= length:
-        obj.update(EN=bool(power), DN=True)
+        update_control(dict(EN=bool(power), DN=True))
         return power
     end = length if count is None else min(length, start + count)
     for position in range(start, end):
         engine.budget -= 1
         if engine.budget < 0:raise ModelError('FAL instruction budget exceeded')
-        obj['POS'] = position
+        update_control({'POS': position})
         write_element()
-    if end == length:obj.update(EN=bool(power), DN=True)
+    if end == length:update_control(dict(EN=bool(power), DN=True))
     return power
 
 

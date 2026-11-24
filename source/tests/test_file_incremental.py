@@ -1,6 +1,7 @@
 """Incremental FAL/FSC edges, hidden progress and transaction boundaries."""
 import copy
 import unittest
+from unittest.mock import patch
 from xml.etree import ElementTree as E
 
 import test_array_statistics as fixtures
@@ -253,6 +254,46 @@ class IncrementalFileTests(unittest.TestCase):
         e.memory.write('StartPB',True);e.step();self.assertEqual(len(e._file_incremental),1)
         e.memory.write('StartPB',False);e.memory.write('RunLatch',True);e.step();self.assertEqual(len(e._file_incremental),2)
         e.memory.write('StartPB',True);e.step();self.assertEqual([e.memory.read(f'Ctls[{i}].POS') for i in range(2)],[1,0])
+
+    def test_incremental_array_records_journal_live_positions_and_retry(self):
+        from test_control_operations import control_data
+
+        def records(root):
+            tags = root.find('./Controller/Tags')
+            tag = E.SubElement(tags, 'Tag', Name='Ctls', TagType='Base', DataType='CONTROL', Dimensions='2')
+            array = E.SubElement(E.SubElement(tag, 'Data', Format='Decorated'), 'Array',
+                                 DataType='CONTROL', Dimensions='2')
+            for index in range(2):
+                control_data(E.SubElement(array, 'Element', Index=f'[{index}]'), 3)
+
+        e = self.checked([
+            'XIC(StartPB)FAL(Ctls[0],?,?,INC,Queue[Ctls[0].POS],Incoming+Queue[Ctls[0].POS]);',
+            'XIC(StartPB)FSC(Ctls[1],?,?,INC,Queue[Ctls[1].POS]>14);',
+            'CPT(SpeedCommand,11/SpeedSetpoint);',
+        ], mutate=records)
+        e.memory.write('SpeedSetpoint', 1)
+        with patch.object(e.memory, '_remember', wraps=e.memory._remember) as snapshot_tag:
+            e.memory.write('StartPB', True)
+            e.step()
+            self.assertEqual(e.memory.read('Queue[0]'), 13)
+            self.assertFalse(e.memory.read('Ctls[1].FD'))
+            e.memory.write('StartPB', False)
+            e.step()
+            e.memory.write('StartPB', True)
+            e.memory.write('SpeedSetpoint', 0)
+            before = copy.deepcopy(e.memory.values)
+            progress = e._file_incremental.copy()
+            with self.assertRaisesRegex(ModelError, 'zero'):
+                e.step()
+            self.assertEqual(e.memory.values, before)
+            self.assertEqual(e._file_incremental, progress)
+            e.memory.write('SpeedSetpoint', 1)
+            e.step()
+        self.assertNotIn('ctls', [call.args[0] for call in snapshot_tag.call_args_list])
+        self.assertEqual(e.memory.read('Queue', mutable=False), [13, 15, 6, 8, 999])
+        self.assertEqual([e.memory.read(f'Ctls[{index}].POS') for index in range(2)], [1, 1])
+        self.assertTrue(e.memory.read('Ctls[1].FD'))
+        self.assertTrue(e.memory.read('Ctls[1].IN'))
 
     def test_run_entry_and_prescan_preview_preserve_progress(self):
         for kind in ('FAL','FSC'):

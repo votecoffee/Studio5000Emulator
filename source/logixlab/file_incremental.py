@@ -30,12 +30,12 @@ def validate(engine,op,scope):
         raise ModelError('INC requires an idle source CONTROL or a known completed one; saved hidden progress is unavailable')
 
 
-def execute(engine,op,power,scope,obj,operation,*,search=False):
+def execute(engine, name, power, obj, key, update_control, operation):
+    search = name == 'FSC'
     if controls.flag(obj,'ER') or (search and controls.flag(obj,'IN')):return power
-    key=identity(engine,op.args[0],scope)
     if controls.flag(obj,'DN'):
         if not power:
-            obj.update(EN=False,DN=False,POS=0)
+            update_control(dict(EN=False, DN=False, POS=0))
             engine._file_incremental.discard(key)
             engine._file_arithmetic_retry.discard(key)
         return power
@@ -43,25 +43,24 @@ def execute(engine,op,power,scope,obj,operation,*,search=False):
         raise ModelError('Imported completed INC requires completed false cleanup or RES before nonzero resume; saved hidden progress is unavailable')
     enabled=controls.flag(obj,'EN')
     if not power:
-        obj['EN']=False
+        update_control({'EN': False})
         return False
-    length,position=controls.file_cursor(obj,op.name+' INC')
-    if length>controls.MAX_ELEMENTS:raise ModelError(op.name+' INC exceeds the 4096-element software limit')
+    length,position=controls.file_cursor(obj, name + ' INC')
+    if length>controls.MAX_ELEMENTS:raise ModelError(name+' INC exceeds the 4096-element software limit')
     if enabled:return True
     start=position+int(key in engine._file_incremental and key not in engine._file_arithmetic_retry)
-    obj['EN']=True
-    if search:obj['FD']=False
+    update_control(dict(EN=True, FD=False) if search else {'EN': True})
     if start>=length:
-        obj['DN']=True
+        update_control({'DN': True})
         return True
-    obj['POS']=start
+    update_control({'POS': start})
     engine.budget-=1
-    if engine.budget<0:raise ModelError(op.name+' INC instruction budget exceeded')
+    if engine.budget<0:raise ModelError(name+' INC instruction budget exceeded')
     result=operation()
     engine._file_incremental.add(key)
     engine._file_arithmetic_retry.discard(key)
-    if search and result:obj.update(FD=True,IN=True)
-    if start==length-1:obj['DN']=True
+    if search and result:update_control(dict(FD=True, IN=True))
+    if start==length-1:update_control({'DN': True})
     return True
 
 

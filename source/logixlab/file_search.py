@@ -1,4 +1,6 @@
 """Bounded ladder FSC ALL/numeric/INC search using saved CONTROL state."""
+from functools import partial
+
 from . import control_operations as controls
 from . import file_incremental as incremental
 from . import string_operations
@@ -41,8 +43,10 @@ def validate(engine, op, scope):
 def execute(engine, op, power, scope):
     count, expression = validate(engine, op, scope)
     memory = engine.memory
-    obj = controls.control(memory, op.args[0], scope)
+    key, parts, dtype = memory.check_writable(op.args[0], scope)
+    obj = controls.control_at(memory, key, parts, dtype, mutable=False)
     previous = obj.copy()
+    update_control = partial(controls.store_fields, memory, key, parts, obj)
     partial_strings = string_operations.scheduled_ladder_context(engine, scope)
 
     def compare():
@@ -50,43 +54,44 @@ def execute(engine, op, power, scope):
 
     try:
         if count == 'INC':
-            return incremental.execute(engine, op, power, scope, obj, compare, search=True)
-        return _execute(engine, power, obj, count, compare)
+            control_id = key, tuple(parts)
+            return incremental.execute(engine, op.name, power, obj, control_id, update_control, compare)
+        return _execute(engine, power, obj, count, compare, update_control)
     except ArrayBoundsError:
-        obj.update(previous)
+        update_control(previous)
         raise
 
 
-def _execute(engine, power, obj, count, compare):
+def _execute(engine, power, obj, count, compare, update_control):
     if controls.flag(obj, 'ER') or controls.flag(obj, 'IN'):return power
     if controls.flag(obj, 'DN'):
-        if not power:obj.update(EN=False, DN=False, POS=0)
+        if not power:update_control(dict(EN=False, DN=False, POS=0))
         return power
     enabled = controls.flag(obj, 'EN')
     if not power and (count is None or not enabled):
-        if count is None:obj['EN'] = False
+        if count is None:update_control({'EN': False})
         return False
     length, position = controls.file_cursor(obj, 'FSC')
     if length > controls.MAX_ELEMENTS:
         raise ModelError('FSC exceeds the 4096-element software limit')
     if length == 0:
-        obj.update(EN=bool(power), DN=True, FD=False)
+        update_control(dict(EN=bool(power), DN=True, FD=False))
         return power
     start = position + int(enabled)
-    obj.update(EN=True, FD=False)
+    update_control(dict(EN=True, FD=False))
     if start >= length:
-        obj.update(EN=bool(power), DN=True)
+        update_control(dict(EN=bool(power), DN=True))
         return power
     end = length if count is None else min(length, start + count)
     for position in range(start, end):
         engine.budget -= 1
         if engine.budget < 0:raise ModelError('FSC instruction budget exceeded')
-        obj['POS'] = position
+        update_control({'POS': position})
         if compare():
-            obj.update(FD=True, IN=True)
-            if position == length - 1:obj.update(DN=True, EN=bool(power))
+            update_control(dict(FD=True, IN=True))
+            if position == length - 1:update_control(dict(DN=True, EN=bool(power)))
             return power
-    if end == length:obj.update(DN=True, EN=bool(power))
+    if end == length:update_control(dict(DN=True, EN=bool(power)))
     return power
 
 
