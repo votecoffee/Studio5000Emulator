@@ -125,7 +125,7 @@ def execute(engine,op,scope):
             obj['Out']=values[-1];storage[2][:count]=[value]+values[:-1]
         else:obj['Out']=value
         state.update(length=count,faulted=False)
-    obj.update(DeltaT=dt,Status=bit_value(status,'DINT'));engine.last_timer[identity]=state
+    obj.update(DeltaT=dt,Status=bit_value(status,'DINT'));engine.set_instruction_state(identity, state)
 
 
 def description():

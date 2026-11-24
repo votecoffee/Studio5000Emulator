@@ -56,7 +56,7 @@ def execute(engine,op,scope):
             elif read('Reset'):value=False
         obj.update(Out=value,OutNot=not value)
     obj.update(EnableIn=True,EnableOut=True)
-    engine.last_timer[identity]=dict(kind=op.name,value=value,clock=clock)
+    engine.set_instruction_state(identity, dict(kind=op.name,value=value,clock=clock))
 
 
 def description():

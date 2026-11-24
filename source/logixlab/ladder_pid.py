@@ -306,9 +306,10 @@ def execute(engine, op, power, scope):
     for i, value in ((0, integral), (2, pv), (3, error), (4, v['SP']), (14, real(assigned_cv))):
         if obj['DATA'][i] is not value:
             memory.store(key, parts + ['DATA', i], value)
-    engine.last_timer[identity] = dict(integral=integral, manual=manual, tracking=tracking, inhold=inhold, at=engine.time_ms,
-        pv=pv, error=error, derivative=derivative, derivative_signature=derivative_signature, smoothing_signature=smoothing_signature,
-        out=out, deadband=hold, deadband_signature=deadband_signature)
+    engine.set_instruction_state(identity, dict(
+        integral=integral, manual=manual, tracking=tracking, inhold=inhold, at=engine.time_ms,
+        pv=pv, error=error, derivative=derivative, derivative_signature=derivative_signature,
+        smoothing_signature=smoothing_signature, out=out, deadband=hold, deadband_signature=deadband_signature))
     return True
 
 

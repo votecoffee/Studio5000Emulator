@@ -184,12 +184,36 @@ class StructuredTimerTests(unittest.TestCase):
             self.assertEqual(self.advance(e)['ACC'],expected)
 
     def test_late_fault_rolls_back_elapsed_clock_flags_and_values_then_retries_once(self):
-        e=self.checked(['TONR(T);','SpeedCommand := 1 / SpeedSetpoint;'])
-        e.memory.write('SpeedSetpoint',1);self.advance(e);self.advance(e);e.memory.write('SpeedSetpoint',0)
-        before=copy.deepcopy((e.memory.values,e.last_timer,e.scan_count,e.time_ms,e.scheduler_description()))
-        with self.assertRaisesRegex(ModelError,'zero'):e.step()
-        self.assertEqual((e.memory.values,e.last_timer,e.scan_count,e.time_ms,e.scheduler_description()),before)
-        e.memory.write('SpeedSetpoint',1);self.assertEqual(self.advance(e)['ACC'],20)
+        e = self.checked([
+            'TONR(T);', 'TONR(T);', 'IF StartPB THEN TONR(U); END_IF;',
+            'SpeedCommand := 1 / SpeedSetpoint;',
+        ])
+        e.memory.write('SpeedSetpoint', 1)
+        self.advance(e)
+        self.advance(e)
+        history = e.last_timer
+        running_timer = ('ST-FBD-TIMER', 't', ())
+        new_timer = ('ST-FBD-TIMER', 'u', ())
+        saved_clock = history[running_timer]
+        idle_key = ('ST-FBD-TIMER', 'idle', ())
+        idle_clock = history[idle_key] = dict(saved_clock)
+        e.memory.write('StartPB', True)
+        e.memory.write('SpeedSetpoint', 0)
+        before = copy.deepcopy((e.memory.values, history, e.scan_count, e.time_ms, e.scheduler_description()))
+
+        with self.assertRaisesRegex(ModelError, 'zero'):
+            e.step()
+
+        self.assertEqual((e.memory.values, e.last_timer, e.scan_count, e.time_ms, e.scheduler_description()), before)
+        self.assertIs(e.last_timer, history)
+        self.assertIs(history[running_timer], saved_clock)
+        self.assertIs(history[idle_key], idle_clock)
+        self.assertNotIn(new_timer, history)
+        e.memory.write('SpeedSetpoint', 1)
+        self.assertEqual(self.advance(e)['ACC'], 20)
+        self.assertEqual(e.memory.read('U.ACC'), 0)
+        self.assertIn(new_timer, history)
+        self.assertIs(history[idle_key], idle_clock)
 
     def test_aliases_array_elements_and_program_local_records_resolve_to_owned_clock(self):
         def mutate(root):

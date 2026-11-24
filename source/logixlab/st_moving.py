@@ -61,7 +61,7 @@ def execute(engine,op,scope):
     binding=(op.name,storage[0],tuple(storage[1]))
     if previous is not None and previous['binding']!=binding:
         raise ModelError('Moving-statistics record cannot change its storage binding during a Run')
-    state={'binding':binding,'count':0} if previous is None else previous
+    state={'binding':binding,'count':0} if previous is None else previous.copy()
     def read(name):
         value=obj[name];kind=SCHEMAS[dtype][name]
         expected=(bool,) if kind=='BOOL' else (int,) if kind=='DINT' else (int,float)
@@ -72,7 +72,7 @@ def execute(engine,op,scope):
     capacity=min(len(storage[2]),len(weight[2])) if weighted and weight is not None else len(storage[2])
     invalid=not 1<=length<=capacity
     obj.update(EnableIn=True,EnableOut=True,Status=(3 if fault else 0)|(5 if invalid else 0))
-    engine.last_timer[identity]=state
+    engine.set_instruction_state(identity, state)
     if fault or invalid:
         state['count']=0
         return

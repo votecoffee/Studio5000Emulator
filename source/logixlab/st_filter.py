@@ -90,7 +90,7 @@ def execute(engine,op,scope):
     elif dt==0:out,sections=state['out'],state['sections']
     else:out,sections=advance(order,frequency*dt/2,value,state['sections'])
     obj.update(EnableIn=True,EnableOut=True,Out=out,DeltaT=dt,Status=bit_value(status,'DINT'))
-    engine.last_timer[identity]=dict(at=now,order=order,out=out,sections=sections)
+    engine.set_instruction_state(identity, dict(at=now,order=order,out=out,sections=sections))
 
 
 def description():

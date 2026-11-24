@@ -1273,6 +1273,8 @@ execute enabled AOI Prescan routines. Repeated Run requests do not repeat it.
 During each simulation advance, LogixLab snapshots individual tags as the logic
 writes to them or accesses their mutable records. A failed scan restores the
 saved values. Change history compares only the tags captured during that advance.
+Scan rollback also records only the instruction history entries it changes, such
+as timer timestamps, alarm state, and PID history.
 For supported Studio edits, select **Connectivity → Allow supported Studio edits**
 before connecting. This profile replaces an existing standard RLL routine in
 **Program** mode. Changes stay in memory; reload the original project to restore

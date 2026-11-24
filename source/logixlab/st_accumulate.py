@@ -56,7 +56,7 @@ def execute(engine,op,scope):
         if initialize:out=read('InitialValue')
         elif read('Hold'):out=previous
         else:out=real(previous+read('InPlus')-read('InMinus'))
-        engine.last_timer[identity]=dict(out=out)
+        engine.set_instruction_state(identity, dict(out=out))
     else:
         mode=read('TimingMode');now=engine.time_ms
         if mode==2:raise ModelError('INTG real time sampling mode remains unqualified')
@@ -88,7 +88,7 @@ def execute(engine,op,scope):
         out=real(out)
         high_alarm,low_alarm=(True,True) if high<=low else (out>=high,out<=low)
         obj.update(IGain=gain,HighAlarm=high_alarm,LowAlarm=low_alarm,DeltaT=dt,Status=bit_value(status,'DINT'))
-        engine.last_timer[identity]=dict(out=out,input=prior_in,at=now)
+        engine.set_instruction_state(identity, dict(out=out,input=prior_in,at=now))
     obj.update(EnableIn=True,EnableOut=True,Out=out)
 
 

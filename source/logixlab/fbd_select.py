@@ -49,7 +49,7 @@ def execute(engine,node,scope,*,wired_enable):
         selector=read('Selector');valid=1<=selector<=8
         out=read('In'+str(selector)) if valid else previous
         obj['Status']=0 if valid else 3
-    obj['Out']=out;engine.last_timer[identity]=out
+    obj['Out']=out;engine.set_instruction_state(identity, out)
 
 
 def description():

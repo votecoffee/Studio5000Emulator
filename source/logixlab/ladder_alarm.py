@@ -130,7 +130,7 @@ def prescan(engine, op, scope):
     updates.update(EnableOut=False, InAlarm=False, InAlarmUnack=False, Acked=True,
                    Shelved=False, MinDurationACC=0)
     _store_fields(memory, key, obj, updates)
-    engine.last_timer.pop(('ALMD', key), None)
+    engine.discard_instruction_state(('ALMD', key))
 
 
 def _shelf_deadline(now, deadline, *, minutes, cancel):
@@ -230,7 +230,7 @@ def execute(engine, op, power, scope):
                    Shelved=shelved, InAlarm=active, Acked=acked, InAlarmUnack=active and not acked,
                    AlarmCount=count, Status=status)
     _store_fields(memory, key, obj, updates)
-    engine.last_timer[identity] = (since, ack, reset, shelf_until, shelve_request, detected_at)
+    engine.set_instruction_state(identity, (since, ack, reset, shelf_until, shelve_request, detected_at))
     return power
 
 

@@ -34,10 +34,10 @@ def execute(engine,op,scope):
     identity=('ST-FBD-TIMER',key,tuple(parts));state=engine.last_timer.get(identity)
     if state is not None and state['kind']!=op.name:
         raise ModelError('Using different ST timer instructions on one record remains unqualified')
-    state=state or dict(kind=op.name,at=engine.time_ms,started=False,active=False,armed=False)
+    state=state.copy() if state is not None else dict(kind=op.name,at=engine.time_ms,started=False,active=False,armed=False)
     elapsed=engine.time_ms-state['at'] if state['active'] else 0
     if elapsed<0:raise ModelError('ST timer clock moved backwards')
-    state['at']=engine.time_ms;engine.last_timer[identity]=state
+    state['at']=engine.time_ms;engine.set_instruction_state(identity, state)
     def read(name):
         value=obj[name]
         if type(value) is not (bool if FIELDS[name]=='BOOL' else int):

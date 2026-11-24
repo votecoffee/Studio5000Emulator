@@ -105,7 +105,7 @@ def execute(engine,op,scope):
         old_sample=sample
     out,integral=real(out),real(integral)
     obj.update(EnableIn=True,EnableOut=True,Out=out,HighAlarm=alarms[0],LowAlarm=alarms[1],DeltaT=dt,Status=bit_value(status,'DINT'))
-    engine.last_timer[identity]=dict(at=now,input=old_sample,integral=integral,out=out)
+    engine.set_instruction_state(identity, dict(at=now,input=old_sample,integral=integral,out=out))
 
 
 def description():

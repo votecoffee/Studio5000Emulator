@@ -66,7 +66,7 @@ def execute(engine,op,scope):
     else:result=max(value,previous-dec*dt)
     result=real(result)
     obj.update(EnableIn=True,EnableOut=True,IncRate=inc,DecRate=dec,Out=result,DeltaT=dt,Status=bit_value(status,'DINT'))
-    engine.last_timer[identity]=dict(at=now,previous=result)
+    engine.set_instruction_state(identity, dict(at=now,previous=result))
 
 
 def description():

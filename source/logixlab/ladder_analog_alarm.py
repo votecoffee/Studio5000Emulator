@@ -116,7 +116,7 @@ def prescan(engine, op, scope):
     updates.update(dict.fromkeys(OPERATOR, False))
     updates['EnableIn'] = False
     _store_fields(memory, key, obj, updates)
-    engine.last_timer.pop(('ALMA', key), None)
+    engine.discard_instruction_state(('ALMA', key))
 
 
 def _diagnostics(obj, enabled, roc_enabled):
@@ -183,7 +183,7 @@ def execute(engine, op, power, scope):
             roc=None, detections=(),
         )
         if interrupted != history:
-            engine.last_timer[identity] = interrupted
+            engine.set_instruction_state(identity, interrupted)
         return False
 
     preset = obj['MinDurationPRE']
@@ -284,8 +284,9 @@ def execute(engine, op, power, scope):
                    ProgDisable=disable, ProgEnable=enable, Suppressed=suppressed, Disabled=disabled,
                    AnyInAlarmUnack=any_unack, MinDurationACC=0, ROC=rate, Status=status)
     _store_fields(memory, key, obj, updates)
-    engine.last_timer[identity] = AlarmHistory(low_timing, high_timing, ack_all, level_acks, roc,
-                                              tuple(shelves.items()), shelf_requests, tuple(detections.items()))
+    engine.set_instruction_state(identity, AlarmHistory(
+        low_timing, high_timing, ack_all, level_acks, roc, tuple(shelves.items()),
+        shelf_requests, tuple(detections.items())))
     return True
 
 

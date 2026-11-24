@@ -68,7 +68,7 @@ def execute(engine,op,scope):
     obj.update(EnableIn=True,EnableOut=True,ProgOper=program,Override=override,Status=status,
                OperProgReq=False,OperOperReq=False)
     if reset:obj.update(ProgProgReq=False,ProgOperReq=False,ProgOverrideReq=False)
-    engine.last_timer[identity]=program
+    engine.set_instruction_state(identity, program)
 
 
 def description():

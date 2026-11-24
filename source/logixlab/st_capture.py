@@ -39,7 +39,7 @@ def execute(engine,op,scope):
     elif (value>previous if op.name=='MAXC' else value<previous):result=value
     else:result=previous
     obj.update(EnableIn=True,EnableOut=True,Out=result)
-    engine.last_timer[identity]=result
+    engine.set_instruction_state(identity, result)
 
 
 def description():

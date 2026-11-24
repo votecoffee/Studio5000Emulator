@@ -57,7 +57,7 @@ def execute(engine,op,scope):
     elif dt>0:out=real(read('Gain')*(value-state['input'])/dt)
     else:out=state['out']
     obj.update(EnableIn=True,EnableOut=True,Out=out,DeltaT=dt,Status=bit_value(status,'DINT'))
-    engine.last_timer[identity]=dict(at=now,input=value,out=out)
+    engine.set_instruction_state(identity, dict(at=now,input=value,out=out))
 
 
 def description():

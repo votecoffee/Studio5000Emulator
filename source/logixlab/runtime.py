@@ -90,6 +90,9 @@ class JumpRoutine(Exception):
     def __init__(self,label):self.label=label.lower()
 
 
+_NO_INSTRUCTION_STATE = object()
+
+
 class Engine:
     """Deterministic model; a failed scan rolls back all simulator state."""
     def __init__(self, project, mode="project", routine="", *, defer_prescan=False, coordinated_clock=None,
@@ -113,6 +116,7 @@ class Engine:
         self.scan_count = 0
         self.time_ms = 0
         self.last_timer = {}
+        self._instruction_history_before = None
         self._file_incremental = set()
         self._file_arithmetic_retry = set()
         self._st_counter_edges = {}
@@ -661,7 +665,7 @@ class Engine:
                 timer['DN'] = timer['ACC'] >= timer['PRE']
             timer.update(EN=True, TT=not timer['DN'])
         self._store_record_fields(key, parts, obj, timer)
-        self.last_timer[identity] = self.time_ms
+        self.set_instruction_state(identity, self.time_ms)
         return power
 
     def _counter_record(self,ref,scope,expected=None):
@@ -864,10 +868,26 @@ class Engine:
             self._advance(dt, running=running)
         return self._record_tag_changes(before, cells)
 
+    def _remember_instruction_state(self, identity):
+        # History records are replaced on write. Keep the original object for rollback.
+        before = self._instruction_history_before
+        if before is not None and identity not in before:
+            before[identity] = self.last_timer.get(identity, _NO_INSTRUCTION_STATE)
+
+    def set_instruction_state(self, identity, state):
+        self._remember_instruction_state(identity)
+        self.last_timer[identity] = state
+
+    def discard_instruction_state(self, identity):
+        self._remember_instruction_state(identity)
+        self.last_timer.pop(identity, None)
+
     def _advance(self, dt, *, running):
         message_cache = self.memory.message_cache.copy()
         module_modes = self._module_modes.copy()
-        previous = (self.time_ms, copy.deepcopy(self.last_timer), self.memory.first_scan, self.trace, set(self._file_incremental), set(self._file_arithmetic_retry), dict(self._st_counter_edges), dict(self._st_oneshot_edges))
+        previous = (self.time_ms, self.memory.first_scan, self.trace,
+                    set(self._file_incremental), set(self._file_arithmetic_retry),
+                    dict(self._st_counter_edges), dict(self._st_oneshot_edges))
         previous_program_clear = self.last_cleared_program_fault
         end_ms=self.time_ms+dt
         batch=self._task_scheduler.prepare(end_ms) if self._task_scheduler is not None else None
@@ -890,6 +910,7 @@ class Engine:
         self._immediate_output_advance = {}
         task_outputs = {}
         self._message_advance = self._messages.copy()
+        self._instruction_history_before = {}
         try:
             self._scan_controller_status = controller_status_word(self.controller_mode(running=running))
             # Service at the committed boundary, before any task release in this advance.
@@ -983,12 +1004,19 @@ class Engine:
                 self._task_scheduler.priorities=list(batch.priorities)
                 self._task_scheduler.watchdog_overrides=watchdog_overrides
                 self._task_scheduler.output_update_overrides=output_update_overrides
-            self.time_ms, self.last_timer, self.memory.first_scan, self.trace, self._file_incremental, self._file_arithmetic_retry, self._st_counter_edges, self._st_oneshot_edges = previous
+            (self.time_ms, self.memory.first_scan, self.trace, self._file_incremental,
+             self._file_arithmetic_retry, self._st_counter_edges, self._st_oneshot_edges) = previous
+            for identity, state in self._instruction_history_before.items():
+                if state is _NO_INSTRUCTION_STATE:
+                    self.last_timer.pop(identity, None)
+                else:
+                    self.last_timer[identity] = state
             self._executing_task=None
             self.last_cleared_program_fault = previous_program_clear
             self.fault = str(e) or type(e).__name__
             raise ModelError(f"Scan rolled back: {e}") from e
         finally:
+            self._instruction_history_before = None
             self._event_dispatch=None
             self._timing_advance=None
             self._program_advance=None
@@ -1390,7 +1418,7 @@ class Engine:
             key, parts, _ = self.memory.resolve(a[0], scope)
             identity = (key, tuple(parts))
             elapsed = self.time_ms - self.last_timer.get(identity, self.time_ms)
-            self.last_timer[identity] = self.time_ms
+            self.set_instruction_state(identity, self.time_ms)
             if n == "TOF":
                 if p: timer.update(EN=True, TT=False, DN=True, ACC=0)
                 else:
