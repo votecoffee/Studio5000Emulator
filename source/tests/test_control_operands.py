@@ -109,6 +109,57 @@ class ControlOperandTests(unittest.TestCase):
             self.assertEqual(self.snapshot(e), before)
             e.memory.write('DestIndex', 1); e.step(); self.assertEqual(e.memory.read('Outputs')[1], 0)
 
+    def test_fifo_unload_journals_selected_record_and_resolves_destination_after_shift(self):
+        e = self.checked([
+            'XIC(StartPB)OTE(Controls[1].ER);',
+            'XIC(StartPB)FFU(Queue[0],Outputs[Queue[0]],Controls[ControlIndex],?,?);',
+            'CPT(SpeedCommand,11/SpeedSetpoint);',
+        ], queue=(31, 99, 0, 999))
+        for address, value in (
+            ('ControlIndex', 1), ('Controls[1].LEN', 2), ('Controls[1].POS', 2),
+            ('Controls[1].EU', True), ('Controls[2].POS', 47), ('SpeedSetpoint', 1),
+        ):
+            e.memory.write(address, value)
+        with patch.object(e.memory, '_remember', wraps=e.memory._remember) as snapshot_tag:
+            e.step()
+            e.memory.write('StartPB', True)
+            before = self.snapshot(e)
+            with self.assertRaisesRegex(ModelError, 'outside bounds'):
+                e.step()
+            self.assertEqual(self.snapshot(e), before)
+            e.memory.write('Queue[1]', 1)
+            e.memory.write('SpeedSetpoint', 0)
+            before = self.snapshot(e)
+            with self.assertRaisesRegex(ModelError, 'zero'):
+                e.step()
+            self.assertEqual(self.snapshot(e), before)
+            e.memory.write('SpeedSetpoint', 1)
+            e.step()
+        self.assertNotIn('controls', [call.args[0] for call in snapshot_tag.call_args_list])
+        self.assertEqual(e.memory.read('Queue', mutable=False), [1, 0, 0, 999])
+        self.assertEqual(e.memory.read('Outputs', mutable=False), [None, 31, None])
+        self.assertEqual(e.memory.read('Controls[1].POS'), 1)
+        self.assertTrue(e.memory.read('Controls[1].EU'))
+        self.assertTrue(e.memory.read('Controls[1].ER'))
+        self.assertFalse(e.memory.read('Controls[1].DN'))
+        self.assertEqual(e.memory.read('Controls[2].POS'), 47)
+
+    def test_fifo_unload_into_own_cursor_applies_destination_before_decrement(self):
+        e = self.checked([
+            'XIC(StartPB)FFU(Queue[0],Controls[ControlIndex].POS,Controls[ControlIndex],?,?);',
+        ], queue=(2, 1, 0, 999))
+        for address, value in (
+            ('ControlIndex', 1), ('Controls[1].LEN', 2), ('Controls[1].POS', 1),
+            ('Controls[1].EU', True),
+        ):
+            e.memory.write(address, value)
+        e.step()
+        e.memory.write('StartPB', True)
+        e.step()
+        self.assertEqual(e.memory.read('Controls[1].POS'), 1)
+        self.assertFalse(e.memory.read('Controls[1].EM'))
+        self.assertEqual(e.memory.read('Queue', mutable=False), [1, 0, 0, 999])
+
     def test_control_reset_false_prescan_and_true_unknown_record_initialization(self):
         e = self.checked(['XIC(StartPB)RES(Controls[ControlIndex]);'])
         before = copy.deepcopy(e.memory.values)

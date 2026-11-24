@@ -259,11 +259,13 @@ def _validate(memory, op, scope):
                     raise ModelError('FFU destination must not share the FIFO array storage')
 
 
-def fifo_status(obj):
-    length, position = integer(obj, 'LEN'), integer(obj, 'POS')
-    obj['DN'] = length <= 0 or position < 0 or position >= length
-    obj['EM'] = length <= 0 or position <= 0
-    return length, position
+def _fifo_cursor(obj):
+    return integer(obj, 'LEN'), integer(obj, 'POS')
+
+
+def _fifo_status(length, position):
+    return dict(DN=length <= 0 or position < 0 or position >= length,
+                EM=length <= 0 or position <= 0)
 
 
 def _store_control_fields(memory, key, parts, obj, updates):
@@ -273,14 +275,15 @@ def _store_control_fields(memory, key, parts, obj, updates):
 
 
 def prescan(memory, op, scope):
-    if op.name in ('BSL', 'BSR'):
-        key, parts, dtype = memory.check_writable(op.args[1], scope)
-        obj = control_at(memory, key, parts, dtype, mutable=False)
+    is_shift = op.name in ('BSL', 'BSR')
+    key, parts, dtype = memory.check_writable(op.args[1 if is_shift else 2], scope)
+    obj = control_at(memory, key, parts, dtype, mutable=False)
+    if is_shift:
         _store_control_fields(memory, key, parts, obj, _SHIFT_RESET)
     else:
-        obj = control(memory, op.args[2], scope)
-        obj['EN' if op.name in ('FFL', 'LFL') else 'EU'] = True
-        fifo_status(obj)
+        latch = 'EN' if op.name in ('FFL', 'LFL') else 'EU'
+        _store_control_fields(memory, key, parts, obj, {latch: True})
+        _store_control_fields(memory, key, parts, obj, _fifo_status(*_fifo_cursor(obj)))
 
 
 def reset(memory, ref, scope):
@@ -385,22 +388,45 @@ def _unload(memory, dest, scope, key, paths, dtype):
         raise
 
 
-def fifo(memory, op, power, scope, obj):
-    n, a = op.name, op.args
-    length, position = fifo_status(obj)
-    loading = n in ('FFL', 'LFL')
+def fifo(memory, op, power, scope):
+    key, parts, dtype = memory.check_writable(op.args[2], scope)
+    previous = control_at(memory, key, parts, dtype, mutable=False)
+    length, position = _fifo_cursor(previous)
+    status = _fifo_status(length, position)
+    loading = op.name in ('FFL', 'LFL')
     latch = 'EN' if loading else 'EU'
     if not power:
-        obj[latch] = False
+        status[latch] = False
+        _store_control_fields(memory, key, parts, previous, status)
         return False
-    if flag(obj, latch):return True
-    obj[latch] = True
-    if length <= 0 or position < 0:return True
+    if flag(previous, latch):
+        _store_control_fields(memory, key, parts, previous, status)
+        return True
+    status[latch] = True
+    if length <= 0 or position < 0 or (loading and position == length):
+        _store_control_fields(memory, key, parts, previous, status)
+        return True
     if position > length:
         raise ModelError('FIFO POS beyond LEN is outside the qualified runtime profile')
-    if loading and position == length:return True
+
+    # Keep a detached pre-instruction record for recovery. The live record
+    # exposes the latch to indirect operands and can receive payload writes.
+    memory.store(key, parts, previous | status)
+    current = memory.at(key, parts, mutable=False)
+    try:
+        _fifo_transfer(memory, op, scope, current, length, position, loading)
+    except ArrayBoundsError as error:
+        current.update(previous)
+        if op.name == 'LFU' and isinstance(error, UnloadExtentError):
+            current['ER'] = True
+        raise
+    return True
+
+
+def _fifo_transfer(memory, op, scope, obj, length, position, loading):
+    a = op.args
     array = a[1] if loading else a[0]
-    key, paths, dtype = _transfer_region(memory, n, array, length, scope, position=position)
+    key, paths, dtype = _transfer_region(memory, op.name, array, length, scope, position=position)
     if loading:
         source = fifo_values.read(memory,a[0],scope,dtype)
         memory.store(key, paths[0], source)
@@ -410,23 +436,14 @@ def fifo(memory, op, power, scope, obj):
     else:
         _unload(memory,a[1],scope,key,paths,dtype)
         obj['POS'] -= 1
-    fifo_status(obj)
-    return True
+    obj.update(_fifo_status(*_fifo_cursor(obj)))
 
 
 def execute(memory, op, power, scope):
     validate(memory, op, scope)
     if op.name in ('BSL', 'BSR'):
         return shift(memory, op, power, scope)
-    obj = control(memory, op.args[2], scope)
-    previous = obj.copy()
-    try:
-        return fifo(memory, op, power, scope, obj)
-    except ArrayBoundsError as error:
-        obj.update(previous)
-        if op.name == 'LFU' and isinstance(error, UnloadExtentError):
-            obj['ER'] = True
-        raise
+    return fifo(memory, op, power, scope)
 
 
 def description():

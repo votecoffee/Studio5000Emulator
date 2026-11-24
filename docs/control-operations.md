@@ -69,6 +69,9 @@ handler, with ER set for a recoverable length fault.
 FFL/FFU share a CONTROL with independent EN and EU edge latches. Prescan sets
 the respective latch, preventing an initial load/unload until a false scan
 rearms it. A held true rung does not repeat data movement.
+Both FIFO and LIFO journal CONTROL fields for prescan and idle calls, and
+journal the selected record for transfers. The latch and status updates are
+visible during a transfer, with the same rollback and live operand order.
 
 FFL writes the source at the current POS and increments POS. In the v35 5580
 profile, a load checks that slot within the selected array or structure member
