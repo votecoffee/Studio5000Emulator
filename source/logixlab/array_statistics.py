@@ -94,10 +94,14 @@ def destination(memory, op, scope, key, prefix):
 
 
 def prescan(memory, op, scope):
-    obj = controls.control(memory, op.args[3], scope)
-    obj.update(EN=False, DN=False)
-    if op.name == 'STD':obj['ER'] = False
-    elif not controls.flag(obj, 'ER'):obj.update(dict.fromkeys(controls.FLAGS, False))
+    key, parts, dtype = memory.check_writable(op.args[3], scope)
+    obj = controls.control_at(memory, key, parts, dtype, mutable=False)
+    updates = dict(EN=False, DN=False)
+    if op.name == 'STD':
+        updates['ER'] = False
+    elif not controls.flag(obj, 'ER'):
+        updates = dict.fromkeys(controls.FLAGS, False)
+    controls.store_fields(memory, key, parts, obj, updates)
 
 
 def average(values):
@@ -131,10 +135,11 @@ def standard_deviation(values):
 
 def execute(memory, op, power, scope):
     validate(memory, op, scope)
-    obj = controls.control(memory, op.args[3], scope)
+    ck, cp, control_type = memory.check_writable(op.args[3], scope)
+    obj = controls.control_at(memory, ck, cp, control_type, mutable=False)
     if not power:
         if op.name == 'STD' or controls.flag(obj, 'DN') and not controls.flag(obj, 'ER'):
-            obj.update(EN=False, DN=False, ER=False, POS=0)
+            controls.store_fields(memory, ck, cp, obj, dict(EN=False, DN=False, ER=False, POS=0))
         return False
     if controls.flag(obj, 'ER') or controls.flag(obj, 'EN') or controls.flag(obj, 'DN'):
         return True
@@ -151,17 +156,17 @@ def execute(memory, op, power, scope):
     except StatisticsExtentError as error:
         # Retain live result-address checks before changing the CONTROL record.
         destination(memory,op,scope,error.key,error.prefix)
-        obj.update(EN=True, DN=False, ER=True, POS=error.position)
+        controls.store_fields(memory, ck, cp, obj, dict(EN=True, DN=False, ER=True, POS=error.position))
         return True
     destination(memory,op,scope,key,prefix)
     values = [real(value) for value in memory.read_cells(key, paths)]
     calculate = standard_deviation if op.name == 'STD' else average
     result, overflow_position = calculate(values)
     if overflow_position is not None:
-        obj.update(EN=True, DN=False, ER=True, POS=overflow_position)
+        controls.store_fields(memory, ck, cp, obj, dict(EN=True, DN=False, ER=True, POS=overflow_position))
         return True
     memory.write(op.args[2], result, scope)
-    obj.update(EN=True, DN=True, ER=False, POS=length)
+    controls.store_fields(memory, ck, cp, obj, dict(EN=True, DN=True, ER=False, POS=length))
     return True
 
 

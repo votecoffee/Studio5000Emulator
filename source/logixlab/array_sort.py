@@ -32,13 +32,18 @@ def write_effects(memory, op, scope):
 
 def execute(memory, op, power, scope):
     validate(memory, op, scope)
-    obj = controls.control(memory, op.args[2], scope)
+    ck, cp, control_type = memory.check_writable(op.args[2], scope)
+    obj = controls.control_at(memory, ck, cp, control_type, mutable=False)
     if not power:
-        obj.update(EN=False, DN=False)
+        controls.store_fields(memory, ck, cp, obj, dict(EN=False, DN=False))
         return False
     if controls.flag(obj, 'ER') or controls.flag(obj, 'EN'):
         return True
-    length, position = controls.nonnegative_file_cursor(obj, 'SRT', latch_error=True)
+    try:
+        length, position = controls.nonnegative_file_cursor(obj, 'SRT')
+    except controls.NegativeFileCursorError:
+        controls.store_fields(memory, ck, cp, obj, {'ER': True})
+        raise
     if position != 0 or length < 1:
         raise ModelError('SRT qualified whole-region profile requires POS zero and positive LEN')
     key, paths, _, dtype = geometry.region(memory, op, scope, length, writable=True, references=True)
@@ -50,7 +55,7 @@ def execute(memory, op, power, scope):
     for path, value in zip(paths, values):memory.store(key, path, value)
     # The qualified whole-region profile retains POS=0; native internal sort
     # cursor/partial-position behavior is deliberately not inferred.
-    obj.update(EN=True, DN=True)
+    controls.store_fields(memory, ck, cp, obj, dict(EN=True, DN=True))
     return True
 
 

@@ -760,7 +760,7 @@ selected axes.
 REAL sample deviation and SINT/INT/DINT/REAL averages, including nearest-even
 integer conversion and range rollback. **Stats lab** demonstrates averages,
 deviation, row/column selection and CONTROL rearming. AVE, STD and SRT read
-directly from the selected array window.
+directly from the selected array window and journal their CONTROL field changes.
 
 [Integer expressions](docs/integer-expressions.md) add exact narrow division in
 ST/CPT/CMP and FAL/FSC consumers. **Math lab** compares truncation, remainder,

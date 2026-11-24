@@ -53,11 +53,9 @@ class NegativeFileCursorError(ModelError):
     """A reached file instruction had negative CONTROL.LEN or POS."""
 
 
-def nonnegative_file_cursor(obj, instruction, *, latch_error=False):
+def nonnegative_file_cursor(obj, instruction):
     length, position = integer(obj, 'LEN'), integer(obj, 'POS')
     if length < 0 or position < 0:
-        if latch_error:
-            obj['ER'] = True
         raise NegativeFileCursorError(instruction + ' requires nonnegative LEN/POS (Type 4 Code 21)')
     return length, position
 
@@ -268,7 +266,8 @@ def _fifo_status(length, position):
                 EM=length <= 0 or position <= 0)
 
 
-def _store_control_fields(memory, key, parts, obj, updates):
+def store_fields(memory, key, parts, obj, updates):
+    """Journal changed fields at one resolved scalar CONTROL address."""
     for field, value in updates.items():
         if value is not obj[field]:
             memory.store(key, parts + [field], value)
@@ -279,11 +278,11 @@ def prescan(memory, op, scope):
     key, parts, dtype = memory.check_writable(op.args[1 if is_shift else 2], scope)
     obj = control_at(memory, key, parts, dtype, mutable=False)
     if is_shift:
-        _store_control_fields(memory, key, parts, obj, _SHIFT_RESET)
+        store_fields(memory, key, parts, obj, _SHIFT_RESET)
     else:
         latch = 'EN' if op.name in ('FFL', 'LFL') else 'EU'
-        _store_control_fields(memory, key, parts, obj, {latch: True})
-        _store_control_fields(memory, key, parts, obj, _fifo_status(*_fifo_cursor(obj)))
+        store_fields(memory, key, parts, obj, {latch: True})
+        store_fields(memory, key, parts, obj, _fifo_status(*_fifo_cursor(obj)))
 
 
 def reset(memory, ref, scope):
@@ -291,7 +290,7 @@ def reset(memory, ref, scope):
     obj = control_at(memory, key, parts, dtype, mutable=False)
     updates = dict.fromkeys(FLAGS, False)
     updates['POS'] = 0
-    _store_control_fields(memory, key, parts, obj, updates)
+    store_fields(memory, key, parts, obj, updates)
     return key, tuple(parts)
 
 
@@ -326,24 +325,24 @@ def shift(memory, op, power, scope):
     key, parts, dtype = memory.check_writable(op.args[1], scope)
     obj = control_at(memory, key, parts, dtype, mutable=False)
     if not power:
-        _store_control_fields(memory, key, parts, obj, _SHIFT_RESET)
+        store_fields(memory, key, parts, obj, _SHIFT_RESET)
         return False
     if flag(obj, 'EN'):
         return True
     length = integer(obj, 'LEN')
     previous = obj.copy()
-    _store_control_fields(memory, key, parts, obj, dict.fromkeys(FLAGS, False) | {'EN': True})
+    store_fields(memory, key, parts, obj, dict.fromkeys(FLAGS, False) | {'EN': True})
     if length < 0:
-        _store_control_fields(memory, key, parts, obj, {'ER': True})
+        store_fields(memory, key, parts, obj, {'ER': True})
         return True
     try:
         unloaded = _shift_words(memory, op, scope, length)
     except ArrayBoundsError as error:
         if isinstance(error, ShiftExtentError):
             previous['ER'] = True
-        _store_control_fields(memory, key, parts, obj, previous)
+        store_fields(memory, key, parts, obj, previous)
         raise
-    _store_control_fields(memory, key, parts, obj, dict(DN=True, POS=length, UL=unloaded))
+    store_fields(memory, key, parts, obj, dict(DN=True, POS=length, UL=unloaded))
     return True
 
 
@@ -397,14 +396,14 @@ def fifo(memory, op, power, scope):
     latch = 'EN' if loading else 'EU'
     if not power:
         status[latch] = False
-        _store_control_fields(memory, key, parts, previous, status)
+        store_fields(memory, key, parts, previous, status)
         return False
     if flag(previous, latch):
-        _store_control_fields(memory, key, parts, previous, status)
+        store_fields(memory, key, parts, previous, status)
         return True
     status[latch] = True
     if length <= 0 or position < 0 or (loading and position == length):
-        _store_control_fields(memory, key, parts, previous, status)
+        store_fields(memory, key, parts, previous, status)
         return True
     if position > length:
         raise ModelError('FIFO POS beyond LEN is outside the qualified runtime profile')

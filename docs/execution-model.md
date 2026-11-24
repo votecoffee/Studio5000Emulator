@@ -45,6 +45,9 @@ without reading live indices during preflight. False or completed/error-latched
 operations skip source indices; fresh calls sample the selected numeric dimension.
 AOI InOut/local arrays and disjoint results share binding/value rollback, with
 a fresh destination-overlap check against the actual selected source.
+AVE, STD and SRT journal changes at the selected CONTROL field paths. SRT
+records the ER latch before a recoverable negative-cursor fault reaches the
+handler.
 
 [Sequencer table references](sequencer-references.md) use structural preflight and
 live start sampling on reached SQO/SQI/SQL data operations, including held calls.

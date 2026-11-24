@@ -1,10 +1,12 @@
 """AVE/STD indirect result selection, unknown full writes and rollback."""
 import copy
 import unittest
+from unittest.mock import patch
 from xml.etree import ElementTree as E
 
 import test_array_statistics as fixtures
 import test_aoi_statistics as aoi
+from test_control_operations import control_data
 from logixlab.model import ModelError
 
 
@@ -37,6 +39,49 @@ class StatisticsOperandTests(unittest.TestCase):
             e.step(); self.assertEqual(e.memory.read('ResultIndex'), 99); self.assertIsNone(e.memory.read('Results')[0])
             e.memory.values['sourceindex'] = None; e.memory.values['resultindex'] = None; e.step()
             self.assertIsNone(e.memory.values['resultindex']); self.assertIsNone(e.memory.read('Results')[1])
+
+    def test_statistics_and_sort_journal_selected_control_through_rollback_and_retry(self):
+        def saved_control(root):
+            tags = root.find('./Controller/Tags')
+            tags.find('Tag[@Name="ControlIndex"]/Data/DataValue').set('Value', '1')
+            array = tags.find('Tag[@Name="Controls"]/Data/Array')
+            control_data(E.SubElement(array, 'Element', Index='[1]'), 3, EN=True, DN=True)
+
+        for instruction, result, position in (
+            ('AVE(Queue[SourceIndex],0,Results[ResultIndex],Controls[ControlIndex],?,?)', 4.0, 3),
+            ('STD(Queue[SourceIndex],0,Results[ResultIndex],Controls[ControlIndex],?,?)', 2.0, 3),
+            ('SRT(Queue[SourceIndex],0,Controls[ControlIndex],?,?)', None, 0),
+        ):
+            with self.subTest(instruction=instruction):
+                e = self.checked([
+                    f'XIC(StartPB){instruction};',
+                    'CPT(SpeedCommand,11/SpeedSetpoint);',
+                ], queue=(6, 2, 4, 8, 999), mutate=saved_control)
+                e.memory.write('Controls[2].POS', 47)
+                e.memory.write('SpeedSetpoint', 1)
+                with patch.object(e.memory, '_remember', wraps=e.memory._remember) as snapshot_tag:
+                    e.step()
+                    self.assertFalse(e.memory.read('Controls[1].DN'))
+                    for ref, value in (
+                        ('StartPB', True), ('SourceIndex', 0), ('ResultIndex', 1), ('SpeedSetpoint', 0),
+                    ):
+                        e.memory.write(ref, value)
+                    before = self.snapshot(e)
+                    with self.assertRaisesRegex(ModelError, 'zero'):
+                        e.step()
+                    self.assertEqual(self.snapshot(e), before)
+                    e.memory.write('SpeedSetpoint', 1)
+                    e.step()
+                    e.memory.write('SourceIndex', 99)
+                    e.memory.write('ResultIndex', 99)
+                    e.step()
+                self.assertNotIn('controls', [call.args[0] for call in snapshot_tag.call_args_list])
+                self.assertEqual(e.memory.read('Controls[1].POS'), position)
+                self.assertTrue(e.memory.read('Controls[1].DN'))
+                self.assertEqual(e.memory.read('Controls[2].POS'), 47)
+                self.assertEqual(e.memory.read('Results', mutable=False), [None, result, None])
+                expected_queue = [2, 4, 6, 8, 999] if result is None else [6, 2, 4, 8, 999]
+                self.assertEqual(e.memory.read('Queue', mutable=False), expected_queue)
 
     def test_fresh_calculation_requires_source_then_result_addresses_and_recovers(self):
         for op, expected in [('AVE', 4), ('STD', 2)]:
