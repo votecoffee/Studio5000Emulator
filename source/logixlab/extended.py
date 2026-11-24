@@ -285,7 +285,7 @@ class Extensions:
             if not power:return False
             return string_operations.compare(self.engine, op, scope, comparisons.RELATIONS[n])
         if n in string_conversions.INSTRUCTIONS:
-            if power:string_conversions.execute(self.memory,op,scope)
+            if power:string_conversions.execute(self.engine,op,scope)
             return power
         if n in string_operations.INSTRUCTIONS:
             if power:string_operations.execute(self.engine,op,scope)

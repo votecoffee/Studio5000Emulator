@@ -1521,9 +1521,12 @@ class Memory:
         if any(x is None for x in active):raise ModelError('String contains unknown active DATA bytes')
         return bytes(x&255 for x in active).decode('latin-1')
 
-    def string(self,ref,scope='',*,limit=None):
+    def string(self,ref,scope='',*,limit=None,destination=None):
         data, length = self._string_data(ref, scope)
-        return self._decode_string_data(data[:length if limit is None else min(length, limit)])
+        result_length = length if limit is None else min(length, limit)
+        if destination is not None:
+            self._check_string_result_size(destination, result_length, scope)
+        return self._decode_string_data(data[:result_length])
 
     def compare_strings(self, refs, literals, scope, *, lengths_first, unsigned_length):
         """Compare only bytes that can affect a standalone ladder relation."""

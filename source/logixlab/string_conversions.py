@@ -5,7 +5,7 @@ import re
 
 from .integer_math import CONTROLLERS
 from .model import ModelError, StringNumericRangeError, coerce, literal
-from .string_operations import INTEGERS, string_operand
+from .string_operations import INTEGERS, scheduled_ladder_context, string_operand
 
 INSTRUCTIONS = frozenset(('LOWER', 'UPPER', 'STOR', 'RTOS'))
 DECIMAL = re.compile(r'-?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)')
@@ -92,14 +92,18 @@ def format_real(value):
     return format(Decimal(format(coerce(value, 'REAL'), '.9g')), 'f')
 
 
-def execute(memory, op, scope):
+def execute(engine, op, scope):
+    memory = engine.memory
     validate(memory, op, scope)
     source, dest = op.args
-    if op.name == 'RTOS':memory.write_string(dest, format_real(memory.read(source, scope)), scope)
+    if op.name == 'RTOS':
+        memory.write_string(dest, format_real(memory.read(source, scope)), scope)
+    elif op.name == 'STOR':
+        memory.write(dest, parse_real(memory.string(source, scope)), scope)
     else:
-        text = memory.string(source, scope)
-        if op.name == 'STOR':memory.write(dest, parse_real(text), scope)
-        else:memory.write_string(dest, text.translate(LOWER if op.name == 'LOWER' else UPPER), scope)
+        checked_dest = dest if scheduled_ladder_context(engine, scope) else None
+        text = memory.string(source, scope, destination=checked_dest)
+        memory.write_string(dest, text.translate(LOWER if op.name == 'LOWER' else UPPER), scope)
 
 
 def description():
@@ -112,6 +116,7 @@ def description():
                 dtos_real='Scalar REAL tag rounds to signed DINT (ties to even) before decimal text formatting',
                 operands='Scalar tags, including aliases, array elements and UDT members; no immediate/expression operands',
                 prescan='No initialization; false rung/skipped ST branch retains destinations',
+                case_capacity_diagnostics='Scheduled ladder LOWER and UPPER report Type 4 Code 52 when the valid source LEN exceeds destination capacity, before consuming active DATA',
                 result_range_diagnostics='Ladder STOD and STOR report Type 4 Code 53 for numeric result overflow and roll back the advance',
                 native_formatting_parity=False, native_math_status=False, native_fault_classification=False,
                 remaining=['Native RTOS precision/trailing-zero/exponent formatting', 'STOR exponent/no-digit/malformed input parity',

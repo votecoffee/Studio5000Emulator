@@ -201,6 +201,39 @@ class StringConversionTests(unittest.TestCase):
             self.assertEqual(e.memory.values,before);self.assertEqual((e.time_ms,e.scan_count),(0,0))
             self.assertEqual(e.scheduler_description()['tasks'][0]['executions'],0)
 
+    def test_ladder_case_conversions_check_destination_size_before_active_bytes(self):
+        for name, expected in (('LOWER', 'abcdefghijklmnop'), ('UPPER', 'ABCDEFGHIJKLMNOP')):
+            for st in (False, True):
+                with self.subTest(instruction=name, structured_text=st):
+                    prefix = 'SpeedCommand := 77;' if st else 'MOV(77,SpeedCommand);'
+                    engine = self.checked([prefix, f'{name}(SourceA,Alias);'], st=st,
+                                          mutate=fixtures.StringOperationTests.custom_strings)
+                    memory = engine.memory
+                    memory.write('SourceA', 'AbCdEfGhIjKlMnOpQ')
+                    key, parts, _ = memory.resolve('SourceA.DATA[0]')
+                    memory.store(key, parts, None)
+                    diagnostic = 'unknown active DATA' if st else f'{name}: Type 4 Code 52: .*17 exceeds capacity 16'
+                    before = copy.deepcopy(memory.values)
+                    with self.assertRaisesRegex(ModelError, diagnostic):
+                        engine.step()
+                    self.assertEqual(memory.values, before)
+
+                    if not st:
+                        memory.write('SourceA.LEN', 83)
+                        with self.assertRaisesRegex(ModelError, f'{name}: Type 4 Code 51:'):
+                            engine.step()
+
+                    memory.write('SourceA.LEN', 16)
+                    before = copy.deepcopy(memory.values)
+                    with self.assertRaisesRegex(ModelError, 'unknown active DATA'):
+                        engine.step()
+                    self.assertEqual(memory.values, before)
+                    self.assertEqual((engine.time_ms, engine.scan_count), (0, 0))
+                    memory.write('SourceA.DATA[0]', ord('A'))
+                    engine.step()
+                    self.assertEqual(memory.string('Alias'), expected)
+                    self.assertEqual(memory.read('SpeedCommand'), 77)
+
     def test_real_aliases_and_constant_sources_are_supported(self):
         def aliases(root):
             tags=root.find('./Controller/Tags');tags.find('Tag[@Name="SourceA"]').set('Constant','true')

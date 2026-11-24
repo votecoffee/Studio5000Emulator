@@ -30,6 +30,13 @@ constant destinations remain blocked. [Operand selection](string-operations.md#o
 checks shapes and permissions without saved values or dynamic indices in the
 v35 5580 profile; reached calls still require their actual inputs.
 
+In scheduled Standard v35 5580 ladder, LOWER and UPPER validate source LEN and
+report Type 4 Code 52 if the result exceeds destination capacity, even if
+active source bytes are missing from the export. The scan rolls back, retaining
+the previous output. Once the result fits, conversion needs every active byte.
+[LOWER reference](https://www.rockwellautomation.com/en-ro/docs/studio-5000-logix-designer/37-02/contents-ditamap/instruction-set/ascii-conversion-instructions/lower-case-lower.html)
+and [UPPER reference](https://www.rockwellautomation.com/en-ro/docs/studio-5000-logix-designer/37-02/contents-ditamap/instruction-set/ascii-conversion-instructions/upper-case-upper.html).
+
 Prescan, false ladder rungs and skipped ST branches retain outputs. Reached
 calls execute each scan and ladder output follows input power. ST FOR checks
 include these destination writes when protecting bound/step dependencies.

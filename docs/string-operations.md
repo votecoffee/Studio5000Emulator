@@ -171,6 +171,8 @@ In scheduled Standard ladder, MID and DELETE validate the source LEN and
 selection before checking the result length against destination capacity. An
 oversized result produces Code 52 even if some selected source bytes are
 unknown. An exact fit still needs every selected byte.
+LOWER and UPPER make the same check using the validated source LEN, since case
+conversion preserves length.
 The remaining faults in the table roll back the advance. Type 4 Code 53 covers
 well-formed numeric input. Code 56 covers errors
 encountered during execution. Invalid MID immediates can still block the project

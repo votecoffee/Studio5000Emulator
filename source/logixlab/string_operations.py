@@ -100,7 +100,7 @@ def integer_value(memory, ref, scope):
     return coerce(value, 'DINT')
 
 
-def _scheduled_ladder_context(engine, scope):
+def scheduled_ladder_context(engine, scope):
     routine = engine._executing_routine
     return (engine.project.version == '35' and engine.project.processor.upper() in CONTROLLERS
             and routine is not None and routine.kind == 'RLL' and scope not in engine.memory.frames
@@ -110,7 +110,7 @@ def _scheduled_ladder_context(engine, scope):
 
 def compare(engine, op, scope, relation):
     memory = engine.memory
-    if not _scheduled_ladder_context(engine, scope):
+    if not scheduled_ladder_context(engine, scope):
         values = []
         for ref in op.args:
             text = string_literal(ref)
@@ -131,7 +131,7 @@ def compare(engine, op, scope, relation):
 def concatenate(engine, op, scope):
     memory = engine.memory
     left, right, dest = op.args
-    if not _scheduled_ladder_context(engine, scope):
+    if not scheduled_ladder_context(engine, scope):
         memory.write_string(dest, memory.string(left, scope) + memory.string(right, scope), scope)
         return
 
@@ -149,7 +149,7 @@ def concatenate(engine, op, scope):
 def middle(engine, op, scope, *, start, quantity):
     memory = engine.memory
     source, _, _, dest = op.args
-    checked_dest = dest if _scheduled_ladder_context(engine, scope) else None
+    checked_dest = dest if scheduled_ladder_context(engine, scope) else None
     result = memory.string_slice(source, start, quantity, scope, destination=checked_dest)
     memory.write_string(dest, result, scope)
 
@@ -164,13 +164,13 @@ def execute(engine, op, scope):
         raise StringPositionError(f'{op.name} start must be 1..source DATA capacity')
     if op.name == 'DELETE':
         quantity = integer_value(memory, a[1], scope)
-        checked_dest = a[3] if _scheduled_ladder_context(engine, scope) else None
+        checked_dest = a[3] if scheduled_ladder_context(engine, scope) else None
         result = memory.string_without(a[0], start, quantity, scope, destination=checked_dest)
         memory.write_string(a[3], result, scope)
         return
     if op.name == 'FIND':
         result = memory.string_find(a[0], a[1], start, scope,
-                                    allow_partial=_scheduled_ladder_context(engine, scope))
+                                    allow_partial=scheduled_ladder_context(engine, scope))
         memory.write(a[3], result, scope)
         return
     source = memory.string(a[0], scope)
@@ -220,7 +220,7 @@ def description():
                     selection='False/prescan skip live operands; enabled calls retain runtime address, active-LEN/DATA, range and capacity checks',
                     writes='Complete logical string writes establish unknown LEN/active DATA while preserving unused bytes and other elements',
                     array_recovery='A cleared Type 4 Code 20 during a whole-project ladder scan skips the instruction result write',
-                    capacity_diagnostics='Qualified ladder CONCAT continues with Type 4 Code 51 on invalid oversized LEN or output clipping. MID and DELETE can diagnose Type 4 Code 52 from result size before reading bytes. Modeled capacity faults outside CONCAT roll back the advance.',
+                    capacity_diagnostics='Qualified ladder CONCAT continues with Type 4 Code 51 on invalid oversized LEN or output clipping. MID, DELETE, LOWER and UPPER can diagnose Type 4 Code 52 from result size before reading bytes. Modeled capacity faults outside CONCAT roll back the advance.',
                     position_diagnostics='Ladder FIND, INSERT, MID and DELETE report Type 4 Code 56 for documented invalid ranges and roll back the advance',
                     comparisons='Required source strings and both CMP logical operands are consumed; no value or identity folding',
                     excluded='New algorithms, empty-search/zero-delete edge behavior, broader types/encoding/controller rules and native status/fault/lifecycle parity',
