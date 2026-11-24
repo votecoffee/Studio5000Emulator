@@ -43,21 +43,23 @@ class AddOns:
         self._new_instances = None
 
     @contextmanager
-    def track_bindings(self):
-        """Restore changed frames and newly reached instances on scan failure."""
+    def track_bindings(self, *, rollback=False):
+        """Restore bindings on failure or after a prescan preview."""
         previous_frames = self._previous_frames = {}
         new_instances = self._new_instances = []
         try:
             yield
         except Exception:
-            for frame, bindings in previous_frames.items():
-                self._set_frame(frame, bindings)
-            for address in new_instances:
-                self.instances.pop(address, None)
+            rollback = True
             raise
         finally:
             self._previous_frames = None
             self._new_instances = None
+            if rollback:
+                for frame, bindings in previous_frames.items():
+                    self._set_frame(frame, bindings)
+                for address in new_instances:
+                    self.instances.pop(address, None)
 
     @contextmanager
     def program_context(self, scope, *, prescan=False, recover_prescan=False):

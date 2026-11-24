@@ -340,23 +340,25 @@ class Engine:
                 'failed_scans_update_counters':False,'prescan_included':False,'controller_performance_prediction':False}
 
     def _apply_prescan(self, *, preview=False, report_fault=True):
-        # AOI prescan routines can copy parameters and mutate instance state.
-        # Preserve bindings and execution context as well as values on failure.
-        before=copy.deepcopy((self.memory.values,self.memory.frames,self.memory._resolved,
-                              self.addons.instances,self.calls.stack,self.last_timer,
-                              self.memory.first_scan,self.trace,self.budget,self._file_incremental,self._file_arithmetic_retry,self._st_counter_edges,self._st_oneshot_edges,
-                              self.memory.message_cache))
+        before = copy.deepcopy((self.calls.stack, self.last_timer, self.memory.first_scan,
+                                self.trace, self.budget, self._file_incremental, self._file_arithmetic_retry,
+                                self._st_counter_edges, self._st_oneshot_edges, self.memory.message_cache))
+
         def restore():
-            (self.memory.values,self.memory.frames,self.memory._resolved,self.addons.instances,
-             self.calls.stack,self.last_timer,self.memory.first_scan,self.trace,self.budget,self._file_incremental,self._file_arithmetic_retry,self._st_counter_edges,self._st_oneshot_edges,
-             self.memory.message_cache)=before
+            (self.calls.stack, self.last_timer, self.memory.first_scan, self.trace, self.budget,
+             self._file_incremental, self._file_arithmetic_retry, self._st_counter_edges,
+             self._st_oneshot_edges, self.memory.message_cache) = before
+
         self.budget=self.instruction_limit
         self.last_timer={}
         self._st_counter_edges={}
         self._st_oneshot_edges={}
         self.memory.first_scan=True
         self.trace=[]
-        try:self._prescan()
+        try:
+            with (self.memory.track_values(rollback=preview, track_resolutions=True),
+                  self.addons.track_bindings(rollback=preview)):
+                self._prescan()
         except Exception as error:
             restore()
             message=f'Prescan rolled back: {str(error) or type(error).__name__}'

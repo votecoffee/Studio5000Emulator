@@ -1049,27 +1049,29 @@ class Memory:
         self.structural_constant_indices = False
 
     @contextmanager
-    def track_values(self):
-        """Track changed values and cache entries added by an AOI advance."""
+    def track_values(self, *, rollback=False, track_resolutions=False):
+        """Track changed values and optionally new canonical cache entries."""
         if self._before is not None:
             raise ModelError('Tag value tracking is already active')
-        self._before = {}
-        self._before_cells = {}
-        self._resolved_added = [] if self.project.aois else None
+        before = self._before = {}
+        cells = self._before_cells = {}
+        added = self._resolved_added = [] if self.project.aois or track_resolutions else None
         try:
-            yield self._before, self._before_cells
+            yield before, cells
         except Exception:
-            for key, cells in self._before_cells.items():
-                self._restore_cells(self.values[key], cells.items())
-            self.values.update(self._before)
-            if self._resolved_added is not None:
-                for key in self._resolved_added:
-                    self._resolved.pop(key, None)
+            rollback = True
             raise
         finally:
             self._before = None
             self._before_cells = None
             self._resolved_added = None
+            if rollback:
+                for key, paths in cells.items():
+                    self._restore_cells(self.values[key], paths.items())
+                self.values.update(before)
+                if added is not None:
+                    for key in added:
+                        self._resolved.pop(key, None)
 
     @staticmethod
     def _restore_cells(root, cells):

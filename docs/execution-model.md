@@ -69,7 +69,9 @@ AOI suspends execution unless its authored EnableInFalse routine invokes it.
 one-dimensional local arrays. Subscripts are evaluated in the AOI frame before
 following the bound tag, including nested frame references. Failed advances
 restore AOI frames, binding caches and instance metadata as well as values;
-failed rebinding therefore cannot become the reported active binding. Local
+failed rebinding therefore cannot become the reported active binding. Run-entry
+prescan uses the same journals for tag values, addresses and AOI bindings.
+Preview prescan restores those entries even when initialization succeeds. Local
 storage is modeled logically, without claiming a native packed instance layout.
 
 [Shift and queue starting references](queue-references.md) use structural

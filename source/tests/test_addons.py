@@ -1238,6 +1238,38 @@ class AddOnTests(unittest.TestCase):
         e=self.engine();self.assertTrue(any('Prescan:' in b for b in e.blockers))
         self.assertEqual(e.memory.values,e.project.initial)
 
+    def test_prescan_preview_rolls_back_instance_then_run_commits(self):
+        tag = self.root.find('./Controller/Tags/Tag[@Name="AccumulatorA"]')
+        data = tag.find('Data')
+        saved = data.find('Structure')
+        tag.set('Dimensions', '2')
+        data.remove(saved)
+        array = E.SubElement(data, 'Array', DataType='LabAccumulator', Dimensions='2')
+        for index in range(2):
+            E.SubElement(array, 'Element', Index=f'[{index}]').append(copy.deepcopy(saved))
+        e = self.engine(['LabAccumulator(AccumulatorA[Truncated],StepA,TotalA,SharedA);'])
+        self.assertEqual(e.blockers, [])
+        m = e.memory
+        m.write('Truncated', 1)
+        m.write('TotalA', 47)
+        values, frames, cache, instances = m.values, m.frames, m._resolved, e.addons.instances
+        before = copy.deepcopy((values, frames, cache, instances))
+        count = e.prescan_count
+
+        e._apply_prescan(preview=True)
+        self.assertEqual((m.values, m.frames, m._resolved, e.addons.instances), before)
+        self.assertIs(m.values, values)
+        self.assertIs(m.frames, frames)
+        self.assertIs(m._resolved, cache)
+        self.assertIs(e.addons.instances, instances)
+        self.assertEqual(e.prescan_count, count)
+
+        e.enter_run()
+        self.assertEqual(m.read('AccumulatorA[1].Count'), 0)
+        self.assertEqual(m.read('TotalA'), 0)
+        self.assertIn('AccumulatorA[1]', instances)
+        self.assertEqual(e.prescan_count, count + 1)
+
     def add_packed_output(self):
         """Add a copied flag that changes during each AOI scan mode."""
         E.SubElement(self.definition().find('Parameters'), 'Parameter', Name='Flag', DataType='BOOL',
