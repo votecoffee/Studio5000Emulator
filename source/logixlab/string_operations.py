@@ -119,11 +119,13 @@ def compare(engine, op, scope, relation):
 
     literals = tuple(string_literal(ref) for ref in op.args)
     try:
-        values = memory.string_pair(op.args, literals, scope, unsigned_length=op.name != 'EQU')
+        difference = memory.compare_strings(op.args, literals, scope,
+                                            lengths_first=op.name in ('EQU', 'NEQ'),
+                                            unsigned_length=op.name != 'EQU')
     except StringLengthError:
         engine._record_instruction_minor_fault(STRING_LENGTH_FAULT)
         return op.name == 'NEQ'
-    return relation(*values)
+    return relation(difference, 0)
 
 
 def concatenate(engine, op, scope):
@@ -198,7 +200,7 @@ def description():
                     instructions=['EQU','NEQ','LES','LEQ','GRT','GEQ'],
                     operands='Either side may be a scalar STRING/user-string tag or single-quoted byte literal',
                     comparison='Case-sensitive unsigned byte ordering; shorter equal prefixes sort first',
-                    selection='Validate literal syntax and string tag shape structurally; read active bytes only on a true rung',
+                    selection='Validate both lengths before reading bytes. EQU/NEQ decide unequal lengths directly; all six stop at the first differing byte.',
                     oversized_length='Scheduled ladder reports Type 4 Code 51; NEQ returns true and the other five relations return false.',
                     native_runtime_parity=False),
                 operand_selection=dict(language='RLL',firmware='35',controllers=sorted(CONTROLLERS),

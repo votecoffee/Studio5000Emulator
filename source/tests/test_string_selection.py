@@ -267,6 +267,46 @@ class StringSelectionTests(unittest.TestCase):
         self.assertEqual(memory.read('ConcatFault[2]'), 0)
         self.assertEqual(memory.read('ConcatFaultCount'), 0)
 
+    def test_equality_uses_unequal_lengths_with_unavailable_bytes(self):
+        engine = self.checked([*COMPARE_LADDER[:2], *COMPARE_LADDER[6:]], mutate=compare_minor_fixture)
+        memory = engine.memory
+        memory.write('SourceA', 'ABC')
+        memory.write('TextCells[0].LEN', 4)
+        memory.write('StartPB', True)
+        engine.step()
+        self.assertEqual(memory.read('CompareBits')[:2], [False, True])
+        self.assertEqual(memory.read('CompareFaultCount'), 0)
+
+        memory.write('TextCells[0].LEN', 3)
+        before = self.snapshot(engine)
+        with self.assertRaisesRegex(ModelError, 'unknown active DATA'):
+            engine.step()
+        self.assertEqual(self.snapshot(engine), before)
+
+    def test_relations_stop_at_first_difference_and_require_only_the_shared_prefix(self):
+        engine = self.checked(COMPARE_LADDER, mutate=compare_minor_fixture)
+        memory = engine.memory
+        memory.write('SourceA', 'AXZ')
+        memory.write('TextCells[0].LEN', 3)
+        memory.write('TextCells[0].DATA[0]', -1)
+        memory.write('TextCells[0].DATA[2]', ord('Y'))
+        memory.write('StartPB', True)
+        engine.step()
+        self.assertEqual(memory.read('CompareBits'), [False, True, True, True, False, False])
+        self.assertIsNone(memory.read('TextCells[0].DATA')[1])
+        self.assertEqual(memory.read('CompareFaultCount'), 0)
+
+        memory.write('TextCells[0].DATA[0]', ord('A'))
+        before = self.snapshot(engine)
+        with self.assertRaisesRegex(ModelError, 'unknown active DATA'):
+            engine.step()
+        self.assertEqual(self.snapshot(engine), before)
+
+        memory.write('SourceA', 'A')
+        engine.step()
+        self.assertEqual(memory.read('CompareBits'), [False, True, True, True, False, False])
+        self.assertEqual(memory.read('CompareFaultCount'), 0)
+
     def test_all_six_string_relations_report_oversized_len_with_documented_power(self):
         for bad_tag in ('SourceA', 'TextCells[0]'):
             with self.subTest(operand=bad_tag):

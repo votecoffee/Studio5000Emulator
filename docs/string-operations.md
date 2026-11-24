@@ -59,8 +59,9 @@ at import. False rungs and prescan skip those operands. Reached calls still
 resolve actual addresses and require every consumed source value, including
 active string bytes, numeric conversions, positions and quantities. MID reads
 its source LEN and the selected DATA bytes; FIND captures the active suffix
-from Start. String comparisons do not fold identical
-references; CMP consumes both logical operands even when one determines the result.
+from Start. Standalone ladder comparisons read [only the bytes they need](#ladder-string-comparison-literals).
+Identical references still require the bytes needed to establish equality. CMP
+consumes both logical operands even when one determines the result.
 
 Full logical string writes establish unknown LEN/active DATA and preserve unused
 bytes and other array elements. Numeric results can likewise establish unknown
@@ -229,7 +230,12 @@ string tag. For example, `EQU(Status,'RUN')` tests a status tag,
 Ordering compares active bytes as unsigned values. Equal prefixes sort by
 length, with the shorter string first. An embedded `$00` is a byte within
 the string. Scheduled Standard ladder checks both tag lengths before reading
-the active bytes. If either LEN exceeds its own DATA capacity, the comparison
+DATA. EQU and NEQ decide strings of unequal length from LEN alone. For equal
+lengths, they stop at the first differing byte. The four ordering comparisons
+stop at the first differing byte or the end of the shorter string. Unknown
+bytes beyond those decision points can remain absent from an export.
+
+If either LEN exceeds its own DATA capacity, the comparison
 records Type 4 Code 51. NEQ returns true. EQU, LES, LEQ, GRT, and GEQ return
 false. The scan continues and updates the current Program fault record, the
 controller FaultLog and `S:MINOR`. A later error rolls back these updates.

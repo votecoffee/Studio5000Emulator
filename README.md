@@ -361,7 +361,9 @@ and shows the cleared fault code in its details.
 identify selected Type 4 Codes 51, 52, 53 and 56. Scheduled v35 ladder CONCAT
 clips an oversized result and continues the rung with Code 51. An oversized
 LEN in a standalone string comparison also reports Code 51. NEQ returns
-true and the other five relations return false.
+true and the other five relations return false. Standalone comparisons
+can use partially exported strings when lengths or the first differing byte
+settle the result.
 [Aggregate LEDStatus](docs/gsv-configuration.md#simulated-module-ledstatus)
 summarizes a complete simulated module inventory.
 

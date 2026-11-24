@@ -1525,16 +1525,27 @@ class Memory:
         data, length = self._string_data(ref, scope)
         return self._decode_string_data(data[:length if limit is None else min(length, limit)])
 
-    def string_pair(self, refs, literals, scope, *, unsigned_length=False):
-        """Check both string lengths before decoding either operand."""
+    def compare_strings(self, refs, literals, scope, *, lengths_first, unsigned_length):
+        """Compare only bytes that can affect a standalone ladder relation."""
         captured = []
         for ref, text in zip(refs, literals, strict=True):
             if text is None:
-                data, length = self._string_data(ref, scope, unsigned_length=unsigned_length)
-                captured.append(data[:length])
+                captured.append(self._string_data(ref, scope, unsigned_length=unsigned_length))
             else:
-                captured.append(text)
-        return tuple(text if isinstance(text, str) else self._decode_string_data(text) for text in captured)
+                captured.append((text.encode('latin-1'), len(text)))
+
+        (left_data, left_length), (right_data, right_length) = captured
+        length_difference = left_length - right_length
+        if lengths_first and length_difference:
+            return length_difference
+        for index in range(min(left_length, right_length)):
+            left, right = left_data[index], right_data[index]
+            if left is None or right is None:
+                raise ModelError('String contains unknown active DATA bytes')
+            difference = (left & 255) - (right & 255)
+            if difference:
+                return difference
+        return length_difference
 
     def concatenate_strings(self, left, right, limit, scope=''):
         """Validate both lengths before reading the bytes that fit."""
