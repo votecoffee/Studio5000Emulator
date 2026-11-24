@@ -4,7 +4,7 @@ import re
 from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass,field
 from .model import ModelError,Op,operand_problem,split_indices
-from .expressions import Expression
+from .expressions import parse_subscript
 from .st_expression import STExpression
 from . import lreal_expressions, time_values, wide_st
 from . import system_values, array_sort, st_cases, st_timers, st_counter, st_oneshot, st_scale, st_signal, st_rate, st_moving, st_capture, st_filter, st_digital, st_accumulate, st_select, st_derivative, st_curves, st_pi, st_bit_moves, numeric_copy, numeric_fill
@@ -238,7 +238,7 @@ class Structured:
                     depth -= 1
                     if depth == 0:
                         for subscript in split_indices(ref[start:position]):
-                            pending.extend(Expression(subscript, subscript=True).refs)
+                            pending.extend(parse_subscript(subscript).refs)
         return references
 
     def loop_dependencies(self, references, scope):

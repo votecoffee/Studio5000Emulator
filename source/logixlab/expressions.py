@@ -1,5 +1,6 @@
 """Bounded expression parser. No Python eval, attribute lookup, or function dispatch."""
 import math
+from functools import lru_cache
 from .integer_math import CONTROLLERS, quotient, integer_power
 import re
 from .model import ModelError, coerce, literal
@@ -32,6 +33,12 @@ def index_function(name,value):
 
 PRECEDENCE = {'OR': 1, 'XOR': 2, 'AND': 3, '+': 4, '-': 4,
               '*': 5, '/': 5, 'MOD': 5, '**': 7}
+
+
+@lru_cache(maxsize=512)
+def parse_subscript(text):
+    """Cache syntax only. Validation and evaluation still use live memory and scope."""
+    return Expression(text, subscript=True)
 
 
 class Expression:

@@ -1077,8 +1077,8 @@ class Memory:
             self._store_undo = None
 
     def index(self,expr,scope):
-        from .expressions import Expression
-        parsed=Expression(expr,subscript=True)
+        from .expressions import parse_subscript
+        parsed=parse_subscript(expr)
         if parsed.tree[0]=='ref':
             from .integer_math import CONTROLLERS
             key,parts,dtype=self.resolve(parsed.tree[1],scope)

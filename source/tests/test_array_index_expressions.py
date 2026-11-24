@@ -40,6 +40,24 @@ class ArrayIndexExpressionTests(unittest.TestCase):
         for a,b,want in ((7,2,3),(-7,2,-3),(7,-2,-3),(-7,-2,3),(-2147483648,3,-715827882)):
             e=self.checked(['NOP();'],index=a,divisor=b);self.assertEqual(e.memory.index('Index/Divisor',''),want)
 
+    def test_shared_subscript_syntax_keeps_scope_and_live_tag_values(self):
+        def shadow_index(root):
+            tags = root.find('./Controller/Programs/Program/Tags')
+            tag = E.SubElement(tags, 'Tag', Name='Index', DataType='DINT', TagType='Base')
+            E.SubElement(E.SubElement(tag, 'Data', Format='Decorated'),
+                         'DataValue', DataType='DINT', Value='5')
+
+        e = self.checked(['NOP();'], index=2, mutate=shadow_index)
+        subscript = 'Index/Divisor'
+        self.assertEqual(e.memory.index(subscript, ''), 1)
+        self.assertEqual(e.memory.index(subscript, 'MainProgram'), 2)
+        e.memory.write('Program:MainProgram.Index', 0)
+        self.assertEqual(e.memory.index(subscript, 'MainProgram'), 0)
+        self.assertEqual(e.memory.index(subscript, ''), 1)
+        e.memory.write('Divisor', 0)
+        with self.assertRaisesRegex(ModelError, 'divide by zero'):
+            e.memory.index(subscript, 'MainProgram')
+
     def test_grouped_radix_indices_select_ladder_source_and_destination(self):
         e=self.checked(['MOV(Inputs[Index + 16#FFFF FFFF],Results[2#00 01]);'])
         e.memory.write('Inputs[2]',77)

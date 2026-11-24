@@ -76,7 +76,7 @@ def flag(obj, name):
 
 def check_start_indices(memory, ref, scope, seen=()):
     """Opt-in guard for consumers whose CONTROL.POS already supplies an offset."""
-    from .expressions import Expression
+    from .expressions import parse_subscript
     identity=(ref.lower(),scope.lower())
     if identity in seen or len(seen)>32:raise ModelError('Array reference cycle or nesting limit')
     seen=seen+(identity,);pos=0
@@ -90,7 +90,7 @@ def check_start_indices(memory, ref, scope, seen=()):
             end+=1
         if depth:raise ModelError('Unclosed array start subscript')
         for expr in split_indices(ref[start+1:end-1]):
-            for name in Expression(expr,subscript=True).refs:
+            for name in parse_subscript(expr).refs:
                 key,parts,_=memory.resolve(name,scope)
                 if parts and parts[-1]=='POS' and memory.resolve(memory.address(key,parts[:-1]))[2]=='CONTROL':
                     raise ModelError('Array start must not use CONTROL.POS in a subscript')
