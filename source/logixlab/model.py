@@ -36,6 +36,10 @@ class ModelError(Exception):
     pass
 
 
+class UnknownValueError(ModelError):
+    """The project export omitted a required initial value."""
+
+
 class ArrayBoundsError(ModelError):
     """An array subscript overflowed or selected outside existing storage."""
 
@@ -1367,11 +1371,11 @@ class Memory:
         for p in parts:
             if value is None:
                 if self.validating and scope in self.frames:return self.project.default(dtype)
-                raise ModelError(f'Unknown initial byte/value omitted by export: {ref}')
+                raise UnknownValueError(f'Unknown initial byte/value omitted by export: {ref}')
             value = bool((value >> p[1]) & 1) if isinstance(p, tuple) else value[p]
         if value is None:
             if self.validating and scope in self.frames:return self.project.default(dtype)
-            raise ModelError(f'Unknown initial byte/value omitted by export: {ref}')
+            raise UnknownValueError(f'Unknown initial byte/value omitted by export: {ref}')
         # Instruction handlers can edit returned records and arrays in place.
         if isinstance(value, (dict, list)):
             self._remember(key)

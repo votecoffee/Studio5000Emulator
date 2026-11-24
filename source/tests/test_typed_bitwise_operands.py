@@ -78,9 +78,12 @@ class TypedBitwiseOperandTests(unittest.TestCase):
         e=self.checked(['XIC(StartPB)OR(Inputs[Index],1UL,Results[Index]);']);e.memory.write('Index',999);e.step();e.memory.write('StartPB',True);self.fault(e,'outside bounds');e.memory.write('Index',1);self.fault(e,'Unknown');e.memory.write('Inputs[1]',2);e.step();self.assertEqual(e.memory.read('Results'),[None,3,None])
         e=self.checked(['XIC(StartPB)MEQ(Inputs[1],1UL,0L)OTE(RunLatch);']);e.memory.write('RunLatch',True);e.step();self.assertFalse(e.memory.read('RunLatch'));e.memory.write('StartPB',True);self.fault(e,'Unknown')
 
-    def test_zero_masked_meq_skips_values_while_and_requires_its_source(self):
-        e = self.checked(['AND(Inputs[1],0UL,Results[1]);'])
-        self.fault(e, 'Unknown')
+    def test_typed_masks_determine_and_or_and_meq_with_omitted_sources(self):
+        e = self.checked(['AND(Inputs[1],0UL,Results[0]);',
+                          'OR(16#FFFF_FFFF_FFFF_FFFFUL,Inputs[1],Results[1]);'])
+        e.step()
+        self.assertEqual(e.memory.read('Results'), [0, -1, None])
+        self.assertIsNone(e.memory.read('Inputs')[1])
         for call in ('MEQ(Inputs[1],0UL,0L)OTE(RunLatch);', 'MEQ(0UL,0UL,Inputs[1])OTE(RunLatch);'):
             e = self.checked([call])
             e.step()

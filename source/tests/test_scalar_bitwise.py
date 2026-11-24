@@ -162,7 +162,8 @@ class ScalarBitwiseTests(unittest.TestCase):
 
     def test_false_and_prescan_skip_unknown_sources_results_and_dynamic_indices(self):
         for name in OPS:
-            e=self.checked(['XIC(StartPB)'+instruction(name,source='Inputs[Index]',dest='Results[Index]')+';'])
+            e=self.checked(['XIC(StartPB)'+instruction(name,source='Inputs[Index]',dest='Results[Index]')+';'],
+                           mask=257 if name == 'AND' else 256)
             self.assertEqual(e.memory.read('Results'),[None]*3);e.memory.write('Index',999);reads=[];original=e.memory.read
             def read(ref,scope=''):
                 if not e.memory.structural:reads.append(ref)
@@ -176,15 +177,39 @@ class ScalarBitwiseTests(unittest.TestCase):
             with self.assertRaisesRegex(ModelError,'Unknown'):e.step()
             self.assertEqual(self.snapshot(e),before)
             e.memory.write('Inputs[1]',-1);e.step()
-            self.assertEqual(e.memory.read('Results'),[None,{'AND':0,'OR':511,'XOR':511,'NOT':-256}[name],None])
+            self.assertEqual(e.memory.read('Results'),[None,{'AND':1,'OR':511,'XOR':511,'NOT':-256}[name],None])
 
-    def test_all_binary_sources_remain_required_even_with_zero_mask(self):
+    def test_zero_and_determines_the_result_while_or_and_xor_require_the_source(self):
         for name in OPS[:3]:
             for source,other in (('Inputs[0]','0'),('0','Inputs[0]')):
-                e=self.checked([instruction(name,source=source,other=other)+';']);before=self.snapshot(e)
+                e = self.checked([instruction(name, source=source, other=other)
+                                  + 'XIC(S:Z)OTE(RunLatch);'])
+                if name == 'AND':
+                    e.step()
+                    self.assertEqual(e.memory.read('Results'), [None, 0, None])
+                    self.assertEqual(e.memory.read('Inputs'), [None] * 3)
+                    self.assertTrue(e.memory.read('RunLatch'))
+                    continue
+                before = self.snapshot(e)
                 with self.assertRaisesRegex(ModelError,'Unknown'):e.step()
                 self.assertEqual(self.snapshot(e),before)
                 e.memory.write('Inputs[0]',-1);e.step()
+
+    def test_determined_results_still_check_all_addresses(self):
+        for name, source, other, dest, error in (
+                ('AND', 'Inputs[Index]', '0', 'Results[0]', 'outside bounds'),
+                ('OR', '-1', 'Inputs[Index]', 'Results[0]', 'outside bounds'),
+                ('OR', 'Inputs[0]', '-1', 'Results[Index]', 'outside bounds'),
+                ('AND', 'Inputs[Inputs[0]]', '0', 'Results[0]', r'Unknown.*Inputs\[0\]'),
+        ):
+            with self.subTest(name=name, source=source, dest=dest):
+                e = self.checked(['MOV(77,SpeedCommand);', instruction(name, source, other, dest) + ';'],
+                                 source='DINT')
+                e.memory.write('Index', 999)
+                before = self.snapshot(e)
+                with self.assertRaisesRegex(ModelError, error):
+                    e.step()
+                self.assertEqual(self.snapshot(e), before)
 
     def test_full_writes_do_not_read_old_results_and_aliases_preserve_siblings(self):
         def alias(root):E.SubElement(root.find('./Controller/Tags'),'Tag',Name='ResultAlias',DataType='DINT',TagType='Alias',AliasFor='Results[1]')

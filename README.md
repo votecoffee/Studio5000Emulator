@@ -775,6 +775,8 @@ include unsigned results and typed integer immediates.
 unknown values structurally, skip false-rung operands and establish full numeric
 destinations. Integer-tag `AND`/`OR`/`XOR`/`NOT` mix all eight signed/unsigned
 integer types using declared widths, zero extension and destination low bits.
+[Integer ladder AND and OR](docs/scalar-math.md#and-and-or-with-omitted-source-values)
+can store a complete result when an omitted source cannot affect any stored bit.
 Enable `MixedBitwise` in **Bit lab** for exact 64-bit and signed/unsigned examples.
 `BitwiseWidths` shows narrow cases. `WideMaskEnabled` demonstrates
 [plain 32-bit masks with wide tags](docs/typed-bitwise-operands.md#plain-immediates-with-wide-tags),

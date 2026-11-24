@@ -7,7 +7,7 @@ from .bit_transfer import operand, unsigned
 from .integer_math import CONTROLLERS, WIDE_TYPES, bit_value, bitwise_immediate_widths, profile, typed_profile, typed_integer, radix_profile, pattern, integer_bounds, dint_radix, read_source, quotient, execute_zero_divisor
 from .integer_math import (CARRY_INSTRUCTIONS, NARROW_RESULT_TYPES, SIGNED_UNARY_INSTRUCTIONS,
                            SIGNED_WRAP_TYPES, record_carry, signed_floating_exception)
-from .model import INT_BITS, UNSIGNED_BITS, ModelError, coerce, literal
+from .model import INT_BITS, UNSIGNED_BITS, ModelError, UnknownValueError, coerce, literal
 from .numeric_storage import (floating_math_profile, lreal_math_source, real_math_source,
                               typed_literal, write_exceptional_result, write_lreal_math_result,
                               write_real_math_result)
@@ -221,6 +221,7 @@ def execute_bitwise(engine, op, scope):
     """Combine declared integer patterns, converting floating operands numerically."""
     memory = engine.memory
     widths, source_types, dtype = bitwise_specification(engine, op, scope)
+    missing = None
     values = []
     for ref, width, kind in zip(op.args[:-1], widths, source_types, strict=True):
         if kind in BITWISE_FLOATS:
@@ -228,7 +229,24 @@ def execute_bitwise(engine, op, scope):
             rounded = coerce(number, BITWISE_FLOATS[kind])
             values.append(rounded & ((1 << width) - 1))
         else:
-            values.append(pattern(memory, ref, scope, width, radix=True))
+            try:
+                values.append(pattern(memory, ref, scope, width, radix=True))
+            except UnknownValueError as error:
+                if (op.name not in ('AND', 'OR') or dtype not in INT_BITS
+                        or any(source in BITWISE_FLOATS for source in source_types)):
+                    raise
+                if missing is not None:
+                    raise missing[1] from None
+                missing = (width, error)
+                values.append(0)
+    if missing is not None:
+        width, error = missing
+        # Only stored bits inside the omitted operand's declared width can vary.
+        variable = (1 << min(width, INT_BITS[dtype])) - 1
+        known = values[0] | values[1]
+        sensitive = known if op.name == 'AND' else ~known
+        if sensitive & variable:
+            raise error
     value = ~values[0] if op.name == 'NOT' else {
         'AND': operator.and_, 'OR': operator.or_, 'XOR': operator.xor}[op.name](*values)
     result_type = dtype
@@ -349,6 +367,7 @@ def description(project):
                     native_runtime_parity=False),
                 bitwise=dict(types=list(INT_BITS), instructions=sorted(BITWISE),
                              promotion='Zero-extend declared source patterns; NOT inverts after promotion; keep destination low bits',
+                             omitted_source='Integer AND/OR can write a determined result after all address checks when the known operand fixes every stored bit that could vary',
                              immediates='Unsuffixed DINT/32-bit radix patterns retain their compatibility rules; typed decimal and radix L/U/UL sources use declared widths',
                              destination='Keep destination low bits and reinterpret signed/unsigned; full writes establish unknowns without floating-point conversion',
                              wide='All eight integer tag types may mix with bounded DINT/32-bit radix or declared-width typed L/U/UL immediates', native_precision=False),

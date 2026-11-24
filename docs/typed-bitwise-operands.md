@@ -36,10 +36,13 @@ can expose them. All three positions support typed constants. Operands remain
 read-only. MEQ checks every address and can skip a comparand value if the mask
 selects no bits within its declared width.
 
+[Integer AND and OR](scalar-math.md#and-and-or-with-omitted-source-values) can
+write a fully determined result when the other operand's value is omitted.
+
 Structural preflight checks type, shape, immediate range and permissions without
 saved values or live indices. False/prescan paths skip those values and retain
 integer destinations; downstream OTEs clear normally. Full writes establish
-unknown result elements. Reached unknowns, bad indices and later faults roll back
+unknown result elements. Required unknowns, bad indices and later faults roll back
 the complete advance, including task timing, traces and existing copied AOI
 outputs, InOut/local storage and bindings. Required AOI copied inputs retain
 their independent call-entry rules.

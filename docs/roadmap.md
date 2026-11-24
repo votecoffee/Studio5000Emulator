@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+[Integer ladder AND and OR](scalar-math.md#and-and-or-with-omitted-source-values)
+accept omitted source values when the known source determines every stored
+bit in `26.1124.092206`. Reached addresses and required values remain checked.
+
 [Task output processing SSV](device-io.md#changing-task-output-processing)
 can change the task-end snapshot setting in `26.1119.172950`. The effective flag
 is visible to GSV and task completion in the same advance. Faults roll it back.

@@ -169,7 +169,7 @@ class MixedBitwiseTests(unittest.TestCase):
             self.assertEqual(self.snapshot(e),before)
             e.memory.write('Inputs[1]',0x80000001);e.step();self.assertEqual(e.memory.read('Results'),[None,result,None])
 
-    def test_second_unknown_tag_is_required_and_zero_does_not_skip_other_sources(self):
+    def test_second_unknown_tag_is_required_when_its_bits_may_change_the_result(self):
         def fields(root):
             tag=E.SubElement(root.find('./Controller/Tags'),'Tag',Name='OtherInputs',DataType='USINT',Dimensions='3',TagType='Base')
             E.SubElement(E.SubElement(tag,'Data',Format='Decorated'),'Array',DataType='USINT',Dimensions='3')
@@ -178,9 +178,44 @@ class MixedBitwiseTests(unittest.TestCase):
             with self.assertRaisesRegex(ModelError,'Unknown'):e.step()
             self.assertEqual(self.snapshot(e),before)
             e.memory.write('OtherInputs[1]',0);e.step()
-        e=self.checked(['AND(Inputs[0],Mask,Results[0]);'],mask=0);before=self.snapshot(e)
-        with self.assertRaisesRegex(ModelError,'Unknown'):e.step()
-        self.assertEqual(self.snapshot(e),before)
+
+    def test_and_or_use_only_widths_that_can_affect_the_stored_result(self):
+        cases = (
+            ('AND', 'SINT', 'DINT', 'DINT', 0x100, 0),
+            ('AND', 'ULINT', 'ULINT', 'USINT', 1 << 63, 0),
+            ('OR', 'SINT', 'DINT', 'DINT', 0x12FF, 0x12FF),
+            ('OR', 'ULINT', 'UINT', 'SINT', 0x12FF, -1),
+            ('OR', 'LINT', 'ULINT', 'ULINT', (1 << 64) - 1, (1 << 64) - 1),
+        )
+        for name, source, other, dest, mask, expected in cases:
+            with self.subTest(name=name, source=source, dest=dest):
+                e = self.checked([f'{name}(Inputs[0],Mask,Results[0]);',
+                                  f'{name}(Mask,Inputs[0],Results[1])XIC(S:N)OTE(RunLatch);'],
+                                 source=source, other=other, dest=dest, value=1, mask=mask)
+                e.step()
+                self.assertEqual(e.memory.read('Results'), [expected, expected, None])
+                self.assertEqual(e.memory.read('RunLatch'), expected < 0)
+                self.assertEqual(e.memory.read('Inputs'), [None] * 3)
+
+    def test_unknown_influential_bits_and_floating_forms_still_roll_back(self):
+        for text, source, dest in (
+                ('OR(Inputs[0],255U,Results[1]);', 'LINT', 'ULINT'),
+                ('AND(Inputs[0],256U,Results[1]);', 'ULINT', 'UINT'),
+                ('OR(Inputs[0],Inputs[1],Results[1]);', 'SINT', 'ULINT'),
+                ('AND(0.0,Inputs[0],Results[1]);', 'DINT', 'DINT'),
+                ('AND(0,Inputs[0],Results[1]);', 'REAL', 'DINT'),
+                ('OR(Inputs[0],-1,Results[1]);', 'DINT', 'REAL'),
+        ):
+            with self.subTest(text=text, source=source, dest=dest):
+                e = self.checked(['MOV(0,Results[0]);', text], source=source, dest=dest, value=1)
+                before = self.snapshot(e)
+                with self.assertRaisesRegex(ModelError, 'Unknown.*Inputs'):
+                    e.step()
+                self.assertEqual(self.snapshot(e), before)
+                for index in range(3):
+                    e.memory.write(f'Inputs[{index}]', 1)
+                e.step()
+                self.assertEqual(e.memory.read('Results[0]'), 0)
 
     def test_unknown_udt_alias_outputs_overlap_and_neighbor_guards(self):
         def fields(root):

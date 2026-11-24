@@ -348,10 +348,9 @@ fault. Native overflow/math flags remain unqualified.
 Immediates are signed decimal DINT values or complete 32-bit binary/octal/hex
 patterns. `-1` and `16#FFFF_FFFF` both supply 32 one bits. Larger patterns,
 out-of-range decimal literals, REAL/BOOL operands, invalid shapes and constant
-destinations remain blocked, even on false rungs. Every enabled source is still
-required, including an unknown input combined with a zero mask. False/prescan
-skip live values/indices. Unknowns, reached invalid indices and later faults roll
-back the whole advance and existing AOI bindings.
+destinations remain blocked, even on false rungs. False/prescan skip live
+values and indices. Required unknown values, reached invalid indices and later
+faults roll back the whole advance and existing AOI bindings.
 
 The narrow forms retain their existing immediate rules. Wide operands with
 immediates use the separate homogeneous profile described below. Floating-point
@@ -381,16 +380,36 @@ produces 255. These logical bit conversions do not use arithmetic sign extension
 also mix with all eight integer types. The same section covers MEQ's read-only
 mask and comparison operands. Arithmetic and expression rules remain separate.
 
-Structural validation, false/prescan skipping, required true-source reads, full
-unknown writes and whole-advance/AOI rollback remain. Invalid indices, unknown
-sources and later faults restore exact values and bindings. Integer bitwise
-sources are required even if another source is zero. REAL/LREAL use the separate
+Structural validation, checked source addresses, false/prescan skipping and full
+result writes apply at all widths. Invalid indices, required unknown values and
+later faults restore exact values and bindings. REAL/LREAL use the separate
 conversion rules below. Native status, fault, lifecycle and packed-layout
 behavior and broader controller profiles remain unqualified.
 
 Choose **Bit lab** and enable `MixedBitwise`. Defaults produce `MixedAnd` 0,
 `MixedOr` 9007199254741247, `MixedXor` -65537, `MixedNot` 18446744073709551360
 and `MixedLow` 255. The mask tag is `MixedDwordMask`. Existing demos remain.
+
+## AND and OR with omitted source values
+
+On v35 ControlLogix 5580, standalone integer ladder AND and OR can write a
+complete result when one source value is omitted from the export and the other
+source determines every stored bit. The omitted source can only affect bits
+within both its declared width and the destination width. AND requires the
+known source to have zeros in those positions. OR requires ones there.
+
+For example, when `ByteInput` is an omitted SINT, `AND(ByteInput,256,Result)`
+sets a DINT result to zero, and `OR(16#12FF,ByteInput,Result)` sets it to 4863.
+`OR(16#12FE,ByteInput,Result)` still requires the byte's low bit and rolls back.
+Both operand orders and supported typed immediates follow the same rules.
+Successful writes update modeled same-rung math status from the stored value.
+
+Enabled instructions check both source addresses and the destination first.
+An invalid or unknown subscript still prevents execution. Two omitted sources,
+other bitwise instructions, floating-point forms and expression operands retain
+their existing value requirements. This handles incomplete exports in the
+emulator. See Rockwell's v35 help topics 14670 and 14687 for the AND/OR
+truth tables and integer zero extension.
 
 ## Finite REAL remainder
 
