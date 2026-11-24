@@ -25,12 +25,15 @@ def mode(text):
 
 def destination(memory, op, scope):
     key, parts, dtype = memory.check_writable(op.args[4], scope)
-    if dtype not in lreal_expressions.NUMERIC | time_values.TYPES or isinstance(memory.at(key, parts), (list, dict, bool)):
+    if dtype not in lreal_expressions.NUMERIC | time_values.TYPES:
+        raise ModelError('FAL requires a writable numeric scalar destination')
+    previous = memory.at(key, parts, mutable=False)
+    if isinstance(previous, (list, dict, bool)):
         raise ModelError('FAL requires a writable numeric scalar destination')
     ck, cp, _ = memory.resolve(op.args[0], scope)
     if key == ck and parts[:len(cp)] == cp:
         raise ModelError('FAL destination must not overlap its CONTROL record')
-    return key, parts, dtype
+    return key, parts, dtype, previous
 
 
 def calculate(engine,expression,scope,dtype,*,execute=False):
@@ -82,24 +85,18 @@ def execute(engine, op, power, scope):
     writes = {}
 
     def write_element():
-        key, parts, dtype = destination(memory, op, scope)
+        key, parts, dtype, old_value = destination(memory, op, scope)
         try:
             value = calculate(engine, expression, scope, dtype, execute=True)
+            value = coerce(value, dtype)
         except OverflowError as error:
-            # Binary64 evaluation already reports its own ModelError. Keep
-            # integer, domain, unknown-value and reference failures separate.
+            # A REAL calculation or narrowing overflow leaves this cell intact.
             if dtype != 'REAL':raise
             raise RealCalculationOverflow from error
         # An address can be written repeatedly in one call. Retain its first
         # value, including an unknown value, for recovery of that call.
-        writes.setdefault((key, tuple(parts)), memory.at(key, parts))
-        try:
-            memory.write(op.args[4], value, scope)
-        except OverflowError as error:
-            # A finite binary64 result can overflow only at REAL storage.
-            # Memory coerces before storing, so the failing cell is intact.
-            if dtype != 'REAL':raise
-            raise RealCalculationOverflow from error
+        writes.setdefault((key, tuple(parts)), old_value)
+        memory.store(key, parts, value)
         engine._file_arithmetic_retry.discard(control_id)
 
     try:

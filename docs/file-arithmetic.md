@@ -13,6 +13,9 @@ Scans use live CONTROL.LEN/POS, which can receive
 ALL processes the remaining positions in one call. A positive
 DINT immediate selects the number of iterations per scan in numeric mode. LEN
 is bounded to 4096 and each iteration also consumes the global instruction budget.
+Each iteration resolves its destination once for validation, recovery and the
+write. Indirect addresses are evaluated again at the next position, so later
+iterations can still observe earlier writes.
 See [implementation](../source/logixlab/file_arithmetic.py).
 
 [Mixed integer FAL](integer-files.md#mixed-integer-fal) also accepts compatible

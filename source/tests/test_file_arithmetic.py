@@ -1,6 +1,7 @@
 """FAL array transforms, numeric scan distribution and transactional failures."""
 import copy
 import unittest
+from unittest.mock import patch
 from xml.etree import ElementTree as E
 
 import test_array_statistics as fixtures
@@ -289,7 +290,19 @@ class FileArithmeticTests(unittest.TestCase):
         self.assertEqual(e.memory.read('Outgoing'),20);self.assertEqual(e.memory.read('Queue'),[2,4,6,8,999])
 
     def test_overlapping_array_reads_see_prior_iteration_writes(self):
-        e=self.checked(['FAL(Ctl,?,?,ALL,Queue[Ctl.POS+1],Queue[Ctl.POS]);']);e.step()
+        e=self.checked(['FAL(Ctl,?,?,ALL,Queue[Ctl.POS+1],Queue[Ctl.POS]);'])
+        resolve = e.memory.check_writable
+        live_destinations = []
+
+        def capture(ref, scope):
+            result = resolve(ref, scope)
+            if ref == 'Queue[Ctl.POS+1]' and not e.memory.structural:
+                live_destinations.append(result[1])
+            return result
+
+        with patch.object(e.memory, 'check_writable', capture):
+            e.step()
+        self.assertEqual(live_destinations, [[1], [2], [3], [4]])
         self.assertEqual(e.memory.read('Queue'),[2,2,2,2,2])
 
     def test_supported_numeric_types_and_real_expression_rounding(self):

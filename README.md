@@ -713,6 +713,7 @@ WideFileDelta for this profile. [Matching typed constants](docs/ladder-wide-expr
 also work with compatible mixed source tags in CPT/CMP and FAL/FSC.
 [File arithmetic](docs/file-arithmetic.md) adds FAL ALL/numeric/INC modes for
 indexed array transforms, scalar accumulation and arithmetic/bitwise expressions.
+Each iteration uses one resolved destination for its result and recovery.
 **Stats lab** demonstrates full-array, scan-distributed and
 [incremental transforms](docs/file-incremental.md), including
 [binary64 FAL with LREAL](docs/file-arithmetic.md#binary64-expressions) and
