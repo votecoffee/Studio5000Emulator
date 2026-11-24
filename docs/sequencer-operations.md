@@ -26,6 +26,12 @@ last row, then wrap to one on the next enable edge. The software limit is
 the reached row against the selected array or structure member before
 reading a mask or source or accessing a destination.
 
+For one-dimensional tables, the emulator calculates the reached row directly
+from the resolved start and CONTROL.POS. This avoids building addresses for
+earlier rows on each scan. SQI and SQO read the row without copying the table
+for rollback. SQL records the table when it writes. Existing multidimensional
+starts still follow the table's flattened row order.
+
 Prescan sets SQO/SQL EN; a false rung clears EN. With EN clear, a true rung
 advances POS and sets EN. SQO writes the masked current row to Dest on every
 true scan, retaining unmasked destination bits. SQL reloads the current row

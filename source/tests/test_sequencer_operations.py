@@ -1,6 +1,7 @@
 """DINT sequencer edge/level semantics, masks, row zero and bounded state."""
 import copy
 import unittest
+from unittest.mock import patch
 from xml.etree import ElementTree as E
 
 from logixlab.model import ModelError
@@ -22,6 +23,36 @@ class SequencerTests(unittest.TestCase):
             self.assertEqual(e.memory.read('Outgoing'),0x120000|value)
             self.assertEqual(e.memory.read('Ctl.DN'),pos==3)
         self.assertEqual(e.memory.read('Queue[4]'),999)
+
+    def test_sqo_large_table_resolves_only_the_current_row_without_tracking_the_table(self):
+        e = self.checked(['SQO(Queue[0],-1,Outgoing,Ctl,?,?);'],
+                         length=4095, position=4095, queue=(0,) * 4095 + (1729,))
+        with patch.object(e.memory, 'region', wraps=e.memory.region) as region, \
+                patch.object(e.memory, '_remember', wraps=e.memory._remember) as remember:
+            e.step()
+        requested = [(call.args[1], call.kwargs.get('offset')) for call in region.call_args_list]
+        self.assertEqual([window for window in requested if window[0]], [(1, 4095)])
+        self.assertNotIn('queue', [call.args[0] for call in remember.call_args_list])
+        self.assertEqual(e.memory.read('Outgoing'), 1729)
+        self.assertTrue(e.memory.read('Ctl.DN'))
+
+    def test_sqo_offset_preserves_flattened_multidimensional_row_order_and_extent(self):
+        def table(root):
+            tag = root.find('Controller/Tags/Tag[@Name="Queue"]')
+            tag.set('Dimensions', '2,3')
+            arr = tag.find('Data/Array')
+            arr.set('Dimensions', '2,3')
+            for index, entry in enumerate(arr):
+                entry.set('Index', f'[{index // 3},{index % 3}]')
+
+        e = self.checked(['SQO(Queue[0,2],-1,Outgoing,Ctl,?,?);'],
+                         length=4, position=2, queue=(10, 20, 30, 40, 50, 60), mutate=table)
+        e.step()
+        self.assertEqual(e.memory.read('Outgoing'), 50)
+        e.memory.write('Ctl.POS', 4)
+        e.step()
+        self.assertTrue(e.memory.read('Ctl.ER'))
+        self.assertEqual(e.memory.read('Outgoing'), 50)
 
     def test_sqo_held_true_reapplies_current_row_without_advancing(self):
         e=self.checked(['SQO(Queue[0],16#FF,Outgoing,Ctl,?,?);'],length=3,position=1,queue=(0,17,0,0))

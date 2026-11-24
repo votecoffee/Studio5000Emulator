@@ -14,9 +14,12 @@ def starting_array(memory, ref, scope, *, writable=False, structural=False):
         key,parts,dtype=(memory.check_writable if writable else memory.resolve)(ref,scope)
         if dtype!='DINT' or any(isinstance(part,tuple) for part in parts):
             raise ModelError('Sequencer table must be a DINT array')
-        value=memory.at(key,parts)
-        if not isinstance(value,list) and not any(isinstance(memory.at(key,parts[:i]),list)
-                                                for i,part in enumerate(parts) if isinstance(part,int)):
+        value = memory.values[key]
+        within_array = False
+        for part in parts:
+            within_array |= isinstance(value, list)
+            value = value[part]
+        if not isinstance(value, list) and not within_array:
             raise ModelError('Sequencer table must address an array')
         if scope in memory.frames and (not parts or not isinstance(parts[-1],int) or
                 len(parts)>1 and isinstance(parts[-2],int) or isinstance(value,list)):
@@ -107,19 +110,19 @@ def _execute(memory, op, power, scope, obj):
         raise ModelError('Sequencer table exceeds the 4096-element software limit')
     starting_array(memory, a[0], scope, writable=n == 'SQL')
     try:
-        key, paths, _ = memory.region(a[0], position + 1, scope)
+        key, paths, _ = memory.region(a[0], 1, scope, offset=position)
     except BlockExtentError as error:
         if n == 'SQL':
             raise ArrayBoundsError('SQL position exceeds the selected table boundary (Type 4 Code 20)') from error
         obj['ER'] = True
         return n == 'SQO'
     if n == 'SQL':
-        memory.store(key, paths[position], source_value(memory, a[1], scope))
+        memory.store(key, paths[0], source_value(memory, a[1], scope))
         return True
     width = bit_transfer.operand(memory, a[1], scope, radix=True)
     mask = bit_transfer.unsigned(memory, a[1], scope, width, radix=True)
     if not mask:return True
-    source = memory.read(memory.address(key, paths[position]))
+    source = memory.read(memory.address(key, paths[0]))
     if type(source) is not int:raise ModelError('Sequencer table row is unknown or not DINT')
     if n == 'SQI':
         value = source_value(memory,a[2],scope)
@@ -138,7 +141,7 @@ def description():
                 sources='SQL/SQI scalar narrow integer tags, signed DINT literals or grouped 32-bit radix patterns; no FIFO REAL conversions',
                 source_conversion='Preserve signed narrow numeric values in DINT; full radix patterns retain all bits; SQI retains signed-source masked comparison and masks retain declared zero-fill widths',
                 source_selection='Structural types/shapes and immediate bounds; false/invalid-state paths skip live sources; SQI zero mask skips compared-source references',
-                bounds='Reached row checked against selected array/member; maximum 4096 configured rows',
+                bounds='Check the reached row against the selected array/member. One-dimensional tables resolve that row directly. Maximum 4096 configured rows.',
                 starting_references='Aliases and bounded indirect starts; no CONTROL.POS-dependent subscripts; false/invalid CONTROL calls do not consume live table indices',
                 selection='Structural preflight for table, mask and payload references; false/invalid-state paths skip live mask/source/destination indices',
                 zero_mask='Row address checked first; zero mask skips row values and live compared-source/output references',

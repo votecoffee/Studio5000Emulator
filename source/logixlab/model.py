@@ -1481,9 +1481,11 @@ class Memory:
             self._store_undo.append((parent, slot, parent[slot]))
         parent[slot] = copy.deepcopy(value)
 
-    def region(self,ref,count,scope=''):
+    def region(self,ref,count,scope='',*,offset=0):
         if isinstance(count,bool) or not isinstance(count,int) or not 0<=count<=100000:
             raise ModelError('Block length must be an integer in 0..100000')
+        if type(offset) is not int or offset < 0:
+            raise ModelError('Block offset must be a nonnegative integer')
         key,parts,dtype=self.resolve(ref,scope)
         if key is None or any(isinstance(p,tuple) for p in parts) or dtype=='BOOL':raise ModelError('Block operand cannot be a bit')
         value=self.values[key];candidate=None
@@ -1494,6 +1496,17 @@ class Memory:
         if isinstance(value,list) and candidate is None:candidate=(parts,value)
         addresses=[]
         if candidate is not None:
+            base, array = candidate
+            if array and not isinstance(array[0], list):
+                # A selected one-dimensional element already identifies the
+                # starting index, so only generate paths in the requested window.
+                selection = parts[len(base):]
+                if len(selection) > 1:
+                    raise ModelError('Block start does not address an array element')
+                start = (selection[0] if selection else 0) + offset
+                if start + count > len(array):
+                    raise BlockExtentError('Block operation exceeds the modeled array/member boundary')
+                return key, [base + [index] for index in range(start, start + count)], dtype
             def flatten(path,obj):
                 if isinstance(obj,list):
                     for i,v in enumerate(obj):flatten(path+[i],v)
@@ -1501,8 +1514,8 @@ class Memory:
             flatten(*candidate)
             start=next((i for i,p in enumerate(addresses) if p[:len(parts)]==parts),None)
             if start is None:raise ModelError('Block start does not address an array element')
-            addresses=addresses[start:]
-        else:addresses=[parts]
+            addresses=addresses[start + offset:]
+        else:addresses=[parts] if not offset else []
         if count > len(addresses):
             raise BlockExtentError('Block operation exceeds the modeled array/member boundary')
         return key,addresses[:count],dtype

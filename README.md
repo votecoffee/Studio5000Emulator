@@ -913,6 +913,8 @@ Choose **Control lab** to inspect shifts and queues. **Sequence lab** demonstrat
 a stack plus [DINT SQO/SQI/SQL](docs/sequencer-operations.md) for masked pattern
 outputs, feedback comparison and teaching a table. [Sequencer references and AOIs](docs/sequencer-references.md)
 add alias/indirect starts, caller-scope indices and independent InOut/local tables.
+One-dimensional tables resolve the current row directly, including at large
+CONTROL.POS values.
 Choose **AOI sequencer lab** to exercise masked outputs, teaching and feedback
 through two instances.
 

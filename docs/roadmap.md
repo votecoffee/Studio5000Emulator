@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+[Ladder sequencers](sequencer-operations.md#rows-and-scan-behavior) resolve the
+current row of a one-dimensional table directly in `26.1124.111109`. Held SQI and
+SQO calls can read a large table without copying it for rollback.
+
 [Ladder FBC and DDT](file-bit-compare.md) sample each reached DINT word once
 per call in `26.1124.095320`. FBC matches references to the same word even when the
 export omits its saved value. Mismatch order, per-bit budget and array fault
