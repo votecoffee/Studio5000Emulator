@@ -1,4 +1,6 @@
 """Bounded DINT ladder FBC/DDT with separate compare and result controls."""
+from functools import partial
+
 from . import control_operations as controls
 from .bit_transfer import unsigned
 from .integer_math import CONTROLLERS, bit_value
@@ -86,49 +88,57 @@ def validate(memory, op, scope, *, preflight=False):
     check_roles(op, arrays, control_paths)
 
 
+def _selected_control(memory, ref, scope):
+    key, parts, dtype = memory.check_writable(ref, scope)
+    record = controls.control_at(memory, key, parts, dtype, mutable=False)
+    return record, partial(controls.store_fields, memory, key, parts, record)
+
+
 def prescan(memory, op, scope):
-    compare = controls.control(memory, op.args[3], scope)
-    result = controls.control(memory, op.args[6], scope)
+    compare, update_compare = _selected_control(memory, op.args[3], scope)
+    result, update_result = _selected_control(memory, op.args[6], scope)
     if compare is result:
         raise ModelError('FBC/DDT controls require distinct storage disjoint from data arrays')
-    compare.update(EN=False, FD=False)
+    update_compare(dict(EN=False, FD=False))
     if controls.flag(compare, 'DN'):
-        compare.update(DN=False, POS=0);result.update(DN=False, POS=0)
+        update_compare(dict(DN=False, POS=0))
+        update_result(dict(DN=False, POS=0))
 
 
 def execute(engine, op, power, scope):
     memory = engine.memory;validate(memory, op, scope)
     if not power:
         prescan(memory, op, scope);return False
-    a = op.args;compare = controls.control(memory, a[3], scope)
+    compare, update_compare = _selected_control(memory, op.args[3], scope)
     if controls.flag(compare, 'EN'):return True
-    saved_controls = [(compare, compare.copy())]
+    saved_controls = [(update_compare, compare.copy())]
     writes = {}
 
     def store(key, path, value):
-        writes.setdefault((key, tuple(path)), memory.at(key, path))
+        writes.setdefault((key, tuple(path)), memory.at(key, path, mutable=False))
         memory.store(key, path, value)
 
     try:
-        return _compare_bits(engine, op, scope, compare, saved_controls, store)
+        return _compare_bits(engine, op, scope, compare, update_compare, saved_controls, store)
     except ArrayBoundsError as error:
         for (key, path), value in writes.items():
             memory.store(key, path, value)
-        for record, previous in saved_controls:
-            record.update(previous)
+        for update, previous in saved_controls:
+            update(previous)
         if isinstance(error, InputExtentError):
-            compare['ER'] = True
+            update_compare({'ER': True})
         raise
 
 
-def _compare_bits(engine, op, scope, compare, saved_controls, store):
+def _compare_bits(engine, op, scope, compare, update_compare, saved_controls, store):
     memory, a = engine.memory, op.args
-    compare['EN'] = True
+    update_compare({'EN': True})
     if controls.flag(compare, 'DN'):return True
-    compare.update(ER=False, FD=False)
+    update_compare(dict(ER=False, FD=False))
     length, position = controls.integer(compare, 'LEN'), controls.integer(compare, 'POS')
     if length <= 0 or position < 0:
-        compare['ER'] = True;return True
+        update_compare({'ER': True})
+        return True
     if length > MAX_BITS:raise ModelError('FBC/DDT exceed the 4096-bit software limit')
     words = (length + 31) // 32
     sk, sources, source_path = region(memory, a[0], words, scope)
@@ -137,9 +147,10 @@ def _compare_bits(engine, op, scope, compare, saved_controls, store):
     available_words = min(len(sources), len(references))
     control_paths=control_addresses(memory,op,scope);check_roles(op,arrays,control_paths)
     if position >= length:
-        compare.update(POS=length, DN=True);return True
-    result = controls.control(memory, a[6], scope)
-    saved_controls.append((result, result.copy()))
+        update_compare(dict(POS=length, DN=True))
+        return True
+    result, update_result = _selected_control(memory, a[6], scope)
+    saved_controls.append((update_result, result.copy()))
     initial_compare_position, initial_result_position = position, result['POS']
     destinations=None
     current_word = -1
@@ -162,13 +173,16 @@ def _compare_bits(engine, op, scope, compare, saved_controls, store):
             current_word = word
         bit_mask = 1 << bit
         if differences & bit_mask:
-            compare['FD'] = True
-            if controls.flag(result, 'DN'):result.update(DN=False, POS=0)
+            # Input words are already addressed. Publish the cursor before
+            # any reached result checks or result-address selection.
+            update_compare(dict(POS=position, FD=True))
+            if controls.flag(result, 'DN'):
+                update_result(dict(DN=False, POS=0))
             offset = controls.integer(result, 'POS')
             if offset < 0 or (capacity := controls.integer(result, 'LEN')) <= 0:
                 # The status flags survive, while data and the saved cursors stay intact.
-                compare.update(ER=True, POS=initial_compare_position)
-                result['POS'] = initial_result_position
+                update_compare(dict(ER=True, POS=initial_compare_position))
+                update_result({'POS': initial_result_position})
                 return True
             if destinations is None:
                 if capacity > controls.MAX_ELEMENTS:
@@ -183,15 +197,17 @@ def _compare_bits(engine, op, scope, compare, saved_controls, store):
                 reference ^= bit_mask
                 store(rk, references[word], bit_value(reference, 'DINT'))
             store(dk, destinations[offset], position)
-            result['POS'] = offset + 1
-            if result['POS'] >= capacity:result['DN'] = True
-            position += 1;compare['POS'] = position
+            offset += 1
+            update_result(dict(POS=offset, DN=True) if offset >= capacity else {'POS': offset})
+            position += 1
+            update_compare({'POS': position})
             if controls.flag(compare, 'IN'):
-                if position >= length:compare['DN'] = True
+                if position >= length:
+                    update_compare({'DN': True})
                 return True
         else:
-            position += 1;compare['POS'] = position
-    compare['DN'] = True
+            position += 1
+    update_compare(dict(POS=position, DN=True))
     return True
 
 

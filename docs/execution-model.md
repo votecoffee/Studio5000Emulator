@@ -34,6 +34,8 @@ overflow bits or flags. REAL calculations and ST/FBD profiles remain separate.
 array/control roles. Fresh calls sample input windows once and select a fixed
 result window lazily before the first learning/result write. Local and InOut
 learning, results and cursors share the existing binding/value transaction.
+FBC and DDT journal fields at their resolved CONTROL addresses. Matching bits
+advance the local cursor until a mismatch or completion makes POS observable.
 
 [SRT references and AOIs](sort-references.md) use structural preflight and
 EN/ER-gated live source selection. ST FOR write effects cover the selected member

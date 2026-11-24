@@ -970,7 +970,8 @@ recoverable input and result overruns, invalid result status, and result writes
 at physically valid positions even at or past LEN. Both support result-list
 wrapping in all or one-mismatch mode, and DDT can learn reference bits.
 Both instructions sample each reached DINT word once per call. FBC can match
-two references to the same word when its saved value is omitted.
+two references to the same word when its saved value is omitted. Both
+journal CONTROL field changes at mismatches and completion.
 
 [Continuous/periodic scheduling](docs/task-scheduling.md) now runs mixed
 Standard tasks at deterministic simulated release times. Choose **Task lab**

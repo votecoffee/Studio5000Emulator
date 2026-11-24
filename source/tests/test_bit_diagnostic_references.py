@@ -1,6 +1,7 @@
 """FBC/DDT canonical storage, indirect sampling and transactional bounds."""
 import copy
 import unittest
+from unittest.mock import patch
 from xml.etree import ElementTree as E
 import test_file_bit_compare as fixtures
 from logixlab.model import ModelError
@@ -94,6 +95,39 @@ class BitDiagnosticReferenceTests(unittest.TestCase):
         for name in ('FBC','DDT'):
             e=self.checked([self.instruction(name,source='Packet1.Source[0]',reference='Packet1.Reference[0]',result='Packet1.Result[0]',compare='Packet1.Compare',output='Packet1.Output')+';'],mutate=self.packet);e.step()
             self.assertEqual(e.memory.read('Packet1.Result'),[32,39,31,999]);self.assertEqual(e.memory.read('Packet1.Reference[0]'),-2147483615 if name=='DDT' else 0)
+
+    def test_ddt_journals_shared_packet_and_skips_cursor_stores_for_matching_bits(self):
+        packet = 'Packets[Index]'
+        instruction = self.instruction(
+            'DDT', source=f'{packet}.Source[0]', reference=f'{packet}.Reference[0]',
+            result=f'{packet}.Result[0]', compare=f'{packet}.Compare', output=f'{packet}.Output',
+        )
+        e = self.checked(
+            [f'XIC(Enable){instruction};', 'CPT(GuardResult,1/FaultDivisor);'],
+            source=(0, 129, 999), result_position=2, mutate=lambda root: self.packet(root, array=True),
+        )
+        e.memory.write('Index', 1)
+        other = copy.deepcopy(e.memory.at('packets', [0], mutable=False))
+        e.memory.write('FaultDivisor', 0)
+        before = self.snapshot(e)
+        with patch.object(e.memory, '_remember', wraps=e.memory._remember) as snapshot_tag:
+            with self.assertRaisesRegex(ModelError, 'zero'):
+                e.step()
+            self.assertEqual(self.snapshot(e), before)
+            e.memory.write('FaultDivisor', 1)
+            with patch.object(e.memory, 'store', wraps=e.memory.store) as store:
+                e.step()
+            e.step()
+        self.assertNotIn('packets', [call.args[0] for call in snapshot_tag.call_args_list])
+        positions = [value for key, path, value in (call.args for call in store.call_args_list)
+                     if key == 'packets' and path == [1, 'Compare', 'POS']]
+        self.assertTrue(positions)
+        self.assertLessEqual(len(positions), 4)
+        self.assertEqual(positions[-1], 40)
+        self.assertEqual(e.memory.read('Packets[1].Reference[1]'), 129)
+        self.assertEqual(e.memory.read('Packets[1].Result', mutable=False), [39, -1, 32, 999])
+        self.assertEqual(e.memory.read('Packets[1].Output.POS'), 1)
+        self.assertEqual(e.memory.at('packets', [0], mutable=False), other)
 
     def test_out_of_bounds_control_alias_loads_but_prescan_rejects_actual_overlap(self):
         def setup(root):
