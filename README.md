@@ -925,7 +925,8 @@ false/prescan skip saved dynamic indices; enabled transfers keep address and
 preserved-bit checks. Set `TransferIndex` to 0 and enable `IndexedTransfers`
 for selected full writes into unknown result arrays.
 [Data transition](docs/data-transition.md) adds DINT DTR change detection,
-including reference updates during prescan and false scans.
+including reference updates during prescan and false scans. A zero mask can
+refresh the reference when the saved source value is missing.
 DTR and [ladder sequencers](docs/sequencer-operations.md) support grouped DINT
 radix immediates in their source and mask operands.
 [FBC/DDT references and AOIs](docs/bit-diagnostic-references.md) add alias/indirect

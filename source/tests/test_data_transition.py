@@ -251,15 +251,73 @@ class DataTransitionTests(unittest.TestCase):
             e.step();self.assertTrue(e.memory.read('RunLatch'));self.assertTrue(e.memory.read('MotorRunning'))
             self.assertEqual(e.memory.read('Dest'),20)
 
-    def test_required_unknown_source_or_mask_faults_even_on_false_or_zero_mask(self):
+    def test_required_unknown_source_or_mask_faults_on_either_rung_state(self):
         for prefix in ('','AFI()'):
             for unknown in ('source','mask'):
                 e=self.checked([prefix+'DTR(Source,Mask,Dest);']);e.memory.values[unknown]=None
                 before=copy.deepcopy(e.memory.values)
                 with self.assertRaisesRegex(ModelError,'Unknown'):e.step()
                 self.assertEqual(e.memory.values,before);self.assertEqual((e.scan_count,e.time_ms),(0,0))
-        e=self.checked(['AFI()DTR(Source,0,Dest);']);e.memory.values['source']=None
-        with self.assertRaisesRegex(ModelError,'Unknown'):e.step()
+
+    def test_zero_mask_prescan_and_false_scan_establish_reference_with_unknown_source(self):
+        def omitted(root):
+            self.array_tags(root)
+            words = root.find('./Controller/Tags/Tag[@Name="Words"]/Data/Array')
+            for index in (0, 1):
+                words.remove(words.find(f'Element[@Index="[{index}]"]'))
+
+        e = self.checked(['XIC(StartPB)DTR(Words[1],Mask,Words[0])OTE(RunLatch);'],
+                         values=(123, 0, 99), mutate=omitted)
+        m = e.memory
+        self.assertEqual(m.read('Words'), [0, None, 999])
+        m.write('StartPB', False)
+        m.write('Words[0]', 5)
+        e.step()
+        self.assertEqual(m.read('Words[0]'), 0)
+        self.assertFalse(m.read('RunLatch'))
+
+        m.write('StartPB', True)
+        m.write('Words[0]', 5)
+        e.step()
+        self.assertEqual(m.read('Words[0]'), 0)
+        self.assertTrue(m.read('RunLatch'))
+        e.step()
+        self.assertFalse(m.read('RunLatch'))
+
+        m.values['words'][0] = None
+        before = copy.deepcopy(m.values)
+        with self.assertRaisesRegex(ModelError, r'Unknown.*Words\[0\]'):
+            e.step()
+        self.assertEqual(m.values, before)
+        m.write('StartPB', False)
+        e.step()
+        self.assertEqual(m.read('Words[0]'), 0)
+        m.write('Mask', 1)
+        before = copy.deepcopy(m.values)
+        with self.assertRaisesRegex(ModelError, r'Unknown.*Words\[1\]'):
+            e.step()
+        self.assertEqual(m.values, before)
+        m.write('Words[1]', 3)
+        e.step()
+        self.assertEqual(m.read('Words'), [1, 3, 999])
+
+    def test_zero_mask_still_checks_source_address_in_prescan_and_execution(self):
+        e = self.checked(['DTR(Words[Index],0,Dest)OTE(RunLatch);'], mutate=self.array_tags)
+        m = e.memory
+        m.write('Index', 3)
+        m.write('Dest', 77)
+        e.enter_run()
+        self.assertEqual(m.read('Dest'), 77)
+        before = copy.deepcopy(m.values)
+        with self.assertRaisesRegex(ModelError, 'outside bounds'):
+            e.step()
+        self.assertEqual(m.values, before)
+        m.write('Index', 1)
+        m.values['words'][1] = None
+        e.step()
+        self.assertEqual(m.read('Dest'), 0)
+        self.assertTrue(m.read('RunLatch'))
+        self.assertEqual(m.read('Words'), [77, None, 999])
 
     def test_unknown_reference_faults_when_comparison_requires_it(self):
         e=self.checked(['DTR(Source,Mask,Dest);']);e.memory.values['dest']=None

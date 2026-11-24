@@ -33,7 +33,8 @@ def execute(memory, op, power, scope):
     validate(memory, op, scope)
     source, mask, reference = op.args
     # Read all required values before writing, including aliased operands.
-    masked = unsigned(memory, source, scope, 32, radix=True) & unsigned(memory, mask, scope, 32, radix=True)
+    mask_bits = unsigned(memory, mask, scope, 32, radix=True)
+    masked = unsigned(memory, source, scope, 32, radix=True) & mask_bits if mask_bits else 0
     changed = power and masked != unsigned(memory, reference, scope, 32)
     if not power or changed:
         memory.write(reference, bit_value(masked, 'DINT'), scope)
@@ -47,7 +48,7 @@ def description():
                 true_scan='Changed comparison energizes rung-out and replaces reference with masked source',
                 false_scan='Replace reference with masked source; rung-out remains false',
                 prescan='Replace reference with masked source unless a live array subscript is out of bounds',
-                unknowns='Required unknown source/mask/reference reads fault; false/prescan can establish reference',
+                unknowns='Required unknown values fault. After address validation, a zero mask skips the source value. True rungs still require the complete prior reference; false/prescan can establish it.',
                 array_recovery='A cleared Type 4 Code 20 during a whole-project scan skips the reference write',
                 native_runtime_parity=False,
                 remaining=['Other controller profiles', 'Complete native operand, status and fault parity'])

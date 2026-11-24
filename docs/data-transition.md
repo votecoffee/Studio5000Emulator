@@ -48,9 +48,13 @@ binary bit patterns can cover all 32 bits. Narrow, unsigned, LINT, REAL, BOOL,
 whole-array and constant-reference operands are rejected in this profile.
 Other controller profiles and ST/FBD calls remain unqualified.
 
-Required unknown Source or Mask values fault even on a false rung or with a
-zero mask. A true comparison also requires a known prior Reference. False
-execution and prescan can establish an unknown reference. In a whole-project
+All three addresses are checked before the instruction reads the mask. With a
+known zero mask, the masked source is zero even when the export omits Source.
+A true rung compares this zero with the entire prior Reference and pulses
+if Reference was nonzero. False execution and prescan can establish an unknown
+Reference without a pulse. An unknown Mask, a Source selected by a nonzero
+mask, or a prior Reference required by a true rung still faults if its value is
+missing. In a whole-project
 scan, a handler can
 [clear a reached array subscript fault](controller-handlers.md#recover-bit-diagnostic-and-data-transition-array-faults)
 and skip the reference write. A later fault rolls back reference changes,
