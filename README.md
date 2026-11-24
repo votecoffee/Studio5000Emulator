@@ -918,6 +918,8 @@ unknown prefix; `FindResult` starts at 5 and moves to 7 when `FindStart` is 6.
 [Masked moves and bit fields](docs/bit-transfer.md) add ladder MVM/BTD for
 SINT/INT/DINT values, including mixed widths, grouped DINT radix constants
 and scalar/member/array operands.
+Ladder MVM and [MEQ](docs/numeric-comparisons.md#mixed-integer-tag-widths) can
+use zero-filled bits when the mask selects no stored bits from an operand.
 Choose **Bit lab** to try packing and extracting data. In the v35 5580 profile,
 false/prescan skip saved dynamic indices; enabled transfers keep address and
 preserved-bit checks. Set `TransferIndex` to 0 and enable `IndexedTransfers`

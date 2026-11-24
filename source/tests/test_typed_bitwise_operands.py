@@ -76,11 +76,16 @@ class TypedBitwiseOperandTests(unittest.TestCase):
 
     def test_false_paths_skip_unknowns_and_bad_source_destination_indices(self):
         e=self.checked(['XIC(StartPB)OR(Inputs[Index],1UL,Results[Index]);']);e.memory.write('Index',999);e.step();e.memory.write('StartPB',True);self.fault(e,'outside bounds');e.memory.write('Index',1);self.fault(e,'Unknown');e.memory.write('Inputs[1]',2);e.step();self.assertEqual(e.memory.read('Results'),[None,3,None])
-        e=self.checked(['XIC(StartPB)MEQ(Inputs[1],0UL,0L)OTE(RunLatch);']);e.memory.write('RunLatch',True);e.step();self.assertFalse(e.memory.read('RunLatch'));e.memory.write('StartPB',True);self.fault(e,'Unknown')
+        e=self.checked(['XIC(StartPB)MEQ(Inputs[1],1UL,0L)OTE(RunLatch);']);e.memory.write('RunLatch',True);e.step();self.assertFalse(e.memory.read('RunLatch'));e.memory.write('StartPB',True);self.fault(e,'Unknown')
 
-    def test_zero_masks_still_consume_unknown_required_operands(self):
-        for call in ('AND(Inputs[1],0UL,Results[1]);','MEQ(Inputs[1],0UL,0L)OTE(RunLatch);','MEQ(0UL,0UL,Inputs[1])OTE(RunLatch);'):
-            e=self.checked([call]);self.fault(e,'Unknown')
+    def test_zero_masked_meq_skips_values_while_and_requires_its_source(self):
+        e = self.checked(['AND(Inputs[1],0UL,Results[1]);'])
+        self.fault(e, 'Unknown')
+        for call in ('MEQ(Inputs[1],0UL,0L)OTE(RunLatch);', 'MEQ(0UL,0UL,Inputs[1])OTE(RunLatch);'):
+            e = self.checked([call])
+            e.step()
+            self.assertTrue(e.memory.read('RunLatch'))
+            self.assertIsNone(e.memory.read('Inputs')[1])
 
     def test_full_unknown_writes_overlap_and_late_faults_are_atomic(self):
         e=self.checked(['OR(18446744073709551615UL,0L,Results[1]);'],dest='ULINT');e.step();self.assertEqual(e.memory.read('Results'),[None,(1<<64)-1,None])

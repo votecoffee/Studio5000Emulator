@@ -17,9 +17,9 @@ restrictions are still checked, even on false rungs.
 
 False rungs and ordinary prescan skip operand values and live indices. Downstream
 OTE instructions still clear their coils when rung power is false. True calls
-consume every comparison operand; reached unknowns or invalid indices fail the
-advance. A zero MEQ mask does not infer a result from unknown operands. Earlier
-writes, coils, task/time state and existing AOI bindings roll back on failure.
+resolve their addresses and read the values required for the comparison.
+Required unknowns and invalid indices roll back earlier writes, coils, task and
+time state, and existing AOI bindings.
 
 The six standalone relations also have a
 [string tag and literal profile](string-operations.md#ladder-string-comparison-literals).
@@ -133,6 +133,12 @@ Each declared pattern is zero-extended before comparing `(Source & Mask)` with
 `(Compare & Mask)`. Negative DINT values retain 32 bits when combined with a
 64-bit operand; negative LINT values retain 64 bits. No floating-point conversion
 is used, so adjacent 64-bit values remain distinguishable.
+
+An enabled MEQ checks all addresses and reads the mask. If the mask selects no
+bits within a comparand's declared width, its masked value is zero even when the
+export omits the saved value. A zero mask therefore returns true once all
+addresses are valid. A mask that selects any stored bit still requires that
+comparand's value. [Rockwell MEQ reference](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/37-02/contents-ditamap/instruction-set/compare-instructions/mask-equal-to--meq-.html)
 
 For example, SINT -1 under a ULINT mask of 65536 matches LINT 0, because the
 byte pattern contains only eight set bits. DINT -1 under LINT -1 matches ULINT

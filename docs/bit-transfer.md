@@ -51,7 +51,9 @@ field specifications and read-only targets remain blocked, including while false
 Enabled transfers retain their existing runtime address checks for source, mask
 and destination, before any zero-mask value optimization. A zero MVM mask skips
 source/old-destination **values** after their addresses are valid. It does not
-permit invalid or unknown indices. Partial writes require preserved destination
+permit invalid or unknown indices. When a nonzero MVM mask selects only bits
+above the declared source width, v35 5580 writes zero to those destination bits
+without requiring the source value. Partial writes require preserved destination
 bits to be known; full writes need no old destination value. These rules apply to
 existing aliases, selected array elements, UDT members and AOI local/InOut bindings.
 The structural context is restored after success and validation errors; other

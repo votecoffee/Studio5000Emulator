@@ -90,16 +90,41 @@ class MixedMeqTests(unittest.TestCase):
             e.step()
             self.assertIs(e.memory.read('RunLatch'), result)
 
-    def test_each_unknown_mixed_operand_is_required_even_with_zero_mask(self):
+    def test_zero_meq_mask_value_is_required_before_skipping_other_values(self):
         for position in (0,1,2):
             args=['Source','Mask','Dest'];args[position]='Values[0]'
             e=self.checked(['XIC(StartPB)MEQ('+','.join(args)+')OTE(RunLatch);'],
                            types=('ULINT','USINT','DINT'),values=(7,0,7))
             e.step();self.assertFalse(e.memory.read('RunLatch'))
-            e.memory.write('StartPB',True);before=self.snapshot(e)
-            with self.assertRaisesRegex(ModelError,'Unknown'):e.step()
-            self.assertEqual(self.snapshot(e),before)
-            e.memory.write('Values[0]',0 if position==1 else 7);e.step();self.assertTrue(e.memory.read('RunLatch'))
+            e.memory.write('StartPB',True)
+            if position == 1:
+                before = self.snapshot(e)
+                with self.assertRaisesRegex(ModelError, 'Unknown'):
+                    e.step()
+                self.assertEqual(self.snapshot(e), before)
+                e.memory.write('Values[0]', 0)
+            e.step()
+            self.assertTrue(e.memory.read('RunLatch'))
+
+    def test_high_meq_mask_skips_only_comparands_narrower_than_selected_bits(self):
+        cases = (
+            ('Values[0],16#8000000000000000UL,0UL', True),
+            ('Values[0],16#8000000000000000UL,16#8000000000000000UL', False),
+            ('16#8000000000000000UL,16#8000000000000000UL,Values[0]', False),
+            ('Values[0],16#8000000000000001UL,0UL', None),
+        )
+        for args, expected in cases:
+            with self.subTest(operands=args):
+                e = self.checked([f'MEQ({args})OTE(RunLatch);'], types=('SINT', 'DINT', 'DINT'))
+                if expected is None:
+                    before = self.snapshot(e)
+                    with self.assertRaisesRegex(ModelError, 'Unknown'):
+                        e.step()
+                    self.assertEqual(self.snapshot(e), before)
+                    e.memory.write('Values[0]', 0)
+                    expected = True
+                e.step()
+                self.assertIs(e.memory.read('RunLatch'), expected)
 
     def test_false_and_prescan_skip_actual_indices_then_fault_and_retry(self):
         e=self.checked(['XIC(StartPB)MEQ(Values[Index],Mask,Dest)OTE(RunLatch);'],

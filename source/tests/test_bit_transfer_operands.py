@@ -74,6 +74,28 @@ class BitTransferOperandTests(unittest.TestCase):
         self.assertEqual(self.snapshot(e),before)
         e.memory.write('Index',1);e.step();self.assertEqual(e.memory.read('Inputs'),[None]*3);self.assertEqual(e.memory.read('Results'),[None]*3)
 
+    def test_mvm_can_write_zero_filled_bits_without_reading_the_source_value(self):
+        e = self.checked(['MVM(Inputs[Index],Masks[1],Results[1]);'], source='SINT', value=0)
+        m = e.memory
+        m.write('Masks[1]', 0xff00)
+        m.write('Results[1]', 0x12345678)
+        before = self.snapshot(e)
+        with self.assertRaisesRegex(ModelError, 'outside bounds'):
+            e.step()
+        self.assertEqual(self.snapshot(e), before)
+        m.write('Index', 1)
+        e.step()
+        self.assertEqual(m.read('Results'), [None, 0x12340078, None])
+        self.assertEqual(m.read('Inputs'), [None] * 3)
+        m.write('Masks[1]', 0xff01)
+        before = self.snapshot(e)
+        with self.assertRaisesRegex(ModelError, 'Unknown'):
+            e.step()
+        self.assertEqual(self.snapshot(e), before)
+        m.write('Inputs[1]', -1)
+        e.step()
+        self.assertEqual(m.read('Results'), [None, 0x12340079, None])
+
     def test_each_actual_source_mask_destination_index_is_checked_when_enabled(self):
         for text in ('MVM(Inputs[Index],-1,Results[0]);','MVM(Source,Masks[Index],Results[0]);',
                      'MVM(Source,-1,Results[Index]);','BTD(Inputs[Index],0,Results[0],0,32);','BTD(Source,0,Results[Index],0,32);'):

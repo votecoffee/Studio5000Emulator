@@ -36,7 +36,7 @@ def validate(engine, op, scope):
             if dtype not in ('REAL', 'LREAL') or isinstance(memory.at(key, parts), (list, dict)):
                 raise ModelError(f'{op.name} requires one scalar REAL or LREAL tag')
         elif op.name == 'MEQ':
-            masked_values(engine, op.args, scope)
+            masked_specification(memory, op.args, scope)
         else:
             if lreal_specification(memory,op.args,scope) or real_specification(memory,op.args,scope):return True
             if integer_math.radix_profile(engine,op,scope):return True
@@ -139,12 +139,10 @@ def ordering_type(types):
     return common
 
 
-def masked_values(engine, args, scope):
-    """Read-only integer patterns, including bounded immediates in any position."""
-    memory = engine.memory
+def masked_specification(memory, args, scope):
+    """Validate every address and return the effective widths without reading values."""
     if any(integer_math.typed_integer(ref,radix=True) is not None for ref in args):
-        widths=[integer_math.pattern_width(memory,ref,scope,radix=True) for ref in args]
-        return [integer_math.pattern(memory,ref,scope,width,radix=True) for ref,width in zip(args,widths)]
+        return [integer_math.pattern_width(memory, ref, scope, radix=True) for ref in args], True
     widths, types, immediates = [], [], []
     for ref in args:
         try:
@@ -161,7 +159,18 @@ def masked_values(engine, args, scope):
             immediates.append(value)
     if immediates:
         widths = integer_math.bitwise_immediate_widths(widths, types, immediates)
-    return [integer_math.pattern(memory, ref, scope, width) for ref, width in zip(args, widths, strict=True)]
+    return widths, False
+
+
+def masked_equal(memory, args, scope):
+    widths, radix = masked_specification(memory, args, scope)
+    mask = integer_math.pattern(memory, args[1], scope, widths[1], radix=radix)
+    source, compare = (
+        integer_math.pattern(memory, args[index], scope, widths[index], radix=radix) & mask
+        if mask & ((1 << widths[index]) - 1) else 0
+        for index in (0, 2)
+    )
+    return source == compare
 
 
 def execute(engine, op, power, scope):
@@ -170,8 +179,7 @@ def execute(engine, op, power, scope):
     if op.name in FLOAT_PREDICATES:
         return FLOAT_PREDICATES[op.name](memory.read(op.args[0], scope))
     if op.name == 'MEQ':
-        source, mask, compare = masked_values(engine, op.args, scope)
-        return (source & mask) == (compare & mask)
+        return masked_equal(memory, op.args, scope)
     floating=lreal_specification(memory,op.args,scope) or real_specification(memory,op.args,scope)
     radix=None if floating else integer_math.radix_profile(engine,op,scope)
     temporal = None if floating or radix else time_specification(memory, op, scope)
@@ -255,10 +263,10 @@ def description(project):
                 typed_integer_masked_equal=dict(instruction='MEQ',constant_types=['LINT','UDINT','ULINT'],radix_bases=[2,8,16],
                     operands='Decimal or attached radix L/U/UL source, mask or compare; scalar integer tags and existing DINT/32-bit radix patterns may mix',
                     calculation='Zero-extend each declared pattern, then compare source AND mask with compare AND mask; no numeric signed comparison or floating conversion',
-                    selection='Read-only operands; structural/lazy preflight and all required known values even for a zero mask',
+                    selection='Read-only operands. Enabled calls validate all addresses and read the mask; a source or compare value is read when the mask selects any bit at its width',
                     scope='RLL v35 5580; other types/consumers and native status/fault/lifecycle parity remain separate',
                     native_runtime_parity=False),
-                masked_equal='All eight integer tag types may mix; zero-extend declared patterns and consume all operands even under a zero mask',
+                masked_equal='All eight integer tag types may mix. Check all addresses, read the mask, and read only comparands whose declared widths intersect the mask.',
                 meq_types=list(INT_BITS), meq_mixed_integer_tags=True,
                 meq_immediates='Signed DINT and 32-bit radix patterns in any position with all eight integer types; previously accepted homogeneous LINT calls keep signed DINT promotion',
                 limits='Inclusive; low > high accepts values at or outside the endpoints',

@@ -33,7 +33,8 @@ AND(4294967295U,255UL) stored in SINT is -1. Untouched elements remain unchanged
 MEQ applies each operand's pattern width, then compares Source AND Mask against
 Compare AND Mask. A 32-bit mask ignores differences above bit 31; a 64-bit mask
 can expose them. All three positions support typed constants. Operands remain
-read-only and all required values are consumed, including under a zero mask.
+read-only. MEQ checks every address and can skip a comparand value if the mask
+selects no bits within its declared width.
 
 Structural preflight checks type, shape, immediate range and permissions without
 saved values or live indices. False/prescan paths skip those values and retain

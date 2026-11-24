@@ -65,12 +65,17 @@ class NumericComparisonTests(unittest.TestCase):
             self.assertEqual(self.snapshot(e), before)
             e.memory.write('Values[0]', 15 if position == 1 else 7);e.step();self.assertTrue(e.memory.read('RunLatch'))
 
-    def test_zero_meq_mask_still_consumes_unknown_source_and_compare(self):
-        for text in ('MEQ(Values[0],0,7)', 'MEQ(7,0,Values[0])'):
-            e = self.checked([text + 'OTE(RunLatch);']);before = self.snapshot(e)
-            with self.assertRaisesRegex(ModelError, 'Unknown'):e.step()
+    def test_zero_meq_mask_skips_values_after_checking_live_addresses(self):
+        for text in ('MEQ(Values[Index],0,7)', 'MEQ(7,0,Values[Index])'):
+            e = self.checked([text + 'OTE(RunLatch);'])
+            before = self.snapshot(e)
+            with self.assertRaisesRegex(ModelError, 'outside bounds'):
+                e.step()
             self.assertEqual(self.snapshot(e), before)
-            e.memory.write('Values[0]', -123);e.step();self.assertTrue(e.memory.read('RunLatch'))
+            e.memory.write('Index', 0)
+            e.step()
+            self.assertTrue(e.memory.read('RunLatch'))
+            self.assertEqual(e.memory.read('Values'), [None] * 3)
 
     def test_meq_narrow_zero_fill_and_radix_patterns_are_preserved(self):
         for dtype, expected in (('SINT', 255), ('INT', 65535), ('DINT', 4294967295)):

@@ -4790,13 +4790,25 @@ class ApplicationLifecycleTests(unittest.TestCase):
         self.post('step',{'dt':10});self.post('write',{'tag':'StartPB','value':True});self.post('write',{'tag':'SpeedCommand','value':0})
         def current():
             with urlopen(Request(self.url+'/api/state',headers={'X-Logix-Token':self.token}),timeout=3) as response:return json.load(response)
-        for tag,value in (('Index',0),('Values[0]','9007199254740993'),('SpeedCommand',1)):
+        def check_rollback(message):
             before=current()
             with self.assertRaises(HTTPError) as error:self.post('step',{'dt':10})
-            self.assertEqual(error.exception.code,400);error.exception.close()
+            self.assertEqual(error.exception.code,400)
+            try:
+                self.assertIn(message,error.exception.read().decode())
+            finally:
+                error.exception.close()
             after=current()
             for key in ('tags','scan','ms','task_schedule'):self.assertEqual(after[key],before[key])
-            self.post('write',{'tag':tag,'value':value})
+        check_rollback('outside bounds')
+        self.post('write',{'tag':'Index','value':0})
+        check_rollback('zero')
+        self.post('write',{'tag':'SpeedCommand','value':1})
+        row={r['name']:r['value'] for r in self.post('step',{'dt':10})['tags']}
+        self.assertTrue(row['RunLatch']);self.assertIsNone(row['Values[0]'])
+        self.post('write',{'tag':'Mask','value':1})
+        check_rollback('Unknown')
+        self.post('write',{'tag':'Values[0]','value':'9007199254740993'})
         row={r['name']:r['value'] for r in self.post('step',{'dt':10})['tags']}
         self.assertTrue(row['RunLatch']);self.assertEqual(row['Values[0]'],'9007199254740993');self.assertEqual(row['Dest'],7)
 

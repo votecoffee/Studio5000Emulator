@@ -94,7 +94,11 @@ def execute(memory, op, power, scope):
     # A zero mask is a true no-op; a full replacement needs no old destination.
     if not mask:
         return True
-    source = unsigned(memory, op.args[0], scope, source_width, radix=radix)
+    # MVM zero-fills selected bits above the source width on the qualified profile.
+    source_mask = mask
+    if radix and op.name == 'MVM':
+        source_mask &= (1 << source_width) - 1
+    source = unsigned(memory, op.args[0], scope, source_width, radix=radix) if source_mask else 0
     bits = (source >> source_bit) << dest_bit
     full = (1 << dest_width) - 1
     dest = 0 if mask == full else unsigned(memory, op.args[2], scope, dest_width)
@@ -110,7 +114,7 @@ def description():
                 dint_radix='v35 5580: unsuffixed 32-bit binary/octal/hex with grouped digits for sources, MVM masks and BTD fields',
                 mixed_widths='Zero-fill; preserve destination bits outside the selected mask/field',
                 preflight='v35 ControlLogix 5580 checks declared scalar types/shapes, index grammar, permissions and immediate bounds without saved dynamic indices',
-                selection='False/prescan skip values/indices; enabled calls check addresses before zero-mask value skips; full writes establish unknowns, partial writes require old bits',
+                selection='False/prescan skip values/indices; enabled calls check addresses first. A zero MVM mask skips values, and v35 5580 MVM can write zero-filled bits without reading the narrower source. Full writes establish unknowns; partial writes require old bits.',
                 btd_fields='Immediate source/destination bit within declared width; length 1..32',
                 btd_excess='Source high bits zero-filled; destination excess discarded without array wrap',
                 native_math_status=False, native_fault_classification=False)

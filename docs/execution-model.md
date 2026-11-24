@@ -536,10 +536,11 @@ Native status/overflow/lifecycle and broader profiles remain unqualified.
 
 [Numeric ladder comparisons](numeric-comparisons.md) separate static checks from
 live operands for v35 5580 EQU/NEQ/LES/LEQ/GRT/GEQ/LIM/MEQ. False/prescan skip
-values and dynamic indices; true calls consume every operand, including MEQ under
-a zero mask. MEQ mixes all eight integer tag types using zero-extended declared
-patterns and read-only inputs. Wide operands with immediates retain homogeneous
-restrictions. Exact integer masks, limit rules and AOI rollback are retained.
+values and dynamic indices. An enabled MEQ checks all addresses and reads only
+comparands with selected bits. MEQ mixes all eight integer tag types using
+zero-extended declared patterns and read-only inputs. Wide operands with
+immediates retain homogeneous restrictions. Exact integer masks, limit rules
+and AOI rollback are retained.
 Complete native promotion/status/fault/lifecycle parity remains unfinished.
 
 [Ladder bit logic](bit-logic.md) validates scalar BOOL shapes/references without
