@@ -84,7 +84,9 @@ skip these live operands. Existing ST FOR destination protections remain.
 
 Reached calls capture Length and complete source/destination windows before
 writing. The count clips to the shorter remaining source/destination logical
-scalar/member/array region; sibling members are never traversed. See
+scalar/member/array region; sibling members are never traversed. A read-only
+source array requires no rollback snapshot. Each destination store journals
+the written tag and detaches the installed record. See
 [clipped aggregate operations](clipped-aggregates.md), including ST FOR effects.
 Zero length still resolves both live addresses, and reads no record values.
 Unknown consumed lengths and invalid live indices fault; unknown record fields

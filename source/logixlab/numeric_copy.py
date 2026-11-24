@@ -89,6 +89,15 @@ def prefix(memory,ref,scope,count,*,writable=False):
     key,parts,dtype,candidate=location(memory,ref,scope,writable=writable)
     if not count:return key,[],dtype
     if candidate is None:return key,[parts],dtype
+    base, array = candidate
+    selection = parts[len(base):]
+    if array and not isinstance(array[0], list) and len(selection) <= 1:
+        start = selection[0] if selection else 0
+        end = min(start + count, len(array))
+        if end > MAX_VISITS:
+            raise ModelError('Numeric-copy region traversal limit exceeded')
+        return key, [base + [index] for index in range(start, end)], dtype
+
     def flatten(path,value):
         if isinstance(value,list):
             for i,item in enumerate(value):yield from flatten(path+[i],item)

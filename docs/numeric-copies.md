@@ -43,8 +43,9 @@ destination elements do not require known old values.
 Numeric regions can be scalar tags, members, arrays or member arrays. Array
 offsets and one-/two-/three-dimensional row-major traversal are supported.
 Program-local tags, aliases, AOI InOut arrays and member arrays inside nested
-UDT arrays use their resolved storage identities. A traversal limit bounds work
-needed to find a starting element.
+UDT arrays use their resolved storage identities. One-dimensional copies resolve
+the clipped window directly at the selected index. Multidimensional copies
+traverse in row-major order within the existing limit.
 
 Regions stop at the selected scalar/member/array boundary. Native Logix can
 continue across member boundaries up to a base tag's end; this model does not

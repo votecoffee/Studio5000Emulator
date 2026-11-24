@@ -1,6 +1,7 @@
 """Matching record copies, lazy references, overlap and atomic recovery."""
 import copy
 import unittest
+from unittest.mock import patch
 from xml.etree import ElementTree as E
 
 from logixlab.model import ModelError
@@ -42,7 +43,10 @@ class AggregateCopyTests(unittest.TestCase):
             e = self.checked([f'{op}(Records[0],CopyRecords[1],1);'])
             e.memory.write('Records[0].Enabled', True); e.memory.write('Records[0].Flags[0]', True)
             e.memory.write('CopyRecords[1].Count', 123); guard = copy.deepcopy(e.memory.read('CopyRecords')[2])
-            e.step(); self.assertEqual(e.memory.read('Records')[0], e.memory.read('CopyRecords')[1])
+            with patch.object(e.memory, '_remember', wraps=e.memory._remember) as remember:
+                e.step()
+                self.assertNotIn('records', [args[0] for args, _ in remember.call_args_list])
+            self.assertEqual(e.memory.read('Records')[0], e.memory.read('CopyRecords')[1])
             self.assertIsNone(e.memory.read('CopyRecords')[1]['Count'])
             self.assertEqual(e.memory.read('CopyRecords')[2], guard)
             e.memory.write('Records[0].Flags[0]', False)

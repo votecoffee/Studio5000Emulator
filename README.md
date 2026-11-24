@@ -1106,7 +1106,9 @@ remain unfinished.
 
 [Numeric COP/CPS byte copies](docs/numeric-copies.md) preserve REAL and LREAL
 bit patterns, including NaN payloads and infinities, across mixed-type copies
-and partial destination writes. Choose **Byte copy lab** to inspect a packed
+and partial destination writes. One-dimensional copies locate the requested
+window directly, including when it starts near the end of a large array.
+Choose **Byte copy lab** to inspect a packed
 packet and see an integer bit pattern produce infinity.
 
 [FBD bitwise operations](docs/fbd-bitwise.md) adds DINT AND/OR/XOR/NOT, masked

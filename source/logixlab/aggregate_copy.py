@@ -48,7 +48,9 @@ def handle(engine, op, scope, *, execute=False):
     engine.budget -= len(destinations) * scalar_count(template)
     if engine.budget < 0:raise ModelError('Aggregate COP/CPS scalar-member budget exceeded')
     for source, dest in zip(sources, destinations):
-        memory.store(dk, dest, memory.at(sk, source))
+        # Read each source in sequence for overlap. The store detaches the
+        # record and journals the destination before it writes.
+        memory.store(dk, dest, memory.at(sk, source, mutable=False))
     return True
 
 
