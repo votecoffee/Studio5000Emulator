@@ -3,6 +3,7 @@ import base64
 import copy
 from pathlib import Path
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 from xml.etree import ElementTree as E
@@ -118,7 +119,8 @@ class RunEntryTests(unittest.TestCase):
         before=copy.deepcopy((e.memory.values,e.memory.frames,e.addons.instances,e.last_timer,e.trace,e.memory.first_scan,e.budget,e.scan_count,e.time_ms))
         def fail():
             original();e.memory.write('RunLatch',True)
-            e.memory.frames['broken']={};e.addons.instances['broken']={}
+            e.addons._set_frame('broken', {})
+            e.addons._register_instance('broken', SimpleNamespace(name='Synthetic'), 'broken')
             raise RuntimeError('Synthetic prescan failure')
         with patch.object(e,'_prescan',side_effect=fail),self.assertRaisesRegex(ModelError,'Prescan rolled back'):
             e.enter_run()

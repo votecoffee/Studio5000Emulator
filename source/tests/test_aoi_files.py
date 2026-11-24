@@ -102,6 +102,50 @@ class AOIFileTests(unittest.TestCase):
         e=self.checked();self.write(e,Transform=True,Search=True);e.step();progress=e._file_incremental.copy();e.enter_run();self.assertEqual(e._file_incremental,progress)
         e.step();self.assertEqual(e.memory.read('CalcA.POS'),0);self.pulse(e);self.assertEqual(e.memory.read('CalcA.POS'),1)
 
+    def test_prescan_preview_and_fault_restore_file_state_after_aoi_resets(self):
+        def prescan(root):
+            definition = root.find('.//AddOnInstructionDefinition')
+            definition.set('ExecutePrescan', 'true')
+            routine = E.SubElement(definition.find('Routines'), 'Routine', Name='Prescan', Type='RLL')
+            rung = E.SubElement(E.SubElement(routine, 'RLLContent'), 'Rung', Number='0', Type='N')
+            E.SubElement(rung, 'Text').text = 'RES(Calc)DIV(1,Gain,Total);'
+
+        e = self.checked(prescan)
+        self.write(e, Transform=True)
+        e.step()
+        progress, retry = e._file_incremental, e._file_arithmetic_retry
+        calc_a, calc_b = ('calca', ()), ('calcb', ())
+        self.assertTrue({calc_a, calc_b} <= progress)
+        retry.add(calc_a)
+        trace, history = e.trace, e.last_timer
+        before = self.snapshot(e)
+
+        e._apply_prescan(preview=True)
+
+        self.assertEqual(self.snapshot(e), before)
+        self.assertIs(e.trace, trace)
+        self.assertIs(e.last_timer, history)
+        self.assertIs(e._file_incremental, progress)
+        self.assertIs(e._file_arithmetic_retry, retry)
+        self.assertEqual(retry, {calc_a})
+
+        gain = e.memory.read('GainB')
+        self.write(e, GainB=0)
+        before = self.snapshot(e)
+        with self.assertRaisesRegex(ModelError, 'Prescan rolled back:.*zero'):
+            e._apply_prescan(report_fault=False)
+        self.assertEqual(self.snapshot(e), before)
+        self.assertIs(e.trace, trace)
+        self.assertIs(e._file_incremental, progress)
+        self.assertEqual(retry, {calc_a})
+
+        self.write(e, GainB=gain)
+        e.enter_run()
+        self.assertFalse({calc_a, calc_b} & progress)
+        self.assertFalse(retry)
+        self.assertEqual(e.trace, [])
+        self.assertEqual(e.prescan_count, 2)
+
     def test_inc_rejects_saved_active_or_unknown_controls_even_on_false_calls(self):
         for target,field,value in (('CalcA','POS','1'),('FindA','IN','1'),('CalcB','EN','1'),('local','POS','1'),('local','EN',None)):
             def active(root):

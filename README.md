@@ -1269,7 +1269,9 @@ Choose a bundled demo from **Examples** or open a complete L5X export. Check
 state is used by native Remote Run/Program requests. Scanning runs in the app
 and continues with the webpage closed.
 Entering Run performs modeled prescan, which can reset non-retentive values and
-execute enabled AOI Prescan routines. Repeated Run requests do not repeat it.
+execute enabled AOI Prescan routines. A preview or failed prescan restores the
+previous instruction history and any file progress changed by the AOI routines.
+Repeated Run requests do not repeat prescan.
 During each simulation advance, LogixLab snapshots individual tags as the logic
 writes to them or accesses their mutable records. A failed scan restores the
 saved values. Change history compares only the tags captured during that advance.

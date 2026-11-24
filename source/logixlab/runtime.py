@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import operator
 from collections import Counter
+from contextlib import contextmanager
 from time import perf_counter_ns
 from .fault_log import ARITHMETIC_OVERFLOW, MinorFaultLog, MinorFaultRecord
 from .identity import controller_status_word
@@ -344,14 +345,14 @@ class Engine:
                 'failed_scans_update_counters':False,'prescan_included':False,'controller_performance_prediction':False}
 
     def _apply_prescan(self, *, preview=False, report_fault=True):
-        before = copy.deepcopy((self.calls.stack, self.last_timer, self.memory.first_scan,
-                                self.trace, self.budget, self._file_incremental, self._file_arithmetic_retry,
-                                self._st_counter_edges, self._st_oneshot_edges, self.memory.message_cache))
+        # Prescan replaces these histories and the trace before it can write to them.
+        before = (copy.deepcopy(self.calls.stack), self.last_timer, self.memory.first_scan,
+                  self.trace, self.budget, self._st_counter_edges, self._st_oneshot_edges,
+                  self.memory.message_cache.copy())
 
         def restore():
             (self.calls.stack, self.last_timer, self.memory.first_scan, self.trace, self.budget,
-             self._file_incremental, self._file_arithmetic_retry, self._st_counter_edges,
-             self._st_oneshot_edges, self.memory.message_cache) = before
+             self._st_counter_edges, self._st_oneshot_edges, self.memory.message_cache) = before
 
         self.budget=self.instruction_limit
         self.last_timer={}
@@ -361,7 +362,8 @@ class Engine:
         self.trace=[]
         try:
             with (self.memory.track_values(rollback=preview, track_resolutions=True),
-                  self.addons.track_bindings(rollback=preview)):
+                  self.addons.track_bindings(rollback=preview),
+                  self._track_instruction_history(rollback=preview)):
                 self._prescan()
         except Exception as error:
             restore()
@@ -864,9 +866,26 @@ class Engine:
 
     def _step(self, dt=10, *, running=False):
         self.prepare_step(dt)
-        with self.memory.track_values() as (before, cells), self.addons.track_bindings():
+        with (self.memory.track_values() as (before, cells), self.addons.track_bindings(),
+              self._track_instruction_history()):
             self._advance(dt, running=running)
         return self._record_tag_changes(before, cells)
+
+    @contextmanager
+    def _track_instruction_history(self, *, rollback=False):
+        if self._instruction_history_before is not None:
+            raise ModelError('Instruction history tracking is already active')
+        self._instruction_history_before = {}
+        try:
+            yield
+        except Exception:
+            rollback = True
+            raise
+        finally:
+            before = self._instruction_history_before
+            self._instruction_history_before = None
+            if rollback:
+                self._restore_instruction_history(before)
 
     def _remember_instruction_state(self, collection, identity):
         before = self._instruction_history_before
@@ -899,8 +918,8 @@ class Engine:
         else:
             flags.discard(identity)
 
-    def _restore_instruction_history(self):
-        for (_, identity), (collection, state) in self._instruction_history_before.items():
+    def _restore_instruction_history(self, before):
+        for (_, identity), (collection, state) in before.items():
             if isinstance(collection, set):
                 if state:
                     collection.add(identity)
@@ -937,7 +956,6 @@ class Engine:
         self._immediate_output_advance = {}
         task_outputs = {}
         self._message_advance = self._messages.copy()
-        self._instruction_history_before = {}
         try:
             self._scan_controller_status = controller_status_word(self.controller_mode(running=running))
             # Service at the committed boundary, before any task release in this advance.
@@ -1032,13 +1050,11 @@ class Engine:
                 self._task_scheduler.watchdog_overrides=watchdog_overrides
                 self._task_scheduler.output_update_overrides=output_update_overrides
             self.time_ms, self.memory.first_scan, self.trace = previous
-            self._restore_instruction_history()
             self._executing_task=None
             self.last_cleared_program_fault = previous_program_clear
             self.fault = str(e) or type(e).__name__
             raise ModelError(f"Scan rolled back: {e}") from e
         finally:
-            self._instruction_history_before = None
             self._event_dispatch=None
             self._timing_advance=None
             self._program_advance=None
