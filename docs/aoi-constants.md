@@ -31,8 +31,8 @@ Parameter and body writes are tracked when they occur. Each frame reference
 follows its current binding before consulting the canonical address cache.
 Rebinding therefore leaves unrelated cached addresses in place.
 Failed advances restore instance fields, outputs, bindings, clocks and
-scheduling. They discard addresses first cached during the failed advance and
-retain the entries warmed before it.
+scheduling. The journal restores changed frames and removes newly reached
+instances and cached addresses. Previously warmed addresses stay in place.
 
 Choose **Examples → AOI constants lab**. Step once with Enabled false to inspect
 the copied Input fields while outputs remain zero. Set Enabled true and step:

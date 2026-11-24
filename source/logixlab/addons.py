@@ -39,6 +39,25 @@ class AddOns:
         self.caller_program = None
         self.prescanning = False
         self.prescan_recovery = False
+        self._previous_frames = None
+        self._new_instances = None
+
+    @contextmanager
+    def track_bindings(self):
+        """Restore changed frames and newly reached instances on scan failure."""
+        previous_frames = self._previous_frames = {}
+        new_instances = self._new_instances = []
+        try:
+            yield
+        except Exception:
+            for frame, bindings in previous_frames.items():
+                self._set_frame(frame, bindings)
+            for address in new_instances:
+                self.instances.pop(address, None)
+            raise
+        finally:
+            self._previous_frames = None
+            self._new_instances = None
 
     @contextmanager
     def program_context(self, scope, *, prescan=False, recover_prescan=False):
@@ -120,15 +139,23 @@ class AddOns:
         return definition,frame,address,bindings
 
     def _set_frame(self, frame, bindings):
+        if self._previous_frames is not None:
+            self._previous_frames.setdefault(frame, self.memory.frames.get(frame))
         if bindings is None:
             self.memory.frames.pop(frame, None)
         else:
             self.memory.frames[frame] = bindings
 
+    def _register_instance(self, address, definition, frame):
+        if address not in self.instances:
+            self.instances[address] = {'definition': definition.name, 'scope': frame}
+            if self._new_instances is not None:
+                self._new_instances.append(address)
+
     def validate(self,op,scope,stack=()):
         definition,frame,address,bindings=self._prepare_binding(op,scope)
         self._set_frame(frame, bindings)
-        self.instances[address]={'definition':definition.name,'scope':frame}
+        self._register_instance(address, definition, frame)
         if definition.name.upper() in stack:raise ModelError('Recursive AOI call: '+definition.name)
         with self.program_context(scope):
             identity=(definition.name.upper(),frame,tuple(op.args[1:]),scope,self.caller_program)
@@ -189,7 +216,7 @@ class AddOns:
         except CallOperandBoundsError:
             self._set_frame(frame, previous)
             raise
-        self.instances[address]={'definition':definition.name,'scope':frame}
+        self._register_instance(address, definition, frame)
         if copy_outputs:
             try:
                 with self.program_context(scope, prescan=prescan, recover_prescan=prescan and recover_operands):

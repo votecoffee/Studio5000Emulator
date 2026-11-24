@@ -776,6 +776,49 @@ class AddOnTests(unittest.TestCase):
         self.assertEqual(m.frames['@AOI:accumulatora']['shared'], ('SharedA[1]', ''))
         self.assertEqual(m.read('SharedA', mutable=False), [10, 22])
 
+    def test_failed_scan_restores_rebound_frame_and_removes_new_instance(self):
+        tag = self.root.find('./Controller/Tags/Tag[@Name="AccumulatorA"]')
+        data = tag.find('Data')
+        saved = data.find('Structure')
+        E.SubElement(saved, 'DataValueMember', Name='Count', DataType='DINT', Value='0')
+        tag.set('Dimensions', '2')
+        data.remove(saved)
+        array = E.SubElement(data, 'Array', DataType='LabAccumulator', Dimensions='2')
+        for index in range(2):
+            E.SubElement(array, 'Element', Index=f'[{index}]').append(copy.deepcopy(saved))
+        self.set_dint_array('SharedA', (10, 20))
+        e = self.engine([
+            'LabAccumulator(AccumulatorA[0],StepA,TotalA,SharedA[Truncated]);',
+            'LabAccumulator(AccumulatorA[Truncated],StepB,TotalB,SharedB);',
+            'CPT(ScaledValue,1/StepB);',
+        ])
+        self.assertEqual(e.blockers, [])
+        memory = e.memory
+        memory.write('Truncated', 1)
+        memory.write('StepB', 0)
+        frames, instances = memory.frames, e.addons.instances
+        frame = '@AOI:accumulatora[0]'
+        original = frames[frame]
+        values = copy.deepcopy(memory.values)
+        self.assertEqual(set(instances), {'AccumulatorA[0]'})
+
+        with self.assertRaisesRegex(ModelError, 'zero'):
+            e.step()
+        self.assertIs(memory.frames, frames)
+        self.assertIs(e.addons.instances, instances)
+        self.assertIs(frames[frame], original)
+        self.assertNotIn('@AOI:accumulatora[1]', frames)
+        self.assertEqual(set(instances), {'AccumulatorA[0]'})
+        self.assertEqual(memory.values, values)
+
+        memory.write('StepB', 3)
+        e.step()
+        self.assertEqual(frames[frame]['shared'], ('SharedA[1]', ''))
+        self.assertEqual(frames['@AOI:accumulatora[1]']['shared'], ('SharedB', ''))
+        self.assertEqual(set(instances), {'AccumulatorA[0]', 'AccumulatorA[1]'})
+        self.assertEqual(memory.read('SharedA', mutable=False), [10, 22])
+        self.assertEqual(memory.read('SharedB'), 23)
+
     def test_later_fault_rolls_back_local_output_inout_time_and_timer_metadata(self):
         e=self.engine(['LabAccumulator(AccumulatorA,StepA,TotalA,SharedA);','CPT(TotalB,1/0);'])
         before=copy.deepcopy(e.memory.values)

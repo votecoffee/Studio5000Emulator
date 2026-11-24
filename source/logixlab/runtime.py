@@ -858,14 +858,13 @@ class Engine:
 
     def _step(self, dt=10, *, running=False):
         self.prepare_step(dt)
-        with self.memory.track_values() as (before, cells):
+        with self.memory.track_values() as (before, cells), self.addons.track_bindings():
             self._advance(dt, running=running)
         return self._record_tag_changes(before, cells)
 
     def _advance(self, dt, *, running):
         message_cache = self.memory.message_cache.copy()
         module_modes = self._module_modes.copy()
-        bindings = copy.deepcopy((self.memory.frames, self.addons.instances)) if self.project.aois else None
         previous = (self.time_ms, copy.deepcopy(self.last_timer), self.memory.first_scan, self.trace, set(self._file_incremental), set(self._file_arithmetic_retry), dict(self._st_counter_edges), dict(self._st_oneshot_edges))
         previous_program_clear = self.last_cleared_program_fault
         end_ms=self.time_ms+dt
@@ -976,8 +975,6 @@ class Engine:
         except (ModelError, ArithmeticError, ValueError, TypeError, KeyError, IndexError, OverflowError) as e:
             self.memory.message_cache = message_cache
             self._module_modes = module_modes
-            if bindings is not None:
-                self.memory.frames, self.addons.instances = bindings
             if batch:
                 self._task_scheduler.inhibitions=inhibitions
                 self._task_scheduler.periods=batch.periods
