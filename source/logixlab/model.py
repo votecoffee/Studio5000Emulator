@@ -1437,7 +1437,7 @@ class Memory:
         key, parts, dtype = self.check_writable(ref,scope)
         # A scalar write establishes a previously unknown value. Bit writes still
         # require the other bits in their backing integer to be known.
-        old = self.at(key,parts) if not any(isinstance(p,tuple) for p in parts) else self.read(ref,scope)
+        old = self.at(key,parts,mutable=False) if not any(isinstance(p,tuple) for p in parts) else self.read(ref,scope)
         if isinstance(old,dict) and isinstance(value,str) and self.project.string_capacity(dtype) is not None:
             self.write_string(ref,value,scope);return
         if isinstance(old, (dict, list)): raise ModelError("Whole aggregate assignment unsupported")
@@ -1586,7 +1586,7 @@ class Memory:
     def _string_data(self, ref, scope, *, unsigned_length=False):
         _,_,dtype=self.resolve(ref,scope)
         capacity=self.project.string_capacity(dtype)
-        obj=self.read(ref,scope)
+        obj=self.read(ref,scope,mutable=False)
         if capacity is None or not isinstance(obj,dict):raise ModelError('String operand required')
         length=obj['LEN']
         if unsigned_length and type(length) is int and length < 0:
@@ -1749,21 +1749,32 @@ class Memory:
         return self._decode_string_data(data[:first] + data[end:length])
 
     def _check_string_result_size(self, ref, length, scope):
-        _, _, dtype = self.check_writable(ref, scope)
+        key, parts, dtype = self.check_writable(ref, scope)
         capacity = self.project.string_capacity(dtype)
         if capacity is None:
             raise ModelError('String destination required')
         if length > capacity:
             raise StringCapacityError(f'String length {length} exceeds capacity {capacity} for {ref}')
+        return key, parts
 
     def write_string(self,ref,text,scope=''):
         try:data=text.encode('latin-1')
         except UnicodeEncodeError as e:raise ModelError('Strings require single-byte characters') from e
-        self._check_string_result_size(ref, len(data), scope)
-        obj=self.read(ref,scope)
-        # String instructions overwrite LEN and result bytes, preserving unused backing DATA.
-        obj['LEN']=len(data)
-        obj['DATA'][:len(data)]=[x if x<128 else x-256 for x in data]
+        key, parts = self._check_string_result_size(ref, len(data), scope)
+        backing = self.read(ref, scope, mutable=False)['DATA']
+        if self.structural:
+            return
+        data_path = parts + ['DATA']
+        result = [byte if byte < 128 else byte - 256 for byte in data]
+        self.store(key, parts + ['LEN'], len(result))
+        if len(result) >= MAX_TRACKED_CELLS_PER_TAG:
+            # Journal one DATA replacement for a long result, preserving its tail.
+            updated = backing.copy()
+            updated[:len(result)] = result
+            self.store(key, data_path, updated)
+        else:
+            for index, byte in enumerate(result):
+                self.store(key, data_path + [index], byte)
 
     def leaves(self):
         result = []

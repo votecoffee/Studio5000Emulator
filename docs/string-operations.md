@@ -33,6 +33,8 @@ Writes update LEN and active result bytes, preserving unused backing bytes,
 including unknown unused bytes. Represented NUL and high bytes are ordinary
 single-byte data; positions count bytes. False ladder rungs, unreached ST branches
 and prescan retain destinations. Reached calls execute on every scan.
+Reading a string does not require a rollback snapshot. String writes journal
+LEN and the result bytes. Long results replace only the backing DATA array.
 
 ## Grouped radix positions and quantities
 

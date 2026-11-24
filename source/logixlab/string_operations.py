@@ -30,7 +30,7 @@ def string_operand(memory, ref, scope, *, destination=False):
     capacity = memory.project.string_capacity(dtype)
     if capacity is None:
         raise ModelError('String operation requires a scalar LEN/DATA string tag')
-    obj = memory.at(key, parts)
+    obj = memory.at(key, parts, mutable=False)
     if not isinstance(obj, dict) or set(obj) != {'LEN', 'DATA'}:
         raise ModelError('String operation requires a scalar LEN/DATA string tag')
     if not isinstance(obj['DATA'], list) or len(obj['DATA']) != capacity:

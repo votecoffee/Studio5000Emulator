@@ -1,6 +1,7 @@
 """Ladder string MOV, quoted RLL operands and transactional writes."""
 import copy
 import unittest
+from unittest.mock import patch
 from xml.etree import ElementTree as E
 
 import test_string_operations as fixtures
@@ -21,6 +22,33 @@ class StringMoveTests(unittest.TestCase):
         E.SubElement(members, 'Member', Name='DATA', DataType='SINT', Dimension='4')
         tag = E.SubElement(controller.find('Tags'), 'Tag', Name='Short', TagType='Base', DataType='ShortText')
         fixtures.string_data(E.SubElement(tag, 'Data', Format='Decorated'), 'WXYZ', 4, 'ShortText')
+
+    @staticmethod
+    def string_rows(root):
+        tags = root.find('./Controller/Tags')
+        tag = E.SubElement(tags, 'Tag', Name='Rows', TagType='Base', DataType='STRING', Dimensions='2')
+        E.SubElement(E.SubElement(tag, 'Data', Format='Decorated'), 'Array', DataType='STRING', Dimensions='2')
+
+    def test_short_and_long_string_writes_roll_back_without_copying_array(self):
+        for length in (5, 70):
+            with self.subTest(length=length):
+                e = self.checked(['MOV(SourceA,Rows[1]);', 'XIC(StartPB)CPT(SpeedCommand,1/0);'],
+                                 mutate=self.string_rows)
+                e.memory.write_string('SourceA', 'ÿ' * length)
+                e.memory.write('Rows[1].DATA[81]', 77)
+                e.memory.write('StartPB', True)
+                before = copy.deepcopy(e.memory.values['rows'])
+                with patch.object(e.memory, '_remember', wraps=e.memory._remember) as remember:
+                    with self.assertRaisesRegex(ModelError, 'zero'):
+                        e.step()
+                self.assertFalse({'rows', 'sourcea'} & {call.args[0] for call in remember.call_args_list})
+                self.assertEqual(e.memory.values['rows'], before)
+                e.memory.write('StartPB', False)
+                e.step()
+                self.assertEqual(e.memory.string('Rows[1]'), 'ÿ' * length)
+                self.assertEqual(e.memory.read('Rows[1].DATA[81]'), 77)
+                self.assertIsNone(e.memory.values['rows'][1]['DATA'][80])
+                self.assertEqual(e.memory.values['rows'][0], before[0])
 
     def test_clipping_consumes_only_the_copied_prefix_and_retains_the_source(self):
         engine = self.checked(['MOV(SourceA,Short)XIC(S:V)OTE(RunLatch);'], mutate=self.short_destination)
@@ -73,11 +101,8 @@ class StringMoveTests(unittest.TestCase):
         self.assertEqual(engine.memory.string('Dest'), 'ABC1')
 
     def test_false_and_prescan_skip_bad_index_and_later_fault_rolls_back(self):
-        def array(root):
-            tags = root.find('./Controller/Tags')
-            tag = E.SubElement(tags, 'Tag', Name='Rows', TagType='Base', DataType='STRING', Dimensions='2')
-            E.SubElement(E.SubElement(tag, 'Data', Format='Decorated'), 'Array', DataType='STRING', Dimensions='2')
-        engine = self.checked(['XIC(StartPB)MOV(SourceB,Dest);','XIC(StartPB)MOV(SourceA,Rows[Index]);'], mutate=array)
+        engine = self.checked(['XIC(StartPB)MOV(SourceB,Dest);','XIC(StartPB)MOV(SourceA,Rows[Index]);'],
+                              mutate=self.string_rows)
         engine.memory.write('Index', 99)
         engine.step()
         self.assertEqual(engine.memory.string('Dest'), 'TAIL')
