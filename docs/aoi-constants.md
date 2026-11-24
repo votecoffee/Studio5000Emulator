@@ -26,8 +26,9 @@ calls copy Inputs and retain the caller's output values. Constants do not seed
 unknown saved locals or replace the definition's optional-parameter behavior.
 Nested RLL and existing ST AOI calls use the same transfer path. ST arithmetic
 and assignment limits remain separate; a supported CPS call can copy LREAL.
-Failed advances
-restore instance fields, outputs, bindings, clocks and scheduling.
+Binding checks read instance and InOut shapes without snapshotting their tags.
+Parameter and body writes are tracked when they occur. Failed advances restore
+instance fields, outputs, bindings, clocks and scheduling.
 
 Choose **Examples → AOI constants lab**. Step once with Enabled false to inspect
 the copied Input fields while outputs remain zero. Set Enabled true and step:

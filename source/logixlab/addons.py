@@ -59,7 +59,7 @@ class AddOns:
         if len(op.args)!=len(definition.required)+1:
             raise ModelError('Expected instance plus required parameters in definition order')
         key,parts,dtype=self.memory.check_writable(op.args[0],scope)
-        if dtype!=definition.name.upper() or not isinstance(self.memory.at(key,parts),dict):
+        if dtype!=definition.name.upper() or not isinstance(self.memory.at(key, parts, mutable=False), dict):
             raise ModelError('Instance must be a scalar tag/member of type '+definition.name)
         address=self.memory.address(key,parts);frame='@AOI:'+address.lower()
         bindings={}
@@ -78,7 +78,7 @@ class AddOns:
                 if t != expected:
                     raise ModelError(f"{parameter.get('Name')}: InOut requires type {expected}, received {t}")
                 declared = dimensions(parameter.get('Dimensions', '0'))
-                actual = shape(self.memory.at(k, p))
+                actual = shape(self.memory.at(k, p, mutable=False))
                 larger_vector = (len(declared) == len(actual) == 1 and actual[0] > declared[0]
                                  and numeric_available(self.engine.project))
                 if actual != declared and not larger_vector:
@@ -96,7 +96,7 @@ class AddOns:
                     _, _, width, signed = parts[-1]
                     if not (numeric_available(self.engine.project) and signed and width in (8, 16, 32)):
                         raise ModelError('Output bit selections require v35 5580 SINT, INT, or DINT storage')
-                elif isinstance(self.memory.at(key, parts), (dict, list)):
+                elif isinstance(self.memory.at(key, parts, mutable=False), (dict, list)):
                     raise ModelError(parameter.get('Name')+': Output destination type must match exactly')
             else:
                 immediate=input_immediate(self.engine.project,argument)
@@ -108,7 +108,7 @@ class AddOns:
                     try:value=literal(argument);source_type='BOOL' if isinstance(value,bool) else 'REAL' if isinstance(value,float) else 'DINT'
                     except ValueError:
                         k,p,source_type=self.memory.resolve(argument,scope)
-                        value=self.memory.at(k,p) if not any(isinstance(x,tuple) for x in p) else False
+                        value = self.memory.at(k, p, mutable=False) if not any(isinstance(x, tuple) for x in p) else False
                 if isinstance(value,(dict,list)):raise ModelError('Input requires a scalar value')
                 if expected in time_values.TYPES and source_type != expected:
                     raise ModelError(parameter.get('Name')+': Time/date Input source type must match exactly')
@@ -229,7 +229,7 @@ class AddOns:
                 value = immediate[1]
             else:
                 temporal = parameter.get('DataType', '').upper() in time_values.TYPES
-                value = self.memory.read(argument, scope, allow_time=temporal)
+                value = self.memory.read(argument, scope, allow_time=temporal, mutable=False)
                 if isinstance(value, float):
                     try:
                         literal(argument)
@@ -244,7 +244,7 @@ class AddOns:
         for parameter, argument in zip(definition.required, op.args[1:]):
             if parameter.get('Usage') == 'Output':
                 temporal = parameter.get('DataType', '').upper() in time_values.TYPES
-                value = self.memory.read(parameter.get('Name'), frame, allow_time=temporal)
+                value = self.memory.read(parameter.get('Name'), frame, allow_time=temporal, mutable=False)
                 self.memory.write(argument, value, scope)
 
     def report(self):

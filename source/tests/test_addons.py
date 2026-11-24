@@ -1,6 +1,7 @@
 import copy
 import struct
 import unittest
+from unittest.mock import patch
 from xml.etree import ElementTree as E
 from logixlab.model import ModelError, Project
 from logixlab.runtime import Engine
@@ -1254,6 +1255,43 @@ class AddOnTests(unittest.TestCase):
         e=self.engine(['LabAccumulator(AccumulatorA,StepA,TotalA,SharedA);']);self.assertEqual(e.blockers,[]);e.step()
         self.assertEqual(e.memory.read('SharedA'),[12,20])
         p.set('Dimensions','3');self.assertTrue(self.engine(['LabAccumulator(AccumulatorA,StepA,TotalA,SharedA);']).blockers)
+
+    def test_array_instance_and_inout_shape_checks_do_not_snapshot_tags(self):
+        tag = self.root.find('./Controller/Tags/Tag[@Name="AccumulatorA"]')
+        data = tag.find('Data')
+        saved = data.find('Structure')
+        tag.set('Dimensions', '2')
+        data.remove(saved)
+        array = E.SubElement(data, 'Array', DataType='LabAccumulator', Dimensions='2')
+        for index in range(2):
+            E.SubElement(array, 'Element', Index=f'[{index}]').append(copy.deepcopy(saved))
+        self.definition().set('ExecuteEnableInFalse', 'false')
+        self.definition().find('./Parameters/Parameter[@Name="Shared"]').set('Dimensions', '2')
+        self.body()[0].find('Text').text = 'ADD(Count,Step,Count)MOV(Count,Total)ADD(Shared[0],Step,Shared[0]);'
+        self.set_dint_array('SharedA', (10, 20, 30))
+        e = self.engine([
+            'XIC(EnableA)LabAccumulator(AccumulatorA[1],StepA,TotalA,SharedA);',
+            'CPT(TotalB,1/Truncated);',
+        ])
+        self.assertEqual(e.blockers, [])
+        m = e.memory
+        m.write('Truncated', 0)
+        before = copy.deepcopy((m.values, m.frames, m._resolved, e.addons.instances, e.scan_count))
+        with patch.object(m, '_remember', wraps=m._remember) as remember:
+            with self.assertRaisesRegex(ModelError, 'zero'):
+                e.step()
+            self.assertEqual((m.values, m.frames, m._resolved, e.addons.instances, e.scan_count), before)
+            m.write('Truncated', 1)
+            e.step()
+            m.write('EnableA', False)
+            m.write('StepA', 7)
+            e.step()
+        self.assertFalse({'accumulatora', 'shareda'} & {call.args[0] for call in remember.call_args_list})
+        self.assertEqual(m.read('AccumulatorA[1].Step'), 7)
+        self.assertEqual(m.read('AccumulatorA[1].Count'), 2)
+        self.assertEqual(m.read('TotalA'), 2)
+        self.assertEqual(m.read('SharedA', mutable=False), [12, 20, 30])
+        self.assertEqual(m.at('accumulatora', [0], mutable=False), before[0]['accumulatora'][0])
 
     def test_trace_identifies_nested_instance(self):
         e=self.engine();e.step();trace=[t for t in e.trace if t['routine']=='AOI:LabScale/Logic']

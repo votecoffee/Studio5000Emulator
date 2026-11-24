@@ -233,6 +233,7 @@ required scalar Inputs in ladder and Structured Text.
 give AOI logic read-only access to referenced caller data.
 [One-dimensional InOut arrays](docs/aoi-constants.md#one-dimensional-inout-arrays)
 can bind larger same-type arrays and read their actual length with SIZE.
+AOI binding checks inspect instance and InOut shape without copying their tags.
 [False ladder AOI calls](docs/aoi-constants.md#false-ladder-calls) can copy
 required inputs while leaving unused output and InOut indices unevaluated.
 [AOI Input and Output aliases](docs/aoi-constants.md#aliases-to-scalar-local-tags)
