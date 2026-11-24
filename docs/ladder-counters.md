@@ -59,6 +59,8 @@ remain blockers regardless of rung power.
 
 A reset can initialize an unknown counter accumulator and edge/status fields.
 The next call that compares ACC and PRE still requires a known preset.
+Ladder count and reset writes record the updated fields for rollback without
+copying the containing array or UDT.
 For FBD_COUNTER, [ST CTUD](st-counter.md) uses the Reset input.
 [CONTROL RES](control-operands.md#control-reset) has its own field rules.
 

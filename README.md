@@ -593,6 +593,7 @@ CONTROL, strings and explicit UDTs with declared member types. **Data lab** adds
 guarded record, timer, counter and string fill examples.
 
 [Ladder timers](docs/ladder-timers.md) validate PRE/ACC in timing states.
+Timer and counter calls record field updates for rollback, including in arrays.
 The first timing scan starts the clock, and the next scan checks completion.
 **Timer lab** shows ladder delay, retention and pause with clock-history
 rollback and

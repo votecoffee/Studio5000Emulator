@@ -621,7 +621,8 @@ class Engine:
 
     def _timer_execute(self,op,power,scope):
         if op.name not in ('TON','TOF','RTO') or not bit_logic.available(self.project):return None
-        obj=self._counter_record(op.args[0],scope,'TIMER');timer=dict(obj)
+        key, parts, obj = self._counter_record(op.args[0], scope, 'TIMER')
+        timer = obj.copy()
         timing = not power if op.name == 'TOF' else power
         accumulator_limit = 2147483647
         if timing:
@@ -635,7 +636,7 @@ class Engine:
         def flag(member):
             if type(timer[member]) is not bool:raise ModelError('TIMER.'+member+' is unknown or not BOOL')
             return timer[member]
-        key,parts,_=self.memory.resolve(op.args[0],scope);identity=(key,tuple(parts))
+        identity = (key, tuple(parts))
         elapsed=self.time_ms-self.last_timer.get(identity,self.time_ms)
         # A timing edge starts the clock. Only a subsequent timing call compares ACC to PRE.
         if op.name == 'TOF':
@@ -655,17 +656,23 @@ class Engine:
                 timer['ACC'] = min(timer['ACC'] + elapsed, accumulator_limit)
                 timer['DN'] = timer['ACC'] >= timer['PRE']
             timer.update(EN=True, TT=not timer['DN'])
-        obj.update(timer);self.last_timer[identity]=self.time_ms
+        self._store_record_fields(key, parts, obj, timer)
+        self.last_timer[identity] = self.time_ms
         return power
 
     def _counter_record(self,ref,scope,expected=None):
         key,parts,dtype=self.memory.check_writable(ref,scope)
         if dtype not in ('COUNTER','TIMER') or expected is not None and dtype!=expected:
             raise ModelError('A scalar writable '+(expected or 'TIMER or COUNTER')+' record is required')
-        obj=self.memory.at(key,parts)
+        obj=self.memory.at(key,parts,mutable=False)
         if not isinstance(obj,dict) or set(obj)!=set(self.project.default(dtype)):
             raise ModelError('Timer/counter operand must select one complete record')
-        return obj
+        return key, parts, obj
+
+    def _store_record_fields(self, key, parts, record, updates):
+        for field, value in updates.items():
+            if value is not record[field]:
+                self.memory.store(key, parts + [field], value)
 
     def _counter_preflight(self,op,scope):
         if op.name not in ('CTU','CTD','RES') or not bit_logic.available(self.project):return False
@@ -686,10 +693,11 @@ class Engine:
             finally:self.memory.structural=previous
             if dtype=='CONTROL':return None
             if not power:return False
-            obj=self._counter_record(op.args[0],scope)
-            obj.update({name:0 if name=='ACC' else False for name in obj if name!='PRE'})
+            key, parts, obj = self._counter_record(op.args[0], scope)
+            updates = {name: 0 if name == 'ACC' else False for name in obj if name != 'PRE'}
+            self._store_record_fields(key, parts, obj, updates)
             return True
-        obj = self._counter_record(op.args[0], scope, 'COUNTER')
+        key, parts, obj = self._counter_record(op.args[0], scope, 'COUNTER')
 
         def dint(member):
             value = obj[member]
@@ -715,22 +723,23 @@ class Engine:
         if all(updates.get(flag, obj[flag]) is not True for flag in ('OV', 'UN')):
             preset = dint('PRE')
             updates['DN'] = (dint('ACC') if value is None else value) >= preset
-        obj.update(updates)
+        self._store_record_fields(key, parts, obj, updates)
         return power
 
     def _prescan_timer_counter(self, name, ref, scope):
         is_timer = name in ('TON', 'TOF', 'RTO')
         try:
-            record = self._counter_record(ref, scope, 'TIMER' if is_timer else 'COUNTER')
+            key, parts, record = self._counter_record(ref, scope, 'TIMER' if is_timer else 'COUNTER')
         except ArrayBoundsError:
             # Prescan skips this instruction before any member writes.
             return
         if is_timer:
-            record.update(EN=False, TT=False)
+            updates = dict(EN=False, TT=False)
             if name != 'RTO':
-                record.update(DN=False, ACC=record['PRE'] if name == 'TOF' else 0)
+                updates.update(DN=False, ACC=record['PRE'] if name == 'TOF' else 0)
         else:
-            record['CU' if name == 'CTU' else 'CD'] = True
+            updates = {'CU' if name == 'CTU' else 'CD': True}
+        self._store_record_fields(key, parts, record, updates)
 
     def _prescan(self):
         dormant = self._program_activation.keys() & self._disabled_programs

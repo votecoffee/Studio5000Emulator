@@ -99,7 +99,9 @@ These transitions follow the installed v35 timing flowcharts.
 [Rockwell General Instructions reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm003_-en-p.pdf)
 
 Aliases share the resolved record's clock identity. Other array elements and
-AOI instances keep independent histories. An entirely skipped routine retains
+AOI instances keep independent histories. Timer updates record individual
+fields for rollback, including when the timer is inside a UDT array.
+An entirely skipped routine retains
 the existing elapsed-since-last-call policy; this is not a newly qualified
 native skipped-execution contract. Clock sources, precision, overshoot, timing
 limits, native status/fault/retention and full controller parity remain separate.

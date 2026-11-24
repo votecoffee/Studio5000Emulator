@@ -1,6 +1,7 @@
 """Known counter inputs, unknown edge history and typed timer/counter resets."""
 import copy
 import unittest
+from unittest.mock import patch
 from xml.etree import ElementTree as E
 
 import test_runtime as fixtures
@@ -195,7 +196,10 @@ class LadderCounterTests(unittest.TestCase):
 
     def test_late_fault_restores_resets_counts_flags_and_schedule(self):
         e=self.checked(['RES(CounterCells[0]);','CTU(CounterCells[0],?,?);','CPT(SpeedCommand,1/SpeedSetpoint);']);e.memory.write('SpeedSetpoint',0);before=self.snapshot(e)
-        with self.assertRaisesRegex(ModelError,'zero'):e.step()
+        with patch.object(e.memory, '_remember', wraps=e.memory._remember) as remember:
+            with self.assertRaisesRegex(ModelError,'zero'):
+                e.step()
+        self.assertNotIn('countercells', [call.args[0] for call in remember.call_args_list])
         self.assertEqual(self.snapshot(e),before);e.memory.write('SpeedSetpoint',1);e.step();self.assertEqual(e.memory.read('CounterCells[0].ACC'),1);self.assertFalse(e.memory.read('CounterCells[0].OV'))
 
     def test_counter_prescan_skips_bounds_but_requires_known_indices_and_valid_shapes(self):

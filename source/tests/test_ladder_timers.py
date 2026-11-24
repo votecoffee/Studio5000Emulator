@@ -1,6 +1,7 @@
 """Typed timer state selection, retained unknowns and canonical elapsed clocks."""
 import copy
 import unittest
+from unittest.mock import patch
 from xml.etree import ElementTree as E
 
 import test_runtime as fixtures
@@ -181,7 +182,10 @@ class LadderTimerTests(unittest.TestCase):
             e=self.checked([f'XIC(StartPB){op}(TimerCells[1],?,?);','CPT(SpeedCommand,1/SpeedSetpoint);']);e.memory.write('StartPB',True);e.step()
             if op=='TOF':e.memory.write('StartPB',False);e.step()
             e.memory.write('SpeedSetpoint',0);before=self.snapshot(e)
-            with self.assertRaisesRegex(ModelError,'zero'):e.step()
+            with patch.object(e.memory, '_remember', wraps=e.memory._remember) as remember:
+                with self.assertRaisesRegex(ModelError,'zero'):
+                    e.step()
+            self.assertNotIn('timercells', [call.args[0] for call in remember.call_args_list])
             self.assertEqual(self.snapshot(e),before);e.memory.write('SpeedSetpoint',1);e.step();self.assertEqual(e.memory.read('TimerCells[1].ACC'),10)
 
     def test_accumulator_saturates_and_completes_at_the_dint_boundary(self):
