@@ -402,7 +402,8 @@ includes nested conversions, rounded roots and fault recovery.
 
 [Array-index expressions](docs/array-index-expressions.md) support exact
 division, bitwise operators and single wide integer tag indices. Repeated
-subscripts reuse parsed syntax and evaluate against live tags. **Bit lab**
+subscripts reuse parsed syntax and read each operand once per evaluation.
+**Bit lab**
 demonstrates lazy operands and rollback. Enable `RunStRadixIndex` in **Integer lab**
 to try [grouped signed DINT words](docs/array-index-expressions.md#signed-radix-words-in-subscripts)
 as array offsets, masks and indirect bit indices. Eligible ladder instructions

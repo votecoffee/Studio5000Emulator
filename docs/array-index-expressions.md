@@ -66,8 +66,9 @@ an index-expression divide-by-zero or unknown operand. Full writes establish
 selected unknown destinations and preserve neighboring values.
 
 A bounded cache reuses parsed subscript expressions across scans. Each
-access evaluates the expression with the current tag values and scope,
-including the existing shape and bounds checks.
+evaluation reads its referenced operands once in the current scope. It
+checks all operands before evaluating arithmetic, then applies the existing
+shape and bounds checks.
 
 Unknown required data, zero divisors, DINT intermediate overflow, negative or
 oversized indices and later failures roll back the whole advance, including

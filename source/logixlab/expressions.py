@@ -198,16 +198,20 @@ class Expression:
             raise ModelError('Signed DINT radix expressions require the v35 ControlLogix 5580 profile')
         if real:raise ModelError('Signed DINT radix expressions require integer arithmetic')
 
-    def validate(self, memory, scope='', destination_type=None, index=False):
+    def validate(self, memory, scope='', destination_type=None, index=False, *, samples=None):
         if self.temporal_types:raise ModelError('Time/date literals require qualified ladder CMP/FSC')
         if self.typed_types:raise ModelError('Typed integer literals require a qualified integer expression profile')
         if self.literal_types:raise ModelError('LREAL literals require the qualified ladder floating expression profile')
         real = destination_type == 'REAL'
         for ref in self.refs:
+            if samples is not None and ref in samples:
+                continue
             value = memory.read(ref, scope)
             dtype = memory.resolve(ref, scope)[2]
             if dtype not in ('SINT','INT','DINT','REAL') or isinstance(value, (list,dict,bool)):
                 raise ModelError(f'Expression requires numeric scalar: {ref}')
+            if samples is not None:
+                samples[ref] = value
             real |= dtype == 'REAL'
         def has_float(node):
             return node[0] == 'literal' and isinstance(node[1],float) or any(has_float(x) for x in node[1:] if isinstance(x,tuple))
@@ -236,7 +240,9 @@ class Expression:
         return real
 
     def evaluate(self, memory, scope='', destination_type=None, index=False):
-        real = self.validate(memory, scope, destination_type, index)
+        # Read operands in validation order before testing arithmetic.
+        samples = {} if index and self.refs else None
+        real = self.validate(memory, scope, destination_type, index, samples=samples)
         def number(value):
             if index and not -(1 << 31) <= value < (1 << 31):
                 raise SubscriptOverflowError(f'DINT overflow in subscript: {value}')
@@ -244,7 +250,8 @@ class Expression:
         def visit(node):
             kind, value = node[:2]
             if kind == 'literal': return number(value)
-            if kind == 'ref': return number(memory.read(value,scope))
+            if kind == 'ref':
+                return number(memory.read(value, scope) if samples is None else samples[value])
             if kind == 'unary':
                 if value=='-' and node[2][0]=='literal' and type(node[2][1]) is int:return number(-node[2][1])
                 x=visit(node[2]);return number(x if value=='+' else -x if value=='-' else ~x)

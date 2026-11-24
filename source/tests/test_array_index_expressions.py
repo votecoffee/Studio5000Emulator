@@ -1,5 +1,6 @@
 """Checked array-index arithmetic/bitwise forms and exact simple integer tags."""
 import unittest
+from unittest.mock import patch
 from xml.etree import ElementTree as E
 
 import test_math_operands as fixtures
@@ -57,6 +58,20 @@ class ArrayIndexExpressionTests(unittest.TestCase):
         e.memory.write('Divisor', 0)
         with self.assertRaisesRegex(ModelError, 'divide by zero'):
             e.memory.index(subscript, 'MainProgram')
+
+    def test_subscript_reads_each_operand_once_before_arithmetic(self):
+        e = self.checked(['NOP();'], divisor=0)
+        subscript = 'Index/Divisor + Inputs[0] + Index'
+        with self.assertRaisesRegex(ModelError, 'Unknown.*Inputs'):
+            e.memory.index(subscript, '')
+        e.memory.write('Inputs[0]', 2)
+        with self.assertRaisesRegex(ModelError, 'divide by zero'):
+            e.memory.index(subscript, '')
+        e.memory.write('Divisor', 2)
+        with patch.object(e.memory, 'read', wraps=e.memory.read) as read:
+            self.assertEqual(e.memory.index(subscript, ''), 6)
+        self.assertEqual([call.args[0] for call in read.call_args_list],
+                         ['Index', 'Divisor', 'Inputs[0]'])
 
     def test_grouped_radix_indices_select_ladder_source_and_destination(self):
         e=self.checked(['MOV(Inputs[Index + 16#FFFF FFFF],Results[2#00 01]);'])
