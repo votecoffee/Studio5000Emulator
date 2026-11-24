@@ -4,6 +4,9 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+[Ladder FFL and LFL](control-operations.md) resolve just the reached one-dimensional
+slot in `26.1124.111733`. Dormant checks avoid copying an untouched queue for rollback.
+
 [Ladder sequencers](sequencer-operations.md#rows-and-scan-behavior) resolve the
 current row of a one-dimensional table directly in `26.1124.111109`. Held SQI and
 SQO calls can read a large table without copying it for rollback.

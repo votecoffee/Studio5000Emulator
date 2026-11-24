@@ -898,8 +898,9 @@ while false or in prescan. Set `ConversionIndex` to 0 and enable
 `IndexedConversions` for selected BCD round-trip and byte-swap results.
 
 [CONTROL, bit shifts and FIFO](docs/control-operations.md) add BSL/BSR, numeric
-FFL/FFU, LFL/LFU and CONTROL reset with explicit edge and bounds rules;
-[matching string/UDT payloads](docs/record-queues.md) extend the queue forms.
+FFL/FFU, LFL/LFU and CONTROL reset with explicit edge and bounds rules.
+FFL and LFL resolve the current slot directly in one-dimensional arrays.
+[Matching string/UDT payloads](docs/record-queues.md) extend the queue forms.
 [Alias and indirect array starts](docs/queue-references.md) now work in these
 ladder shift/queue forms for v35 5580. **Queue reference lab** demonstrates
 changing windows, aliases, edge suppression and rollback.

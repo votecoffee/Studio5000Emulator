@@ -69,6 +69,9 @@ FFL writes the source at the current POS and increments POS. In the v35 5580
 profile, a load checks that slot within the selected array or structure member
 even if LEN exceeds the remaining storage. A reached slot outside the array can
 [raise Type 4 Code 20](controller-handlers.md#recover-shift-and-queue-array-faults).
+FFL and LFL resolve the current slot directly for one-dimensional arrays.
+Validation inspects the queue shape without saving the array for rollback.
+An actual load still records its write so a later fault can undo it.
 FFU returns the
 first element, shifts the entire configured region down, zeroes its last element
 and decrements POS. The software profile writes zero on an empty unload edge.

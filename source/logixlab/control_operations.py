@@ -123,8 +123,8 @@ def static_array(memory, ref, scope, *, writable=True):
         raise ModelError('Alias starting arrays are not yet qualified for shifts/FIFO')
     key, parts, dtype = (memory.check_writable if writable else memory.resolve)(ref, scope)
     if not fifo_values.supported(memory,dtype):raise ModelError('Shift/FIFO operand requires a qualified numeric, string or explicit UDT array')
-    value = memory.at(key, parts)
-    if not isinstance(value, list) and not any(isinstance(memory.at(key, parts[:i]), list)
+    value = memory.at(key, parts, mutable=False)
+    if not isinstance(value, list) and not any(isinstance(memory.at(key, parts[:i], mutable=False), list)
                                              for i, part in enumerate(parts) if isinstance(part, int)):
         raise ModelError('Shift/FIFO operand must address an array')
     return key, parts, dtype
@@ -153,8 +153,8 @@ def starting_array(memory, ref, scope, *, structural=False):
         if not fifo_values.supported(memory,dtype):
             raise ModelError('Shift/FIFO operand requires a qualified numeric, string or explicit UDT array')
         if any(isinstance(part,tuple) for part in parts):raise ModelError('Shift/FIFO operand cannot be a bit')
-        value=memory.at(key,parts)
-        if not isinstance(value,list) and not any(isinstance(memory.at(key,parts[:i]),list)
+        value=memory.at(key,parts,mutable=False)
+        if not isinstance(value,list) and not any(isinstance(memory.at(key,parts[:i],mutable=False),list)
                                                 for i,part in enumerate(parts) if isinstance(part,int)):
             raise ModelError('Shift/FIFO operand must address an array')
         if aoi and (not parts or not isinstance(parts[-1],int) or
@@ -284,10 +284,13 @@ def _transfer_region(memory, name, ref, count, scope, *, load_position=None):
     _, parts, _ = starting_array(memory, ref, scope)
     _check_element_limit(count)
     qualified = memory.project.version == '35' and memory.project.processor.upper() in CONTROLLERS
-    if qualified and load_position is not None:
-        count = load_position + 1
     try:
-        return memory.region(ref, count, scope)
+        if qualified and load_position is not None:
+            return memory.region(ref, 1, scope, offset=load_position)
+        key, paths, dtype = memory.region(ref, count, scope)
+        if load_position is not None:
+            paths = paths[load_position:load_position + 1]
+        return key, paths, dtype
     except BlockExtentError as error:
         if not qualified:
             raise
@@ -371,7 +374,7 @@ def fifo(memory, op, power, scope, obj):
                                          load_position=position if loading else None)
     if loading:
         source = fifo_values.read(memory,a[0],scope,dtype)
-        memory.store(key, paths[position], source)
+        memory.store(key, paths[0], source)
         obj['POS'] += 1
     elif position == 0:
         fifo_values.write(memory,a[1],scope,dtype,fifo_values.zero(memory,dtype))
@@ -407,7 +410,7 @@ def description():
                 numeric_conversions='v35 5580 RLL FFL/FFU/LFL/LFU: signed integer extension, low-bit narrowing, float32 REAL and nearest-even rounding. SINT/INT keep the low bits of a rounded DINT-range REAL payload.',
                 numeric_selection='Bounded DINT/finite REAL load immediates; structural payload preflight, lazy edge reads, complete unknown writes and whole-advance rollback',
                 fifo_empty='Empty unload writes a typed zero element once per qualified rising edge',
-                load_position='v35 5580 FFL/LFL check only start + POS in the selected array or member on the load edge; a reached missing slot raises Type 4 Code 20',
+                load_position='v35 5580 FFL/LFL resolve just the slot at start + POS on the load edge; a reached missing slot raises Type 4 Code 20',
                 aggregate_values='Whole logical basic records/strings/UDTs including backing bytes; unknown represented fields remain unknown; no private instruction histories or native byte-layout claim',
                 basic_record_payloads=['TIMER','COUNTER','CONTROL'],
                 pid_payloads=dict(types=['PID'],nested_udts=True,

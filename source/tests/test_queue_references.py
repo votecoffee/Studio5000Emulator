@@ -2,6 +2,7 @@
 import copy
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 from xml.etree import ElementTree as E
 
 import test_control_operations as controls
@@ -41,6 +42,29 @@ class QueueReferenceTests(unittest.TestCase):
         e.memory.write(gate,False);e.step()
         if value is not None:e.memory.write('Incoming',value)
         e.memory.write(gate,True);e.step()
+
+    def test_loaders_select_one_high_slot_and_skip_dormant_queue_snapshots(self):
+        for name in ('FFL', 'LFL'):
+            with self.subTest(name=name):
+                e = self.checked([f'XIC(StartPB){name}(Incoming,AliasChain,Ctl,?,?);'],
+                                 length=4095, position=4094, queue=(101,) + (0,) * 4095)
+                with patch.object(e.memory, '_remember', wraps=e.memory._remember) as remember:
+                    e.step()
+                self.assertNotIn('queue', [call.args[0] for call in remember.call_args_list])
+                e.memory.write('StartPB', True)
+                with patch.object(e.memory, 'region', wraps=e.memory.region) as region:
+                    e.step()
+                windows = [(call.args[1], call.kwargs.get('offset'))
+                           for call in region.call_args_list if call.args[1]]
+                self.assertEqual(windows, [(1, 4094)])
+                self.assertEqual(e.memory.read('Queue[4095]'), 11)
+                self.assertEqual(e.memory.read('Queue[4094]'), 0)
+                self.assertEqual(e.memory.read('Queue[0]'), 101)
+                self.assertEqual(e.memory.read('Ctl.POS'), 4095)
+                self.assertTrue(e.memory.read('Ctl.DN'))
+                with patch.object(e.memory, '_remember', wraps=e.memory._remember) as remember:
+                    e.step()
+                self.assertNotIn('queue', [call.args[0] for call in remember.call_args_list])
 
     def test_fifo_alias_chain_and_indirect_start_keep_guard_elements(self):
         for start in ('Queue[Index]','QueueAlias','AliasChain'):

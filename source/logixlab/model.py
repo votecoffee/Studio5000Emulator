@@ -1447,11 +1447,11 @@ class Memory:
         if key is None or self.project.tags[key].constant:raise ModelError(f'Read-only destination {ref}')
         return key,parts,dtype
 
-    def at(self,key,parts):
-        """Access a resolved value. Mutable results may be edited in place."""
+    def at(self,key,parts,*,mutable=True):
+        """Access a resolved value and track aggregates that may be edited."""
         value=self.values[key]
         for part in parts:value=value[part]
-        if isinstance(value, (dict, list)):
+        if mutable and isinstance(value, (dict, list)):
             self._remember(key)
         return value
 
