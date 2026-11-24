@@ -697,6 +697,8 @@ return a confirmed first match or prove that no match exists when an export
 omits source bytes.
 [Scheduled ladder MID, DELETE, LOWER and UPPER](docs/string-operations.md#ladder-capacity-diagnostics)
 report Code 52 from the result length when the destination is too small.
+Ladder INSERT also checks the two source lengths against destination capacity
+before reading their bytes.
 [Ladder string MOV](docs/string-operations.md#ladder-string-mov) copies tags or
 single-quoted literals and clips the result to the destination capacity.
 The [six ladder string relations](docs/string-operations.md#ladder-string-comparison-literals)

@@ -79,6 +79,9 @@ FIND searches active source bytes beginning at Start. Source bytes before
 Start and inactive DATA may be unknown. Source LEN must be known, valid and
 nonzero, and the search string must be known and nonempty.
 
+Scheduled ladder reports Type 4 Code 56 for a known empty source after
+checking the lengths, even when the search DATA is incomplete.
+
 In a scheduled Standard v35 ControlLogix 5580 ladder Program, FIND can rule out
 a candidate position when any known byte differs from the search string. It can
 therefore return a later confirmed first match or zero even when earlier source
@@ -174,6 +177,11 @@ oversized result produces Code 52 even if some selected source bytes are
 unknown. An exact fit still needs every selected byte.
 LOWER and UPPER make the same check using the validated source LEN, since case
 conversion preserves length.
+Scheduled Standard ladder INSERT validates both source lengths and checks
+their combined size against destination capacity before reading active bytes.
+An invalid oversized source LEN produces Code 51. An oversized result uses
+the emulator's existing capacity error. Results that fit still require all
+active bytes from both inputs.
 The remaining faults in the table roll back the advance. Type 4 Code 53 covers
 well-formed numeric input. Code 56 covers errors
 encountered during execution. Invalid MID immediates can still block the project

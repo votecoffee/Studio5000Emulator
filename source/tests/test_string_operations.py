@@ -236,6 +236,42 @@ class StringOperationTests(unittest.TestCase):
         self.assertEqual(e.memory.values,before);self.assertEqual(e.scheduler_description()['tasks'][0]['executions'],0)
         self.assertEqual((e.time_ms,e.scan_count),(0,0))
 
+    def test_insert_can_check_lengths_before_active_bytes_in_ladder(self):
+        for st in (False, True):
+            with self.subTest(structured_text=st):
+                prefix = 'SpeedCommand := 77;' if st else 'MOV(77,SpeedCommand);'
+                engine = self.checked([prefix, 'INSERT(SourceA,SourceB,Start,Alias);'],
+                                      st=st, mutate=self.custom_strings)
+                memory = engine.memory
+                memory.write('SourceA', 'ABCDEFGHIJKLMNO')
+                memory.write('SourceB', 'XY')
+                memory.write('Start', 2)
+                key, parts, _ = memory.resolve('SourceA.DATA[0]')
+                memory.store(key, parts, None)
+                if not st:
+                    memory.write('SourceB.LEN', 83)
+                    before = copy.deepcopy(memory.values)
+                    with self.assertRaisesRegex(ModelError, 'INSERT: Type 4 Code 51:.*SourceB'):
+                        engine.step()
+                    self.assertEqual(memory.values, before)
+                    memory.write('SourceB.LEN', 2)
+                before = copy.deepcopy(memory.values)
+                diagnostic = 'unknown active DATA' if st else '17 exceeds capacity 16'
+                with self.assertRaisesRegex(ModelError, diagnostic):
+                    engine.step()
+                self.assertEqual(memory.values, before)
+
+                memory.write('SourceB.LEN', 1)
+                before = copy.deepcopy(memory.values)
+                with self.assertRaisesRegex(ModelError, 'unknown active DATA'):
+                    engine.step()
+                self.assertEqual(memory.values, before)
+                self.assertEqual((engine.time_ms, engine.scan_count), (0, 0))
+                memory.write('SourceA.DATA[0]', ord('A'))
+                engine.step()
+                self.assertEqual(memory.string('Alias'), 'AXBCDEFGHIJKLMNO')
+                self.assertEqual(memory.read('SpeedCommand'), 77)
+
     def test_ranges_rechecked_on_execution_and_unknown_data_not_zeroed(self):
         for instruction,value in (('FIND(SourceA,Search,Start,Result);',0),('FIND(SourceA,Search,Start,Result);',83),
                                   ('INSERT(SourceA,SourceB,Start,Dest);',11),('DELETE(SourceA,Qty,Start,Dest);',8)):

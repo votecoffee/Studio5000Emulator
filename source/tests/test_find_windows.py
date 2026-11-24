@@ -113,6 +113,20 @@ class FindWindowTests(unittest.TestCase):
             e.step()
             self.assertEqual(e.memory.read('Result'), 7 if start == 7 else 0)
 
+    def test_ladder_find_diagnoses_empty_source_before_reading_partial_search_data(self):
+        for st in (False, True):
+            with self.subTest(structured_text=st):
+                e = self.checked(['FIND(SourceA,Search,1,Result);'], st=st)
+                e.memory.write('SourceA', '')
+                e.memory.write('Search', 'AB')
+                self.unknown(e, 1, 1, 'search')
+                expected_error = 'unknown active DATA' if st else 'FIND: Type 4 Code 56:.*nonempty source'
+                self.fault(e, expected_error)
+                e.memory.write('SourceA', 'AB')
+                e.memory.write('Search.DATA[1]', ord('B'))
+                e.step()
+                self.assertEqual(e.memory.read('Result'), 1)
+
     def test_unknown_invalid_and_empty_metadata_still_fault_atomically(self):
         for ref, value in (('Start', 0), ('Start', 83), ('Start', None),
                            ('SourceA.LEN', -1), ('SourceA.LEN', 83), ('SourceA.LEN', None),

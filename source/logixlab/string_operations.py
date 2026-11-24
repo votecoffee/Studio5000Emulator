@@ -162,22 +162,25 @@ def execute(engine, op, scope):
     start = integer_value(memory, a[2], scope)
     if not 1 <= start <= capacity:
         raise StringPositionError(f'{op.name} start must be 1..source DATA capacity')
+    scheduled_ladder = scheduled_ladder_context(engine, scope)
     if op.name == 'DELETE':
         quantity = integer_value(memory, a[1], scope)
-        checked_dest = a[3] if scheduled_ladder_context(engine, scope) else None
+        checked_dest = a[3] if scheduled_ladder else None
         result = memory.string_without(a[0], start, quantity, scope, destination=checked_dest)
         memory.write_string(a[3], result, scope)
         return
     if op.name == 'FIND':
-        result = memory.string_find(a[0], a[1], start, scope,
-                                    allow_partial=scheduled_ladder_context(engine, scope))
+        result = memory.string_find(a[0], a[1], start, scope, allow_partial=scheduled_ladder)
         memory.write(a[3], result, scope)
         return
-    source = memory.string(a[0], scope)
-    if start > len(source) + 1:
-        raise ModelError(f'{op.name} start exceeds the modeled active string boundary')
-    addition = memory.string(a[1], scope)
-    result = source[:start - 1] + addition + source[start - 1:]
+    if scheduled_ladder:
+        result = memory.insert_strings(a[0], a[1], start, a[3], scope)
+    else:
+        source = memory.string(a[0], scope)
+        if start > len(source) + 1:
+            raise ModelError(f'{op.name} start exceeds the modeled active string boundary')
+        addition = memory.string(a[1], scope)
+        result = source[:start - 1] + addition + source[start - 1:]
     memory.write_string(a[3], result, scope)
 
 
@@ -195,7 +198,11 @@ def description():
                     selection='Known nonempty source/search LEN; Start within source DATA capacity',
                     reads='Require all active search bytes. Scheduled v35 5580 ladder rules out candidate positions with any known mismatch and can skip source bytes that cannot affect the first match. Other contexts require the full active source suffix.',
                     result='First one-based position in the original source, or zero when absent; valid Start beyond LEN consumes no source DATA',
-                    excluded='Empty source/search, unknown consumed bytes, invalid LEN/Start and result-type overflow retain existing guards',
+                    excluded='Empty source/search, unknown consumed bytes, invalid LEN/Start and result-type overflow fault; scheduled ladder can diagnose a known empty source before reading search DATA',
+                    native_runtime_parity=False),
+                insert=dict(languages=['RLL','ST'],
+                    selection='Start must fit declared DATA and be no later than Source A LEN plus one',
+                    reads='Scheduled ladder checks the lengths and destination size before decoding active source bytes',
                     native_runtime_parity=False),
                 delete=dict(languages=['RLL','ST'],
                     selection='Known LEN, Start and positive Qty; deletion window within active source and Start within DATA capacity',

@@ -1568,6 +1568,16 @@ class Memory:
         text = self._decode_string_data(left_data[:left_count] + right_data[:right_count])
         return text, left_length + right_length > limit
 
+    def insert_strings(self, base, addition, start, destination, scope=''):
+        """Check insertion extent and capacity before copying active bytes."""
+        base_data, base_length = self._string_data(base, scope)
+        if start > base_length + 1:
+            raise ModelError('INSERT start exceeds the modeled active string boundary')
+        added_data, added_length = self._string_data(addition, scope)
+        self._check_string_result_size(destination, base_length + added_length, scope)
+        first = start - 1
+        return self._decode_string_data(base_data[:first] + added_data[:added_length] + base_data[first:base_length])
+
     def string_prefix(self, ref, limit, scope=''):
         """Read the copied bytes and determine whether active data was truncated."""
         data, length = self._string_data(ref, scope)
@@ -1589,9 +1599,12 @@ class Memory:
         data, length = self._string_data(ref, scope)
         if not 1 <= start <= len(data):
             raise StringPositionError('FIND start must be 1..source DATA capacity')
-        search = self.string(search_ref, scope)
+        search_data, search_length = self._string_data(search_ref, scope)
         if not length:
+            if not allow_partial:
+                self._decode_string_data(search_data[:search_length])
             raise StringPositionError('FIND requires nonempty source and search strings in this model')
+        search = self._decode_string_data(search_data[:search_length])
         if not search:
             raise ModelError('FIND requires nonempty source and search strings in this model')
         first = start - 1
