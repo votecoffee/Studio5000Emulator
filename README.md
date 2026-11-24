@@ -692,7 +692,8 @@ in ladder and Structured Text, including user strings and existing AOI bindings.
 [DELETE retained windows](docs/string-operations.md#delete-retained-windows) and
 [lazy indexed string operands](docs/string-operations.md#operand-selection).
 [Scheduled ladder FIND](docs/string-operations.md#find-search-suffixes) can
-return the first confirmed match before unknown source bytes.
+return a confirmed first match or prove that no match exists when an export
+omits source bytes.
 [Scheduled ladder MID, DELETE, LOWER and UPPER](docs/string-operations.md#ladder-capacity-diagnostics)
 report Code 52 from the result length when the destination is too small.
 [Ladder string MOV](docs/string-operations.md#ladder-string-mov) copies tags or

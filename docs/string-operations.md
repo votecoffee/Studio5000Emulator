@@ -79,19 +79,20 @@ FIND searches active source bytes beginning at Start. Source bytes before
 Start and inactive DATA may be unknown. Source LEN must be known, valid and
 nonzero, and the search string must be known and nonempty.
 
-In a scheduled Standard v35 ControlLogix 5580 ladder Program, FIND returns a
-match that fits entirely within the known prefix after Start. Later unknown
-bytes cannot change that first position. If the known prefix contains no
-match and an unknown byte is encountered, the scan rolls back. If the entire
-remaining length is shorter than the search string, FIND returns zero without
-reading source bytes. Structured Text and other execution contexts still
-require all active source bytes from Start.
+In a scheduled Standard v35 ControlLogix 5580 ladder Program, FIND can rule out
+a candidate position when any known byte differs from the search string. It can
+therefore return a later confirmed first match or zero even when earlier source
+bytes are unknown. If the earliest remaining candidate depends on an unknown
+byte, the scan rolls back. If the remaining length is shorter than the search
+string, FIND returns zero without reading source bytes. Structured Text and
+other execution contexts still require all active source bytes from Start.
 
 Results are one-based positions in the original source, not offsets into the
 suffix. A valid Start beyond active LEN returns zero without reading source
 DATA; Start must still fit the declared source capacity. Result permissions,
 range conversion, false/prescan selection and whole-advance rollback are unchanged.
-This is a bounded unknown-data policy, not native fault or execution parity.
+This behavior models missing export data. Native fault and execution parity
+remain unverified.
 
 Enable `FindWindow` in **String lab** and step. FindSource has four unknown
 prefix bytes followed by `ABAB`; FindNeedle is `AB`. With FindStart at 5,

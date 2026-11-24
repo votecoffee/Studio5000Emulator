@@ -1585,7 +1585,7 @@ class Memory:
         return self._decode_string_data(data[first:end])
 
     def string_find(self, ref, search_ref, start, scope='', *, allow_partial=False):
-        """Return the first match, using a known prefix when its result is sufficient."""
+        """Return the first match when the available source bytes determine it."""
         data, length = self._string_data(ref, scope)
         if not 1 <= start <= len(data):
             raise StringPositionError('FIND start must be 1..source DATA capacity')
@@ -1609,7 +1609,37 @@ class Memory:
         if position >= 0:
             return start + position
         if end < length:
-            raise ModelError('String contains unknown active DATA bytes')
+            first_unchecked = max(first, end - len(search) + 1)
+            return self._find_with_unknown_data(data, first_unchecked, length, search)
+        return 0
+
+    @staticmethod
+    def _find_with_unknown_data(data, first, length, search):
+        # Each bit marks a prefix of the needle that could end at the current byte.
+        # Advance those prefixes and start a new one at every source position.
+        needle = search.encode('latin-1')
+        mask_size = (len(needle) + 7) // 8
+        packed = {byte: bytearray(mask_size) for byte in set(needle)}
+        for index, byte in enumerate(needle):
+            packed[byte][index // 8] |= 1 << (index % 8)
+        byte_masks = {byte: int.from_bytes(mask, 'little') for byte, mask in packed.items()}
+        match_bit = 1 << (len(needle) - 1)
+        unknown_mask = (match_bit << 1) - 1
+        possible = 0
+        last_unknown = -1
+        for index in range(first, length):
+            byte = data[index]
+            if byte is None:
+                last_unknown = index
+                mask = unknown_mask
+            else:
+                mask = byte_masks.get(byte & 255, 0)
+            possible = ((possible << 1) | 1) & mask
+            if possible & match_bit:
+                position = index - len(needle) + 1
+                if last_unknown >= position:
+                    raise ModelError('String contains unknown active DATA bytes')
+                return position + 1
         return 0
 
     def string_without(self, ref, start, count, scope='', *, destination=None):

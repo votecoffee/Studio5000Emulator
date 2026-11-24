@@ -66,6 +66,42 @@ class FindWindowTests(unittest.TestCase):
                 self.assertEqual(e.memory.read('Result'), 4)
                 self.assertEqual(e.memory.read('SpeedCommand'), 77)
 
+    def test_ladder_find_rules_out_windows_with_known_mismatches(self):
+        wide_needle = 'A' * 65 + 'B'
+        for source, search, expected in (
+            ('x?xxAB?', 'AB', 5),
+            ('x?xx', 'AB', 0),
+            ('x?X\xff\0', '\xff\0', 4),
+            ('x?ZZZ' + wide_needle, wide_needle, 6),
+        ):
+            for st in (False, True):
+                with self.subTest(source=source, search=search, structured_text=st):
+                    e = self.checked(['FIND(SourceA,Search,Start,Result);'], st=st)
+                    e.memory.write('SourceA', source)
+                    e.memory.write('Search', search)
+                    e.memory.write('Start', 1)
+                    for index, character in enumerate(source):
+                        if character == '?':
+                            self.unknown(e, index, 1)
+                    original = copy.deepcopy(e.memory.values['sourcea'])
+                    if st:
+                        self.fault(e, 'unknown active DATA')
+                    else:
+                        e.step()
+                        self.assertEqual(e.memory.read('Result'), expected)
+                    self.assertEqual(e.memory.values['sourcea'], original)
+
+    def test_ladder_find_rolls_back_while_an_overlapping_earlier_match_is_possible(self):
+        e = self.checked(['MOV(77,SpeedCommand);', 'FIND(SourceA,Search,1,Result);'])
+        e.memory.write('SourceA', 'x?BABA')
+        e.memory.write('Search', 'ABA')
+        self.unknown(e, 1, 1)
+        self.fault(e, 'unknown active DATA')
+        e.memory.write('SourceA.DATA[1]', ord('X'))
+        e.step()
+        self.assertEqual(e.memory.read('Result'), 4)
+        self.assertEqual(e.memory.read('SpeedCommand'), 77)
+
     def test_search_data_is_required_even_without_a_source_suffix(self):
         for start in (7, 82):
             e = self.checked(['MOV(77,SpeedCommand);', 'FIND(SourceA,Search,Start,Result);'])
@@ -210,7 +246,7 @@ class FindWindowTests(unittest.TestCase):
         e.memory.write('FindStart', 5);e.step()
         self.assertEqual(e.memory.read('FindResult'), 5)
         profile = e.report()['string_operations']['find']
-        self.assertIn('known source prefix after Start', profile['reads'])
+        self.assertIn('rules out candidate positions with any known mismatch', profile['reads'])
         self.assertIn('Other contexts require the full active source suffix', profile['reads'])
         self.assertFalse(profile['native_runtime_parity'])
 

@@ -193,7 +193,7 @@ def description():
                 mid='Start within declared DATA; exact window within LEN; only selected DATA bytes are consumed',
                 find=dict(languages=['RLL','ST'],
                     selection='Known nonempty source/search LEN; Start within source DATA capacity',
-                    reads='Require all active search bytes. In scheduled v35 5580 ladder, a match in the known source prefix after Start can leave later bytes unknown. Other contexts require the full active source suffix.',
+                    reads='Require all active search bytes. Scheduled v35 5580 ladder rules out candidate positions with any known mismatch and can skip source bytes that cannot affect the first match. Other contexts require the full active source suffix.',
                     result='First one-based position in the original source, or zero when absent; valid Start beyond LEN consumes no source DATA',
                     excluded='Empty source/search, unknown consumed bytes, invalid LEN/Start and result-type overflow retain existing guards',
                     native_runtime_parity=False),
