@@ -180,8 +180,9 @@ An advance records original values for scalar writes and replacements of
 array elements or record members. Rollback and change history can use those
 entries without walking the containing tag. It snapshots the full tag if
 logic obtains an aggregate for in-place edits, replaces the entire tag,
-replaces a parent after writing a descendant, or tracks more than 64 paths
-in that tag. Change history preserves declaration and element order.
+or tracks more than 64 paths in that tag. Replacing a record after writing
+its members folds the earlier values into the record snapshot. Change
+history preserves declaration and element order.
 
 ## Ladder and calls
 

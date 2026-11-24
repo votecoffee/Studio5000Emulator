@@ -1058,13 +1058,20 @@ class Memory:
             yield self._before, self._before_cells
         except Exception:
             for key, cells in self._before_cells.items():
-                for path, value in cells.items():
-                    self.at(key, path[:-1], mutable=False)[path[-1]] = value
+                self._restore_cells(self.values[key], cells.items())
             self.values.update(self._before)
             raise
         finally:
             self._before = None
             self._before_cells = None
+
+    @staticmethod
+    def _restore_cells(root, cells):
+        for path, original in cells:
+            parent = root
+            for part in path[:-1]:
+                parent = parent[part]
+            parent[path[-1]] = original
 
     def _remember(self, key):
         if self._before is not None and key not in self._before:
@@ -1076,13 +1083,7 @@ class Memory:
                 snapshot = value.copy()
             else:
                 snapshot = copy.deepcopy(value)
-            # Restore pre-scan cells in the snapshot before handing out a
-            # mutable aggregate or replacing a compound value.
-            for path, original in self._before_cells.pop(key, {}).items():
-                parent = snapshot
-                for part in path[:-1]:
-                    parent = parent[part]
-                parent[path[-1]] = original
+            self._restore_cells(snapshot, self._before_cells.pop(key, {}).items())
             self._before[key] = snapshot
 
     def _remember_store(self, key, parts, parent, slot, value):
@@ -1095,12 +1096,17 @@ class Memory:
                 path = tuple(parts)
                 if path in cells or any(path[:length] in cells for length in range(1, len(path))):
                     return
-                compound = isinstance(old, (list, dict)) or isinstance(value, (list, dict))
-                supersedes = compound and any(saved[:len(path)] == path for saved in cells)
-                if len(cells) < MAX_TRACKED_CELLS_PER_TAG and not supersedes:
+                compound = isinstance(old, (list, dict))
+                descendants = [saved for saved in cells if saved[:len(path)] == path] if compound else []
+                if len(cells) - len(descendants) < MAX_TRACKED_CELLS_PER_TAG:
                     # Local store rollback can put the old record back into
                     # live storage. Keep its snapshot detached from that record.
-                    cells[path] = copy.deepcopy(old) if isinstance(old, (list, dict)) else old
+                    original = copy.deepcopy(old) if compound else old
+                    if descendants:
+                        self._restore_cells(original, ((saved[len(path):], cells[saved]) for saved in descendants))
+                        for saved in descendants:
+                            del cells[saved]
+                    cells[path] = original
                     return
         self._remember(key)
 

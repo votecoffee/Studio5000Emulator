@@ -283,7 +283,7 @@ class RuntimeTests(unittest.TestCase):
                 raise ModelError('advance fault')
         self.assertEqual(memory.read('PartQueue'), original)
 
-    def test_record_replacement_promotes_when_a_member_was_already_written(self):
+    def test_record_replacement_folds_earlier_member_writes_into_its_snapshot(self):
         e = Engine(Project(SAMPLE.with_name('RecordLab.L5X')))
         memory = e.memory
         original = copy.deepcopy(memory.read('PartQueue'))
@@ -291,9 +291,12 @@ class RuntimeTests(unittest.TestCase):
         with self.assertRaisesRegex(ModelError, 'advance fault'):
             with memory.track_values() as (before, cells):
                 memory.write('PartQueue[0].Id', 404)
+                memory.write('PartQueue[0].Readings[1]', 2.25)
+                memory.store('partqueue', [0, 'Name'], payload['Name'])
+                memory.write('PartQueue[1].Id', 505)
                 memory.store('partqueue', [0], payload)
-                self.assertNotIn('partqueue', cells)
-                self.assertEqual(before['partqueue'], original)
+                self.assertNotIn('partqueue', before)
+                self.assertEqual(cells['partqueue'], {(0,): original[0], (1, 'Id'): original[1]['Id']})
                 raise ModelError('advance fault')
         self.assertEqual(memory.read('PartQueue'), original)
 
