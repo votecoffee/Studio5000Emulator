@@ -868,26 +868,53 @@ class Engine:
             self._advance(dt, running=running)
         return self._record_tag_changes(before, cells)
 
-    def _remember_instruction_state(self, identity):
-        # History records are replaced on write. Keep the original object for rollback.
+    def _remember_instruction_state(self, collection, identity):
         before = self._instruction_history_before
-        if before is not None and identity not in before:
-            before[identity] = self.last_timer.get(identity, _NO_INSTRUCTION_STATE)
+        if before is None:
+            return
+        key = id(collection), identity
+        if key not in before:
+            # Records are replaced on write, so retaining the original value is sufficient.
+            state = (identity in collection if isinstance(collection, set)
+                     else collection.get(identity, _NO_INSTRUCTION_STATE))
+            before[key] = collection, state
+
+    def set_instruction_record(self, records, identity, state):
+        self._remember_instruction_state(records, identity)
+        records[identity] = state
 
     def set_instruction_state(self, identity, state):
-        self._remember_instruction_state(identity)
-        self.last_timer[identity] = state
+        self.set_instruction_record(self.last_timer, identity, state)
 
     def discard_instruction_state(self, identity):
-        self._remember_instruction_state(identity)
+        self._remember_instruction_state(self.last_timer, identity)
         self.last_timer.pop(identity, None)
+
+    def set_instruction_flag(self, flags, identity, enabled):
+        if (identity in flags) == enabled:
+            return
+        self._remember_instruction_state(flags, identity)
+        if enabled:
+            flags.add(identity)
+        else:
+            flags.discard(identity)
+
+    def _restore_instruction_history(self):
+        for (_, identity), (collection, state) in self._instruction_history_before.items():
+            if isinstance(collection, set):
+                if state:
+                    collection.add(identity)
+                else:
+                    collection.discard(identity)
+            elif state is _NO_INSTRUCTION_STATE:
+                collection.pop(identity, None)
+            else:
+                collection[identity] = state
 
     def _advance(self, dt, *, running):
         message_cache = self.memory.message_cache.copy()
         module_modes = self._module_modes.copy()
-        previous = (self.time_ms, self.memory.first_scan, self.trace,
-                    set(self._file_incremental), set(self._file_arithmetic_retry),
-                    dict(self._st_counter_edges), dict(self._st_oneshot_edges))
+        previous = self.time_ms, self.memory.first_scan, self.trace
         previous_program_clear = self.last_cleared_program_fault
         end_ms=self.time_ms+dt
         batch=self._task_scheduler.prepare(end_ms) if self._task_scheduler is not None else None
@@ -1004,13 +1031,8 @@ class Engine:
                 self._task_scheduler.priorities=list(batch.priorities)
                 self._task_scheduler.watchdog_overrides=watchdog_overrides
                 self._task_scheduler.output_update_overrides=output_update_overrides
-            (self.time_ms, self.memory.first_scan, self.trace, self._file_incremental,
-             self._file_arithmetic_retry, self._st_counter_edges, self._st_oneshot_edges) = previous
-            for identity, state in self._instruction_history_before.items():
-                if state is _NO_INSTRUCTION_STATE:
-                    self.last_timer.pop(identity, None)
-                else:
-                    self.last_timer[identity] = state
+            self.time_ms, self.memory.first_scan, self.trace = previous
+            self._restore_instruction_history()
             self._executing_task=None
             self.last_cleared_program_fault = previous_program_clear
             self.fault = str(e) or type(e).__name__
@@ -1312,8 +1334,8 @@ class Engine:
         if n=='RES' and (control_operations.reset_preflight(self.memory,op,scope) or self.memory.resolve(a[0],scope)[2]=='CONTROL'):
             if p:
                 identity = control_operations.reset(self.memory,a[0],scope)
-                self._file_incremental.discard(identity)
-                self._file_arithmetic_retry.discard(identity)
+                self.set_instruction_flag(self._file_incremental, identity, False)
+                self.set_instruction_flag(self._file_arithmetic_retry, identity, False)
             return p
         if n in numeric_storage.INSTRUCTIONS and numeric_storage.available(self.project):return numeric_storage.execute(self,op,p,scope)
         if n in bit_logic.INSTRUCTIONS and bit_logic.available(self.project):return bit_logic.execute(self.memory,op,p,scope)

@@ -36,8 +36,8 @@ def execute(engine, name, power, obj, key, update_control, operation):
     if controls.flag(obj,'DN'):
         if not power:
             update_control(dict(EN=False, DN=False, POS=0))
-            engine._file_incremental.discard(key)
-            engine._file_arithmetic_retry.discard(key)
+            engine.set_instruction_flag(engine._file_incremental, key, False)
+            engine.set_instruction_flag(engine._file_arithmetic_retry, key, False)
         return power
     if key not in engine._file_incremental and key not in engine._file_arithmetic_retry and completed_source(source_control(engine,key)) and controls.integer(obj,'POS') != 0:
         raise ModelError('Imported completed INC requires completed false cleanup or RES before nonzero resume; saved hidden progress is unavailable')
@@ -57,8 +57,8 @@ def execute(engine, name, power, obj, key, update_control, operation):
     engine.budget-=1
     if engine.budget<0:raise ModelError(name+' INC instruction budget exceeded')
     result=operation()
-    engine._file_incremental.add(key)
-    engine._file_arithmetic_retry.discard(key)
+    engine.set_instruction_flag(engine._file_incremental, key, True)
+    engine.set_instruction_flag(engine._file_arithmetic_retry, key, False)
     if search and result:update_control(dict(FD=True, IN=True))
     if start==length-1:update_control({'DN': True})
     return True

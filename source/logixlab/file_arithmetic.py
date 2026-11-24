@@ -101,7 +101,7 @@ def execute(engine, op, power, scope):
         # value, including an unknown value, for recovery of that call.
         writes.setdefault((key, tuple(parts)), old_value)
         memory.store(key, parts, value)
-        engine._file_arithmetic_retry.discard(control_id)
+        engine.set_instruction_flag(engine._file_arithmetic_retry, control_id, False)
 
     try:
         if count == 'INC':
@@ -109,14 +109,13 @@ def execute(engine, op, power, scope):
         return _execute(engine, power, obj, count, write_element, control_id, update_control)
     except RealCalculationOverflow:
         update_control(dict(ER=True, DN=False))
-        engine._file_arithmetic_retry.add(control_id)
+        engine.set_instruction_flag(engine._file_arithmetic_retry, control_id, True)
         return power
     except ArrayBoundsError:
         for (key, parts), value in writes.items():
             memory.store(key, parts, value)
         update_control(previous)
-        if previous_retry:engine._file_arithmetic_retry.add(control_id)
-        else:engine._file_arithmetic_retry.discard(control_id)
+        engine.set_instruction_flag(engine._file_arithmetic_retry, control_id, previous_retry)
         raise
 
 
@@ -125,7 +124,7 @@ def _execute(engine, power, obj, count, write_element, control_id, update_contro
     if controls.flag(obj, 'DN'):
         if not power:
             update_control(dict(EN=False, DN=False, ER=False, POS=0))
-            engine._file_arithmetic_retry.discard(control_id)
+            engine.set_instruction_flag(engine._file_arithmetic_retry, control_id, False)
         return power
     enabled = controls.flag(obj, 'EN')
     if not power and (count is None or not enabled):

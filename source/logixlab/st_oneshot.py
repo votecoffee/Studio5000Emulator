@@ -31,7 +31,7 @@ def execute(engine,op,scope):
     kind,previous=engine._st_oneshot_edges.get(identity,(op.name,op.name=='OSRI'))
     if kind!=op.name:raise ModelError('Mixed one-shot instruction kinds on one FBD_ONESHOT record remain unqualified')
     output=(current and not previous) if op.name=='OSRI' else (previous and not current)
-    engine._st_oneshot_edges[identity]=(op.name,current)
+    engine.set_instruction_record(engine._st_oneshot_edges, identity, (op.name, current))
     obj.update(EnableIn=True,EnableOut=True,OutputBit=output)
 
 

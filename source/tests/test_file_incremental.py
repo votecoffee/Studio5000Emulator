@@ -231,8 +231,11 @@ class IncrementalFileTests(unittest.TestCase):
         self.assertTrue(e._file_arithmetic_retry)
         e.memory.write('Queue[1]',3);e.memory.write('Ctl.ER',False);e.memory.write('StartPB',False);e.step()
         e.memory.write('StartPB',True);e.memory.write('SpeedCommand',0);before=file_state(e)
+        progress, retry = e._file_incremental, e._file_arithmetic_retry
         with self.assertRaises(ModelError):e.step()
         self.assertEqual(file_state(e),before)
+        self.assertIs(e._file_incremental, progress)
+        self.assertIs(e._file_arithmetic_retry, retry)
         e.memory.write('SpeedCommand',1);e.step()
         self.assertEqual(e.memory.read('Queue')[:3],[4,6,6])
         self.assertEqual(e._file_arithmetic_retry,set())

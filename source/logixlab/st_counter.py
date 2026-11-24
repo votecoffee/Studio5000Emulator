@@ -35,7 +35,7 @@ def execute(engine,op,scope):
         return value if FIELDS[name]=='BOOL' else coerce(value,'DINT')
     up,down,reset,preset=read('CUEnable'),read('CDEnable'),read('Reset'),read('PRE')
     previous=engine._st_counter_edges.get(identity,(up,down))
-    engine._st_counter_edges[identity]=(up,down)
+    engine.set_instruction_record(engine._st_counter_edges, identity, (up, down))
     obj.update(EnableIn=True,EnableOut=True,CU=up,CD=down)
     if reset:
         obj.update(ACC=0,DN=0>=preset,OV=False,UN=False);return

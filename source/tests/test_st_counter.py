@@ -149,9 +149,11 @@ class StructuredCounterTests(unittest.TestCase):
     def test_late_fault_restores_sampled_edge_so_corrected_retry_counts_once(self):
         e=self.checked(['CTUD(C);','SpeedCommand := 1 / SpeedSetpoint;']);e.memory.write('SpeedSetpoint',1);self.step(e)
         e.memory.write('C.CUEnable',True);e.memory.write('SpeedSetpoint',0)
-        before=copy.deepcopy((e.memory.values,e._st_counter_edges,e.scan_count,e.time_ms,e.scheduler_description()))
+        edges = e._st_counter_edges
+        before=copy.deepcopy((e.memory.values,edges,e.scan_count,e.time_ms,e.scheduler_description()))
         with self.assertRaisesRegex(ModelError,'zero'):e.step()
         self.assertEqual((e.memory.values,e._st_counter_edges,e.scan_count,e.time_ms,e.scheduler_description()),before)
+        self.assertIs(e._st_counter_edges, edges)
         e.memory.write('SpeedSetpoint',1);self.assertEqual(self.step(e)['ACC'],1);self.assertEqual(self.step(e)['ACC'],1)
 
     def test_first_call_fault_does_not_consume_initialization(self):

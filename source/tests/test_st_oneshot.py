@@ -148,9 +148,11 @@ class StructuredOneshotTests(unittest.TestCase):
             with self.subTest(kind=kind):
                 e=self.checked([kind+'(T);','SpeedCommand := 1 / SpeedSetpoint;'],values={'InputBit':initial})
                 e.memory.write('SpeedSetpoint',1);self.step(e);e.memory.write('T.InputBit',not initial);e.memory.write('SpeedSetpoint',0)
-                before=copy.deepcopy((e.memory.values,e._st_oneshot_edges,e.scan_count,e.time_ms,e.scheduler_description()))
+                edges = e._st_oneshot_edges
+                before=copy.deepcopy((e.memory.values,edges,e.scan_count,e.time_ms,e.scheduler_description()))
                 with self.assertRaisesRegex(ModelError,'zero'):e.step()
                 self.assertEqual((e.memory.values,e._st_oneshot_edges,e.scan_count,e.time_ms,e.scheduler_description()),before)
+                self.assertIs(e._st_oneshot_edges, edges)
                 e.memory.write('SpeedSetpoint',1);self.assertTrue(self.step(e));self.assertFalse(self.step(e))
 
     def test_first_call_fault_leaves_initialization_unconsumed(self):
