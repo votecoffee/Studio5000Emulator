@@ -176,6 +176,11 @@ Scans and prescan have instruction budgets. Traces and tag-change histories are
 bounded. The UI logic monitor displays execution evidence from this model, not
 native Studio debugger state.
 
+An advance snapshots touched tags for rollback. Flat arrays of primitive
+values use a shallow list snapshot. Nested records and multidimensional
+arrays still receive deep snapshots. Change history builds element paths
+only when the value differs by identity, then checks for an actual change.
+
 ## Ladder and calls
 
 Supported ladder forms include bit logic, comparisons, typed math, timers and

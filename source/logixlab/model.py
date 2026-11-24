@@ -233,6 +233,7 @@ def literal(text):
 
 UNSIGNED_BITS = {'USINT':8,'UINT':16,'UDINT':32,'ULINT':64}
 INT_BITS = {"SINT": 8, "INT": 16, "DINT": 32, "LINT": 64, **UNSIGNED_BITS}
+PRIMITIVE_ARRAY_TYPES = frozenset(('BOOL', 'REAL', 'LREAL', *INT_BITS, *time_values.TYPES))
 
 
 def dimensions(text):
@@ -1059,7 +1060,14 @@ class Memory:
 
     def _remember(self, key):
         if self._before is not None and key not in self._before:
-            self._before[key] = copy.deepcopy(self.values[key])
+            value = self.values[key]
+            # A declared flat primitive array contains only immutable cells.
+            # Multidimensional arrays still contain mutable row lists.
+            if (type(value) is list and self.project.tags[key].dtype in PRIMITIVE_ARRAY_TYPES
+                    and (not value or not isinstance(value[0], list))):
+                self._before[key] = value.copy()
+            else:
+                self._before[key] = copy.deepcopy(value)
 
     @contextmanager
     def atomic_stores(self):

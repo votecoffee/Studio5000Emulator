@@ -1101,11 +1101,16 @@ class Engine:
         def compare(path, old, new):
             if old is None and isinstance(new,(dict,list)):old=unknown_shape(new)
             if isinstance(new, dict):
-                for k in new: compare(f"{path}.{k}", old[k], new[k])
+                for name, value in new.items():
+                    previous = old[name]
+                    if previous is not value:
+                        compare(f"{path}.{name}", previous, value)
             elif isinstance(new, list):
-                for i in range(len(new)):
-                    indexed=(path[:-1]+f',{i}]') if path.endswith(']') else f'{path}[{i}]'
-                    compare(indexed, old[i], new[i])
+                for i, value in enumerate(new):
+                    previous = old[i]
+                    if previous is not value:
+                        indexed = (path[:-1]+f',{i}]') if path.endswith(']') else f'{path}[{i}]'
+                        compare(indexed, previous, value)
             elif old is not new and old != new:
                 changes.append({"scan": self.scan_count, "ms": self.time_ms, "tag": path, "before": old, "after": new})
         for key in sorted(before, key=self.memory.value_order.__getitem__):

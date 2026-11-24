@@ -2,6 +2,7 @@ import copy
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 from xml.etree import ElementTree as ET
 
 from logixlab.model import Memory, ModelError, Project, parse_rung
@@ -214,6 +215,34 @@ class RuntimeTests(unittest.TestCase):
         self.assertEqual([item['tag'] for item in changes],
                          ['RunLatch', 'StartDelay.EN', 'StartDelay.TT', 'SpeedCommand'])
         self.assertIs(memory.values['cold'], cold)
+
+    def test_flat_array_snapshot_preserves_rollback_and_reports_only_changed_cells(self):
+        def add_array(root):
+            tags = root.find('./Controller/Tags')
+            tag = ET.SubElement(tags, 'Tag', Name='Tracked', TagType='Base',
+                                DataType='DINT', Dimensions='3')
+            data = ET.SubElement(tag, 'Data', Format='Decorated')
+            array = ET.SubElement(data, 'Array', DataType='DINT', Dimensions='3')
+            for index, value in enumerate((2, 4, 8)):
+                ET.SubElement(array, 'Element', Index=f'[{index}]', Value=str(value))
+
+        e = self.engine(['MOV(9,Tracked[1]);', 'MOV(7,Tracked[1]);',
+                         'MOV(8,Tracked[2]);', 'XIC(StartPB)CPT(SpeedCommand,1/0);'],
+                        add_array)
+        self.assertEqual(e.blockers, [])
+        e.memory.write('StartPB', True)
+        original = e.memory.values['tracked']
+        with patch.object(copy, 'deepcopy', wraps=copy.deepcopy) as deepcopy:
+            with self.assertRaisesRegex(ModelError, 'Scan rolled back'):
+                e.step()
+        self.assertFalse(any(call.args[0] is original for call in deepcopy.call_args_list))
+        self.assertEqual(e.memory.values['tracked'], [2, 4, 8])
+        self.assertEqual(e.changes, [])
+
+        e.memory.write('StartPB', False)
+        changes = e.step()
+        self.assertEqual([(row['tag'], row['before'], row['after']) for row in changes],
+                         [('Tracked[1]', 4, 7)])
 
     def test_unknown_instruction_in_false_path_blocks(self):
         e=self.engine(['AFI()SECRET(RunLatch);'])
