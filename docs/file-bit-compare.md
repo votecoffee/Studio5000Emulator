@@ -27,7 +27,8 @@ both positions; the next edge resumes after the last recorded bit.
 Compare FD indicates a mismatch found by that execution. Compare POS points
 to the next bit, reaching LEN with DN=true at completion. Rung-out follows
 incoming power; FD carries the match result. No mismatch still completes
-the comparison and leaves existing result entries intact.
+the comparison and leaves existing result entries intact. A matching tail
+advances POS to LEN even if the last mismatch was in an earlier word.
 
 With result DN clear, each mismatch writes at ResultControl.POS if the slot
 exists, including a POS at or beyond ResultControl.LEN. It then increments POS
@@ -52,9 +53,14 @@ and distinct controls may share a base tag; writable roles cannot share an array
 member, even with disjoint windows. Read-only FBC input tables are allowed
 outside AOIs. ST/FBD and other controller profiles remain unavailable.
 
-Each fresh comparison resolves the source and reference starts and checks the
-bounds of each reached bit. One-mismatch mode can stop before reaching a later
-overrun.
+Each fresh comparison resolves the source and reference starts and reads
+each reached DINT word once. Each bit still consumes one budget unit.
+One-mismatch mode can stop before reaching a later word or overrun. The next
+enable edge reads the current values, including any changes in a word already
+visited on an earlier edge. DDT accumulates its learned bits within each word.
+When FBC resolves both operands to the same word address, the bits match
+even if its saved value was omitted. Distinct word addresses still require
+both values, and each reached word must fit in the selected region.
 The result start is selected once on the first mismatch, before DDT learning
 or result writes. Each reached result position must fit within the selected
 array or member. An available slot can be written even if ResultControl.LEN

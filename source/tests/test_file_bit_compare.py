@@ -3,8 +3,10 @@ import copy
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 from xml.etree import ElementTree as E
 
+from logixlab import file_bit_compare
 from logixlab.model import ModelError, Project
 from logixlab.runtime import Engine
 from logixlab import control_operations as controls
@@ -85,7 +87,91 @@ class FileBitCompareTests(unittest.TestCase):
         e=self.checked(reference=(-2147483615,129,888));e.memory.write('ResultControl.LEN',0)
         e.memory.values['resultcontrol']['DN']=None;e.step()
         self.assertTrue(e.memory.read('Compare.DN'));self.assertFalse(e.memory.read('Compare.FD'))
+        self.assertEqual(e.memory.read('Compare.POS'), 40)
         self.assertEqual(e.memory.read('Result'),[-1,-1,-1,999])
+
+    def test_matching_tail_advances_to_length_after_the_last_mismatch(self):
+        for name in ('FBC', 'DDT'):
+            with self.subTest(name=name):
+                e = self.checked(name=name, length=39, source=(2, 0), reference=(0, 0))
+                e.step()
+                self.assertEqual(e.memory.read('Compare.POS'), 39)
+                self.assertTrue(e.memory.read('Compare.DN'))
+                self.assertTrue(e.memory.read('Compare.FD'))
+                self.assertEqual(e.memory.read('Result'), [1, -1, -1, 999])
+                self.assertEqual(e.memory.read('Reference'), [2 if name == 'DDT' else 0, 0])
+
+    def test_fbc_shared_omitted_word_matches_until_the_alias_selects_another_word(self):
+        def fields(root):
+            tags = root.find('Controller/Tags')
+            E.SubElement(tags, 'Tag', Name='SourceView', TagType='Alias', AliasFor='Source')
+            values = tags.find('Tag[@Name="Source"]/Data/Array')
+            values.remove(values.find('Element[@Index="[0]"]'))
+
+        rung = 'XIC(Enable)' + self.instruction(reference='SourceView[FaultDivisor]') + ';'
+        e = self.checked([rung], length=32, source=(0, 1), mutate=fields)
+        e.memory.write('FaultDivisor', 0)
+        e.step()
+        self.assertEqual(e.memory.read('Compare.POS'), 32)
+        self.assertTrue(e.memory.read('Compare.DN'))
+        self.assertFalse(e.memory.read('Compare.FD'))
+        self.assertEqual(e.memory.read('Result'), [-1, -1, -1, 999])
+        self.assertIsNone(e.memory.read('Source')[0])
+
+        e.memory.write('Enable', False)
+        e.step()
+        e.memory.write('FaultDivisor', 1)
+        e.memory.write('Enable', True)
+        before = copy.deepcopy(e.memory.values)
+        with self.assertRaisesRegex(ModelError, 'Unknown'):
+            e.step()
+        self.assertEqual(e.memory.values, before)
+        e.memory.write('Source[0]', 0)
+        e.step()
+        self.assertEqual(e.memory.read('Compare.POS'), 32)
+        self.assertTrue(e.memory.read('Compare.FD'))
+        self.assertEqual(e.memory.read('Result'), [0, -1, -1, 999])
+
+    def test_fbc_shared_word_keeps_the_bit_budget_and_array_extent_checks(self):
+        e = self.checked([self.instruction(reference='Source[0]') + ';'], length=33, source=(0,))
+        e.memory.values['source'][0] = None
+        before = copy.deepcopy(e.memory.values)
+        e.instruction_limit = 4
+        with self.assertRaisesRegex(ModelError, 'budget'):
+            e.step()
+        self.assertEqual(e.memory.values, before)
+        e.instruction_limit = 100
+        with self.assertRaisesRegex(ModelError, 'source bit exceeds the selected array boundary'):
+            e.step()
+        self.assertEqual(e.memory.values, before)
+
+    def test_new_edge_resamples_the_word_and_completion_skips_the_result_selection(self):
+        for name in ('FBC', 'DDT'):
+            with self.subTest(name=name):
+                rung = 'XIC(Enable)' + self.instruction(name, result='Result[FaultDivisor]') + ';'
+                e = self.checked([rung], length=8, source=(1,), reference=(0,), one=True)
+                e.memory.write('FaultDivisor', 0)
+                e.step()
+                self.assertEqual(e.memory.read('Compare.POS'), 1)
+                self.assertEqual(e.memory.read('Result[0]'), 0)
+
+                e.memory.write('Enable', False)
+                e.step()
+                e.memory.write('Source[0]', 9)
+                e.memory.write('Enable', True)
+                e.step()
+                self.assertEqual(e.memory.read('Compare.POS'), 4)
+                self.assertEqual(e.memory.read('Result[1]'), 3)
+
+                e.memory.write('Enable', False)
+                e.step()
+                e.memory.write('FaultDivisor', 99)
+                e.memory.write('Enable', True)
+                e.step()
+                self.assertEqual(e.memory.read('Compare.POS'), 8)
+                self.assertTrue(e.memory.read('Compare.DN'))
+                self.assertFalse(e.memory.read('Compare.FD'))
+                self.assertEqual(e.memory.read('Result'), [0, 3, -1, 999])
 
     def test_result_full_sets_done_and_wraps_only_on_next_mismatch(self):
         e=self.checked(length=32);e.step()
@@ -222,7 +308,10 @@ class FileBitCompareTests(unittest.TestCase):
 
     def test_maximum_bit_span_reaches_high_bit_without_touching_guard_word(self):
         e=self.checked(name='DDT',length=4096,capacity=1,source=tuple([0]*127+[-2147483648,999]),reference=tuple([0]*128+[888]))
-        e.step();self.assertEqual(e.memory.read('Result'),[4095,-1,-1,999])
+        with patch.object(file_bit_compare, 'unsigned', wraps=file_bit_compare.unsigned) as read_word:
+            e.step()
+        self.assertEqual(read_word.call_count, 256)
+        self.assertEqual(e.memory.read('Result'),[4095,-1,-1,999])
         self.assertEqual(e.memory.read('Reference[127]'),-2147483648);self.assertEqual(e.memory.read('Reference[128]'),888)
         self.assertEqual(e.memory.read('Compare.POS'),4096);self.assertTrue(e.memory.read('Compare.DN'))
 

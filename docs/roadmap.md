@@ -4,6 +4,11 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+[Ladder FBC and DDT](file-bit-compare.md) sample each reached DINT word once
+per call in `26.1124.095320`. FBC matches references to the same word even when the
+export omits its saved value. Mismatch order, per-bit budget and array fault
+recovery remain.
+
 [Integer ladder LIM](numeric-comparisons.md#lim-with-an-omitted-integer-test)
 can decide an omitted Test value from its declared range and known inclusive
 or reversed limits in `26.1124.093935`.

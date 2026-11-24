@@ -142,16 +142,26 @@ def _compare_bits(engine, op, scope, compare, saved_controls, store):
     saved_controls.append((result, result.copy()))
     initial_compare_position, initial_result_position = position, result['POS']
     destinations=None
+    current_word = -1
+    differences = reference = 0
     while position < length:
         engine.budget -= 1
         if engine.budget < 0:raise ModelError('FBC/DDT instruction budget exceeded')
         word, bit = divmod(position, 32)
-        if word >= available_words:
-            operand = 'source' if word >= len(sources) else 'reference'
-            raise InputExtentError(f'{op.name} {operand} bit exceeds the selected array boundary (Type 4 Code 20)')
-        source = unsigned(memory, memory.address(sk, sources[word]), '', 32)
-        reference = unsigned(memory, memory.address(rk, references[word]), '', 32)
-        if (source ^ reference) & (1 << bit):
+        if word != current_word:
+            if word >= available_words:
+                operand = 'source' if word >= len(sources) else 'reference'
+                raise InputExtentError(f'{op.name} {operand} bit exceeds the selected array boundary (Type 4 Code 20)')
+            if sk == rk and sources[word] == references[word]:
+                # FBC can share a read-only word. DDT checks disjoint roles first.
+                differences = 0
+            else:
+                source = unsigned(memory, memory.address(sk, sources[word]), '', 32)
+                reference = unsigned(memory, memory.address(rk, references[word]), '', 32)
+                differences = source ^ reference
+            current_word = word
+        bit_mask = 1 << bit
+        if differences & bit_mask:
             compare['FD'] = True
             if controls.flag(result, 'DN'):result.update(DN=False, POS=0)
             offset = controls.integer(result, 'POS')
@@ -170,7 +180,8 @@ def _compare_bits(engine, op, scope, compare, saved_controls, store):
             if offset >= len(destinations):
                 raise ArrayBoundsError(f'{op.name} result position exceeds the selected array boundary (Type 4 Code 20)')
             if op.name == 'DDT':
-                store(rk, references[word], bit_value(reference ^ (1 << bit), 'DINT'))
+                reference ^= bit_mask
+                store(rk, references[word], bit_value(reference, 'DINT'))
             store(dk, destinations[offset], position)
             result['POS'] = offset + 1
             if result['POS'] >= capacity:result['DN'] = True
@@ -196,7 +207,7 @@ def description():
                 array_recovery='Type 4 Code 20 restores both CONTROL records and data writes before the handler; input extent faults then set compare ER',
                 invalid_state='Compare or reached result LEN<=0 or POS<0 sets compare ER and preserves data/cursors; unknowns and resource limits roll back the advance',
                 starting_references='Aliases and bounded indirect starts; structural preflight; false/held/done/invalid compare calls skip live indices; no CONTROL.POS-dependent starts',
-                sampling='Source/reference starts sampled once and bounds checked at each reached bit; result start sampled on first mismatch before writes, with each reached slot checked',
+                sampling='Read each reached DINT word once per comparison call. FBC matches identical word addresses without reading values. Charge each compared bit and sample the result start on the first mismatch before writes.',
                 storage='Disjoint logical array members and distinct CONTROL records may share a base tag; writable roles cannot share an array member, even disjoint windows',
                 aoi='RLL bodies with exact one-dimensional DINT InOut/local arrays and selected element starts; canonical role checks and existing lifecycle/binding rollback rules',
                 native_runtime_parity=False,
