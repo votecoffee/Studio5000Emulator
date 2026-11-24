@@ -4,6 +4,9 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+[Ladder LFU](control-operations.md#lifo-pair) checks the configured length and
+resolves only the popped slot in a one-dimensional stack in `26.1124.112345`.
+
 [Ladder FFL and LFL](control-operations.md) resolve just the reached one-dimensional
 slot in `26.1124.111733`. Dormant checks avoid copying an untouched queue for rollback.
 

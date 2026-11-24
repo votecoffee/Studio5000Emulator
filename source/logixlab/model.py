@@ -1481,11 +1481,15 @@ class Memory:
             self._store_undo.append((parent, slot, parent[slot]))
         parent[slot] = copy.deepcopy(value)
 
-    def region(self,ref,count,scope='',*,offset=0):
+    def region(self,ref,count,scope='',*,offset=0,minimum_extent=0):
+        """Return the requested addresses after checking the required extent."""
         if isinstance(count,bool) or not isinstance(count,int) or not 0<=count<=100000:
             raise ModelError('Block length must be an integer in 0..100000')
         if type(offset) is not int or offset < 0:
             raise ModelError('Block offset must be a nonnegative integer')
+        if type(minimum_extent) is not int or minimum_extent < 0:
+            raise ModelError('Block extent must be a nonnegative integer')
+        required = max(offset + count, minimum_extent)
         key,parts,dtype=self.resolve(ref,scope)
         if key is None or any(isinstance(p,tuple) for p in parts) or dtype=='BOOL':raise ModelError('Block operand cannot be a bit')
         value=self.values[key];candidate=None
@@ -1503,10 +1507,11 @@ class Memory:
                 selection = parts[len(base):]
                 if len(selection) > 1:
                     raise ModelError('Block start does not address an array element')
-                start = (selection[0] if selection else 0) + offset
-                if start + count > len(array):
+                start = selection[0] if selection else 0
+                if start + required > len(array):
                     raise BlockExtentError('Block operation exceeds the modeled array/member boundary')
-                return key, [base + [index] for index in range(start, start + count)], dtype
+                first = start + offset
+                return key, [base + [index] for index in range(first, first + count)], dtype
             def flatten(path,obj):
                 if isinstance(obj,list):
                     for i,v in enumerate(obj):flatten(path+[i],v)
@@ -1514,11 +1519,12 @@ class Memory:
             flatten(*candidate)
             start=next((i for i,p in enumerate(addresses) if p[:len(parts)]==parts),None)
             if start is None:raise ModelError('Block start does not address an array element')
-            addresses=addresses[start + offset:]
-        else:addresses=[parts] if not offset else []
-        if count > len(addresses):
+        else:
+            addresses, start = [parts], 0
+        if start + required > len(addresses):
             raise BlockExtentError('Block operation exceeds the modeled array/member boundary')
-        return key,addresses[:count],dtype
+        first = start + offset
+        return key,addresses[first:first + count],dtype
 
     def _string_data(self, ref, scope, *, unsigned_length=False):
         _,_,dtype=self.resolve(ref,scope)

@@ -7,6 +7,7 @@ from xml.etree import ElementTree as E
 
 import test_control_operations as controls
 import test_fifo_records as records
+from logixlab.control_operations import UnloadExtentError
 from logixlab.model import ModelError, Project
 from logixlab.runtime import Engine
 
@@ -65,6 +66,45 @@ class QueueReferenceTests(unittest.TestCase):
                 with patch.object(e.memory, '_remember', wraps=e.memory._remember) as remember:
                     e.step()
                 self.assertNotIn('queue', [call.args[0] for call in remember.call_args_list])
+
+    def test_lfu_large_stack_checks_length_with_only_the_reached_slot_path(self):
+        e = self.checked(['XIC(PartSensor)LFU(AliasChain,Outgoing,Ctl,?,?);'],
+                         length=4095, position=2048,
+                         queue=(101,) + (0,) * 2047 + (1729, 42) + (0,) * 2046)
+        e.memory.values['queue'][-1] = None
+        e.step()
+        e.memory.write('PartSensor', True)
+        with patch.object(e.memory, 'region', wraps=e.memory.region) as region:
+            e.step()
+        windows = [call for call in region.call_args_list if 'minimum_extent' in call.kwargs]
+        self.assertEqual([(call.args[1], call.kwargs) for call in windows],
+                         [(1, {'offset': 2047, 'minimum_extent': 4095})])
+        self.assertEqual(e.memory.read('Outgoing'), 1729)
+        self.assertEqual(e.memory.read('Queue[2048]'), 0)
+        self.assertEqual(e.memory.read('Queue[2049]'), 42)
+        self.assertEqual(e.memory.read('Ctl.POS'), 2047)
+        self.assertIsNone(e.memory.values['queue'][-1])
+
+    def test_lfu_empty_stack_checks_length_without_building_any_slot_paths(self):
+        e = self.checked(['XIC(PartSensor)LFU(Queue[Index],Outgoing,Ctl,?,?);'],
+                         length=3, position=0, queue=(101, 11, 22, 33))
+        e.step()
+        e.memory.write('PartSensor', True)
+        e.memory.write('Index', 2)
+        before = self.snapshot(e)
+        with self.assertRaisesRegex(ModelError, 'LEN exceeds') as fault:
+            e.step()
+        self.assertIsInstance(fault.exception.__cause__, UnloadExtentError)
+        self.assertEqual(self.snapshot(e), before)
+        e.memory.write('Index', 1)
+        with patch.object(e.memory, 'region', wraps=e.memory.region) as region:
+            e.step()
+        windows = [call for call in region.call_args_list if 'minimum_extent' in call.kwargs]
+        self.assertEqual([(call.args[1], call.kwargs) for call in windows],
+                         [(0, {'offset': 0, 'minimum_extent': 3})])
+        self.assertEqual(e.memory.read('Outgoing'), 0)
+        self.assertEqual(e.memory.read('Queue'), [101, 11, 22, 33])
+        self.assertTrue(e.memory.read('Ctl.EM'))
 
     def test_fifo_alias_chain_and_indirect_start_keep_guard_elements(self):
         for start in ('Queue[Index]','QueueAlias','AliasChain'):
@@ -190,9 +230,24 @@ class QueueReferenceTests(unittest.TestCase):
             tag=root.find('./Controller/Tags/Tag[@Name="Queue"]');tag.set('Dimensions','2,3');a=tag.find('./Data/Array');a.clear();a.attrib.update(DataType='DINT',Dimensions='2,3')
             for index,value in (((0,0),101),((0,1),102),((0,2),0),((1,0),0),((1,1),0),((1,2),999)):
                 E.SubElement(a,'Element',Index='['+','.join(map(str,index))+']',Value=str(value))
-        e=self.paired(start='Queue[0,Index+1]',mutate=dimensions);e.step()
-        for value in (11,22,33):self.pulse(e,'StartPB',value)
-        self.assertEqual(e.memory.read('Queue'),[[101,102,11],[22,33,999]])
+        for stack in (False, True):
+            e=self.paired(start='Queue[0,Index+1]',stack=stack,mutate=dimensions);e.step()
+            for value in (11,22,33):self.pulse(e,'StartPB',value)
+            self.assertEqual(e.memory.read('Queue'),[[101,102,11],[22,33,999]])
+            if stack:
+                e.memory.write('StartPB', False)
+                self.pulse(e, 'PartSensor')
+                self.assertEqual(e.memory.read('Outgoing'), 33)
+                self.assertEqual(e.memory.read('Queue'), [[101, 102, 11], [22, 0, 999]])
+                e.memory.write('PartSensor', False)
+                e.step()
+                e.memory.write('Ctl.LEN', 5)
+                e.memory.write('PartSensor', True)
+                before = self.snapshot(e)
+                with self.assertRaisesRegex(ModelError, 'LEN exceeds') as fault:
+                    e.step()
+                self.assertIsInstance(fault.exception.__cause__, UnloadExtentError)
+                self.assertEqual(self.snapshot(e), before)
 
     def test_scalar_members_of_record_arrays_are_not_flat_numeric_regions(self):
         def records(root):

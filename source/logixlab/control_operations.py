@@ -280,21 +280,25 @@ def reset(memory, ref, scope):
     return key, tuple(parts)
 
 
-def _transfer_region(memory, name, ref, count, scope, *, load_position=None):
+def _transfer_region(memory, name, ref, count, scope, *, position=None):
     _, parts, _ = starting_array(memory, ref, scope)
     _check_element_limit(count)
     qualified = memory.project.version == '35' and memory.project.processor.upper() in CONTROLLERS
+    loading = name in ('FFL', 'LFL')
     try:
-        if qualified and load_position is not None:
-            return memory.region(ref, 1, scope, offset=load_position)
+        if qualified and loading:
+            return memory.region(ref, 1, scope, offset=position)
+        if name == 'LFU':
+            return memory.region(ref, int(position > 0), scope,
+                                 offset=max(0, position - 1), minimum_extent=count)
         key, paths, dtype = memory.region(ref, count, scope)
-        if load_position is not None:
-            paths = paths[load_position:load_position + 1]
+        if loading:
+            paths = paths[position:position + 1]
         return key, paths, dtype
     except BlockExtentError as error:
         if not qualified:
             raise
-        if load_position is not None:
+        if loading:
             raise ArrayBoundsError(f'{name} load position exceeds the array boundary (Type 4 Code 20)') from error
         if name in ('BSR', 'FFU') and any(isinstance(part, str) for part in parts):
             raise
@@ -370,8 +374,7 @@ def fifo(memory, op, power, scope, obj):
         raise ModelError('FIFO POS beyond LEN is outside the qualified runtime profile')
     if loading and position == length:return True
     array = a[1] if loading else a[0]
-    key, paths, dtype = _transfer_region(memory, n, array, length, scope,
-                                         load_position=position if loading else None)
+    key, paths, dtype = _transfer_region(memory, n, array, length, scope, position=position)
     if loading:
         source = fifo_values.read(memory,a[0],scope,dtype)
         memory.store(key, paths[0], source)
@@ -379,8 +382,6 @@ def fifo(memory, op, power, scope, obj):
     elif position == 0:
         fifo_values.write(memory,a[1],scope,dtype,fifo_values.zero(memory,dtype))
     else:
-        if n == 'LFU':
-            paths = paths[position-1:position]
         _unload(memory,a[1],scope,key,paths,dtype)
         obj['POS'] -= 1
     fifo_status(obj)
@@ -419,7 +420,7 @@ def description():
                     clearing='Vacated slots and empty unload results receive a typed zero PID; configure before an enabled PID calculation',
                     native_runtime_parity=False),
                 udt_scalar_fields=['BOOL','SINT','INT','DINT','LINT','USINT','UINT','UDINT','ULINT','REAL','LREAL','TIME32','TIME','LTIME','DT','LDT'],
-                lifo='LFL writes current POS then increments; LFU pops and zeroes POS-1 without shifting other elements',
+                lifo='LFL writes current POS then increments. LFU checks the configured LEN, resolves only the reached slot at POS-1, and pops and zeroes it without shifting other elements.',
                 starting_references='v35 5580 shifts/FIFO/LIFO accept aliases and bounded indirect array starts; resolved on a data-moving edge',
                 skipped_references='v35 5580 structural preflight; false/latched calls skip live array starts and payload indices until needed',
                 array_recovery='Whole-project Type 4 Code 20 covers subscripts and v35 5580 standalone FFU/LFU and member-array LFU extent overruns; restores CONTROL and queue data before the handler, with ER set for LFU extent overruns',

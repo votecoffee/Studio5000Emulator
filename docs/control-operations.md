@@ -108,6 +108,10 @@ DN/EM and the bounded invalid-state policy follow the FIFO profile above.
 LFU raises Type 4 Code 20 for a standalone or member-array overrun and sets ER
 for the fault handler.
 
+In one-dimensional stacks, LFU checks that the configured LEN fits and builds
+only the slot address at POS-1. An empty unload checks LEN and writes a typed
+zero to the destination without building any stack slot addresses.
+
 [Sequence lab](../source/samples/SequenceLab.L5X) demonstrates a three-value stack
 and [DINT sequencers](sequencer-operations.md). Step once to rearm, then pulse
 Push for each StackValue. Pulse Pop to inspect reverse order through Popped.
