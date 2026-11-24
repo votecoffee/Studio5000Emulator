@@ -216,7 +216,7 @@ class RuntimeTests(unittest.TestCase):
                          ['RunLatch', 'StartDelay.EN', 'StartDelay.TT', 'SpeedCommand'])
         self.assertIs(memory.values['cold'], cold)
 
-    def test_flat_array_snapshot_preserves_rollback_and_reports_only_changed_cells(self):
+    def test_sparse_array_writes_preserve_rollback_and_report_only_changed_cells(self):
         def add_array(root):
             tags = root.find('./Controller/Tags')
             tag = ET.SubElement(tags, 'Tag', Name='Tracked', TagType='Base',
@@ -236,6 +236,7 @@ class RuntimeTests(unittest.TestCase):
             with self.assertRaisesRegex(ModelError, 'Scan rolled back'):
                 e.step()
         self.assertFalse(any(call.args[0] is original for call in deepcopy.call_args_list))
+        self.assertIs(e.memory.values['tracked'], original)
         self.assertEqual(e.memory.values['tracked'], [2, 4, 8])
         self.assertEqual(e.changes, [])
 
@@ -243,6 +244,26 @@ class RuntimeTests(unittest.TestCase):
         changes = e.step()
         self.assertEqual([(row['tag'], row['before'], row['after']) for row in changes],
                          [('Tracked[1]', 4, 7)])
+
+    def test_mutable_access_promotes_original_cells_after_local_store_rollback(self):
+        e = self.engine(['NOP();'])
+        memory = e.memory
+        original = copy.deepcopy(memory.read('StartDelay'))
+        with self.assertRaisesRegex(ModelError, 'advance fault'):
+            with memory.track_values() as (before, cells):
+                memory.write('StartDelay.PRE', 22)
+                self.assertEqual(cells['startdelay'], {('PRE',): original['PRE']})
+                with self.assertRaisesRegex(ModelError, 'local fault'):
+                    with memory.atomic_stores():
+                        memory.write('StartDelay.PRE', 44)
+                        memory.write('StartDelay.ACC', 5)
+                        raise ModelError('local fault')
+                self.assertEqual(memory.read('StartDelay.PRE'), 22)
+                memory.read('StartDelay')['ACC'] = 17
+                self.assertNotIn('startdelay', cells)
+                self.assertEqual(before['startdelay'], original)
+                raise ModelError('advance fault')
+        self.assertEqual(memory.read('StartDelay'), original)
 
     def test_unknown_instruction_in_false_path_blocks(self):
         e=self.engine(['AFI()SECRET(RunLatch);'])

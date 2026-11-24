@@ -234,6 +234,8 @@ def literal(text):
 UNSIGNED_BITS = {'USINT':8,'UINT':16,'UDINT':32,'ULINT':64}
 INT_BITS = {"SINT": 8, "INT": 16, "DINT": 32, "LINT": 64, **UNSIGNED_BITS}
 PRIMITIVE_ARRAY_TYPES = frozenset(('BOOL', 'REAL', 'LREAL', *INT_BITS, *time_values.TYPES))
+IMMUTABLE_CELL_TYPES = (type(None), bool, int, float, str)
+MAX_TRACKED_CELLS_PER_TAG = 64
 
 
 def dimensions(text):
@@ -1029,6 +1031,7 @@ class Memory:
         self.values = copy.deepcopy(project.initial if starting_values is None else starting_values)
         self.value_order = {key: index for index, key in enumerate(self.values)}
         self._before = None
+        self._before_cells = None
         self._store_undo = None
         self.message_cache = {}
         self.first_scan = True
@@ -1046,17 +1049,22 @@ class Memory:
 
     @contextmanager
     def track_values(self):
-        """Keep original values for the tags a simulation advance can change."""
+        """Keep original values for the tags and cells an advance can change."""
         if self._before is not None:
             raise ModelError('Tag value tracking is already active')
         self._before = {}
+        self._before_cells = {}
         try:
-            yield self._before
+            yield self._before, self._before_cells
         except Exception:
+            for key, cells in self._before_cells.items():
+                for path, value in cells.items():
+                    self.at(key, path[:-1], mutable=False)[path[-1]] = value
             self.values.update(self._before)
             raise
         finally:
             self._before = None
+            self._before_cells = None
 
     def _remember(self, key):
         if self._before is not None and key not in self._before:
@@ -1065,9 +1073,30 @@ class Memory:
             # Multidimensional arrays still contain mutable row lists.
             if (type(value) is list and self.project.tags[key].dtype in PRIMITIVE_ARRAY_TYPES
                     and (not value or not isinstance(value[0], list))):
-                self._before[key] = value.copy()
+                snapshot = value.copy()
             else:
-                self._before[key] = copy.deepcopy(value)
+                snapshot = copy.deepcopy(value)
+            # Restore pre-scan cells in the snapshot before handing out a
+            # mutable aggregate or replacing a compound value.
+            for path, original in self._before_cells.pop(key, {}).items():
+                parent = snapshot
+                for part in path[:-1]:
+                    parent = parent[part]
+                parent[path[-1]] = original
+            self._before[key] = snapshot
+
+    def _remember_store(self, key, parts, parent, slot, value):
+        if self._before is None or key in self._before:
+            return
+        if parts and type(value) in IMMUTABLE_CELL_TYPES and (isinstance(parent, list) or slot in parent):
+            old = parent[slot]
+            if type(old) in IMMUTABLE_CELL_TYPES:
+                cells = self._before_cells.setdefault(key, {})
+                path = tuple(parts)
+                if path in cells or len(cells) < MAX_TRACKED_CELLS_PER_TAG:
+                    cells.setdefault(path, old)
+                    return
+        self._remember(key)
 
     @contextmanager
     def atomic_stores(self):
@@ -1481,8 +1510,8 @@ class Memory:
 
     def store(self,key,parts,value):
         if self.project.tags[key].constant:raise ModelError('Constant destination')
-        self._remember(key)
-        parent, slot = (self.at(key, parts[:-1]), parts[-1]) if parts else (self.values, key)
+        parent, slot = (self.at(key, parts[:-1], mutable=False), parts[-1]) if parts else (self.values, key)
+        self._remember_store(key, parts, parent, slot, value)
         if len(parts) == 1 and parts[0] == 'FLAGS' and key in self.project.message_configs:
             from .ladder_message import CACHE_MASK, TO_MASK
             writable = TO_MASK

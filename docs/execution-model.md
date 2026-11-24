@@ -176,10 +176,13 @@ Scans and prescan have instruction budgets. Traces and tag-change histories are
 bounded. The UI logic monitor displays execution evidence from this model, not
 native Studio debugger state.
 
-An advance snapshots touched tags for rollback. Flat arrays of primitive
-values use a shallow list snapshot. Nested records and multidimensional
-arrays still receive deep snapshots. Change history builds element paths
-only when the value differs by identity, then checks for an actual change.
+An advance records the first value of each scalar cell written through the
+tag store. Rollback and change history can use those entries without walking
+the entire array or record. A mutable aggregate access, a compound write, or
+more than 64 tracked cells in one tag promotes that tag to a full snapshot
+with the original values restored in the snapshot. A full snapshot of a flat
+primitive array copies the list. Nested records and multidimensional arrays
+use a deep copy. Change history preserves declaration and element order.
 
 ## Ladder and calls
 

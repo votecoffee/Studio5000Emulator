@@ -9,8 +9,8 @@ name **LogixLab**.
 Versions use `YY.MMDD.HHmmss`. The running version appears in the browser title,
 page header, Windows tray and executable properties; all use the same value.
 
-Scan rollback snapshots flat primitive arrays without recursively copying each
-element. Tag history skips path construction for unchanged elements.
+Scan rollback and change history track isolated scalar writes without copying
+their entire containing arrays or records.
 
 **Development focus: full ladder support, then Structured Text, then FBD, then SFC.**
 Complete and qualify ladder and ST before adding new FBD/SFC features. Full

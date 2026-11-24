@@ -847,9 +847,9 @@ class Engine:
 
     def _step(self, dt=10, *, running=False):
         self.prepare_step(dt)
-        with self.memory.track_values() as before:
+        with self.memory.track_values() as (before, cells):
             self._advance(dt, running=running)
-        return self._record_tag_changes(before)
+        return self._record_tag_changes(before, cells)
 
     def _advance(self, dt, *, running):
         message_cache = self.memory.message_cache.copy()
@@ -1079,7 +1079,7 @@ class Engine:
         try:
             self._routine(key, 0)
             self.trace = (previous_trace + self.trace)[-5000:]
-            self._record_tag_changes(before)
+            self._record_tag_changes(before, {})
         except Exception as error:
             self.memory.values = before
             self.memory.message_cache = message_cache
@@ -1096,8 +1096,11 @@ class Engine:
             self.budget, self.memory.first_scan = previous_budget, previous_first
             self.memory.minor_fault = previous_minor
 
-    def _record_tag_changes(self, before):
+    def _record_tag_changes(self, before, cells):
         changes = []
+        def index_path(path, index):
+            return (path[:-1]+f',{index}]') if path.endswith(']') else f'{path}[{index}]'
+
         def compare(path, old, new):
             if old is None and isinstance(new,(dict,list)):old=unknown_shape(new)
             if isinstance(new, dict):
@@ -1109,12 +1112,29 @@ class Engine:
                 for i, value in enumerate(new):
                     previous = old[i]
                     if previous is not value:
-                        indexed = (path[:-1]+f',{i}]') if path.endswith(']') else f'{path}[{i}]'
-                        compare(indexed, previous, value)
+                        compare(index_path(path, i), previous, value)
             elif old is not new and old != new:
                 changes.append({"scan": self.scan_count, "ms": self.time_ms, "tag": path, "before": old, "after": new})
-        for key in sorted(before, key=self.memory.value_order.__getitem__):
-            compare(self.project.tags[key].key, before[key], self.memory.values[key])
+        def located_cell(name, value, parts):
+            order = []
+            for part in parts:
+                if isinstance(part, int):
+                    order.append(part)
+                    name = index_path(name, part)
+                else:
+                    order.append(tuple(value).index(part))
+                    name = f'{name}.{part}'
+                value = value[part]
+            return order, name, value
+
+        for key in sorted(before.keys() | cells.keys(), key=self.memory.value_order.__getitem__):
+            name, value = self.project.tags[key].key, self.memory.values[key]
+            if key in before:
+                compare(name, before[key], value)
+                continue
+            entries = [(located_cell(name, value, path), old) for path, old in cells[key].items()]
+            for (_, path, new), old in sorted(entries, key=lambda entry: entry[0][0]):
+                compare(path, old, new)
         self.changes = (changes + self.changes)[:2000]
         return changes
 
