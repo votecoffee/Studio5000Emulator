@@ -5,6 +5,7 @@ import operator
 from .expressions import FUNCTIONS
 from .integer_math import CONTROLLERS, WIDE_TYPES
 from .model import INT_BITS, ModelError, coerce
+from . import string_operations
 
 NUMERIC = frozenset((*INT_BITS, 'REAL', 'LREAL'))
 MATH = frozenset(FUNCTIONS) - {'SQRT', 'TRUNC'}
@@ -128,7 +129,7 @@ def analyze(expression, memory, scope='', destination_type=None, *, consumer='CP
     return result
 
 
-def evaluate(expression, memory, scope, profile, *, allow_nonfinite_relations=False):
+def evaluate(expression, memory, scope, profile, *, allow_nonfinite_relations=False, partial_string_relations=False):
     precision = profile.get('precision','LREAL')
     def number(value):
         if precision == 'REAL' and type(value) is int:
@@ -172,6 +173,10 @@ def evaluate(expression, memory, scope, profile, *, allow_nonfinite_relations=Fa
             return number(expression.function_map[value](visit(node[2])))
         # Both operands are required, including Boolean operations.
         if value in RELATIONS:
+            if partial_string_relations:
+                result = string_operations.compare_condition_relation(memory, scope, profile['types'], node, RELATIONS[value])
+                if result is not None:
+                    return result
             return RELATIONS[value](visit(node[2], relation_operand=allow_nonfinite_relations),
                                     visit(node[3], relation_operand=allow_nonfinite_relations))
         x, y = visit(node[2]), visit(node[3])

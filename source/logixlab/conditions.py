@@ -4,7 +4,7 @@ from .integer_math import CONTROLLERS, quotient, integer_power
 import operator
 from .expressions import Expression, FUNCTIONS, BCD_FUNCTIONS, index_function
 from .model import ModelError, coerce
-from . import time_values
+from . import string_operations, time_values
 
 RELATIONS={'=':operator.eq,'<>':operator.ne,'<':operator.lt,'<=':operator.le,'>':operator.gt,'>=':operator.ge}
 LOGICAL={'&&','^^','||'}
@@ -35,7 +35,7 @@ class Condition(Expression):
         if profile is not None and profile[1]!='bool':raise ModelError('CMP requires a BOOL result or comparison')
         return profile
 
-    def validate(self,memory,scope=''):
+    def validate(self,memory,scope='',*,read_string_data=True):
         temporal=time_values.condition_profile(self,memory,scope)
         if temporal is not None:return False,temporal['types']
         floating=self.floating_profile(memory,scope)
@@ -52,7 +52,9 @@ class Condition(Expression):
                 if isinstance(memory.read(ref,scope),(dict,list)):raise ModelError('CMP requires scalar numeric operands')
                 types[ref]='number';real|=dtype=='REAL'
             elif memory.project.string_capacity(dtype) is not None:
-                memory.string(ref,scope);types[ref]='string'
+                if read_string_data:
+                    memory.string(ref,scope)
+                types[ref]='string'
             else:raise ModelError('Unsupported CMP operand type '+dtype)
         def infer(node):
             nonlocal real
@@ -96,19 +98,20 @@ class Condition(Expression):
                 raise ModelError('Integer expression power requires the v35 ControlLogix 5580 profile')
         return real,types
 
-    def evaluate(self,memory,scope='',*,allow_nonfinite_relations=False):
+    def evaluate(self,memory,scope='',*,allow_nonfinite_relations=False,partial_string_relations=False):
         temporal=time_values.condition_profile(self,memory,scope)
         if temporal is not None:return bool(time_values.evaluate_condition(self,memory,scope,temporal))
         floating=self.floating_profile(memory,scope)
         if floating is not None:
             from . import lreal_expressions
             return bool(lreal_expressions.evaluate(
-                self, memory, scope, floating, allow_nonfinite_relations=allow_nonfinite_relations))
+                self, memory, scope, floating, allow_nonfinite_relations=allow_nonfinite_relations,
+                partial_string_relations=partial_string_relations))
         wide=self.wide_profile(memory,scope)
         if wide is not None:
             from . import wide_st
-            return bool(wide_st.evaluate(self,memory,scope,wide))
-        real,types=self.validate(memory,scope)
+            return bool(wide_st.evaluate(self,memory,scope,wide,partial_string_relations=partial_string_relations))
+        real,types=self.validate(memory,scope,read_string_data=not partial_string_relations)
         compare_nonfinite = (allow_nonfinite_relations and real and memory.project.version == '35'
                              and memory.project.processor.upper() in CONTROLLERS)
         def number(x):return coerce(x,'REAL' if real else 'DINT')
@@ -131,6 +134,10 @@ class Condition(Expression):
             # Both sides are checked/evaluated. No assumed short-circuit path can
             # conceal an unknown value, out-of-bounds access or arithmetic fault.
             if value in RELATIONS:
+                if partial_string_relations:
+                    result = string_operations.compare_condition_relation(memory, scope, types, node, RELATIONS[value])
+                    if result is not None:
+                        return result
                 return RELATIONS[value](visit(node[2], relation_operand=compare_nonfinite),
                                         visit(node[3], relation_operand=compare_nonfinite))
             x,y=visit(node[2]),visit(node[3])

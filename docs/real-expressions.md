@@ -123,9 +123,11 @@ CMP((UnsignedInput+0.5>0)&&(PartCode=ExpectedCode))OTE(Matched);
 FSC(Find,?,?,ALL,(Weights[Find.POS]>1.0L)&&(Codes[Find.POS]=ExpectedCode));
 ```
 
-Required LEN and active DATA bytes must be known and within the declared string
-capacity. True/false Boolean results do not skip the other side: bad indices,
-unknown bytes and numeric faults still roll back the whole advance. Existing
+LEN and required DATA bytes must be known and within the declared string
+capacity. [Scheduled ladder CMP](string-operations.md#ladder-cmp-with-partial-strings)
+can decide a relation from the lengths or a decisive byte. FSC still requires
+the active bytes. Both sides of Boolean operators are evaluated, so bad indices,
+unknown required bytes and numeric faults roll back the whole advance. Existing
 false-rung, prescan, file hold/done/inhibit and numeric-continuation rules apply.
 Aliases, selected string elements, UDT members and qualified AOI bindings retain
 their existing address rules. Strings cannot be math operands or numeric results;

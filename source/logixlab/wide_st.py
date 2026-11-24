@@ -3,6 +3,7 @@ from .conditions import RELATIONS
 from .comparisons import ordering_type, INTEGER_RANK
 from .integer_math import CONTROLLERS,WIDE_TYPES,bit_value,quotient
 from .model import INT_BITS,ModelError,coerce
+from . import string_operations
 
 
 def analyze(expression,memory,scope='',destination_type=None,*,consumer='ST'):
@@ -97,7 +98,7 @@ def analyze(expression,memory,scope='',destination_type=None,*,consumer='ST'):
     return dtype,infer(expression.tree),types
 
 
-def evaluate(expression,memory,scope,profile):
+def evaluate(expression,memory,scope,profile,*,partial_string_relations=False):
     dtype,_,types=profile
     def number(value):return coerce(value,dtype)
     def visit(node):
@@ -122,8 +123,13 @@ def evaluate(expression,memory,scope,profile):
                 return number(rounded_integer_root(item))
             from .numeric_conversions import from_bcd,to_bcd
             return number(from_bcd(item,INT_BITS[dtype]) if value=='FRD' else to_bcd(item,dtype))
+        if value in RELATIONS:
+            if partial_string_relations:
+                result = string_operations.compare_condition_relation(memory, scope, types, node, RELATIONS[value])
+                if result is not None:
+                    return result
+            return RELATIONS[value](visit(node[2]),visit(node[3]))
         left,right=visit(node[2]),visit(node[3])
-        if value in RELATIONS:return RELATIONS[value](left,right)
         if value in ('AND','OR','XOR','&&','||','^^') and type(left) is type(right) is bool:
             return left and right if value in ('AND','&&') else left or right if value in ('OR','||') else left!=right
         if value=='+':result=left+right

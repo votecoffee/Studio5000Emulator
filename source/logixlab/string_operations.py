@@ -128,6 +128,16 @@ def compare(engine, op, scope, relation):
     return relation(difference, 0)
 
 
+def compare_condition_relation(memory, scope, types, node, relation):
+    """Evaluate a tag-to-tag string relation or leave a non-string node to its evaluator."""
+    _, symbol, left, right = node
+    if not all(operand[0] == 'ref' and types[operand[1]] == 'string' for operand in (left, right)):
+        return None
+    difference = memory.compare_strings((left[1], right[1]), (None, None), scope,
+                                        lengths_first=symbol in ('=', '<>'), unsigned_length=False)
+    return relation(difference, 0)
+
+
 def concatenate(engine, op, scope):
     memory = engine.memory
     left, right, dest = op.args
@@ -229,7 +239,7 @@ def description():
                     array_recovery='A cleared Type 4 Code 20 during a whole-project ladder scan skips the instruction result write',
                     capacity_diagnostics='Qualified ladder CONCAT continues with Type 4 Code 51 on invalid oversized LEN or output clipping. MID, DELETE, LOWER and UPPER can diagnose Type 4 Code 52 from result size before reading bytes. Modeled capacity faults outside CONCAT roll back the advance.',
                     position_diagnostics='Ladder FIND, INSERT, MID and DELETE report Type 4 Code 56 for documented invalid ranges and roll back the advance',
-                    comparisons='Required source strings and both CMP logical operands are consumed; no value or identity folding',
+                    comparisons='Scheduled ladder CMP can decide string relations from valid lengths or a decisive byte; both logical operands remain required',
                     excluded='New algorithms, empty-search/zero-delete edge behavior, broader types/encoding/controller rules and native status/fault/lifecycle parity',
                     native_runtime_parity=False),
                 remaining=['Empty FIND search', 'Zero-quantity DELETE', 'INSERT beyond active text plus one',

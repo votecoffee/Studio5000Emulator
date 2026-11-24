@@ -297,7 +297,8 @@ class Extensions:
         if n in ('SIZE','TRN') and size_truncate.handle(self.engine,op,scope,execute=True):return power
         if n=='CMP':
             condition = self.condition(a[0], allow_wide=True, bcd=True, lreal=True, radix_literals=True)
-            return condition.evaluate(self.memory, scope, allow_nonfinite_relations=True)
+            return condition.evaluate(self.memory, scope, allow_nonfinite_relations=True,
+                                      partial_string_relations=string_operations.scheduled_ladder_context(self.engine, scope))
         if n=='MEQ':
             dtype=self.wide_mask_profile(a,scope)
             source,mask,compare=(self.masked(x,scope,dtype) for x in a)

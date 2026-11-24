@@ -59,9 +59,11 @@ at import. False rungs and prescan skip those operands. Reached calls still
 resolve actual addresses and require every consumed source value, including
 active string bytes, numeric conversions, positions and quantities. MID reads
 its source LEN and the selected DATA bytes. FIND uses the active suffix from
-Start and can use a confirmed match in a partially exported source. Standalone ladder comparisons read [only the bytes they need](#ladder-string-comparison-literals).
-Identical references still require the bytes needed to establish equality. CMP
-consumes both logical operands even when one determines the result.
+Start and can use a confirmed match in a partially exported source. Ladder
+comparisons and [CMP string relations](#ladder-cmp-with-partial-strings) can
+finish once the known data determines the result. Identical references still
+require the bytes needed to establish equality. CMP consumes both logical
+operands even when one determines the result.
 
 Full logical string writes establish unknown LEN/active DATA and preserve unused
 bytes and other array elements. Numeric results can likewise establish unknown
@@ -279,6 +281,19 @@ acceptance remains unverified. [Rockwell equality reference](https://www.rockwel
 [Rockwell inequality reference](https://www.rockwellautomation.com/en-ie/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/compare-instructions/not-equal-to--ne-.html)
 [Rockwell CMP reference](https://www.rockwellautomation.com/en-be/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/compare-instructions/compare--cmp-.html)
 [Rockwell FSC reference](https://www.rockwellautomation.com/en-no/docs/studio-5000-logix-designer/37-01/contents-ditamap/instruction-set/array-file-misc-instructions/file-search-and-compare-fsc.html)
+
+## Ladder CMP with partial strings
+
+In scheduled Standard v35 5580 ladder, each tag-to-tag string relation in
+`CMP` validates both lengths. Equality and inequality can decide unequal
+lengths immediately. The six relations can stop at the first differing unsigned
+byte, and ordering can use length once the shorter prefix matches. This works
+in expressions that also contain qualified numeric comparisons.
+
+If a missing byte can change the relation, the scan rolls back. Both sides of
+Boolean operators still run and can cause rollback. Invalid string lengths
+remain scan errors. Native handling of partially exported data remains
+unverified. [Rockwell CMP reference](https://www.rockwellautomation.com/en-be/docs/studio-5000-logix-designer/37-00/contents-ditamap/instruction-set/compare-instructions/compare--cmp-.html)
 
 ## String Lab
 

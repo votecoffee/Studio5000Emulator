@@ -179,6 +179,53 @@ class StringSelectionTests(unittest.TestCase):
         self.assertTrue(self.engine(['CMP((SourceA=SourceA)||Flags)OTE(RunLatch);']).blockers)
         e=self.checked(['CMP((SourceA=SourceA)||S:FS)OTE(RunLatch);']);e.step();self.assertTrue(e.memory.read('RunLatch'))
 
+    def test_scheduled_cmp_string_relations_use_only_decisive_lengths_or_bytes(self):
+        for suffix in ('', '&&(1L=1L)', '&&(1.0L=1.0L)', '&&(RealSource>16#0000_0000)'):
+            with self.subTest(numeric_clause=suffix):
+                e = self.checked([
+                    f'CMP((TextCells[0]=TextCells[1]){suffix})OTE(RunLatch);',
+                    f'XIC(StartPB)CMP((TextCells[0]>TextCells[1]){suffix})OTE(MotorRunning);',
+                ])
+                m = e.memory
+                m.write('TextCells[0].LEN', 2)
+                m.write('TextCells[1].LEN', 3)
+                m.write('StartPB', False)
+                m.write('RunLatch', True)
+                e.step()
+                self.assertFalse(m.read('RunLatch'))
+                self.assertFalse(m.read('MotorRunning'))
+
+                m.write('StartPB', True)
+                m.write('TextCells[0].DATA[0]', -1)
+                m.write('TextCells[1].DATA[0]', 1)
+                e.step()
+                self.assertTrue(m.read('MotorRunning'))
+
+                m.write('TextCells[1].DATA[0]', -1)
+                before = self.snapshot(e)
+                with self.assertRaisesRegex(ModelError, 'unknown active DATA'):
+                    e.step()
+                self.assertEqual(self.snapshot(e), before)
+                m.write('TextCells[0].DATA[1]', 0)
+                m.write('TextCells[1].DATA[1]', 0)
+                e.step()
+                self.assertFalse(m.read('MotorRunning'))
+                self.assertIsNone(m.read('TextCells[1].DATA')[2])
+
+    def test_decisive_cmp_string_relation_keeps_other_logical_branch_eager(self):
+        e = self.checked(['CMP((TextCells[0]<>TextCells[1])||Flags[Index])OTE(RunLatch);'])
+        m = e.memory
+        m.write('TextCells[0].LEN', 2)
+        m.write('TextCells[1].LEN', 3)
+        before = self.snapshot(e)
+        with self.assertRaisesRegex(ModelError, 'outside bounds'):
+            e.step()
+        self.assertEqual(self.snapshot(e), before)
+        m.write('Index', 0)
+        m.write('Flags[0]', False)
+        e.step()
+        self.assertTrue(m.read('RunLatch'))
+
     def test_mid_dynamic_positions_are_runtime_values_and_immediate_bounds_stay_static(self):
         e=self.checked(['XIC(StartPB)MID(SourceA,Qty,Start,TextResults[0]);'],mutate=lambda root:root.find('./Controller/Tags/Tag[@Name="Start"]/Data/DataValue').set('Value','0'))
         e.step();e.memory.write('StartPB',True);before=self.snapshot(e)
