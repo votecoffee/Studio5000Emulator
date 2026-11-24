@@ -903,7 +903,8 @@ FFL/FFU, LFL/LFU and CONTROL reset with explicit edge and bounds rules.
 BSL and BSR shift packed word windows and preserve bits outside LEN.
 FFL and LFL resolve the current slot directly in one-dimensional arrays.
 LFU resolves the newest slot directly after checking the configured stack length.
-Empty FFU checks the configured length without building slot addresses.
+Empty FFU checks the length without building slot addresses. Nonempty FFU
+reads the resolved slots in one pass and retains their values for rollback.
 [Matching string/UDT payloads](docs/record-queues.md) are copied at the store.
 [Alias and indirect array starts](docs/queue-references.md) now work in these
 ladder shift/queue forms for v35 5580. **Queue reference lab** demonstrates

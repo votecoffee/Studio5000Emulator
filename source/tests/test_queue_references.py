@@ -129,6 +129,18 @@ class QueueReferenceTests(unittest.TestCase):
             e=self.paired(dtype=dtype,queue=(101,0,0,0,99));e.step();self.pulse(e,'StartPB',12);e.memory.write('StartPB',False);self.pulse(e,'PartSensor')
             self.assertEqual(e.memory.read('Outgoing'),12);self.assertEqual(e.memory.read('Queue[0]'),101)
 
+    def test_nonempty_fifo_uses_resolved_slots_for_the_full_length(self):
+        e = self.checked(['XIC(PartSensor)FFU(QueueAlias,Outgoing,Ctl,?,?);'],
+                         length=3, position=1, queue=(101, 15, 27, 39, 99))
+        e.step()
+        e.memory.write('PartSensor', True)
+        with patch.object(e.memory, 'address', wraps=e.memory.address) as address:
+            e.step()
+        self.assertNotIn('queue', [call.args[0] for call in address.call_args_list])
+        self.assertEqual(e.memory.read('Queue'), [101, 27, 39, 0, 99])
+        self.assertEqual(e.memory.read('Outgoing'), 15)
+        self.assertEqual(e.memory.read('Ctl.POS'), 0)
+
     def test_shifts_alias_and_indirect_start_preserve_partial_word(self):
         for start in ('Words[Index]','BitAlias'):
             e=self.checked([f'BSL({start},Ctl,BitIn,?);'],words=(111,-2147483648,0x12345678,777));e.step()

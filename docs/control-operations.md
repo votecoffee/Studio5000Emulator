@@ -78,6 +78,9 @@ FFU returns the
 first element, shifts the entire configured region down, zeroes its last element
 and decrements POS. On an empty unload edge, FFU checks LEN and writes a typed
 zero. A one-dimensional empty FIFO needs no slot addresses for that check.
+On a nonempty unload, FFU captures the full LEN window directly from its
+resolved slots. That pass also retains the original values for recovery if
+the destination index faults after the shift.
 DN indicates POS>=LEN; EM indicates empty. LEN<=0 or negative POS sets both
 status bits without data movement. POS beyond LEN remains outside the qualified
 profile and stops execution. A reached FFU unload with LEN past a standalone

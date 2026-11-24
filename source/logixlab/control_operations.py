@@ -347,10 +347,9 @@ def shift(memory, op, power, scope, obj):
 
 
 def _unload(memory, dest, scope, key, paths, dtype):
-    values = [fifo_values.read(memory,memory.address(key,path),'',dtype) for path in paths]
     # The destination index can read the queue after it moves. Retain the
-    # original elements so a bounds error leaves the queue intact.
-    previous = [memory.at(key,path,mutable=False) for path in paths]
+    # original elements during validation so a bounds error can restore them.
+    previous, values = fifo_values.capture_slots(memory, key, paths, dtype)
     for path,value in zip(paths,values[1:]+[fifo_values.zero(memory,dtype)]):
         memory.store(key,path,value)
     try:

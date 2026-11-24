@@ -44,6 +44,12 @@ def convert_numeric(value, source, dest):
     return numeric_storage.convert(value, source, dest)
 
 
+def require_record(value):
+    if not isinstance(value, dict):
+        raise ModelError('FIFO requires one represented logical record')
+    return value
+
+
 def read(memory,ref,scope,dtype):
     """Capture a payload to pass to a store, which detaches logical records."""
     if not aggregate(dtype) and numeric_storage.available(memory.project):
@@ -53,10 +59,22 @@ def read(memory,ref,scope,dtype):
         source=numeric_type(memory,ref,scope)
         return convert_numeric(memory.read(ref,scope), source, dtype)
     if not aggregate(dtype):return coerce(memory.read(ref,scope),dtype)
-    value=memory.read(ref,scope,mutable=False)
-    if not isinstance(value,dict):raise ModelError('FIFO requires one represented logical record')
-    # Unloads capture these references before replacing whole queue slots.
-    return value
+    return require_record(memory.read(ref,scope,mutable=False))
+
+
+def capture_slots(memory, key, paths, dtype):
+    """Return original slot values for undo and checked payloads for the move."""
+    cells = memory.read_cells(key, paths)
+    if aggregate(dtype):
+        records = [require_record(value) for value in cells]
+        return records, records
+
+    previous, payloads = [], []
+    qualified = numeric_storage.available(memory.project)
+    for value in cells:
+        previous.append(value)
+        payloads.append(convert_numeric(value, dtype, dtype) if qualified else coerce(value, dtype))
+    return previous, payloads
 
 
 def zero(memory,dtype):return memory.project.default(dtype) if aggregate(dtype) else coerce(0,dtype)

@@ -1456,11 +1456,11 @@ class Memory:
         return value
 
     def read_cells(self, key, paths):
-        """Read resolved scalar cells in order, reporting the address of missing values."""
+        """Read resolved cells without tracking aggregates for mutation."""
         for path in paths:
             value = self.at(key, path, mutable=False)
             if value is None:
-                value = self.read(self.address(key, path))
+                value = self.read(self.address(key, path), mutable=False)
             yield value
 
     def address(self,key,parts):
