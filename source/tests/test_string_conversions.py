@@ -65,6 +65,76 @@ class StringConversionTests(unittest.TestCase):
         e=self.checked(['STOR(SourceA,RealDest);']);e.memory.write('SourceA','15.3001');e.step()
         self.assertEqual(e.memory.read('RealDest'),15.300100326538086)
 
+    def test_ladder_numeric_conversion_uses_the_first_group_before_missing_bytes(self):
+        for instruction, prefix, expected in (
+            ('STOD', 'WT=-12.', -12),
+            ('STOD', 'OFFSET=-.7', 0),
+            ('STOD', 'COUNT=34/', 34),
+            ('STOR', 'WT=-12.5/', -12.5),
+            ('STOR', 'OFFSET=.75\0', 0.75),
+            ('STOR', 'VALUE=34e/', 34.0),
+        ):
+            destination = 'Result' if instruction == 'STOD' else 'RealDest'
+            for st in (False, True):
+                with self.subTest(instruction=instruction, prefix=prefix, structured_text=st):
+                    engine = self.checked([f'{instruction}(SourceA,{destination});'], st=st)
+                    memory = engine.memory
+                    memory.write('SourceA', prefix + '9')
+                    key, parts, _ = memory.resolve(f'SourceA.DATA[{len(prefix)}]')
+                    memory.store(key, parts, None)
+                    if st:
+                        before = copy.deepcopy(memory.values)
+                        with self.assertRaisesRegex(ModelError, 'unknown active DATA'):
+                            engine.step()
+                        self.assertEqual(memory.values, before)
+                    else:
+                        engine.step()
+                        self.assertEqual(memory.read(destination), expected)
+                        self.assertEqual(memory.read('SourceA.LEN'), len(prefix) + 1)
+
+    def test_ladder_numeric_conversion_retries_when_missing_bytes_can_change_the_result(self):
+        for instruction, prefix, completion, expected in (
+            ('STOD', 'COUNT=12', '3', 123),
+            ('STOD', 'OFFSET=.', '4', 0),
+            ('STOD', 'LABEL/', '7', 7),
+            ('STOR', 'WT=-12.', '5', -12.5),
+            ('STOR', 'VALUE=2e', '/', 2.0),
+            ('STOR', 'VALUE=2e+', '/', 2.0),
+        ):
+            with self.subTest(instruction=instruction, prefix=prefix):
+                destination = 'Result' if instruction == 'STOD' else 'RealDest'
+                engine = self.checked(['MOV(77,SpeedCommand);', f'{instruction}(SourceA,{destination});'])
+                memory = engine.memory
+                memory.write('SourceA', prefix + completion)
+                address = f'SourceA.DATA[{len(prefix)}]'
+                key, parts, _ = memory.resolve(address)
+                memory.store(key, parts, None)
+                before = copy.deepcopy(memory.values)
+                with self.assertRaisesRegex(ModelError, 'unknown active DATA'):
+                    engine.step()
+                self.assertEqual(memory.values, before)
+                self.assertEqual(engine.scan_count, 0)
+                memory.write(address, ord(completion))
+                engine.step()
+                self.assertEqual(memory.read(destination), expected)
+                self.assertEqual(memory.read('SpeedCommand'), 77)
+
+    def test_confirmed_stod_overflow_and_stor_exponent_fault_with_unknown_suffix(self):
+        for instruction, prefix, destination, diagnostic in (
+            ('STOD', '2147483648/', 'Result', 'STOD: Type 4 Code 53:'),
+            ('STOR', '2e+3/', 'RealDest', 'scientific-notation'),
+        ):
+            with self.subTest(instruction=instruction):
+                engine = self.checked([f'{instruction}(SourceA,{destination});'])
+                memory = engine.memory
+                memory.write('SourceA', prefix + '9')
+                key, parts, _ = memory.resolve(f'SourceA.DATA[{len(prefix)}]')
+                memory.store(key, parts, None)
+                before = copy.deepcopy(memory.values)
+                with self.assertRaisesRegex(ModelError, diagnostic):
+                    engine.step()
+                self.assertEqual(memory.values, before)
+
     def test_stor_establishes_unknown_destination(self):
         e=self.checked(['STOR(SourceA,RealDest);']);e.memory.values['realdest']=None;e.step()
         self.assertEqual(e.memory.read('RealDest'),123.0)

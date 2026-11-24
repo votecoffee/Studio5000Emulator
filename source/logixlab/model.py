@@ -1528,6 +1528,15 @@ class Memory:
             self._check_string_result_size(destination, result_length, scope)
         return self._decode_string_data(data[:result_length])
 
+    def string_known_prefix(self, ref, scope=''):
+        """Read consecutive known bytes and report whether they cover LEN."""
+        data, length = self._string_data(ref, scope)
+        try:
+            end = data.index(None, 0, length)
+        except ValueError:
+            end = length
+        return self._decode_string_data(data[:end]), end == length
+
     def compare_strings(self, refs, literals, scope, *, lengths_first, unsigned_length):
         """Compare only bytes that can affect a standalone ladder relation."""
         captured = []

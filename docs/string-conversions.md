@@ -83,6 +83,18 @@ advance when the result exceeds the destination's range. In ladder, STOD and
 STOR include Type 4 Code 53 in that error. Native continuation, partial writes
 and status behavior remain unverified.
 
+### Partially exported strings in ladder
+
+In a scheduled Standard v35 ControlLogix 5580 ladder Program, STOD and STOR
+can use the known bytes before the first missing active DATA byte if they
+already establish the first numeric group. A known delimiter can end the group.
+For STOD, a decimal point following the integer digits also establishes the
+whole-number part, as in `WT=-12.` followed by unknown bytes.
+
+If a missing byte could start or extend the first number, the scan rolls back.
+STOR also rolls back when a missing byte could complete an exponent marker such
+as `2e+`. Structured Text requires the full active string.
+
 ## DTOS with REAL input
 
 In the v35 ControlLogix 5580 software profile, `DTOS(RealTag,Text)` uses the

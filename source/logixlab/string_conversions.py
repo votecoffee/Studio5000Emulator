@@ -48,8 +48,10 @@ def validate(memory, op, scope):
     else:string_operand(memory, dest, scope, destination=True)
 
 
-def parse_integer(text):
+def parse_integer(text, *, complete=True):
     match = DECIMAL.search(text)
+    if not complete and (match is None or (match.end() == len(text) and '.' not in match[0])):
+        raise ModelError('String contains unknown active DATA bytes')
     if match is None:
         return 0
     integral = match[0].partition('.')[0]
@@ -60,8 +62,10 @@ def parse_integer(text):
     return -value if integral.startswith('-') else value
 
 
-def write_integer(memory, ref, text, scope):
-    value = parse_integer(text)
+def write_integer(engine, source, ref, scope):
+    memory = engine.memory
+    text, complete = numeric_text(engine, source, scope)
+    value = parse_integer(text, complete=complete)
     key, parts, dtype = memory.check_writable(ref, scope)
     if dtype not in INTEGERS or isinstance(memory.at(key, parts), (list, dict)):
         raise ModelError('STOD requires a scalar SINT, INT or DINT destination')
@@ -72,12 +76,18 @@ def write_integer(memory, ref, text, scope):
     memory.store(key, parts, value)
 
 
-def parse_real(text):
+def parse_real(text, *, complete=True):
     match = DECIMAL.search(text)
-    if match is None:raise ModelError('STOR requires a decimal number in the source string')
-    if re.match(r'[eE][+-]?[0-9]', text[match.end():]):
+    if match is None:
+        if not complete:
+            raise ModelError('String contains unknown active DATA bytes')
+        raise ModelError('STOR requires a decimal number in the source string')
+    tail = text[match.end():]
+    if not complete and (not tail or re.fullmatch(r'[eE][+-]?', tail)):
+        raise ModelError('String contains unknown active DATA bytes')
+    if re.match(r'[eE][+-]?[0-9]', tail):
         raise ModelError('STOR scientific-notation input remains unqualified')
-    if text[match.end():].startswith('.') or match.start() and text[match.start()-1] in '-.':
+    if tail.startswith('.') or match.start() and text[match.start()-1] in '-.':
         raise ModelError('STOR malformed decimal/sign sequence is outside the modeled profile')
     try:
         return coerce(float(match[0]), 'REAL')
@@ -92,6 +102,13 @@ def format_real(value):
     return format(Decimal(format(coerce(value, 'REAL'), '.9g')), 'f')
 
 
+def numeric_text(engine, ref, scope):
+    memory = engine.memory
+    if scheduled_ladder_context(engine, scope):
+        return memory.string_known_prefix(ref, scope)
+    return memory.string(ref, scope), True
+
+
 def execute(engine, op, scope):
     memory = engine.memory
     validate(memory, op, scope)
@@ -99,7 +116,8 @@ def execute(engine, op, scope):
     if op.name == 'RTOS':
         memory.write_string(dest, format_real(memory.read(source, scope)), scope)
     elif op.name == 'STOR':
-        memory.write(dest, parse_real(memory.string(source, scope)), scope)
+        text, complete = numeric_text(engine, source, scope)
+        memory.write(dest, parse_real(text, complete=complete), scope)
     else:
         checked_dest = dest if scheduled_ladder_context(engine, scope) else None
         text = memory.string(source, scope, destination=checked_dest)
@@ -112,6 +130,7 @@ def description():
                 case='ASCII A-Z/a-z only; other single-byte characters and embedded NUL preserved',
                 stod='Whole-number part of the first signed decimal run; a leading decimal point gives zero',
                 stor='First signed decimal run; prefix/delimiters skipped, float32 result; no-digit/malformed/exponent input blocked',
+                numeric_selection='Scheduled ladder STOD and STOR use the known source prefix when it determines the first number and its conversion. Unknown bytes that can affect the result still roll back the advance.',
                 rtos='Software fixed notation, nine significant digits, finite binary32 round-trip including signed zero',
                 dtos_real='Scalar REAL tag rounds to signed DINT (ties to even) before decimal text formatting',
                 operands='Scalar tags, including aliases, array elements and UDT members; no immediate/expression operands',

@@ -331,6 +331,5 @@ class Extensions:
                 text=str(self.integer(a[0],scope))
             self.memory.write_string(a[1],text,scope)
         elif n=='STOD':
-            text=self.memory.string(a[0],scope)
-            string_conversions.write_integer(self.memory,a[1],text,scope)
+            string_conversions.write_integer(self.engine,a[0],a[1],scope)
         return power
