@@ -2,7 +2,7 @@
 from typing import NamedTuple
 
 from .ladder_alarm import (
-    MAX_DINT, STATUS_BITS as DIGITAL_STATUS_BITS, available, alarm_parameters, _command, _record, _shelf_deadline,
+    MAX_DINT, STATUS_BITS as DIGITAL_STATUS_BITS, available, alarm_parameters, _command, _record, _shelf_deadline, _store_fields,
 )
 from .model import ModelError, coerce, literal
 from .real_math import SOURCE_TYPES, real
@@ -85,7 +85,7 @@ def _input(memory, ref, scope):
     except ValueError:
         if memory.resolve(ref, scope)[2] not in SOURCE_TYPES:
             raise ModelError('ALMA In requires scalar REAL, SINT, INT or DINT')
-        value = memory.read(ref, scope)
+        value = memory.read(ref, scope, mutable=False)
     else:
         if type(value) is int:
             coerce(value, 'DINT')
@@ -110,10 +110,12 @@ def validate(engine, op, scope):
 
 
 def prescan(engine, op, scope):
-    key, obj = _record(engine.memory, op.args[0], scope, dtype=TYPE, instruction='ALMA')
-    obj.update({name: value for name, value in OUTPUTS.items() if name not in COUNT_FIELDS.values()})
-    obj.update(dict.fromkeys(OPERATOR, False))
-    obj['EnableIn'] = False
+    memory = engine.memory
+    key, obj = _record(memory, op.args[0], scope, dtype=TYPE, instruction='ALMA')
+    updates = {name: value for name, value in OUTPUTS.items() if name not in COUNT_FIELDS.values()}
+    updates.update(dict.fromkeys(OPERATOR, False))
+    updates['EnableIn'] = False
+    _store_fields(memory, key, obj, updates)
     engine.last_timer.pop(('ALMA', key), None)
 
 
@@ -173,7 +175,7 @@ def execute(engine, op, power, scope):
     identity = ('ALMA', key)
     history = engine.last_timer.get(identity, AlarmHistory())
     if not power:
-        obj.update(EnableIn=False, EnableOut=False)
+        _store_fields(memory, key, obj, dict(EnableIn=False, EnableOut=False))
         # A false rung stops unfinished delays but retains published alarm results.
         interrupted = history._replace(
             low=history.low if history.low and history.low.qualified else None,
@@ -231,6 +233,7 @@ def execute(engine, op, power, scope):
     if any(not active[level] for level in old_active):
         events.add('RetToNormalTime')
     any_unack = False
+    updates = {}
     for level, in_alarm in active.items():
         cancel = obj['ProgUnshelveAll'] or obj[level+'OperUnshelve']
         manual_unshelve |= cancel and level in old_shelves
@@ -254,8 +257,8 @@ def execute(engine, op, power, scope):
         any_unack |= unack
         count_field = COUNT_FIELDS[level]
         count = 0 if count_reset else min(MAX_DINT, obj[count_field] + int(activated))
-        obj.update({level+'InAlarm': in_alarm, level+'Acked': acked, level+'InAlarmUnack': unack,
-                    level+'Shelved': shelved, count_field: count})
+        updates.update({level+'InAlarm': in_alarm, level+'Acked': acked, level+'InAlarmUnack': unack,
+                        level+'Shelved': shelved, count_field: count})
 
     plan_unshelve = shelf_started and not any(deadline > now for deadline in old_shelves.values())
     if shelf_started:
@@ -268,18 +271,19 @@ def execute(engine, op, power, scope):
         if stamp is None:
             raise ModelError('ALMA requires a UTC WallClockTime timestamp for an alarm event')
         detections.update(dict.fromkeys(new_detections, stamp))
-        obj.update(dict.fromkeys(events, stamp))
+        updates.update(dict.fromkeys(events, stamp))
         if plan_unshelve:
-            obj['UnshelveTime'] = coerce(stamp + (max(shelves.values()) - now) * 1000, 'LINT')
+            updates['UnshelveTime'] = coerce(stamp + (max(shelves.values()) - now) * 1000, 'LINT')
     activation_times = {level: detections.pop(level) for level in activating}
-    obj.update({CONDITION_TIMES[level]: stamp for level, stamp in activation_times.items()})
+    updates.update({CONDITION_TIMES[level]: stamp for level, stamp in activation_times.items()})
     if activation_times and not obj['AckRequired']:
-        obj['AckTime'] = max(activation_times.values())
+        updates['AckTime'] = max(activation_times.values())
 
-    obj.update(dict.fromkeys(OPERATOR, False))
-    obj.update(EnableIn=True, EnableOut=True, In=sample, ProgAckAll=ack_all,
-               ProgDisable=disable, ProgEnable=enable, Suppressed=suppressed, Disabled=disabled,
-               AnyInAlarmUnack=any_unack, MinDurationACC=0, ROC=rate, Status=status)
+    updates.update(dict.fromkeys(OPERATOR, False))
+    updates.update(EnableIn=True, EnableOut=True, In=sample, ProgAckAll=ack_all,
+                   ProgDisable=disable, ProgEnable=enable, Suppressed=suppressed, Disabled=disabled,
+                   AnyInAlarmUnack=any_unack, MinDurationACC=0, ROC=rate, Status=status)
+    _store_fields(memory, key, obj, updates)
     engine.last_timer[identity] = AlarmHistory(low_timing, high_timing, ack_all, level_acks, roc,
                                               tuple(shelves.items()), shelf_requests, tuple(detections.items()))
     return True

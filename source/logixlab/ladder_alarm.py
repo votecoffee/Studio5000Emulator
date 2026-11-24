@@ -68,7 +68,13 @@ def _record(memory, ref, scope, *, dtype=TYPE, instruction='ALMD'):
         if scope in memory.frames:
             raise ModelError(f'{instruction} in an AOI requires an InOut parameter bound to a writable scalar {dtype} tag')
         raise ModelError(f'{instruction} requires a writable scalar {dtype} tag')
-    return key, memory.at(key, parts)
+    return key, memory.at(key, parts, mutable=False)
+
+
+def _store_fields(memory, key, obj, updates):
+    for name, value in updates.items():
+        if obj[name] is not value:
+            memory.store(key, [name], value)
 
 
 def _command(memory, ref, scope, *, instruction='ALMD'):
@@ -77,7 +83,7 @@ def _command(memory, ref, scope, *, instruction='ALMD'):
     except ValueError:
         if memory.resolve(ref, scope)[2] != 'BOOL':
             raise ModelError(f'{instruction} commands require scalar BOOL tags or 0/1 immediates')
-        value = memory.read(ref, scope)
+        value = memory.read(ref, scope, mutable=False)
         if type(value) is not bool:
             raise ModelError(f'{instruction} command requires a known scalar BOOL value')
         return value
@@ -118,11 +124,12 @@ def validate(engine, op, scope):
 
 
 def prescan(engine, op, scope):
-    key, obj = _record(engine.memory, op.args[0], scope)
-    obj.update(dict.fromkeys(OPERATOR, False))
-    obj.update(dict.fromkeys(TIMESTAMPS, 0))
-    obj.update(EnableOut=False, InAlarm=False, InAlarmUnack=False, Acked=True,
-               Shelved=False, MinDurationACC=0)
+    memory = engine.memory
+    key, obj = _record(memory, op.args[0], scope)
+    updates = dict.fromkeys(OPERATOR, False) | dict.fromkeys(TIMESTAMPS, 0)
+    updates.update(EnableOut=False, InAlarm=False, InAlarmUnack=False, Acked=True,
+                   Shelved=False, MinDurationACC=0)
+    _store_fields(memory, key, obj, updates)
     engine.last_timer.pop(('ALMD', key), None)
 
 
@@ -216,13 +223,13 @@ def execute(engine, op, power, scope):
         if auto_ack:
             timestamps['AckTime'] = detected_at
 
-    obj.update(timestamps)
-    obj.update(dict.fromkeys(OPERATOR, False))
-    obj.update(EnableIn=power, EnableOut=power, In=power,
-               ProgAck=ack, ProgReset=reset, ProgDisable=disable, ProgEnable=enable,
-               MinDurationPRE=preset, MinDurationACC=0, Disabled=disabled, Suppressed=suppressed,
-               Shelved=shelved, InAlarm=active, Acked=acked, InAlarmUnack=active and not acked,
-               AlarmCount=count, Status=status)
+    updates = timestamps | dict.fromkeys(OPERATOR, False)
+    updates.update(EnableIn=power, EnableOut=power, In=power,
+                   ProgAck=ack, ProgReset=reset, ProgDisable=disable, ProgEnable=enable,
+                   MinDurationPRE=preset, MinDurationACC=0, Disabled=disabled, Suppressed=suppressed,
+                   Shelved=shelved, InAlarm=active, Acked=acked, InAlarmUnack=active and not acked,
+                   AlarmCount=count, Status=status)
+    _store_fields(memory, key, obj, updates)
     engine.last_timer[identity] = (since, ack, reset, shelf_until, shelve_request, detected_at)
     return power
 

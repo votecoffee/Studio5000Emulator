@@ -484,7 +484,7 @@ class LadderAnalogAlarmTests(unittest.TestCase):
         self.assertFalse(alarm['HOperUnshelve'])
         self.assertEqual(alarm['HAlarmCount'], 1)
 
-    def test_late_fault_restores_level_rate_and_shelf_state(self):
+    def test_late_fault_restores_alarm_fields_and_history_without_record_copies(self):
         def configure(controller):
             tags = controller.find('Tags')
             for name in ('Divisor', 'Quotient'):
@@ -498,17 +498,30 @@ class LadderAnalogAlarmTests(unittest.TestCase):
         m = e.memory
         m.write('PressureAlarm.ROCPeriod', 0.01)
         m.write('PressureAlarm.ROCPosLimit', 100)
+        m.write('MotorAlarm.MinDurationPRE', 0)
+        m.write('MotorAlarm.UseProgTime', True)
+        m.write('MotorAlarm.ProgTime', 1_700_000_000_000_123)
         m.write('Pressure', 50)
         e.step()
         m.write('Pressure', 95)
         m.write('PressureAlarm.ROCPosOperShelve', True)
+        m.write('Trip', True)
+        m.write('MotorAlarm.OperAck', True)
         m.write('Divisor', 0)
         prior = copy.deepcopy((m.values, e.last_timer, e.time_ms, e.scan_count))
-        with self.assertRaisesRegex(ModelError, '(?i)divide|division'):
+        with patch.object(m, '_remember', wraps=m._remember) as remember:
+            with self.assertRaisesRegex(ModelError, '(?i)divide|division'):
+                e.step()
+            self.assertEqual((m.values, e.last_timer, e.time_ms, e.scan_count), prior)
+            m.write('Divisor', 1)
             e.step()
-        self.assertEqual((m.values, e.last_timer, e.time_ms, e.scan_count), prior)
-        m.write('Divisor', 1)
-        e.step()
+        alarm_keys = {'motoralarm', 'signalalarm', 'pressurealarm'}
+        self.assertFalse(alarm_keys & {call.args[0] for call in remember.call_args_list})
+        self.assertTrue(m.read('MotorAlarm.InAlarm'))
+        self.assertTrue(m.read('MotorAlarm.Acked'))
+        self.assertFalse(m.read('MotorAlarm.OperAck'))
+        self.assertEqual(m.read('MotorAlarm.InAlarmTime'), 1_700_000_000_000_123)
+        self.assertEqual(m.read('MotorAlarm.AckTime'), 1_700_000_000_000_123)
         self.assertTrue(m.read('PressureAlarm.ROCPosInAlarm'))
         self.assertEqual(m.read('PressureAlarm.ROCPosInAlarmCount'), 1)
         self.assertTrue(m.read('PressureAlarm.ROCPosShelved'))

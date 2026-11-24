@@ -688,7 +688,8 @@ The faceplate shows the live [rate of change](docs/ladder-alarm.md#rate-of-chang
 and separate rising and falling conditions. Operators can
 [shelve individual ALMA conditions](docs/ladder-alarm.md#analog-alarm-shelving)
 for a set duration. The ALMA instruction inspector shows exact
-[UTC event timestamps](docs/ladder-alarm.md#analog-alarm-timestamps).
+[UTC event timestamps](docs/ladder-alarm.md#analog-alarm-timestamps). ALMD and
+ALMA journal individual alarm fields for scan rollback.
 **AOI Alarm lab** runs both instructions through
 [InOut alarm record bindings](docs/ladder-alarm.md#ladder-alarms-in-add-on-instructions).
 
