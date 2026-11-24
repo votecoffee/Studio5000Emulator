@@ -6,7 +6,6 @@ The wire implementation uses only Python's standard library.
 """
 from __future__ import annotations
 
-import copy
 import math
 import re
 import secrets
@@ -1121,11 +1120,10 @@ class Router:
         self.store_values([(ref,bool(value) if dtype=='BOOL' else value) for ref,value in zip(refs,values)])
 
     def store_values(self,values):
-        memory=self.app.engine.memory;before=copy.deepcopy(memory.values)
-        try:
-            for ref,value in values:memory.write(ref,value)
-        except Exception:
-            memory.values=before;raise
+        memory = self.app.engine.memory
+        with memory.atomic_stores():
+            for ref, value in values:
+                memory.write(ref, value)
         self.app._io_dirty=True
         self.app.publish_device_io()
 

@@ -808,8 +808,8 @@ Standard Program through Controller `MajorFaultProgram`. Its ladder main
 routine executes once when a simulated Type 3 Code 16 or Code 23 fault
 latches. The routine runs outside normal task scheduling and prescan. Its
 tag writes and trace are recorded at the current scan and simulated time.
-The next prescan or scan replaces the trace. If the routine fails, its
-writes and partial trace roll back. The original
+The next prescan or scan replaces the trace. If the routine fails, the journal
+rolls back its tag writes and the emulator restores the previous trace. The original
 I/O major fault remains latched, and its `handler` record reports the
 routine, status and any error.
 

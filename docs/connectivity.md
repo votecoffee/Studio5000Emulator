@@ -2305,8 +2305,8 @@ fragment rules apply.
 
 ## Write semantics
 
-Each write request validates its payload and rolls back that request on failure.
-Accepted fragments take effect immediately; a later failed fragment does not
+Each write request validates its payload and records the values it replaces so
+a failed request can restore them. Accepted fragments take effect immediately; a later failed fragment does not
 undo prior fragments. Scans may run between separate requests. Fragments can
 split an atomic element, but untouched bytes within that atom must already be
 known. This applies to both atomic and supported numeric UDT transfers. A failed

@@ -1079,7 +1079,6 @@ class Engine:
         result = {'routine': self.project.routines[key].key, 'status': 'completed'}
         fault['timestamp_us'] = self.wall_time()
         fault['handler'] = result
-        before = copy.deepcopy(self.memory.values)
         message_cache = self.memory.message_cache.copy()
         previous_budget, previous_first, previous_trace = self.budget, self.memory.first_scan, self.trace
         previous_minor = self.memory.minor_fault
@@ -1088,11 +1087,11 @@ class Engine:
         self.memory.first_scan = False
         self.trace = []
         try:
-            self._routine(key, 0)
-            self.trace = (previous_trace + self.trace)[-5000:]
-            self._record_tag_changes(before, {})
+            with self.memory.track_values() as (before, cells):
+                self._routine(key, 0)
+                self.trace = (previous_trace + self.trace)[-5000:]
+                self._record_tag_changes(before, cells)
         except Exception as error:
-            self.memory.values = before
             self.memory.message_cache = message_cache
             self.trace = previous_trace
             result.update(status='rolled_back', error=str(error) or type(error).__name__)

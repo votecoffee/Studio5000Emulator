@@ -2,9 +2,10 @@ import copy
 import struct
 import tempfile
 import unittest
+from unittest.mock import patch
 from logixlab.server import Application
-from logixlab.model import Tag
-from logixlab.ethernetip import Endpoint
+from logixlab.model import ModelError, Tag
+from logixlab.ethernetip import Endpoint, Router
 from test_ethernetip import Client,request,fo
 
 
@@ -29,6 +30,25 @@ class AtomicTransferTests(unittest.TestCase):
 
     def rmw(self,name,size,or_mask,and_mask):
         return self.cip(0x4E,name,struct.pack('<H',size)+or_mask.to_bytes(size,'little')+and_mask.to_bytes(size,'little'))
+
+    def test_batch_rollback_restores_repeated_cells_without_replacing_tag_table(self):
+        self.add('Cells', 'DINT', [None, -5, 55])
+        memory = self.app.engine.memory
+        table = memory.values
+        router = Router(self.app, self.endpoint)
+        with self.app.lock, patch.object(self.app, 'publish_device_io') as publish:
+            self.app._io_dirty = False
+            with self.assertRaisesRegex(ModelError, 'DINT overflow'):
+                router.store_values([('Cells[0]', 7), ('Cells[0].0', False), ('Cells[1]', 2**31)])
+            self.assertIs(memory.values, table)
+            self.assertEqual(memory.read('Cells', mutable=False), [None, -5, 55])
+            self.assertFalse(self.app._io_dirty)
+            publish.assert_not_called()
+
+            router.store_values([('Cells[0]', 7), ('Cells[0].0', False), ('Cells[1]', 11)])
+            self.assertEqual(memory.read('Cells', mutable=False), [6, 11, 55])
+            self.assertTrue(self.app._io_dirty)
+            publish.assert_called_once_with()
 
     def test_fragment_writes_can_split_integer_atoms_and_preserve_surrounding_bytes(self):
         self.add('Block','DINT',[0x11223344,0x55667788,0x01020304])
