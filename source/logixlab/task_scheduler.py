@@ -84,6 +84,7 @@ class TaskScheduler:
                 priority = int(raw)
             tasks.append(Task(name, row['type'], priority, period, row['inhibited'], tuple(entries.get(name.casefold(), ())), timeout_ms))
         self.tasks = tuple(tasks)
+        self._continuous = next((i for i, task in enumerate(tasks) if task.kind == 'Continuous'), None)
         self.priorities = [t.priority for t in self.tasks]
         self.inhibitions={i:t.inhibited for i,t in enumerate(self.tasks)}
         self.periods={i:t.period for i,t in enumerate(self.tasks) if t.period is not None}
@@ -103,27 +104,31 @@ class TaskScheduler:
         self.overlaps = {i:0 for i,t in enumerate(self.tasks) if t.kind=='Event'}
         self.coalesced = dict(self.overlaps)
 
-    def prepare(self, end):
+    def validate_advance(self, end):
         if self.source != self.configuration:
             raise ModelError('Task configuration changed; reload the project')
         if type(end) is not int or end <= self.clock:
             raise ModelError('Task scheduler requires an advancing integer clock')
+        periodic = sum(
+            1 + (end - due) // self.periods[i]
+            for i, due in self.next_due.items() if due <= end
+        )
+        if periodic + (self._continuous is not None) > MAX_RELEASES:
+            raise ModelError('Task release budget exceeded; use a smaller simulation step')
+
+    def prepare(self, end):
+        self.validate_advance(end)
         next_due = dict(self.next_due)
         priorities = tuple(self.priorities)
         heap = [(due, priorities[i], i) for i, due in next_due.items()]
         heapq.heapify(heap); releases = []
         while heap and heap[0][0] <= end:
-            if len(releases) >= MAX_RELEASES:
-                raise ModelError('Task release budget exceeded; use a smaller simulation step')
             due, _, i = heapq.heappop(heap)
             releases.append((due, i))
             next_due[i] = due + self.periods[i]
             heapq.heappush(heap, (next_due[i], priorities[i], i))
-        for i, task in enumerate(self.tasks):
-            if task.kind == 'Continuous':
-                if len(releases) >= MAX_RELEASES:
-                    raise ModelError('Task release budget exceeded; use a smaller simulation step')
-                releases.append((end, i))
+        if self._continuous is not None:
+            releases.append((end, self._continuous))
         return Batch(self.clock, end, tuple(releases), next_due, dict(self.periods), priorities)
 
     def continue_from(self, previous):

@@ -73,9 +73,10 @@ is no asynchronous physical I/O update inside the advance.
 
 ## Rollback and reporting
 
-Task releases are prepared without advancing scheduler state. If any executed
-instruction fails, the whole simulation advance rolls back memory, timer/clock
-state, first-scan state, release phase and task counts. This retains the existing
+Interval validation counts due releases from their current phase and period.
+The scheduler builds the ordered release list once when the advance executes.
+If any executed instruction fails, the whole simulation advance rolls back
+memory, timer/clock state, first-scan state, release phase and task counts. This retains the existing
 model policy rather than reproducing a native controller's partial execution
 or fault handler behavior. A failed advance cannot silently consume future work.
 

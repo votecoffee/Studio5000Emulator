@@ -820,7 +820,7 @@ class Engine:
             if rate is not None and dt != rate:
                 raise ModelError(f"Periodic task requires a {rate} ms scan interval")
             if self._task_scheduler.clock!=self.time_ms:raise ModelError('Task scheduler clock changed; reload the project')
-            self._task_scheduler.prepare(self.time_ms+dt)
+            self._task_scheduler.validate_advance(self.time_ms+dt)
 
     def prepare_step(self, dt=10):
         if self.module_major_fault:

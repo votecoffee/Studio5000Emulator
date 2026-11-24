@@ -2,11 +2,13 @@
 import copy
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 from xml.etree import ElementTree as E
 
 from logixlab.model import ModelError, Project
 from logixlab.runtime import Engine
+from logixlab.task_scheduler import MAX_RELEASES
 
 
 class TaskSchedulerTests(unittest.TestCase):
@@ -139,11 +141,24 @@ class TaskSchedulerTests(unittest.TestCase):
         self.assertEqual(harness.blockers, []); harness.step(1)
         self.assertEqual(self.counts(harness), [0, 0, 1])
 
-    def test_release_budget_rejects_huge_advance_without_state_changes(self):
-        e = self.engine([dict(Type='CONTINUOUS'), dict(Rate='1')]); self.assertEqual(e.blockers, [])
+    def test_preflight_counts_inhibited_and_continuous_slots_without_building_schedule(self):
+        e = self.engine([dict(Type='CONTINUOUS'), dict(Rate='1', InhibitTask='true')], defer=True)
+        self.assertEqual(e.blockers, [])
         before = copy.deepcopy(e.memory.values)
-        with self.assertRaisesRegex(ModelError, 'release budget'): e.step(60000)
-        self.assertEqual(e.memory.values, before); self.assertEqual(e.time_ms, 0)
+        scheduler = e._task_scheduler
+        with patch.object(scheduler, 'prepare', wraps=scheduler.prepare) as prepare:
+            with self.assertRaisesRegex(ModelError, 'release budget'):
+                e.step(MAX_RELEASES)
+            prepare.assert_not_called()
+            self.assertEqual(e.memory.values, before)
+            self.assertEqual((e.prescan_count, e.time_ms), (0, 0))
+
+            e.step(MAX_RELEASES - 1)
+            prepare.assert_called_once_with(MAX_RELEASES - 1)
+
+        self.assertEqual((e.prescan_count, e.time_ms), (1, MAX_RELEASES - 1))
+        self.assertEqual([task['executions'] for task in e.scheduler_description()['tasks']], [1, 0])
+        self.assertEqual(scheduler.next_due[1], MAX_RELEASES)
 
     def test_changed_source_task_configuration_requires_reload(self):
         e = self.mixed(); self.assertEqual(e.blockers, [])
