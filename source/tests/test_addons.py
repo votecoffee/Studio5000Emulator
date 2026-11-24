@@ -745,6 +745,37 @@ class AddOnTests(unittest.TestCase):
         self.assertEqual(memory.read('SharedA', frame), 10)
         self.assertNotIn(('shareda', frame.lower()), memory._resolved)
 
+    def test_failed_aoi_scan_retires_only_new_cached_addresses(self):
+        self.set_dint_array('SharedA', (10, 20))
+        e = self.engine([
+            'LabAccumulator(AccumulatorA,StepA,TotalA,SharedA[Truncated]);',
+            'CPT(ScaledValue,1/TotalB);',
+        ])
+        self.assertEqual(e.blockers, [])
+        m = e.memory
+        prior_address = m.resolve('SharedA[0]')
+        m.write('Truncated', 1)
+        m.write('TotalB', 0)
+        cache = m._resolved
+        before = cache.copy()
+        binding = m.frames['@AOI:accumulatora']['shared']
+        reached = ('shareda[1]', '')
+        self.assertNotIn(reached, before)
+
+        with self.assertRaisesRegex(ModelError, 'zero'):
+            e.step()
+        self.assertIs(m._resolved, cache)
+        self.assertEqual(cache, before)
+        self.assertIs(m.resolve('SharedA[0]'), prior_address)
+        self.assertEqual(m.frames['@AOI:accumulatora']['shared'], binding)
+        self.assertEqual(m.read('SharedA', mutable=False), [10, 20])
+
+        m.write('TotalB', 1)
+        e.step()
+        self.assertIn(reached, cache)
+        self.assertEqual(m.frames['@AOI:accumulatora']['shared'], ('SharedA[1]', ''))
+        self.assertEqual(m.read('SharedA', mutable=False), [10, 22])
+
     def test_later_fault_rolls_back_local_output_inout_time_and_timer_metadata(self):
         e=self.engine(['LabAccumulator(AccumulatorA,StepA,TotalA,SharedA);','CPT(TotalB,1/0);'])
         before=copy.deepcopy(e.memory.values)

@@ -1042,6 +1042,7 @@ class Memory:
         self.rung_zero = False
         self.rung_overflow = False
         self._resolved = {}
+        self._resolved_added = None
         self.frames = {}
         self.validating = False
         self.structural = False
@@ -1049,21 +1050,26 @@ class Memory:
 
     @contextmanager
     def track_values(self):
-        """Keep original values for the tags and cells an advance can change."""
+        """Track changed values and cache entries added by an AOI advance."""
         if self._before is not None:
             raise ModelError('Tag value tracking is already active')
         self._before = {}
         self._before_cells = {}
+        self._resolved_added = [] if self.project.aois else None
         try:
             yield self._before, self._before_cells
         except Exception:
             for key, cells in self._before_cells.items():
                 self._restore_cells(self.values[key], cells.items())
             self.values.update(self._before)
+            if self._resolved_added is not None:
+                for key in self._resolved_added:
+                    self._resolved.pop(key, None)
             raise
         finally:
             self._before = None
             self._before_cells = None
+            self._resolved_added = None
 
     @staticmethod
     def _restore_cells(root, cells):
@@ -1403,7 +1409,9 @@ class Memory:
             else: raise ModelError(f"Invalid reference tail {tail}")
         result=(key,parts,dtype.upper())
         if cacheable and re.fullmatch(r'(?:Program:[\w]+\.)?[A-Za-z_][\w:]*(?:\[\d+(?:,\d+)*\]|\.[\w]+)*',ref,re.I):
-            self._resolved[cache_key]=result
+            self._resolved[cache_key] = result
+            if self._resolved_added is not None:
+                self._resolved_added.append(cache_key)
         return result
 
     def read(self, ref, scope="", *, allow_time=False, mutable=True):
