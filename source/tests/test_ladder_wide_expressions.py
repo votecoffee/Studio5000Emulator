@@ -96,11 +96,17 @@ class LadderWideExpressionTests(unittest.TestCase):
     def test_unknown_dest_can_be_established_without_reading_old_value(self):
         e=self.checked(['CPT(Dest,Source+Mask);']);e.memory.values['dest']=None;e.step();self.assertEqual(e.memory.read('Dest'),10)
 
-    def test_required_unknowns_fault_even_under_zero_mask_or_true_logic(self):
-        for rung in ('CPT(Dest,Source+1);','CMP((1=1)||(Source>Mask))OTE(RunLatch);','MEQ(Source,0,0)OTE(RunLatch);'):
+    def test_required_unknowns_fault_under_true_logic_or_a_selecting_mask(self):
+        for rung in ('CPT(Dest,Source+1);','CMP((1=1)||(Source>Mask))OTE(RunLatch);','MEQ(Source,1,0)OTE(RunLatch);'):
             e=self.checked(['MOV(99,SpeedCommand);',rung]);e.memory.values['source']=None;before=self.snapshot(e)
             with self.assertRaisesRegex(ModelError,'Unknown'):e.step()
             self.assertEqual(self.snapshot(e),before)
+
+        e = self.checked(['MEQ(Source,0,0)OTE(RunLatch);'])
+        e.memory.values['source'] = None
+        e.step()
+        self.assertTrue(e.memory.read('RunLatch'))
+        self.assertIsNone(e.memory.values['source'])
 
     def test_cmp_logical_operands_are_eager(self):
         for expression in ('(1=1)||(Source/Mask>0)','(1=2)&&(Source/Mask>0)','(1=1)^^(Source/Mask>0)'):

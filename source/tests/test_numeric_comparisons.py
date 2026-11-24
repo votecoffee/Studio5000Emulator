@@ -186,6 +186,64 @@ class NumericComparisonTests(unittest.TestCase):
         e = self.checked(['LIM(2.0,Source,3.0)OTE(RunLatch);'], types=('REAL', 'DINT', 'DINT'), values=(2.5, 0, 0));e.step()
         self.assertTrue(e.memory.read('RunLatch'))
 
+    def test_lim_can_classify_the_whole_range_of_an_omitted_integer_test(self):
+        cases = (
+            ('-128', '127', True), ('128', '255', False), ('-255', '-129', False),
+            ('128', '-129', False), ('200', '127', True), ('-128', '-200', True),
+            ('1', '0', True), ('128', '128', False),
+        )
+        for low, high, expected in cases:
+            with self.subTest(low=low, high=high):
+                e = self.checked([f'LIM({low},Values[0],{high})OTE(RunLatch);'],
+                                 types=('SINT', 'DINT', 'DINT'))
+                e.memory.write('RunLatch', not expected)
+                e.step()
+                self.assertEqual(e.memory.read('RunLatch'), expected)
+                self.assertEqual(e.memory.read('Values'), [None] * 3)
+        e = self.checked(['LIM(0UL,Values[0],16#FFFF_FFFF_FFFF_FFFFUL)OTE(RunLatch);'],
+                         types=('ULINT',) * 3)
+        e.step()
+        self.assertTrue(e.memory.read('RunLatch'))
+
+    def test_lim_ambiguous_ranges_require_the_test_and_roll_back(self):
+        cases = (
+            ('-1', '1', 0, True), ('1', '-1', 0, False),
+            ('127', '127', 127, True), ('128', '-128', -128, True),
+            ('-128.0', '127.0', -128, True),
+        )
+        for low, high, value, expected in cases:
+            with self.subTest(low=low, high=high):
+                e = self.checked(['MOV(77,SpeedCommand);',
+                                  f'LIM({low},Values[0],{high})OTE(RunLatch);'],
+                                 types=('SINT', 'DINT', 'DINT'))
+                before = self.snapshot(e)
+                with self.assertRaisesRegex(ModelError, 'Unknown.*Values'):
+                    e.step()
+                self.assertEqual(self.snapshot(e), before)
+                e.memory.write('Values[0]', value)
+                e.step()
+                self.assertEqual(e.memory.read('RunLatch'), expected)
+
+    def test_lim_omitted_test_still_requires_live_addresses_and_known_limits(self):
+        e = self.checked(['XIC(StartPB)LIM(-128,Values[0],Values[Index])OTE(RunLatch);'],
+                         types=('SINT', 'DINT', 'DINT'))
+        e.step()
+        self.assertFalse(e.memory.read('RunLatch'))
+        e.memory.write('StartPB', True)
+        before = self.snapshot(e)
+        with self.assertRaisesRegex(ModelError, 'outside bounds'):
+            e.step()
+        self.assertEqual(self.snapshot(e), before)
+        e.memory.write('Index', 1)
+        before = self.snapshot(e)
+        with self.assertRaisesRegex(ModelError, r'Unknown.*Values\[0\]'):
+            e.step()
+        self.assertEqual(self.snapshot(e), before)
+        e.memory.write('Values[1]', 127)
+        e.step()
+        self.assertTrue(e.memory.read('RunLatch'))
+        self.assertEqual(e.memory.read('Values'), [None, 127, None])
+
     def test_wide_relations_and_limits_preserve_adjacent_64_bit_values(self):
         for dtype in ('LINT', 'ULINT'):
             e = self.checked(['GRT(Source,Dest)OTE(RunLatch);', 'LIM(Dest,Source,Mask)OTE(BatchComplete);'],

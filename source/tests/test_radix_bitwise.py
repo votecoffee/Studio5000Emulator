@@ -59,12 +59,12 @@ class RadixBitwiseTests(unittest.TestCase):
                           ('MEQ(16#8000000000000000L,2#1'+'0'*63+'UL,16#8000000000000000UL)',True)]:
             e = self.checked([call+'OTE(RunLatch);']);e.step();self.assertIs(e.memory.read('RunLatch'),want)
 
-    def test_radix_zero_mask_skips_meq_values_and_keeps_and_source_required(self):
+    def test_radix_zero_mask_skips_and_and_meq_values_at_valid_addresses(self):
         e = self.checked(['XIC(StartPB)AND(Inputs[Index],16#0UL,Results[Index]);'])
         e.memory.write('Index',999);e.step();self.assertEqual(e.memory.read('Results'),[None]*3)
         e.memory.write('StartPB',True);self.fault(e,'outside bounds')
-        e.memory.write('Index',1);self.fault(e,'Unknown')
-        e.memory.write('Inputs[1]',37);e.step();self.assertEqual(e.memory.read('Results'),[None,0,None])
+        e.memory.write('Index',1);e.step();self.assertEqual(e.memory.read('Results'),[None,0,None])
+        self.assertIsNone(e.memory.read('Inputs')[1])
         for args in ('Inputs[1],16#0UL,0L','0UL,16#0UL,Inputs[1]'):
             e = self.checked(['MEQ('+args+')OTE(RunLatch);'])
             e.step()

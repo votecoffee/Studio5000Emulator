@@ -844,6 +844,8 @@ can skip an out-of-bounds destination and continue initialization.
 without consuming them on false rungs, including MEQ and LIM dynamic indices.
 [Direct integer comparisons](docs/numeric-comparisons.md#direct-comparisons-with-omitted-integer-values)
 can use an omitted tag’s declared range when it determines the outcome.
+[Integer LIM](docs/numeric-comparisons.md#lim-with-an-omitted-integer-test)
+applies the same rule to its Test operand with known normal or reversed limits.
 Direct ladder comparisons and `CMP` relations handle NaN and infinity stored
 in REAL or LREAL tags. `ISNAN` and `ISINF` test a single floating tag.
 Enable `CompareEnable` in **Data lab** to try mask, range and equality tests.

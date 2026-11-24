@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+[Integer ladder LIM](numeric-comparisons.md#lim-with-an-omitted-integer-test)
+can decide an omitted Test value from its declared range and known inclusive
+or reversed limits in `26.1124.093935`.
+
 [Direct ladder integer comparisons](numeric-comparisons.md#direct-comparisons-with-omitted-integer-values)
 can decide results from an omitted operand's declared range in `26.1124.093359`.
 Live-address faults and comparisons that depend on the missing value still roll back.

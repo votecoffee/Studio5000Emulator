@@ -73,8 +73,8 @@ Mixed narrow/wide limits retain exact adjacent 64-bit values.
 
 Structural validation permits unknown saved values. False/prescan skip operand
 values and dynamic indices, and downstream OTE coils still clear. Enabled
-comparisons resolve their addresses. LIM requires every operand, including a
-missing high limit when another comparison already appears false. In whole-project ladder scans,
+comparisons resolve their addresses. LIM requires both limit values.
+In whole-project ladder scans,
 [a cleared Type 4 Code 20 skips the comparison](controller-handlers.md#recover-contact-coil-ons-and-comparison-array-faults)
 and preserves incoming rung power. Reached unknowns, unrecovered faults and
 later errors restore prior writes/coils, task/time state and AOI bindings.
@@ -230,4 +230,19 @@ The check uses exact signed or unsigned bounds at the tag's declared width,
 including 64-bit endpoints. Both operand addresses and the instruction's
 type and conversion rules still apply. Two omitted values or a result that
 depends on a missing value stop and roll back the advance. Floating-point,
-time/date, string, LIM and expression comparisons use their existing rules.
+time/date, string and expression comparisons use their existing rules.
+
+## LIM with an omitted integer Test
+
+Ladder LIM can decide the result from known integer limits and the entire
+declared range of an omitted Test tag. For normal limits, a Test range
+entirely inside the inclusive limits returns true. A disjoint range returns
+false. For reversed limits, the instruction accepts the values outside the
+open gap between them. Adjacent reversed integer limits leave no gap.
+[Rockwell LIM reference](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/37-02/contents-ditamap/instruction-set/compare-instructions/limit--limit-.html)
+
+For example, `LIM(-128,Count,127)` is true for an omitted SINT, and
+`LIM(128,Count,-129)` is false. `LIM(1,Count,0)` is true for
+every integer, while `LIM(1,Count,-1)` requires the actual Test value because
+zero is inside the gap. Actual addresses and both limits remain required.
+Floating-point LIM still requires the Test value.

@@ -223,6 +223,41 @@ def integer_relation(memory, op, scope, *, radix):
     return result
 
 
+def within_limits(low, value, high):
+    return low <= value <= high if low <= high else value >= low or value <= high
+
+
+def integer_limit(memory, args, scope, *, radix):
+    def read(ref):
+        return integer_math.read_source(memory, ref, scope, radix=radix, signed_dint=radix)
+
+    low_ref, test_ref, high_ref = args
+    low = read(low_ref)
+    try:
+        value = read(test_ref)
+    except UnknownValueError as error:
+        try:
+            high = read(high_ref)
+        except UnknownValueError:
+            raise error from None
+        _, _, dtype = memory.resolve(test_ref, scope)
+        if dtype not in INT_BITS or type(low) is not int or type(high) is not int:
+            raise
+        minimum, maximum = integer_bounds(dtype)
+
+        # Reversed limits match outside the open gap between them. Over
+        # integers the gap is the closed interval [high + 1, low - 1].
+        reversed_limits = low > high
+        if reversed_limits:
+            low, high = high + 1, low - 1
+        if low > high or maximum < low or minimum > high:
+            return reversed_limits
+        if low <= minimum and maximum <= high:
+            return not reversed_limits
+        raise
+    return within_limits(low, value, read(high_ref))
+
+
 def execute(engine, op, power, scope):
     if not power:return False
     memory = engine.memory
@@ -241,18 +276,14 @@ def execute(engine, op, power, scope):
         read_source = lreal_math_source if floating == 'LREAL' else real_math_source
         values = [read_source(memory, arg, scope, execute=True, radix=True, allow_nonfinite_tag=True)
                   for arg in op.args]
-    else:
-        if not radix:
-            ordering_profile(engine, op, scope)
-        if op.name in RELATIONS:
-            return integer_relation(memory, op, scope, radix=bool(radix))
-        values = [integer_math.read_source(memory,arg,scope,radix=bool(radix),signed_dint=bool(radix)) for arg in op.args]
+        if op.name == 'LIM':
+            return not any(math.isnan(value) for value in values) and within_limits(*values)
+        return RELATIONS[op.name](*values)
+    if not radix:
+        ordering_profile(engine, op, scope)
     if op.name == 'LIM':
-        if floating and any(math.isnan(value) for value in values):
-            return False
-        low, value, high = values
-        return low <= value <= high if low <= high else value >= low or value <= high
-    return RELATIONS[op.name](*values)
+        return integer_limit(memory, op.args, scope, radix=bool(radix))
+    return integer_relation(memory, op, scope, radix=bool(radix))
 
 
 def description(project):
@@ -279,7 +310,7 @@ def description(project):
                 mixed_integer_ordering=dict(instructions=sorted((*RELATIONS,'LIM')), types=list(INTEGER_RANK),
                     operands='Tags with optional bounded constants; highest-ranked tag type must cover every complete declared tag range',
                     promotion='Preserve numeric values and signs; no floating-point conversion and no invented wider common type',
-                    selection='Read-only inputs. Direct relations can decide a result when every value in the declared range of one omitted tag agrees. LIM requires all sources.',
+                    selection='Read-only inputs. Direct relations and LIM with known limits can decide a result when every value in the declared range of the omitted tag agrees.',
                     constants='Mixed LIM accepts signed-DINT integer literals in any operand position, representable in the highest-ranked tag type; constants do not justify tag-range conversion',
                     immediates='Homogeneous and narrow immediate rules remain separate; larger/typed/REAL mixed constants are excluded',
                     native_runtime_parity=False),
