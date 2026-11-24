@@ -1,6 +1,7 @@
 """Bounded ladder FSC ALL/numeric/INC search using saved CONTROL state."""
 from . import control_operations as controls
 from . import file_incremental as incremental
+from . import string_operations
 from .integer_math import CONTROLLERS
 from .model import ArrayBoundsError, ModelError, coerce, literal
 
@@ -42,18 +43,21 @@ def execute(engine, op, power, scope):
     memory = engine.memory
     obj = controls.control(memory, op.args[0], scope)
     previous = obj.copy()
+    partial_strings = string_operations.scheduled_ladder_context(engine, scope)
+
+    def compare():
+        return expression.evaluate(memory, scope, partial_string_relations=partial_strings)
+
     try:
         if count == 'INC':
-            return incremental.execute(engine, op, power, scope, obj,
-                                       lambda: expression.evaluate(memory, scope), search=True)
-        return _execute(engine, power, scope, obj, count, expression)
+            return incremental.execute(engine, op, power, scope, obj, compare, search=True)
+        return _execute(engine, power, obj, count, compare)
     except ArrayBoundsError:
         obj.update(previous)
         raise
 
 
-def _execute(engine, power, scope, obj, count, expression):
-    memory = engine.memory
+def _execute(engine, power, obj, count, compare):
     if controls.flag(obj, 'ER') or controls.flag(obj, 'IN'):return power
     if controls.flag(obj, 'DN'):
         if not power:obj.update(EN=False, DN=False, POS=0)
@@ -78,7 +82,7 @@ def _execute(engine, power, scope, obj, count, expression):
         engine.budget -= 1
         if engine.budget < 0:raise ModelError('FSC instruction budget exceeded')
         obj['POS'] = position
-        if expression.evaluate(memory, scope):
+        if compare():
             obj.update(FD=True, IN=True)
             if position == length - 1:obj.update(DN=True, EN=bool(power))
             return power
@@ -89,6 +93,7 @@ def _execute(engine, power, scope, obj, count, expression):
 def description():
     return dict(profile='v35-5580-FSC-ALL-numeric-INC', language='RLL', modes=['ALL','positive DINT immediate','INC'],
                 expressions='Existing bounded CMP grammar including qualified integer FRD/TOD/SQR/power, exact wide/mixed integers, binary64 comparisons and dynamic CONTROL.POS subscripts',
+                string_selection='Scheduled ladder compares each reached element using only valid lengths and bytes needed for its relation. Unresolved strings and other required operands still fault.',
                 binary64=dict(selection='LREAL source or floating L/l literal',
                     modes=['ALL','positive DINT immediate','INC'],
                     calculation='Use the bounded binary64 comparison evaluator per reached element, including eager BOOL composition',

@@ -412,9 +412,10 @@ FSC(Find,?,?,ALL,(Counts[Find.POS]>9007199254740992UL)&&(Codes[Find.POS]=Expecte
 
 All six string relations use case-sensitive lexical order over active bytes.
 Built-in STRING and explicit DINT LEN/SINT DATA string types can have different
-capacities. LEN must be valid. [Scheduled ladder CMP](string-operations.md#ladder-cmp-with-partial-strings)
-can decide a relation from the lengths or a decisive byte. FSC still requires
-the active bytes. String values cannot be numeric operands or literals.
+capacities. LEN must be valid. Scheduled ladder
+[CMP](string-operations.md#ladder-cmp-with-partial-strings) and
+[FSC](file-search.md#partially-exported-strings) can decide a relation from the
+lengths or a decisive byte. String values cannot be numeric operands or literals.
 Numeric and string comparisons cannot mix categories; BOOL ordering remains
 excluded.
 

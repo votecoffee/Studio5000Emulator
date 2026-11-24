@@ -64,6 +64,17 @@ operands, frame-scoped expressions and canonical per-CONTROL progress.
 ST/FBD instruction calls remain unsupported. CONTROL aliases
 and constant source arrays are supported; CONTROL must be writable.
 
+### Partially exported strings
+
+In a scheduled Standard v35 5580 ladder Program, each reached FSC string-tag
+relation can use the lengths or first differing byte to decide the result.
+For example, an equality search can skip a row of a different length even
+when some of its bytes are missing. If missing bytes could change the outcome
+at the current position, the advance rolls back so the search cannot skip a
+possible earlier match. ALL, numeric and INC use the same comparison rules,
+including eager Boolean operands. Native partial-export behavior remains
+unverified.
+
 ## Binary64 searches
 
 App `26.1105.174720` adds LREAL comparisons to ladder FSC in ALL, positive

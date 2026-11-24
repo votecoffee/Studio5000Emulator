@@ -705,6 +705,7 @@ The [six ladder string relations](docs/string-operations.md#ladder-string-compar
 also accept literals on either side. Enabled instructions can populate unknown string destinations while retaining
 unused bytes; false rungs skip dynamic indices and saved operand values.
 [Ladder CMP](docs/string-operations.md#ladder-cmp-with-partial-strings) can also use decisive lengths and bytes within string-tag relations.
+[Ladder FSC](docs/file-search.md#partially-exported-strings) uses those rules at each search position.
 
 [Mixed integer FAL](docs/integer-files.md#mixed-integer-fal) adds exact compatible
 source types, including LINT arrays with DINT adjustments. Stats Lab exposes

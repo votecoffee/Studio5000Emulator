@@ -104,6 +104,59 @@ class IntegerStringConditionTests(unittest.TestCase):
             self.fault(e,'unknown active');self.assertEqual(e.memory.read('Ctl.POS'),0)
             e.memory.write('Codes[1].DATA[0]',66);e.step();self.assertEqual(e.memory.read('Ctl.POS'),1);self.assertTrue(e.memory.read('Ctl.FD'))
 
+    def test_fsc_partial_strings_can_skip_rows_with_a_decisive_length_or_byte(self):
+        for mode in ('ALL', '1', 'INC'):
+            for clause in ('', '&&(1UL>0UL)', '&&(1U+0.0>0)', '&&(1.0L>0.0L)'):
+                with self.subTest(mode=mode, numeric_clause=clause):
+                    e = self.make([f'XIC(StartPB)FSC(Ctl,?,?,{mode},(Codes[Ctl.POS]=Word){clause});'],
+                                  file=True)
+                    m = e.memory
+                    m.write('Word', 'B!')
+                    m.write('Codes[0].LEN', 3)
+                    m.values['codes'][0]['DATA'][0] = None
+                    m.write('Codes[1]', 'AZ')
+                    m.values['codes'][1]['DATA'][1] = None
+                    m.write('Codes[2]', 'BA')
+                    m.values['codes'][2]['DATA'][1] = None
+                    m.write('Codes[3]', 'B!')
+                    m.write('StartPB', True)
+
+                    if mode != 'ALL':
+                        for position in (0, 1):
+                            e.step()
+                            self.assertEqual(m.read('Ctl.POS'), position)
+                            self.assertFalse(m.read('Ctl.FD'))
+                            m.write('StartPB', False)
+                            if mode == 'INC':
+                                e.step()
+                                m.write('StartPB', True)
+
+                    before = m.read('Ctl').copy()
+                    progress = e._file_incremental.copy()
+                    self.fault(e, 'unknown active DATA')
+                    self.assertEqual(m.read('Ctl'), before)
+                    self.assertEqual(e._file_incremental, progress)
+                    m.write('Codes[2].DATA[1]', ord('!'))
+                    e.step()
+                    self.assertEqual(m.read('Ctl.POS'), 2)
+                    self.assertTrue(m.read('Ctl.FD'))
+                    self.assertTrue(m.read('Ctl.IN'))
+                    e.step()
+                    self.assertEqual(m.read('Ctl.POS'), 2)
+
+    def test_fsc_decisive_string_relation_still_evaluates_other_boolean_operand(self):
+        e = self.make(['FSC(Ctl,?,?,ALL,(Codes[Ctl.POS]<>Word)||(1/SpeedCommand>0));'], file=True)
+        e.memory.write('Codes[0].LEN', 2)
+        e.memory.values['codes'][0]['DATA'][0] = None
+        e.memory.write('SpeedCommand', 0)
+        self.fault(e, 'zero')
+        self.assertFalse(e.memory.read('Ctl.EN'))
+        self.assertFalse(e.memory.read('Ctl.FD'))
+        e.memory.write('SpeedCommand', 1)
+        e.step()
+        self.assertEqual(e.memory.read('Ctl.POS'), 0)
+        self.assertTrue(e.memory.read('Ctl.FD'))
+
     def test_udt_members_empty_prefix_extended_bytes_and_unused_data(self):
         def record(root):
             dtype=E.SubElement(root.find('./Controller/DataTypes'),'DataType',Name='CodeRecord',Family='NoFamily',Class='User');members=E.SubElement(dtype,'Members')
