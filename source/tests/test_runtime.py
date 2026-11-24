@@ -265,6 +265,38 @@ class RuntimeTests(unittest.TestCase):
                 raise ModelError('advance fault')
         self.assertEqual(memory.read('StartDelay'), original)
 
+    def test_record_replacement_snapshot_survives_local_rollback_and_mutable_access(self):
+        e = Engine(Project(SAMPLE.with_name('RecordLab.L5X')))
+        memory = e.memory
+        original = copy.deepcopy(memory.read('PartQueue'))
+        payload = memory.read('IncomingPart')
+        with self.assertRaisesRegex(ModelError, 'advance fault'):
+            with memory.track_values() as (before, cells):
+                with self.assertRaisesRegex(ModelError, 'local fault'):
+                    with memory.atomic_stores():
+                        memory.store('partqueue', [0], payload)
+                        raise ModelError('local fault')
+                memory.write('PartQueue[0].Id', 404)
+                self.assertEqual(list(cells['partqueue']), [(0,)])
+                memory.read('PartQueue[0]')['Id'] = 808
+                self.assertEqual(before['partqueue'], original)
+                raise ModelError('advance fault')
+        self.assertEqual(memory.read('PartQueue'), original)
+
+    def test_record_replacement_promotes_when_a_member_was_already_written(self):
+        e = Engine(Project(SAMPLE.with_name('RecordLab.L5X')))
+        memory = e.memory
+        original = copy.deepcopy(memory.read('PartQueue'))
+        payload = memory.read('IncomingPart')
+        with self.assertRaisesRegex(ModelError, 'advance fault'):
+            with memory.track_values() as (before, cells):
+                memory.write('PartQueue[0].Id', 404)
+                memory.store('partqueue', [0], payload)
+                self.assertNotIn('partqueue', cells)
+                self.assertEqual(before['partqueue'], original)
+                raise ModelError('advance fault')
+        self.assertEqual(memory.read('PartQueue'), original)
+
     def test_unknown_instruction_in_false_path_blocks(self):
         e=self.engine(['AFI()SECRET(RunLatch);'])
         self.assertTrue(any('unsupported SECRET' in b for b in e.blockers))

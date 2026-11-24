@@ -45,7 +45,9 @@ class AggregateCopyTests(unittest.TestCase):
             e.memory.write('CopyRecords[1].Count', 123); guard = copy.deepcopy(e.memory.read('CopyRecords')[2])
             with patch.object(e.memory, '_remember', wraps=e.memory._remember) as remember:
                 e.step()
-                self.assertNotIn('records', [args[0] for args, _ in remember.call_args_list])
+                touched = [args[0] for args, _ in remember.call_args_list]
+                self.assertNotIn('records', touched)
+                self.assertNotIn('copyrecords', touched)
             self.assertEqual(e.memory.read('Records')[0], e.memory.read('CopyRecords')[1])
             self.assertIsNone(e.memory.read('CopyRecords')[1]['Count'])
             self.assertEqual(e.memory.read('CopyRecords')[2], guard)

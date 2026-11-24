@@ -234,7 +234,7 @@ def literal(text):
 UNSIGNED_BITS = {'USINT':8,'UINT':16,'UDINT':32,'ULINT':64}
 INT_BITS = {"SINT": 8, "INT": 16, "DINT": 32, "LINT": 64, **UNSIGNED_BITS}
 PRIMITIVE_ARRAY_TYPES = frozenset(('BOOL', 'REAL', 'LREAL', *INT_BITS, *time_values.TYPES))
-IMMUTABLE_CELL_TYPES = (type(None), bool, int, float, str)
+JOURNALED_CELL_TYPES = (type(None), bool, int, float, str, list, dict)
 MAX_TRACKED_CELLS_PER_TAG = 64
 
 
@@ -1088,13 +1088,19 @@ class Memory:
     def _remember_store(self, key, parts, parent, slot, value):
         if self._before is None or key in self._before:
             return
-        if parts and type(value) in IMMUTABLE_CELL_TYPES and (isinstance(parent, list) or slot in parent):
+        if parts and type(value) in JOURNALED_CELL_TYPES and (isinstance(parent, list) or slot in parent):
             old = parent[slot]
-            if type(old) in IMMUTABLE_CELL_TYPES:
+            if type(old) in JOURNALED_CELL_TYPES:
                 cells = self._before_cells.setdefault(key, {})
                 path = tuple(parts)
-                if path in cells or len(cells) < MAX_TRACKED_CELLS_PER_TAG:
-                    cells.setdefault(path, old)
+                if path in cells or any(path[:length] in cells for length in range(1, len(path))):
+                    return
+                compound = isinstance(old, (list, dict)) or isinstance(value, (list, dict))
+                supersedes = compound and any(saved[:len(path)] == path for saved in cells)
+                if len(cells) < MAX_TRACKED_CELLS_PER_TAG and not supersedes:
+                    # Local store rollback can put the old record back into
+                    # live storage. Keep its snapshot detached from that record.
+                    cells[path] = copy.deepcopy(old) if isinstance(old, (list, dict)) else old
                     return
         self._remember(key)
 
