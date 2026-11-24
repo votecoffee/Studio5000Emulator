@@ -560,6 +560,7 @@ so a handler can repair the range before the next sort.
 [Sequencer operand selection](docs/sequencer-operands.md) defers dormant mask
 and payload indices while preserving held output and teach updates. SQI,
 SQO and SQL check the reached row within the selected array or member.
+Sequencers journal CONTROL field changes without copying the containing tag.
 A row overrun sets ER for SQI/SQO or raises a
 [recoverable Type 4 Code 20 fault](docs/controller-handlers.md#recover-sequencer-array-faults) for SQL.
 

@@ -60,9 +60,17 @@ def _validate(memory, op, scope):
                     raise ModelError('SQO destination must not share the table array storage')
 
 
+def _selected_control(memory, op, scope):
+    ref = op.args[2 if op.name == 'SQL' else 3]
+    key, parts, dtype = memory.check_writable(ref, scope)
+    return key, parts, controls.control_at(memory, key, parts, dtype, mutable=False)
+
+
 def prescan(memory, op, scope):
     if op.name != 'SQI':
-        controls.control(memory, op.args[2 if op.name == 'SQL' else 3], scope)['EN'] = True
+        key, parts, obj = _selected_control(memory, op, scope)
+        if obj['EN'] is not True:
+            memory.store(key, parts + ['EN'], True)
 
 
 def source_value(memory,ref,scope):
@@ -72,38 +80,50 @@ def source_value(memory,ref,scope):
 
 def execute(memory, op, power, scope):
     validate(memory, op, scope)
-    obj = controls.control(memory, op.args[2 if op.name == 'SQL' else 3], scope)
-    previous = obj.copy()
+    key, parts, obj = _selected_control(memory, op, scope)
+    if not power:
+        if op.name != 'SQI' and obj['EN'] is not False:
+            memory.store(key, parts + ['EN'], False)
+        return False
+
+    # Apply changes at the captured address as operands are evaluated, so
+    # indirect payload references can see the new position in this call.
+    previous = {}
+
+    def set_control(**fields):
+        for field, value in fields.items():
+            if obj[field] is not value:
+                previous.setdefault(field, obj[field])
+                memory.store(key, parts + [field], value)
+
     try:
-        return _execute(memory, op, power, scope, obj)
+        return _execute_powered(memory, op, scope, obj, set_control)
     except ArrayBoundsError:
-        obj.update(previous)
+        for field, value in previous.items():
+            memory.store(key, parts + [field], value)
         raise
 
 
-def _execute(memory, op, power, scope, obj):
+def _execute_powered(memory, op, scope, obj, set_control):
     a = op.args;n = op.name
-    if not power:
-        if n != 'SQI':obj['EN'] = False
-        return False
     length, position = controls.integer(obj, 'LEN'), controls.integer(obj, 'POS')
     if n == 'SQI':
-        obj['ER'] = False
+        set_control(ER=False)
         if length <= 0 or not 0 <= position <= length:
-            obj['ER'] = True
+            set_control(ER=True)
             return False
     else:
-        obj['DN'] = False
+        set_control(DN=False)
         if length <= 0 or position < 0:
-            obj.update(EN=True, ER=True, DN=position == length)
+            set_control(EN=True, ER=True, DN=position == length)
             return True
         if not controls.flag(obj, 'EN'):
-            obj.update(EN=True, ER=False)
+            set_control(EN=True, ER=False)
             position = position + 1 if position < length else 1
-            obj['POS'] = position
-        obj['DN'] = position == length
+            set_control(POS=position)
+        set_control(DN=position == length)
         if position > length:
-            obj['ER'] = True
+            set_control(ER=True)
             return True
     # LEN counts cyclic rows 1..LEN; row zero is retained for startup.
     if length + 1 > controls.MAX_ELEMENTS:
@@ -114,7 +134,7 @@ def _execute(memory, op, power, scope, obj):
     except BlockExtentError as error:
         if n == 'SQL':
             raise ArrayBoundsError('SQL position exceeds the selected table boundary (Type 4 Code 20)') from error
-        obj['ER'] = True
+        set_control(ER=True)
         return n == 'SQO'
     if n == 'SQL':
         memory.store(key, paths[0], source_value(memory, a[1], scope))

@@ -1,6 +1,7 @@
 """Sequencer mask/payload selection, held data, unknowns and rollback."""
 import copy
 import unittest
+from unittest.mock import patch
 from xml.etree import ElementTree as E
 
 import test_control_operations as fixtures
@@ -50,6 +51,35 @@ class SequencerOperandTests(unittest.TestCase):
         e.memory.write('MaskIndex', 99); before = self.snapshot(e)
         with self.assertRaisesRegex(ModelError, 'outside bounds'):e.step()
         self.assertEqual(self.snapshot(e), before)
+
+    def test_sqo_journals_captured_control_and_reads_new_position_in_operands(self):
+        def saved_controls(root):
+            array = root.find('./Controller/Tags/Tag[@Name="Controls"]/Data/Array')
+            fixtures.control_data(E.SubElement(array, 'Element', Index='[1]'), 2, 1, ER=True)
+            fixtures.control_data(E.SubElement(array, 'Element', Index='[2]'), 0, 47)
+
+        e = self.checked([
+            'XIC(StartPB)SQO(Queue[0],Masks[Controls[1].POS],'
+            'Outputs[Controls[1].POS+OutputIndex],Controls[Controls[1].POS],?,?);',
+        ], queue=(10, 20, 30, 99), mutate=saved_controls)
+        for address, value in (('Masks[1]', 0), ('Masks[2]', -1), ('OutputIndex', 1)):
+            e.memory.write(address, value)
+        with patch.object(e.memory, '_remember', wraps=e.memory._remember) as snapshot_tag:
+            e.step()
+            e.memory.write('StartPB', True)
+            before = self.snapshot(e)
+            with self.assertRaisesRegex(ModelError, 'outside bounds'):
+                e.step()
+            self.assertEqual(self.snapshot(e), before)
+            e.memory.write('OutputIndex', 0)
+            e.step()
+        self.assertNotIn('controls', [call.args[0] for call in snapshot_tag.call_args_list])
+        self.assertEqual(e.memory.read('Outputs', mutable=False), [None, None, 30])
+        self.assertEqual(e.memory.read('Controls[1].POS'), 2)
+        self.assertTrue(e.memory.read('Controls[1].EN'))
+        self.assertTrue(e.memory.read('Controls[1].DN'))
+        self.assertFalse(e.memory.read('Controls[1].ER'))
+        self.assertEqual(e.memory.read('Controls[2].POS'), 47)
 
     def test_sqi_false_and_zero_mask_skip_compared_source_but_nonzero_consumes_it(self):
         e = self.checked(['XIC(StartPB)SQI(Queue[0],Masks[MaskIndex],Samples[PayloadIndex],Ctl,?,?)OTE(RunLatch);'], length=2, queue=(10, 20, 30, 999))
