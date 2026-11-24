@@ -68,8 +68,8 @@ This format is not offered as a complete controller formatting contract.
 A cleared Type 4 Code 20 in a ladder string conversion
 [skips its result write](controller-handlers.md#recover-string-operation-and-conversion-array-faults).
 Other conversion errors roll back the whole modeled advance, including earlier
-text/numeric/AOI writes, time and scheduler state. Native continuation,
-partial writes and math/status flags remain unverified.
+text/numeric/AOI writes, time and scheduler state. Native fault continuation
+and partial writes remain unverified.
 
 ## STOD decimal input
 
@@ -80,8 +80,17 @@ starts a number with a zero whole-number part. For example, `W=-.75/99` gives
 rule in installed v35 help 14549 and the published [STOD reference](https://www.rockwellautomation.com/en-cz/docs/studio-5000-logix-designer/38-03/contents-ditamap/instruction-set/ascii-conversion-instructions/string-to-dint-stod.html).
 The software writes zero when the input has no numeric run and rolls back the
 advance when the result exceeds the destination's range. In ladder, STOD and
-STOR include Type 4 Code 53 in that error. Native continuation, partial writes
-and status behavior remain unverified.
+STOR include Type 4 Code 53 in that error.
+
+### Ladder math status
+
+After a successful STOD or STOR write, contacts later on the same ladder rung
+can test `S:N` for a negative stored result and `S:Z` for zero. This includes
+REAL values that round to zero. A successful conversion clears `S:V` and
+preserves `S:C` under the emulator's existing rung status rules. A skipped
+conversion leaves the current flags available to other branches. ST calls
+produce no ladder status. Native flag lifetime and fault-path effects remain
+unverified. [Rockwell math status flags](https://www.rockwellautomation.com/en-in/docs/studio-5000-logix-designer/38-00/contents-ditamap/instruction-set/math-status-flags.html)
 
 ### Partially exported strings in ladder
 

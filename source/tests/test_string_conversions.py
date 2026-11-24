@@ -10,6 +10,21 @@ import test_string_operations as fixtures
 from logixlab.model import ModelError, coerce
 
 
+def conversion_status_fixture(root):
+    controller = root.find('Controller')
+    controller.set('ReportMinorOverflow', 'false')
+    tags = controller.find('Tags')
+    byte = E.SubElement(tags, 'Tag', Name='StatusByte', DataType='SINT', TagType='Base')
+    E.SubElement(E.SubElement(byte, 'Data', Format='Decorated'),
+                 'DataValue', DataType='SINT', Value='0')
+    flags = E.SubElement(tags, 'Tag', Name='ConversionFlags', DataType='BOOL',
+                         TagType='Base', Dimensions='5')
+    array = E.SubElement(E.SubElement(flags, 'Data', Format='Decorated'),
+                         'Array', DataType='BOOL', Dimensions='5')
+    for index in range(5):
+        E.SubElement(array, 'Element', Index=f'[{index}]', Value='0')
+
+
 class StringConversionTests(unittest.TestCase):
     setUp=fixtures.StringOperationTests.setUp
     checked=fixtures.StringOperationTests.checked
@@ -64,6 +79,45 @@ class StringConversionTests(unittest.TestCase):
     def test_stor_float32_rounding_matches_the_saved_binary_value(self):
         e=self.checked(['STOR(SourceA,RealDest);']);e.memory.write('SourceA','15.3001');e.step()
         self.assertEqual(e.memory.read('RealDest'),15.300100326538086)
+
+    def test_successful_string_number_conversions_publish_same_rung_status(self):
+        for instruction, dest, values in (
+            ('STOD', 'Result', (('WT=-12.5', -12), ('WT=-.7', 0), ('WT=12.5', 12))),
+            ('STOR', 'RealDest', (('WT=-12.5', -12.5), ('-0.' + '0' * 50 + '1', -0.0), ('WT=12.5', 12.5))),
+        ):
+            with self.subTest(instruction=instruction):
+                e = self.checked([
+                    f'ADD(-1,-128,StatusByte)[XIC(StartPB){instruction}(SourceA,{dest}),XIO(StartPB)]'
+                    '[XIC(S:N)OTE(ConversionFlags[0]),XIC(S:Z)OTE(ConversionFlags[1]),'
+                    'XIC(S:V)OTE(ConversionFlags[2]),XIC(S:C)OTE(ConversionFlags[3])];',
+                    'XIC(S:N)OTE(ConversionFlags[4]);',
+                    'CPT(SpeedCommand,1/Count);',
+                ], mutate=conversion_status_fixture)
+                memory = e.memory
+                memory.write('Count', 1)
+                memory.write('StartPB', False)
+                e.step()
+                self.assertEqual(memory.read(dest), 99)
+                self.assertEqual(memory.read('ConversionFlags'), [False, False, True, True, False])
+
+                memory.write('StartPB', True)
+                for source, expected in values:
+                    memory.write('SourceA', source)
+                    e.step()
+                    self.assertEqual(memory.read(dest), expected)
+                    self.assertEqual(memory.read('ConversionFlags'),
+                                     [expected < 0, expected == 0, False, True, False])
+
+                memory.write('SourceA', '-1')
+                memory.write('Count', 0)
+                before = copy.deepcopy(memory.values)
+                with self.assertRaisesRegex(ModelError, 'zero'):
+                    e.step()
+                self.assertEqual(memory.values, before)
+                memory.write('Count', 1)
+                e.step()
+                self.assertEqual(memory.read(dest), -1)
+                self.assertEqual(memory.read('ConversionFlags'), [True, False, False, True, False])
 
     def test_ladder_numeric_conversion_uses_the_first_group_before_missing_bytes(self):
         for instruction, prefix, expected in (

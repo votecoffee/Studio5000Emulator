@@ -74,6 +74,7 @@ def write_integer(engine, source, ref, scope):
     except ModelError as error:
         raise StringNumericRangeError(str(error)) from error
     memory.store(key, parts, value)
+    memory.record_math_result(value)
 
 
 def parse_real(text, *, complete=True):
@@ -117,7 +118,7 @@ def execute(engine, op, scope):
         memory.write_string(dest, format_real(memory.read(source, scope)), scope)
     elif op.name == 'STOR':
         text, complete = numeric_text(engine, source, scope)
-        memory.write(dest, parse_real(text, complete=complete), scope)
+        memory.write(dest, parse_real(text, complete=complete), scope, math_result=True)
     else:
         checked_dest = dest if scheduled_ladder_context(engine, scope) else None
         text = memory.string(source, scope, destination=checked_dest)
@@ -137,6 +138,7 @@ def description():
                 prescan='No initialization; false rung/skipped ST branch retains destinations',
                 case_capacity_diagnostics='Scheduled ladder LOWER and UPPER report Type 4 Code 52 when the valid source LEN exceeds destination capacity, before consuming active DATA',
                 result_range_diagnostics='Ladder STOD and STOR report Type 4 Code 53 for numeric result overflow and roll back the advance',
+                math_status='Successful STOD and STOR update S:N and S:Z from the stored result and clear S:V in the current ladder rung. S:C is retained.',
                 native_formatting_parity=False, native_math_status=False, native_fault_classification=False,
                 remaining=['Native RTOS precision/trailing-zero/exponent formatting', 'STOR exponent/no-digit/malformed input parity',
                            'Wider numeric types and ST expression operands', 'Native status/fault/partial-write behavior', 'FBD execution'])
