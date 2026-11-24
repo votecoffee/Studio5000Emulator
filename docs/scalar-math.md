@@ -405,11 +405,25 @@ Both operand orders and supported typed immediates follow the same rules.
 Successful writes update modeled same-rung math status from the stored value.
 
 Enabled instructions check both source addresses and the destination first.
-An invalid or unknown subscript still prevents execution. Two omitted sources,
-other bitwise instructions, floating-point forms and expression operands retain
-their existing value requirements. This handles incomplete exports in the
-emulator. See Rockwell's v35 help topics 14670 and 14687 for the AND/OR
-truth tables and integer zero extension.
+An invalid or unknown subscript still prevents execution. AND and OR still
+require at least one source value. See Rockwell's v35 help topics 14670 and
+14687 for the truth tables and integer zero extension.
+
+## XOR of the same integer address
+
+Standalone v35 ControlLogix 5580 ladder XOR stores zero when both integer
+sources resolve to the same scalar address. The two references may use
+different spellings, aliases or live indices. For example,
+`XOR(FirstWord,Words[Index],Result)` can run with an omitted `Words[0]`
+if `FirstWord` aliases that element and `Index` is zero. Changing the index
+to another element makes the instruction require both values again.
+
+The destination must be an integer, and its address is checked before any
+write. The complete store sets modeled same-rung zero status. Floating
+operands and expression forms retain their existing behavior. See Rockwell's
+v35 help topic 14683 for the XOR truth table and
+[MEQ](numeric-comparisons.md#meq-of-the-same-integer-address) for the
+corresponding masked comparison.
 
 ## Finite REAL remainder
 

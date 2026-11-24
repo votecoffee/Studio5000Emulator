@@ -777,6 +777,9 @@ destinations. Integer-tag `AND`/`OR`/`XOR`/`NOT` mix all eight signed/unsigned
 integer types using declared widths, zero extension and destination low bits.
 [Integer ladder AND and OR](docs/scalar-math.md#and-and-or-with-omitted-source-values)
 can store a complete result when an omitted source cannot affect any stored bit.
+[Integer XOR and MEQ](docs/scalar-math.md#xor-of-the-same-integer-address)
+can evaluate when both source references resolve to the same value in storage,
+including an array element omitted from the export.
 Enable `MixedBitwise` in **Bit lab** for exact 64-bit and signed/unsigned examples.
 `BitwiseWidths` shows narrow cases. `WideMaskEnabled` demonstrates
 [plain 32-bit masks with wide tags](docs/typed-bitwise-operands.md#plain-immediates-with-wide-tags),

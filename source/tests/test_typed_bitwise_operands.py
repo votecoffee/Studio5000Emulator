@@ -90,6 +90,41 @@ class TypedBitwiseOperandTests(unittest.TestCase):
             self.assertTrue(e.memory.read('RunLatch'))
             self.assertIsNone(e.memory.read('Inputs')[1])
 
+    def test_meq_same_address_accepts_an_omitted_mask_and_comparand(self):
+        def fields(root):
+            E.SubElement(root.find('Controller/Tags'), 'Tag', Name='FirstInput',
+                         TagType='Alias', AliasFor='Inputs[0]')
+
+        e = self.checked(['MEQ(FirstInput,Results[2],Inputs[Index])OTE(RunLatch);',
+                          'MEQ(FirstInput,16#FFFF_FFFF_FFFF_FFFFUL,Inputs[Index])OTE(StartPB);'],
+                         mutate=fields)
+        e.step()
+        self.assertTrue(e.memory.read('RunLatch'))
+        self.assertTrue(e.memory.read('StartPB'))
+        self.assertEqual(e.memory.read('Results'), [None] * 3)
+        self.assertEqual(e.memory.read('Inputs'), [None] * 3)
+
+        e.memory.write('Index', 1)
+        self.fault(e, 'Unknown.*Results')
+        e.memory.write('Results[2]', 1)
+        self.fault(e, 'Unknown.*FirstInput')
+        e.memory.write('Inputs[0]', 4)
+        e.memory.write('Inputs[1]', 6)
+        e.step()
+        self.assertTrue(e.memory.read('RunLatch'))
+        self.assertFalse(e.memory.read('StartPB'))
+
+    def test_meq_same_comparand_checks_the_mask_address_when_enabled(self):
+        e = self.checked(['XIC(StartPB)MEQ(Inputs[0],Results[Index],Inputs[0])OTE(RunLatch);'])
+        e.memory.write('Index', 99)
+        e.step()
+        self.assertFalse(e.memory.read('RunLatch'))
+        e.memory.write('StartPB', True)
+        self.fault(e, 'outside bounds')
+        e.memory.write('Index', 0)
+        e.step()
+        self.assertTrue(e.memory.read('RunLatch'))
+
     def test_full_unknown_writes_overlap_and_late_faults_are_atomic(self):
         e=self.checked(['OR(18446744073709551615UL,0L,Results[1]);'],dest='ULINT');e.step();self.assertEqual(e.memory.read('Results'),[None,(1<<64)-1,None])
         e=self.checked(['OR(Source,1UL,Source);'],source='ULINT',value=1<<63);e.step();self.assertEqual(e.memory.read('Source'),(1<<63)+1)

@@ -4,6 +4,10 @@ Language order: **ladder → Structured Text → FBD → SFC**. Complete and qua
 ladder and ST before new FBD/SFC feature work. Existing partial language
 implementations remain available; their presence does not complete these gates.
 
+[Integer XOR](scalar-math.md#xor-of-the-same-integer-address) and
+[MEQ](numeric-comparisons.md#meq-of-the-same-integer-address) can evaluate
+comparands at the same resolved address with omitted values in `26.1124.092832`.
+
 [Integer ladder AND and OR](scalar-math.md#and-and-or-with-omitted-source-values)
 accept omitted source values when the known source determines every stored
 bit in `26.1124.092206`. Reached addresses and required values remain checked.

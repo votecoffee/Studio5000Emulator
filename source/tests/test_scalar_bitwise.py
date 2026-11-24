@@ -217,6 +217,51 @@ class ScalarBitwiseTests(unittest.TestCase):
         self.assertEqual(e.memory.read('Results'),[None,-512,None]);self.assertEqual(e.memory.read('Source'),-1)
         e=self.checked(['NOT(Source,Source);'],source='SINT');e.step();self.assertEqual(e.memory.read('Source'),0)
 
+    def test_xor_alias_and_indirect_source_match_only_at_the_same_address(self):
+        def fields(root):
+            E.SubElement(root.find('Controller/Tags'), 'Tag', Name='FirstInput',
+                         TagType='Alias', AliasFor='Inputs[0]')
+
+        e = self.checked(['XIC(StartPB)XOR(FirstInput,Inputs[Index],Results[Index])'
+                          'XIC(S:Z)OTE(RunLatch);'], mutate=fields)
+        e.memory.write('Index', 99)
+        e.step()
+        e.memory.write('StartPB', True)
+        before = self.snapshot(e)
+        with self.assertRaisesRegex(ModelError, 'outside bounds'):
+            e.step()
+        self.assertEqual(self.snapshot(e), before)
+        e.memory.write('Index', 0)
+        e.step()
+        self.assertEqual(e.memory.read('Results'), [0, None, None])
+        self.assertEqual(e.memory.read('Inputs'), [None] * 3)
+        self.assertTrue(e.memory.read('RunLatch'))
+
+        e.memory.write('Index', 1)
+        before = self.snapshot(e)
+        with self.assertRaisesRegex(ModelError, 'Unknown.*FirstInput'):
+            e.step()
+        self.assertEqual(self.snapshot(e), before)
+        e.memory.write('Inputs[0]', 3)
+        e.memory.write('Inputs[1]', 1)
+        e.step()
+        self.assertEqual(e.memory.read('Results'), [0, 2, None])
+        self.assertFalse(e.memory.read('RunLatch'))
+
+    def test_xor_self_checks_the_destination_and_requires_floating_operands(self):
+        e = self.checked(['XOR(Inputs[0],Inputs[0],Results[Index]);'])
+        e.memory.write('Index', 99)
+        with self.assertRaisesRegex(ModelError, 'outside bounds'):
+            e.step()
+        for source, dest in (('REAL', 'DINT'), ('DINT', 'REAL')):
+            with self.subTest(source=source, dest=dest):
+                e = self.checked(['XOR(Inputs[0],Inputs[0],Results[0]);'],
+                                 source=source, dest=dest, value=1)
+                before = self.snapshot(e)
+                with self.assertRaisesRegex(ModelError, 'Unknown'):
+                    e.step()
+                self.assertEqual(self.snapshot(e), before)
+
     def test_actual_destination_index_is_required_only_when_enabled(self):
         e=self.checked(['XIC(StartPB)NOT(Source,Results[Index]);']);e.memory.write('Index',999);e.step()
         e.memory.write('StartPB',True);before=self.snapshot(e)

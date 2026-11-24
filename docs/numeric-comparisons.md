@@ -134,11 +134,12 @@ Each declared pattern is zero-extended before comparing `(Source & Mask)` with
 64-bit operand; negative LINT values retain 64 bits. No floating-point conversion
 is used, so adjacent 64-bit values remain distinguishable.
 
-An enabled MEQ checks all addresses and reads the mask. If the mask selects no
-bits within a comparand's declared width, its masked value is zero even when the
-export omits the saved value. A zero mask therefore returns true once all
-addresses are valid. A mask that selects any stored bit still requires that
-comparand's value. [Rockwell MEQ reference](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/37-02/contents-ditamap/instruction-set/compare-instructions/mask-equal-to--meq-.html)
+An enabled MEQ checks all addresses. When it compares different operands, it
+reads the mask. If the mask selects no bits within a comparand's declared
+width, its masked value is zero even when the export omits the saved value.
+A zero mask therefore returns true once all addresses are valid. A mask that
+selects any stored bit still requires that comparand's value.
+[Rockwell MEQ reference](https://www.rockwellautomation.com/en-id/docs/studio-5000-logix-designer/37-02/contents-ditamap/instruction-set/compare-instructions/mask-equal-to--meq-.html)
 
 For example, SINT -1 under a ULINT mask of 65536 matches LINT 0, because the
 byte pattern contains only eight set bits. DINT -1 under LINT -1 matches ULINT
@@ -206,3 +207,12 @@ now accept bounded T32/T/LT/DT/LDT literals, including negative durations,
 fractional dates, UTC offsets and constant-only conditions. Exact nanosecond
 comparisons, eager operands, existing file progress and rollback remain; generic,
 ST/index/CPT/FAL temporal expressions and native parity stay separate.
+
+## MEQ of the same integer address
+
+When Source and Compare resolve to the same integer address, they match under
+any mask, including when the export omits the comparand or mask value. This
+applies to aliases and live array indices. An enabled rung still validates
+all references and the actual mask address. If one live index selects a
+different element on a later scan, MEQ requires the mask and any selected
+comparand values for that scan.

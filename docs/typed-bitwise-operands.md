@@ -34,7 +34,8 @@ MEQ applies each operand's pattern width, then compares Source AND Mask against
 Compare AND Mask. A 32-bit mask ignores differences above bit 31; a 64-bit mask
 can expose them. All three positions support typed constants. Operands remain
 read-only. MEQ checks every address and can skip a comparand value if the mask
-selects no bits within its declared width.
+selects no bits within its declared width. [Comparands at the same address](numeric-comparisons.md#meq-of-the-same-integer-address)
+match for any valid mask operand, including a typed immediate.
 
 [Integer AND and OR](scalar-math.md#and-and-or-with-omitted-source-values) can
 write a fully determined result when the other operand's value is omitted.

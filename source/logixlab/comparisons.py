@@ -140,11 +140,17 @@ def ordering_type(types):
 
 
 def masked_specification(memory, args, scope):
-    """Validate every address and return the effective widths without reading values."""
-    if any(integer_math.typed_integer(ref,radix=True) is not None for ref in args):
-        return [integer_math.pattern_width(memory, ref, scope, radix=True) for ref in args], True
+    """Resolve operands and their effective widths before reading any values."""
+    typed = [integer_math.typed_integer(ref, radix=True) for ref in args]
+    radix = any(item is not None for item in typed)
     widths, types, immediates = [], [], []
-    for ref in args:
+    addresses = []
+    for ref, immediate in zip(args, typed, strict=True):
+        if immediate is not None:
+            widths.append(INT_BITS[immediate[0]])
+            types.append(immediate[0])
+            addresses.append(None)
+            continue
         try:
             value = literal(ref)
         except ValueError:
@@ -153,17 +159,21 @@ def masked_specification(memory, args, scope):
                 raise ModelError('MEQ tag operands require scalar signed/unsigned integers')
             widths.append(INT_BITS[dtype])
             types.append(dtype)
+            addresses.append((key, parts))
         else:
             widths.append(operand(memory, ref, scope))
             types.append(None)
             immediates.append(value)
-    if immediates:
+            addresses.append(None)
+    if not radix and immediates:
         widths = integer_math.bitwise_immediate_widths(widths, types, immediates)
-    return widths, False
+    return widths, radix, addresses
 
 
 def masked_equal(memory, args, scope):
-    widths, radix = masked_specification(memory, args, scope)
+    widths, radix, addresses = masked_specification(memory, args, scope)
+    if addresses[0] is not None and addresses[0] == addresses[2]:
+        return True
     mask = integer_math.pattern(memory, args[1], scope, widths[1], radix=radix)
     source, compare = (
         integer_math.pattern(memory, args[index], scope, widths[index], radix=radix) & mask
@@ -263,10 +273,10 @@ def description(project):
                 typed_integer_masked_equal=dict(instruction='MEQ',constant_types=['LINT','UDINT','ULINT'],radix_bases=[2,8,16],
                     operands='Decimal or attached radix L/U/UL source, mask or compare; scalar integer tags and existing DINT/32-bit radix patterns may mix',
                     calculation='Zero-extend each declared pattern, then compare source AND mask with compare AND mask; no numeric signed comparison or floating conversion',
-                    selection='Read-only operands. Enabled calls validate all addresses and read the mask; a source or compare value is read when the mask selects any bit at its width',
+                    selection='Enabled calls validate every address. The same resolved comparand matches with any mask; otherwise read the mask and only comparands with selected bits',
                     scope='RLL v35 5580; other types/consumers and native status/fault/lifecycle parity remain separate',
                     native_runtime_parity=False),
-                masked_equal='All eight integer tag types may mix. Check all addresses, read the mask, and read only comparands whose declared widths intersect the mask.',
+                masked_equal='All eight integer tag types may mix. Check all addresses. Identical resolved comparands match without tag values; otherwise read the mask and relevant comparand values.',
                 meq_types=list(INT_BITS), meq_mixed_integer_tags=True,
                 meq_immediates='Signed DINT and 32-bit radix patterns in any position with all eight integer types; previously accepted homogeneous LINT calls keep signed DINT promotion',
                 limits='Inclusive; low > high accepts values at or outside the endpoints',

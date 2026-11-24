@@ -178,6 +178,7 @@ def bitwise_specification(engine, op, scope):
     """Select declared bit widths and the bounded floating conversion path."""
     memory = engine.memory
     widths, types, immediates = [], [], []
+    source_addresses = []
     typed_immediate = False
     for index, ref in enumerate(op.args):
         destination = index == len(op.args) - 1
@@ -209,18 +210,24 @@ def bitwise_specification(engine, op, scope):
             raise ModelError('Bitwise operands require scalar integers, REAL or LREAL')
         widths.append(INT_BITS[integer_type])
         types.append(dtype)
+        if not destination and op.name == 'XOR':
+            source_addresses.append((key, parts))
     dtype = types[-1]
     if dtype in BITWISE_FLOATS and any(source in UNSIGNED_BITS for source in types[:-1]):
         raise ModelError('Floating bitwise destinations require signed or floating inputs')
     if not typed_immediate and immediates:
         widths = bitwise_immediate_widths(widths, types, immediates)
-    return widths[:-1], types[:-1], dtype
+    return widths[:-1], types[:-1], dtype, source_addresses
 
 
 def execute_bitwise(engine, op, scope):
     """Combine declared integer patterns, converting floating operands numerically."""
     memory = engine.memory
-    widths, source_types, dtype = bitwise_specification(engine, op, scope)
+    widths, source_types, dtype, source_addresses = bitwise_specification(engine, op, scope)
+    if (len(source_addresses) == 2 and source_addresses[0] == source_addresses[1]
+            and source_types[0] in INT_BITS and dtype in INT_BITS):
+        memory.write(op.args[-1], 0, scope, math_result=True)
+        return True
     missing = None
     values = []
     for ref, width, kind in zip(op.args[:-1], widths, source_types, strict=True):
@@ -368,6 +375,7 @@ def description(project):
                 bitwise=dict(types=list(INT_BITS), instructions=sorted(BITWISE),
                              promotion='Zero-extend declared source patterns; NOT inverts after promotion; keep destination low bits',
                              omitted_source='Integer AND/OR can write a determined result after all address checks when the known operand fixes every stored bit that could vary',
+                             same_source_xor='Integer XOR of the same resolved scalar stores zero after checking the source and destination addresses',
                              immediates='Unsuffixed DINT/32-bit radix patterns retain their compatibility rules; typed decimal and radix L/U/UL sources use declared widths',
                              destination='Keep destination low bits and reinterpret signed/unsigned; full writes establish unknowns without floating-point conversion',
                              wide='All eight integer tag types may mix with bounded DINT/32-bit radix or declared-width typed L/U/UL immediates', native_precision=False),
